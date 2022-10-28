@@ -22,6 +22,7 @@ type getAvailableItems = (
 
 export type BuyProduct = (
   sku: Sku,
+  requestJSONString: string | undefined,
   andDangerouslyFinishTransactionAutomaticallyIOS: boolean,
   applicationUsername: string | undefined,
   quantity: number,

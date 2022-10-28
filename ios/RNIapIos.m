@@ -27,6 +27,7 @@ RCT_EXTERN_METHOD(getAvailableItems:
 
 RCT_EXTERN_METHOD(buyProduct:
                   (NSString*)sku
+                  requestJSONString:(NSString*)requestJSONString
                   andDangerouslyFinishTransactionAutomatically:(BOOL)andDangerouslyFinishTransactionAutomatically
                   applicationUsername:(NSString*)applicationUsername
                   quantity:(NSInteger)quantity

@@ -184,6 +184,7 @@ class RNIapIos: RCTEventEmitter, SKRequestDelegate, SKPaymentTransactionObserver
 
     @objc public func buyProduct(
         _ sku: String,
+        requestJSONString: String?,
         andDangerouslyFinishTransactionAutomatically: Bool,
         applicationUsername: String?,
         quantity: Int,
@@ -197,23 +198,29 @@ class RNIapIos: RCTEventEmitter, SKRequestDelegate, SKPaymentTransactionObserver
 
             let payment = SKMutablePayment(product: product)
 
-            if #available(iOS 12.2, tvOS 12.2, *) {
-                if let discountOffer = discountOffer, let identifier = discountOffer["identifier"], let keyIdentifier = discountOffer["keyIdentifier"], let nonce = discountOffer["nonce"], let signature = discountOffer["signature"], let timestamp = discountOffer["timestamp"] {
-                    let discount = SKPaymentDiscount(
-                        identifier: identifier,
-                        keyIdentifier: keyIdentifier,
-                        nonce: UUID(uuidString: nonce)!,
-                        signature: signature,
-                        timestamp: NSNumber(value: Int(timestamp)!))
-                    payment.paymentDiscount = discount
-                }
-            }
-
             if let applicationUsername = applicationUsername {
                 payment.applicationUsername = applicationUsername
             }
-            if quantity > 0 {
-                payment.quantity = quantity
+
+            if let requestJSONString = requestJSONString {
+                let requestData = Data(requestJSONString.utf8);
+                payment.requestData = requestData;
+            } else {
+                if #available(iOS 12.2, tvOS 12.2, *) {
+                    if let discountOffer = discountOffer, let identifier = discountOffer["identifier"], let keyIdentifier = discountOffer["keyIdentifier"], let nonce = discountOffer["nonce"], let signature = discountOffer["signature"], let timestamp = discountOffer["timestamp"] {
+                        let discount = SKPaymentDiscount(
+                            identifier: identifier,
+                            keyIdentifier: keyIdentifier,
+                            nonce: UUID(uuidString: nonce)!,
+                            signature: signature,
+                            timestamp: NSNumber(value: Int(timestamp)!))
+                        payment.paymentDiscount = discount
+                    }
+                }
+
+                if quantity > 0 {
+                    payment.quantity = quantity
+                }
             }
 
             SKPaymentQueue.default().add(payment)
