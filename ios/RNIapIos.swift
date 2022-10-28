@@ -203,8 +203,8 @@ class RNIapIos: RCTEventEmitter, SKRequestDelegate, SKPaymentTransactionObserver
             }
 
             if let requestJSONString = requestJSONString {
-                let requestData = Data(requestJSONString.utf8);
-                payment.requestData = requestData;
+                let requestData = Data(requestJSONString.utf8)
+                payment.requestData = requestData
             } else {
                 if #available(iOS 12.2, tvOS 12.2, *) {
                     if let discountOffer = discountOffer, let identifier = discountOffer["identifier"], let keyIdentifier = discountOffer["keyIdentifier"], let nonce = discountOffer["nonce"], let signature = discountOffer["signature"], let timestamp = discountOffer["timestamp"] {
