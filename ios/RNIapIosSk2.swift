@@ -699,6 +699,7 @@ class RNIapIosSk2iOS15: Sk2Delegate {
 
     public func buyProduct(
         _ sku: String,
+        requestJSONString: String?,
         andDangerouslyFinishTransactionAutomatically: Bool,
         appAccountToken: String?,
         quantity: Int,
@@ -712,18 +713,24 @@ class RNIapIosSk2iOS15: Sk2Delegate {
             if let product = product {
                 do {
                     var options: Set<Product.PurchaseOption> = []
-                    if quantity > -1 {
-                        options.insert(.quantity(quantity))
-                    }
 
-                    let offerID = withOffer["offerID"]
-                    let keyID = withOffer["keyID"]
-                    let nonce = withOffer["nonce"]
-                    let signature = withOffer["signature"]
-                    let timestamp = withOffer["timestamp"]
+                    if let requestJSONString = requestJSONString {
+                        let requestData = Data(requestJSONString.utf8)
+                        options.insert(Product.PurchaseOption.custom(key: "requestData", value: requestData))
+                    } else {
+                        if quantity > -1 {
+                            options.insert(.quantity(quantity))
+                        }
 
-                    if let offerID = offerID, let keyID = keyID, let nonce = nonce, let nonce = UUID(uuidString: nonce), let signature = signature, let signature = signature.data(using: .utf8), let timestamp = timestamp, let timestamp = Int(timestamp) {
-                        options.insert(.promotionalOffer(offerID: offerID, keyID: keyID, nonce: nonce, signature: signature, timestamp: timestamp ))
+                        let offerID = withOffer["offerID"]
+                        let keyID = withOffer["keyID"]
+                        let nonce = withOffer["nonce"]
+                        let signature = withOffer["signature"]
+                        let timestamp = withOffer["timestamp"]
+
+                        if let offerID = offerID, let keyID = keyID, let nonce = nonce, let nonce = UUID(uuidString: nonce), let signature = signature, let signature = signature.data(using: .utf8), let timestamp = timestamp, let timestamp = Int(timestamp) {
+                            options.insert(.promotionalOffer(offerID: offerID, keyID: keyID, nonce: nonce, signature: signature, timestamp: timestamp ))
+                        }
                     }
                     if let appAccountToken = appAccountToken, let appAccountToken = UUID(uuidString: appAccountToken) {
                         options.insert(.appAccountToken(appAccountToken))

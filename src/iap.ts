@@ -611,6 +611,7 @@ export const requestPurchase = (
           const purchase = transactionSk2ToPurchaseMap(
             await RNIapIosSk2.buyProduct(
               sku,
+              requestJSONString,
               andDangerouslyFinishTransactionAutomaticallyIOS,
               appAccountToken,
               quantity ?? -1,
@@ -770,6 +771,7 @@ export const requestSubscription = (
           const purchase = transactionSk2ToPurchaseMap(
             await RNIapIosSk2.buyProduct(
               sku,
+              requestJSONString,
               andDangerouslyFinishTransactionAutomaticallyIOS,
               appAccountToken,
               quantity ?? -1,
