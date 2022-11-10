@@ -33,6 +33,7 @@ protocol Sk2Delegate {
 
     func buyProduct(
         _ sku: String,
+        requestJSONString: String?,
         andDangerouslyFinishTransactionAutomatically: Bool,
         appAccountToken: String?,
         quantity: Int,
@@ -155,6 +156,7 @@ class DummySk2: Sk2Delegate {
 
     func buyProduct(
         _ sku: String,
+        requestJSONString: String?,
         andDangerouslyFinishTransactionAutomatically: Bool,
         appAccountToken: String?,
         quantity: Int,
@@ -330,6 +332,7 @@ class RNIapIosSk2: RCTEventEmitter, Sk2Delegate {
 
     @objc public func buyProduct(
         _ sku: String,
+        requestJSONString: String?,
         andDangerouslyFinishTransactionAutomatically: Bool,
         appAccountToken: String?,
         quantity: Int,
@@ -339,6 +342,7 @@ class RNIapIosSk2: RCTEventEmitter, Sk2Delegate {
     ) {
         delegate.buyProduct(
             sku,
+            requestJSONString: requestJSONString,
             andDangerouslyFinishTransactionAutomatically: andDangerouslyFinishTransactionAutomatically,
             appAccountToken: appAccountToken,
             quantity: quantity,
