@@ -1,5 +1,5 @@
 import Foundation
-import React
+import React_Core
 import StoreKit
 
 protocol Sk2Delegate {

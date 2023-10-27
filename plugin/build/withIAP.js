@@ -56,15 +56,15 @@ const withIAPAndroid = (config, { paymentProvider }) => {
 const withIAP = (config, props) => {
     const paymentProvider = props?.paymentProvider ?? 'Play Store';
     if (!hasPaymentProviderProperValue(paymentProvider)) {
-        config_plugins_1.WarningAggregator.addWarningAndroid('react-native-iap', `The payment provider '${paymentProvider}' is not supported. Please update your app.json file with one of the following supported values: 'Play Store', 'Amazon AppStore', or 'both'.`);
+        config_plugins_2.WarningAggregator.addWarningAndroid('react-native-iap', `The payment provider '${paymentProvider}' is not supported. Please update your app.json file with one of the following supported values: 'Play Store', 'Amazon AppStore', or 'both'.`);
         return config;
     }
     try {
         config = withIAPAndroid(config, { paymentProvider });
     }
     catch (error) {
-        config_plugins_1.WarningAggregator.addWarningAndroid('react-native-iap', `There was a problem configuring react-native-iap in your native Android project: ${error}`);
+        config_plugins_2.WarningAggregator.addWarningAndroid('react-native-iap', `There was a problem configuring react-native-iap in your native Android project: ${error}`);
     }
     return config;
 };
-exports.default = (0, config_plugins_2.createRunOncePlugin)(withIAP, pkg.name, pkg.version);
+exports.default = (0, config_plugins_1.createRunOncePlugin)(withIAP, pkg.name, pkg.version);

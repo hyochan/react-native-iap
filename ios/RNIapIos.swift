@@ -1,4 +1,4 @@
-import React
+import React_Core
 import StoreKit
 
 @objc(RNIapIos)
