@@ -124,6 +124,7 @@ export interface Discount {
 
 export interface ProductAndroid extends ProductCommon {
   type: 'inapp' | 'iap';
+  name: string;
   oneTimePurchaseOfferDetails?: {
     priceCurrencyCode: string;
     formattedPrice: string;
