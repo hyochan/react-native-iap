@@ -592,7 +592,7 @@ class RNIapIosSk2iOS15: Sk2Delegate {
         reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
     ) {
         Task {
-            var purchasedItemsSerialized: [[String : Any?]] = []
+            var purchasedItemsSerialized: [[String: Any?]] = []
 
             func addTransaction(transaction: Transaction, verification: VerificationResult<Transaction>) {
                 purchasedItemsSerialized.append(serialize(transaction, verification))
