@@ -592,10 +592,10 @@ class RNIapIosSk2iOS15: Sk2Delegate {
         reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
     ) {
         Task {
-            var purchasedItems: [Transaction] = []
+            var purchasedItemsSerialized: [[String : Any?]] = []
 
-            func addTransaction(transaction: Transaction) {
-                purchasedItems.append( transaction)
+            func addTransaction(transaction: Transaction, verification: VerificationResult<Transaction>) {
+                purchasedItemsSerialized.append(serialize(transaction, verification))
                 if alsoPublishToEventListener {
                     self.sendEvent?("purchase-updated", serialize(transaction))
                 }
@@ -606,19 +606,19 @@ class RNIapIosSk2iOS15: Sk2Delegate {
                 }
             }
             // Iterate through all of the user's purchased products.
-            for await result in onlyIncludeActiveItems ? Transaction.currentEntitlements : Transaction.all {
+            for await verification in onlyIncludeActiveItems ? Transaction.currentEntitlements : Transaction.all {
                 do {
                     // Check whether the transaction is verified. If it isn’t, catch `failedVerification` error.
-                    let transaction = try checkVerified(result)
+                    let transaction = try checkVerified(verification)
                     // Check the `productType` of the transaction and get the corresponding product from the store.
                     if !onlyIncludeActiveItems {
-                        addTransaction(transaction: transaction)
+                        addTransaction(transaction: transaction, verification: verification)
                         continue
                     }
                     switch transaction.productType {
                     case .nonConsumable:
                         if await productStore.getProduct(productID: transaction.productID) != nil {
-                            addTransaction(transaction: transaction)
+                            addTransaction(transaction: transaction, verification: verification)
                         }
 
                     case .nonRenewable:
@@ -633,18 +633,18 @@ class RNIapIosSk2iOS15: Sk2Delegate {
                                                                                        to: transaction.purchaseDate)!
 
                             if currentDate < expirationDate {
-                                addTransaction(transaction: transaction)
+                                addTransaction(transaction: transaction, verification: verification)
                             }
                         }
 
                     case .autoRenewable:
                         if await productStore.getProduct(productID: transaction.productID) != nil {
-                            addTransaction(transaction: transaction)
+                            addTransaction(transaction: transaction, verification: verification)
                         }
 
                     case .consumable:
                         if await productStore.getProduct(productID: transaction.productID) != nil {
-                            addTransaction(transaction: transaction)
+                            addTransaction(transaction: transaction, verification: verification)
                         }
 
                     default:
@@ -674,7 +674,7 @@ class RNIapIosSk2iOS15: Sk2Delegate {
             // group, so products in the subscriptions array all belong to the same group. The statuses that
             // `product.subscription.status` returns apply to the entire subscription group.
             // subscriptionGroupStatus = try? await subscriptions.first?.subscription?.status.first?.state
-            resolve(purchasedItems.map({(t: Transaction) in serialize(t)}))
+            resolve(purchasedItemsSerialized)
         }
     }
 
