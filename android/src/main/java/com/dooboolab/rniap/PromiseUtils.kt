@@ -33,7 +33,7 @@ object PromiseUtils {
 
     fun rejectPromisesForKey(
         key: String,
-        code: String?,
+        code: String,
         message: String?,
         err: Exception?,
     ) {
