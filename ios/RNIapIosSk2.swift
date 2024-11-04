@@ -102,6 +102,11 @@ protocol Sk2Delegate {
         reject: @escaping RCTPromiseRejectBlock
     )
 
+    func getStorefront(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    )
+
     func startObserving()
     func stopObserving()
 }
@@ -235,6 +240,13 @@ class DummySk2: Sk2Delegate {
     func beginRefundRequest(
         _ sku: String,
         resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        reject(errorCode, errorMessage, nil)
+    }
+
+    func getStorefront(
+        _ resolve: @escaping RCTPromiseResolveBlock,
         reject: @escaping RCTPromiseRejectBlock
     ) {
         reject(errorCode, errorMessage, nil)
@@ -415,6 +427,13 @@ class RNIapIosSk2: RCTEventEmitter, Sk2Delegate {
         reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
     ) {
         delegate.beginRefundRequest(sku, resolve: resolve, reject: reject)
+    }
+
+    @objc public func getStorefront(
+        _ resolve: @escaping RCTPromiseResolveBlock = { _ in },
+        reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
+    ) {
+        delegate.getStorefront(resolve, reject: reject)
     }
 }
 
@@ -1045,5 +1064,12 @@ class RNIapIosSk2iOS15: Sk2Delegate {
         #else
         reject(IapErrors.E_USER_CANCELLED.rawValue, "This method is not available on tvOS", nil)
         #endif
+    }
+
+    public func getStorefront(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        Task {
+            let storefront = await Storefront.current
+            resolve(storefront?.countryCode)
+        }
     }
 }
