@@ -34,17 +34,31 @@ productFlavors {
 }`,
 };
 
+const addLineToFile = (
+  newLine: string,
+  anchor: RegExp | string,
+  offset: number,
+  fileContents: string,
+) => {
+  const lines = fileContents.split('\n');
+  const lineIndex = lines.findIndex((line) => line.match(anchor));
+
+  if (lineIndex === -1) {
+    console.warn(`Anchor "${anchor}" not found, skipping modification.`);
+    return fileContents;
+  }
+
+  lines.splice(lineIndex + offset, 0, newLine);
+  return lines.join('\n');
+};
+
 const addToBuildGradle = (
   newLine: string,
   anchor: RegExp | string,
   offset: number,
   buildGradle: string,
 ) => {
-  const lines = buildGradle.split('\n');
-  const lineIndex = lines.findIndex((line) => line.match(anchor));
-  // add after given line
-  lines.splice(lineIndex + offset, 0, newLine);
-  return lines.join('\n');
+  return addLineToFile(newLine, anchor, offset, buildGradle);
 };
 
 const addToMainActivity = (
@@ -53,11 +67,7 @@ const addToMainActivity = (
   offset: number,
   mainActivity: string,
 ) => {
-  const lines = mainActivity.split('\n');
-  const lineIndex = lines.findIndex((line) => line.match(anchor));
-  // add after given line
-  lines.splice(lineIndex + offset, 0, newLine);
-  return lines.join('\n');
+  return addLineToFile(newLine, anchor, offset, mainActivity);
 };
 
 export const modifyAppBuildGradle = (
