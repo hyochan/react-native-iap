@@ -69,7 +69,7 @@ class RNIapAmazonModule(
                 val status = licenseResponse.requestStatus.also {
                     Log.d(TAG, "LicenseResponse status: $it")
                 }
-                val resolveWith = when (status) {
+                when (status) {
                     LicenseResponse.RequestStatus.LICENSED -> "LICENSED"
                     LicenseResponse.RequestStatus.NOT_LICENSED -> "NOT_LICENSED"
                     LicenseResponse.RequestStatus.EXPIRED -> "EXPIRED"
@@ -77,10 +77,7 @@ class RNIapAmazonModule(
                     LicenseResponse.RequestStatus.ERROR_INVALID_LICENSING_KEYS -> "ERROR_INVALID_LICENSING_KEYS"
                     LicenseResponse.RequestStatus.UNKNOWN_ERROR -> "UNKNOWN_ERROR"
                     else -> null
-                }
-                if (resolveWith != null) {
-                    promise.resolve(resolveWith)
-                }
+                }?.let { promise.resolve(it) }
             }
         } catch (exception: Exception) {
             promise.reject("Error while attempting to check for License", exception)
