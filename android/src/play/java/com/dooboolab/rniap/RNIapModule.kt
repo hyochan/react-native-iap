@@ -248,7 +248,7 @@ class RNIapModule(
             val skuList = mutableListOf<QueryProductDetailsParams.Product>()
             for (i in 0 until skuArr.size()) {
                 if (skuArr.getType(i) == ReadableType.String) {
-                    skuArr.getString(i)?.let { sku ->
+                    skuArr.getString(i).let { sku ->
                         skuList.add(
                             QueryProductDetailsParams.Product
                                 .newBuilder()
@@ -497,7 +497,7 @@ class RNIapModule(
                     }
                     var productDetailParams = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(selectedSku)
                     if (type == BillingClient.ProductType.SUBS) {
-                        offerTokenArr.getString(index)?.let { offerToken ->
+                        offerTokenArr.getString(index).let { offerToken ->
                             // null check for older versions of RN
                             productDetailParams = productDetailParams.setOfferToken(offerToken)
                         }
