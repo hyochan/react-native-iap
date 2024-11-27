@@ -58,10 +58,14 @@ class RNIapAmazonModule(
     @ReactMethod
     fun verifyLicense(promise: Promise) {
         Log.d(
-            TAG, "Amazon's DRM is ${
-                if (BuildConfig.IS_AMAZON_DRM_ENABLED)
-                    "enabled" else "disabled"
-            }"
+            TAG,
+            "Amazon's DRM is ${
+                if (BuildConfig.IS_AMAZON_DRM_ENABLED) {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            }",
         )
 
         if (!BuildConfig.IS_AMAZON_DRM_ENABLED) {
