@@ -66,39 +66,20 @@ class RNIapAmazonModule(
         Log.d(TAG, "Amazon's DRM is enabled")
         try {
             LicensingService.verifyLicense(reactApplicationContext) { licenseResponse ->
-                when (
-                    val status: LicenseResponse.RequestStatus =
-                        licenseResponse.requestStatus
-                ) {
-                    LicenseResponse.RequestStatus.LICENSED -> {
-                        Log.d(TAG, "LicenseResponse status: $status")
-                        promise.resolve("LICENSED")
-                    }
-
-                    LicenseResponse.RequestStatus.NOT_LICENSED -> {
-                        Log.d(TAG, "LicenseResponse status: $status")
-                        promise.resolve("NOT_LICENSED")
-                    }
-
-                    LicenseResponse.RequestStatus.EXPIRED -> {
-                        Log.d(TAG, "LicenseResponse status: $status")
-                        promise.resolve("EXPIRED")
-                    }
-
-                    LicenseResponse.RequestStatus.ERROR_VERIFICATION -> {
-                        Log.d(TAG, "LicenseResponse status: $status")
-                        promise.resolve("ERROR_VERIFICATION")
-                    }
-
-                    LicenseResponse.RequestStatus.ERROR_INVALID_LICENSING_KEYS -> {
-                        Log.d(TAG, "LicenseResponse status: $status")
-                        promise.resolve("ERROR_INVALID_LICENSING_KEYS")
-                    }
-
-                    LicenseResponse.RequestStatus.UNKNOWN_ERROR -> {
-                        Log.d(TAG, "LicenseResponse status: $status")
-                        promise.resolve("UNKNOWN_ERROR")
-                    }
+                val status = licenseResponse.requestStatus.also {
+                    Log.d(TAG, "LicenseResponse status: $it")
+                }
+                val resolveWith = when (status) {
+                    LicenseResponse.RequestStatus.LICENSED -> "LICENSED"
+                    LicenseResponse.RequestStatus.NOT_LICENSED -> "NOT_LICENSED"
+                    LicenseResponse.RequestStatus.EXPIRED -> "EXPIRED"
+                    LicenseResponse.RequestStatus.ERROR_VERIFICATION -> "ERROR_VERIFICATION"
+                    LicenseResponse.RequestStatus.ERROR_INVALID_LICENSING_KEYS -> "ERROR_INVALID_LICENSING_KEYS"
+                    LicenseResponse.RequestStatus.UNKNOWN_ERROR -> "UNKNOWN_ERROR"
+                    else -> null
+                }
+                if (resolveWith != null) {
+                    promise.resolve(resolveWith)
                 }
             }
         } catch (exception: Exception) {
