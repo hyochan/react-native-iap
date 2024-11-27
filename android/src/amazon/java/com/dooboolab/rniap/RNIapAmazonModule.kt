@@ -57,46 +57,56 @@ class RNIapAmazonModule(
 
     @ReactMethod
     fun verifyLicense(promise: Promise) {
-        if (BuildConfig.IS_AMAZON_DRM_ENABLED) {
-            Log.d(TAG, "Amazon's DRM is enabled")
-            try {
-                LicensingService.verifyLicense(reactApplicationContext) { licenseResponse ->
-                    when (
-                        val status: LicenseResponse.RequestStatus =
-                            licenseResponse.requestStatus
-                    ) {
-                        LicenseResponse.RequestStatus.LICENSED -> {
-                            Log.d(TAG, "LicenseResponse status: $status")
-                            promise.resolve("LICENSED")
-                        }
-                        LicenseResponse.RequestStatus.NOT_LICENSED -> {
-                            Log.d(TAG, "LicenseResponse status: $status")
-                            promise.resolve("NOT_LICENSED")
-                        }
-                        LicenseResponse.RequestStatus.EXPIRED -> {
-                            Log.d(TAG, "LicenseResponse status: $status")
-                            promise.resolve("EXPIRED")
-                        }
-                        LicenseResponse.RequestStatus.ERROR_VERIFICATION -> {
-                            Log.d(TAG, "LicenseResponse status: $status")
-                            promise.resolve("ERROR_VERIFICATION")
-                        }
-                        LicenseResponse.RequestStatus.ERROR_INVALID_LICENSING_KEYS -> {
-                            Log.d(TAG, "LicenseResponse status: $status")
-                            promise.resolve("ERROR_INVALID_LICENSING_KEYS")
-                        }
-                        LicenseResponse.RequestStatus.UNKNOWN_ERROR -> {
-                            Log.d(TAG, "LicenseResponse status: $status")
-                            promise.resolve("UNKNOWN_ERROR")
-                        }
+        Log.d(
+            TAG, "Amazon's DRM is ${
+                if (BuildConfig.IS_AMAZON_DRM_ENABLED)
+                    "enabled" else "disabled"
+            }"
+        )
+
+        if (!BuildConfig.IS_AMAZON_DRM_ENABLED) {
+            promise.resolve("NOT_LICENSED")
+            return
+        }
+        try {
+            LicensingService.verifyLicense(reactApplicationContext) { licenseResponse ->
+                when (
+                    val status: LicenseResponse.RequestStatus =
+                        licenseResponse.requestStatus
+                ) {
+                    LicenseResponse.RequestStatus.LICENSED -> {
+                        Log.d(TAG, "LicenseResponse status: $status")
+                        promise.resolve("LICENSED")
+                    }
+
+                    LicenseResponse.RequestStatus.NOT_LICENSED -> {
+                        Log.d(TAG, "LicenseResponse status: $status")
+                        promise.resolve("NOT_LICENSED")
+                    }
+
+                    LicenseResponse.RequestStatus.EXPIRED -> {
+                        Log.d(TAG, "LicenseResponse status: $status")
+                        promise.resolve("EXPIRED")
+                    }
+
+                    LicenseResponse.RequestStatus.ERROR_VERIFICATION -> {
+                        Log.d(TAG, "LicenseResponse status: $status")
+                        promise.resolve("ERROR_VERIFICATION")
+                    }
+
+                    LicenseResponse.RequestStatus.ERROR_INVALID_LICENSING_KEYS -> {
+                        Log.d(TAG, "LicenseResponse status: $status")
+                        promise.resolve("ERROR_INVALID_LICENSING_KEYS")
+                    }
+
+                    LicenseResponse.RequestStatus.UNKNOWN_ERROR -> {
+                        Log.d(TAG, "LicenseResponse status: $status")
+                        promise.resolve("UNKNOWN_ERROR")
                     }
                 }
-            } catch (exception: Exception) {
-                promise.reject("Error while attempting to check for License", exception)
             }
-        } else {
-            Log.d(TAG, "Amazon's DRM is disabled")
-            promise.resolve("NOT_LICENSED")
+        } catch (exception: Exception) {
+            promise.reject("Error while attempting to check for License", exception)
         }
     }
 
