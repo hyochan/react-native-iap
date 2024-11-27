@@ -523,10 +523,8 @@ class RNIapModule(
                         }
                     subscriptionUpdateParamsBuilder.setSubscriptionReplacementMode(replacementMode)
                 }
-                if (purchaseToken != null) {
-                    val subscriptionUpdateParams = subscriptionUpdateParamsBuilder.build()
-                    builder.setSubscriptionUpdateParams(subscriptionUpdateParams)
-                }
+                val subscriptionUpdateParams = subscriptionUpdateParamsBuilder.build()
+                builder.setSubscriptionUpdateParams(subscriptionUpdateParams)
             }
             if (obfuscatedAccountId != null) {
                 builder.setObfuscatedAccountId(obfuscatedAccountId)
