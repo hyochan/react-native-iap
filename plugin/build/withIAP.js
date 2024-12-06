@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.modifyProjectBuildGradle = exports.modifyAppBuildGradle = void 0;
+exports.modifyMainActivity = exports.modifyProjectBuildGradle = exports.modifyAppBuildGradle = void 0;
 const config_plugins_1 = require("expo/config-plugins");
 const config_plugins_2 = require("expo/config-plugins");
 const pkg = require('../../package.json');
@@ -31,6 +31,13 @@ const addToBuildGradle = (newLine, anchor, offset, buildGradle) => {
     lines.splice(lineIndex + offset, 0, newLine);
     return lines.join('\n');
 };
+const addToMainActivity = (newLine, anchor, offset, mainActivity) => {
+    const lines = mainActivity.split('\n');
+    const lineIndex = lines.findIndex((line) => line.match(anchor));
+    // add after given line
+    lines.splice(lineIndex + offset, 0, newLine);
+    return lines.join('\n');
+};
 const modifyAppBuildGradle = (buildGradle, paymentProvider) => {
     if (paymentProvider === 'both') {
         if (buildGradle.includes(`flavorDimensions "appstore"`)) {
@@ -53,6 +60,21 @@ const modifyProjectBuildGradle = (buildGradle) => {
     return addToBuildGradle(supportLibVersion, 'ext', 1, buildGradle);
 };
 exports.modifyProjectBuildGradle = modifyProjectBuildGradle;
+const modifyMainActivity = (mainActivity, paymentProvider) => {
+    // These lines only need to be added if Amazon Store is a target
+    if (paymentProvider === 'Play Store')
+        return mainActivity;
+    const importLine = 'import com.dooboolab.rniap.RNIapActivityListener';
+    const listener = 'RNIapActivityListener.registerActivity(this)';
+    if (!mainActivity.includes(importLine)) {
+        mainActivity = addToMainActivity(importLine, 'import expo.modules.ReactActivityDelegateWrapper', 1, mainActivity);
+    }
+    if (!mainActivity.includes(listener)) {
+        mainActivity = addToMainActivity(listener, 'super.onCreate', 1, mainActivity);
+    }
+    return mainActivity;
+};
+exports.modifyMainActivity = modifyMainActivity;
 const withIAPAndroid = (config, { paymentProvider }) => {
     // eslint-disable-next-line @typescript-eslint/no-shadow
     config = (0, config_plugins_1.withAppBuildGradle)(config, (config) => {
@@ -62,6 +84,11 @@ const withIAPAndroid = (config, { paymentProvider }) => {
     // eslint-disable-next-line @typescript-eslint/no-shadow
     config = (0, config_plugins_1.withProjectBuildGradle)(config, (config) => {
         config.modResults.contents = (0, exports.modifyProjectBuildGradle)(config.modResults.contents);
+        return config;
+    });
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    config = (0, config_plugins_1.withMainActivity)(config, (config) => {
+        config.modResults.contents = (0, exports.modifyMainActivity)(config.modResults.contents, paymentProvider);
         return config;
     });
     return config;

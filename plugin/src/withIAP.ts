@@ -1,6 +1,7 @@
 import {
   WarningAggregator,
   withAppBuildGradle,
+  withMainActivity,
   withProjectBuildGradle,
 } from 'expo/config-plugins';
 import {ConfigPlugin, createRunOncePlugin} from 'expo/config-plugins';
@@ -33,17 +34,40 @@ productFlavors {
 }`,
 };
 
+const addLineToFile = (
+  newLine: string,
+  anchor: RegExp | string,
+  offset: number,
+  fileContents: string,
+) => {
+  const lines = fileContents.split('\n');
+  const lineIndex = lines.findIndex((line) => line.match(anchor));
+
+  if (lineIndex === -1) {
+    console.warn(`Anchor "${anchor}" not found, skipping modification.`);
+    return fileContents;
+  }
+
+  lines.splice(lineIndex + offset, 0, newLine);
+  return lines.join('\n');
+};
+
 const addToBuildGradle = (
   newLine: string,
   anchor: RegExp | string,
   offset: number,
   buildGradle: string,
 ) => {
-  const lines = buildGradle.split('\n');
-  const lineIndex = lines.findIndex((line) => line.match(anchor));
-  // add after given line
-  lines.splice(lineIndex + offset, 0, newLine);
-  return lines.join('\n');
+  return addLineToFile(newLine, anchor, offset, buildGradle);
+};
+
+const addToMainActivity = (
+  newLine: string,
+  anchor: RegExp | string,
+  offset: number,
+  mainActivity: string,
+) => {
+  return addLineToFile(newLine, anchor, offset, mainActivity);
 };
 
 export const modifyAppBuildGradle = (
@@ -82,6 +106,34 @@ export const modifyProjectBuildGradle = (buildGradle: string) => {
   return addToBuildGradle(supportLibVersion, 'ext', 1, buildGradle);
 };
 
+export const modifyMainActivity = (
+  mainActivity: string,
+  paymentProvider: PaymentProvider,
+) => {
+  // These lines only need to be added if Amazon Store is a target
+  if (paymentProvider === 'Play Store') return mainActivity;
+
+  const importLine = 'import com.dooboolab.rniap.RNIapActivityListener';
+  const listener = 'RNIapActivityListener.registerActivity(this)';
+  if (!mainActivity.includes(importLine)) {
+    mainActivity = addToMainActivity(
+      importLine,
+      'import expo.modules.ReactActivityDelegateWrapper',
+      1,
+      mainActivity,
+    );
+  }
+  if (!mainActivity.includes(listener)) {
+    mainActivity = addToMainActivity(
+      listener,
+      'super.onCreate',
+      1,
+      mainActivity,
+    );
+  }
+  return mainActivity;
+};
+
 const withIAPAndroid: ConfigPlugin<{paymentProvider: PaymentProvider}> = (
   config,
   {paymentProvider},
@@ -102,6 +154,16 @@ const withIAPAndroid: ConfigPlugin<{paymentProvider: PaymentProvider}> = (
     );
     return config;
   });
+
+  // eslint-disable-next-line @typescript-eslint/no-shadow
+  config = withMainActivity(config, (config) => {
+    config.modResults.contents = modifyMainActivity(
+      config.modResults.contents,
+      paymentProvider,
+    );
+    return config;
+  });
+
   return config;
 };
 
