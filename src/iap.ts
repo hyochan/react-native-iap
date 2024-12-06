@@ -331,7 +331,7 @@ Note that this is only for backaward compatiblity. It won't publish to transacti
 @param {automaticallyFinishRestoredTransactions}:boolean. (IOS Sk1 only) When `true`, all the transactions that are returned are automatically
 finished. This means that if you call this method again you won't get the same result on the same device. On the other hand, if `false` you'd
 have to manually finish the returned transaction once you have delivered the content to your user.
-@param {onlyIncludeActiveItems}:boolean. (IOS Sk2 only). Defaults to false, meaning that it will return one transaction per item purchased. 
+@param {onlyIncludeActiveItems}:boolean. (IOS Sk2 only). Defaults to false, meaning that it will return one transaction per item purchased.
 @See https://developer.apple.com/documentation/storekit/transaction/3851204-currententitlements for details
  */
 export const getPurchaseHistory = ({
@@ -457,7 +457,7 @@ const App = () => {
 ```
 @param {alsoPublishToEventListener}:boolean When `true`, every element will also be pushed to the purchaseUpdated listener.
 Note that this is only for backaward compatiblity. It won't publish to transactionUpdated (Storekit2) Defaults to `false`
-@param {onlyIncludeActiveItems}:boolean. (IOS Sk2 only). Defaults to true, meaning that it will return the transaction if suscription has not expired. 
+@param {onlyIncludeActiveItems}:boolean. (IOS Sk2 only). Defaults to true, meaning that it will return the transaction if suscription has not expired.
 @See https://developer.apple.com/documentation/storekit/transaction/3851204-currententitlements for details
  *
  */
@@ -929,6 +929,39 @@ export const deepLinkToSubscriptions = ({
             ),
           );
         }
+      },
+    }) || (() => Promise.reject(new Error('Unsupported Platform')))
+  )();
+};
+
+/**
+ * Get App Store and Google Play device region.
+ *
+ * App Store: string - ISO 3166-1 Alpha-3 country code representation https://developer.apple.com/documentation/storekit/storefront.
+ *
+ * Google Play: string - ISO-3166-1 alpha2 country code representation https://developer.android.com/reference/com/android/billingclient/api/BillingConfig#getCountryCode()
+ *
+ * ```tsx
+ * import React from 'react';
+ * import {getStorefront} from 'react-native-iap';
+ *
+ * const App = () => {
+ *   React.useEffect(() => {
+ *     getStorefront().then((countryCode) => {
+ *       // ... handle region
+ *     });
+ *   }, []);
+ * };
+ * ```
+ */
+export const getStorefront = (): Promise<string> => {
+  return (
+    Platform.select({
+      android: async () => {
+        return await RNIapModule.getStorefront();
+      },
+      ios: async () => {
+        return await RNIapIosSk2.getStorefront();
       },
     }) || (() => Promise.reject(new Error('Unsupported Platform')))
   )();

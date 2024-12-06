@@ -37,6 +37,7 @@ type finishTransaction = (transactionIdentifier: string) => Promise<boolean>;
 type getPendingTransactions = () => Promise<ProductPurchase[]>;
 type presentCodeRedemptionSheet = () => Promise<null>;
 type showManageSubscriptions = () => Promise<null>;
+type getStorefront = () => Promise<string>;
 
 export interface IosModulePropsSk2 extends NativeModuleProps {
   isAvailable(): number;
@@ -58,6 +59,7 @@ export interface IosModulePropsSk2 extends NativeModuleProps {
   showManageSubscriptions: showManageSubscriptions;
   disable: () => Promise<null>;
   beginRefundRequest: (sku: string) => Promise<RefundRequestStatus>;
+  getStorefront: getStorefront;
 }
 
 /**
