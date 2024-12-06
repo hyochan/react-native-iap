@@ -39,6 +39,7 @@ export type BuyItemByType = (
   type: string,
   skus: Sku[],
   purchaseToken: string | undefined,
+  externalTransactionIdAndroid: string | undefined,
   replacementModeAndroid: ReplacementModesAndroid | -1,
   obfuscatedAccountId: string | undefined,
   obfuscatedProfileId: string | undefined,
