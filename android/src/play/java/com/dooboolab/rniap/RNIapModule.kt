@@ -20,6 +20,8 @@ import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchaseHistoryParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.api.UserChoiceBillingListener
+import com.android.billingclient.api.UserChoiceDetails
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.Promise
@@ -45,7 +47,8 @@ class RNIapModule(
     private val builder: BillingClient.Builder = BillingClient.newBuilder(reactContext).enablePendingPurchases(),
     private val googleApiAvailability: GoogleApiAvailability = GoogleApiAvailability.getInstance(),
 ) : ReactContextBaseJavaModule(reactContext),
-    PurchasesUpdatedListener {
+    PurchasesUpdatedListener,
+    UserChoiceBillingListener {
     private var billingClientCache: BillingClient? = null
     private val skus: MutableMap<String, ProductDetails> = mutableMapOf()
 
@@ -149,7 +152,7 @@ class RNIapModule(
             promise.safeResolve(true)
             return
         }
-        builder.setListener(this).build().also {
+        builder.setListener(this).enableUserChoiceBilling(this).build().also {
             billingClientCache = it
             it.startConnection(
                 object : BillingClientStateListener {
@@ -454,6 +457,7 @@ class RNIapModule(
         type: String,
         skuArr: ReadableArray,
         purchaseToken: String?,
+        externalTransactionID: String?,
         replacementMode: Int,
         obfuscatedAccountId: String?,
         obfuscatedProfileId: String?,
@@ -512,6 +516,9 @@ class RNIapModule(
             builder.setProductDetailsParamsList(productParamsList).setIsOfferPersonalized(isOfferPersonalized)
 
             val subscriptionUpdateParamsBuilder = SubscriptionUpdateParams.newBuilder()
+            if (externalTransactionID != null) {
+                subscriptionUpdateParamsBuilder.setOriginalExternalTransactionId(externalTransactionID)
+            }
             if (purchaseToken != null) {
                 subscriptionUpdateParamsBuilder.setOldPurchaseToken(purchaseToken)
 
@@ -739,6 +746,7 @@ class RNIapModule(
 
     companion object {
         private const val PROMISE_BUY_ITEM = "PROMISE_BUY_ITEM"
+        private const val USER_ALTER_ITEM = "USER_ALTER_ITEM"
         const val TAG = "RNIapModule"
     }
 
@@ -755,5 +763,15 @@ class RNIapModule(
                 }
             }
         reactContext.addLifecycleEventListener(lifecycleEventListener)
+    }
+
+    override fun userSelectedAlternativeBilling(userChoiceDetails: UserChoiceDetails) {
+        val products = userChoiceDetails.products
+        val externalToken = userChoiceDetails.externalTransactionToken
+        val result = Arguments.createMap()
+        result.putString("products", userChoiceDetails.products.toString())
+        result.putString("externalTransactionToken", userChoiceDetails.externalTransactionToken)
+        sendEvent(reactContext, "user-alternative-billing", result)
+        PromiseUtils.resolvePromisesForKey(USER_ALTER_ITEM, null)
     }
 }
