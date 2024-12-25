@@ -74,14 +74,6 @@ export const modifyAppBuildGradle = (
   );
 };
 
-export const modifyProjectBuildGradle = (buildGradle: string) => {
-  const supportLibVersion = `supportLibVersion = "28.0.0"`;
-  if (buildGradle.includes(supportLibVersion)) {
-    return buildGradle;
-  }
-  return addToBuildGradle(supportLibVersion, 'ext', 1, buildGradle);
-};
-
 const withIAPAndroid: ConfigPlugin<{paymentProvider: PaymentProvider}> = (
   config,
   {paymentProvider},
@@ -95,13 +87,6 @@ const withIAPAndroid: ConfigPlugin<{paymentProvider: PaymentProvider}> = (
     return config;
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-shadow
-  config = withProjectBuildGradle(config, (config) => {
-    config.modResults.contents = modifyProjectBuildGradle(
-      config.modResults.contents,
-    );
-    return config;
-  });
   return config;
 };
 
