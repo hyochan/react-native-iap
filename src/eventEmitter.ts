@@ -167,7 +167,7 @@ This is only available for iOS 15 and higher and Storekit 2 is activated
 ## Signature
 
 ```ts
-purchaseUpdatedListener((transactionOrError: TransactionOrError) => {});
+transactionListener((transactionOrError: TransactionEvent) => {});
 ```
 
 ## Usage
@@ -175,11 +175,11 @@ purchaseUpdatedListener((transactionOrError: TransactionOrError) => {});
 ```tsx
 import React, {useEffect} from 'react';
 import {View} from 'react-native';
-import {purchaseUpdatedListener} from 'react-native-iap';
+import {transactionListener} from 'react-native-iap';
 
 const App = () => {
   useEffect(() => {
-    const subscription = purchaseUpdatedListener((transactionOrError: TransactionOrError) => {
+    const subscription = transactionListener((transactionOrError: TransactionEvent) => {
       if(transactionOrError.transaction){
         console.log("There's an update to a transaction", transactionOrError.transaction);
       }else{
