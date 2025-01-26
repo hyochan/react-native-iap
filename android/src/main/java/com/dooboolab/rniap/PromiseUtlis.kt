@@ -1,8 +1,8 @@
 package com.dooboolab.rniap
 
 import android.util.Log
-import com.facebook.react.bridge.ObjectAlreadyConsumedException
 import com.facebook.react.bridge.Promise
+import java.lang.RuntimeException
 
 /**
  * Extension functions used to simplify promise handling since we don't
@@ -14,8 +14,8 @@ const val TAG = "IapPromises"
 fun Promise.safeResolve(value: Any?) {
     try {
         this.resolve(value)
-    } catch (oce: ObjectAlreadyConsumedException) {
-        Log.d(TAG, "Already consumed ${oce.message}")
+    } catch (e: RuntimeException) {
+        Log.d(TAG, "Already consumed ${e.message}")
     }
 }
 
@@ -38,7 +38,7 @@ fun Promise.safeReject(
 ) {
     try {
         this.reject(code, message, throwable)
-    } catch (oce: ObjectAlreadyConsumedException) {
-        Log.d(TAG, "Already consumed ${oce.message}")
+    } catch (e: RuntimeException) {
+        Log.d(TAG, "Already consumed ${e.message}")
     }
 }
