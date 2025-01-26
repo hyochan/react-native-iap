@@ -252,7 +252,7 @@ class RNIapModule(
             val skuList = mutableListOf<QueryProductDetailsParams.Product>()
             for (i in 0 until skuArr.size()) {
                 if (skuArr.getType(i) == ReadableType.String) {
-                    skuArr.getString(i).let { sku ->
+                    skuArr.getString(i)?.let { sku ->
                         skuList.add(
                             QueryProductDetailsParams.Product
                                 .newBuilder()
@@ -441,7 +441,7 @@ class RNIapModule(
                     item.putString("purchaseToken", purchase.purchaseToken)
                     item.putString("dataAndroid", purchase.originalJson)
                     item.putString("signatureAndroid", purchase.signature)
-                    item.putString("developerPayload", purchase.developerPayload)
+                    item.putString("developerPayload", purchase.developerPayload.orEmpty())
                     items.pushMap(item)
                 }
                 promise.safeResolve(items)
@@ -501,8 +501,7 @@ class RNIapModule(
                     }
                     var productDetailParams = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(selectedSku)
                     if (type == BillingClient.ProductType.SUBS) {
-                        offerTokenArr.getString(index).let { offerToken ->
-                            // null check for older versions of RN
+                        offerTokenArr.getString(index)?.let { offerToken ->
                             productDetailParams = productDetailParams.setOfferToken(offerToken)
                         }
                     }
@@ -717,10 +716,11 @@ class RNIapModule(
             billingClient.getBillingConfigAsync(
                 GetBillingConfigParams.newBuilder().build(),
                 BillingConfigResponseListener { result: BillingResult, config: BillingConfig? ->
-                    if (result.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                        promise.safeResolve(config?.getCountryCode())
+                    if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                        promise.safeResolve(config?.countryCode.orEmpty())
                     } else {
-                        promise.safeReject(result?.getResponseCode().toString(), result?.getDebugMessage())
+                        val debugMessage = result.debugMessage.orEmpty()
+                        promise.safeReject(result.responseCode.toString(), debugMessage)
                     }
                 },
             )
