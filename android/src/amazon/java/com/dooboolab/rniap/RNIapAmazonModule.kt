@@ -113,8 +113,9 @@ class RNIapAmazonModule(
         var ii = 0
         val skuSize = skuArr.size()
         while (ii < skuSize) {
-            val sku = skuArr.getString(ii)
-            productSkus.add(sku)
+            skuArr.getString(ii)?.let { sku ->
+                productSkus.add(sku)
+            }
             ii++
         }
         PromiseUtils.addPromiseForKey(PROMISE_GET_PRODUCT_DATA, promise)
