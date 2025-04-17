@@ -54,7 +54,7 @@ jobs:
         working-directory: IapExample/android
 
       - name: Unit tests results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: play-unit-tests-results
           path: IapExample/android/build/reports/tests/testPlayDebugUnitTest/index.html
