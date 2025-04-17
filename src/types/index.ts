@@ -9,6 +9,8 @@ import type * as Apple from './apple';
 
 export type Sku = string;
 
+export type ProrationModesAmazon = '' | 'DEFERRED' | 'IMMEDIATE';
+
 export enum ReplacementModesAndroid {
   UNKNOWN_REPLACEMENT_MODE = 0,
   WITH_TIME_PRORATION = 1,
@@ -262,7 +264,9 @@ export interface RequestSubscriptionAndroid extends RequestPurchaseBaseAndroid {
 export type RequestSubscriptionIOS = RequestPurchaseIOS;
 
 /** As of 2022-10-12, we only use the `sku` field for Amazon subscriptions */
-export type RequestSubscriptionAmazon = RequestSubscriptionIOS;
+export interface RequestSubscriptionAmazon extends RequestSubscriptionIOS {
+  prorationModeAmazon?: ProrationModesAmazon;
+}
 
 export type RequestSubscription =
   | RequestSubscriptionAndroid
