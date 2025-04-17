@@ -282,6 +282,7 @@ class RNIapAmazonListener(
                 val item = Arguments.createMap()
                 item.putString("userIdAmazon", userData.userId)
                 item.putString("userMarketplaceAmazon", userData.marketplace)
+                item.putString("userCountryCode", userData.countryCode)
                 item.putString("userJsonAmazon", userData.toJSON().toString())
                 PromiseUtils
                     .resolvePromisesForKey(RNIapAmazonModule.PROMISE_GET_USER_DATA, item)
