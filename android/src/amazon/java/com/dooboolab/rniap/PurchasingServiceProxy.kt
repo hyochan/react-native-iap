@@ -3,6 +3,7 @@ package com.dooboolab.rniap
 import android.content.Context
 import com.amazon.device.iap.PurchasingListener
 import com.amazon.device.iap.model.FulfillmentResult
+import com.amazon.device.iap.model.ProrationMode
 import com.amazon.device.iap.model.RequestId
 
 interface PurchasingServiceProxy {
@@ -23,4 +24,6 @@ interface PurchasingServiceProxy {
         var0: String?,
         var1: FulfillmentResult?,
     )
+
+    fun modifySubscription(var0: String?, var1: ProrationMode): RequestId
 }
