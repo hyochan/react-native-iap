@@ -23,15 +23,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: "17.x"
+          java-version: '17.x'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           cache: 'yarn'
 
@@ -54,7 +54,7 @@ jobs:
         working-directory: IapExample/android
 
       - name: Unit tests results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: play-unit-tests-results
           path: IapExample/android/build/reports/tests/testPlayDebugUnitTest/index.html
