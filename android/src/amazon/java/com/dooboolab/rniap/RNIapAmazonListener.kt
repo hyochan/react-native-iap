@@ -6,9 +6,8 @@ import com.amazon.device.iap.model.ProductDataResponse
 import com.amazon.device.iap.model.ProductType
 import com.amazon.device.iap.model.PurchaseResponse
 import com.amazon.device.iap.model.PurchaseUpdatesResponse
-import com.amazon.device.iap.model.Receipt
-import com.amazon.device.iap.model.UserData
 import com.amazon.device.iap.model.UserDataResponse
+import com.dooboolab.rniap.utils.toMap
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeArray
@@ -90,7 +89,7 @@ class RNIapAmazonListener(
                 var promiseItem: WritableMap? = null
                 val purchases = response.receipts
                 for (receipt in purchases) {
-                    val item = receiptToMap(userData, receipt)
+                    val item = receipt.toMap(userData)
                     promiseItem = WritableNativeMap()
                     promiseItem.merge(item)
                     eventSender?.sendEvent("purchase-updated", item)
@@ -169,24 +168,6 @@ class RNIapAmazonListener(
         }
     }
 
-    private fun receiptToMap(
-        userData: UserData,
-        receipt: Receipt,
-    ): WritableMap {
-        val item = Arguments.createMap()
-        item.putString("productId", receipt.sku)
-        item.putDouble("transactionDate", receipt.purchaseDate.time.toDouble())
-        item.putString("purchaseToken", receipt.receiptId)
-        item.putString("transactionReceipt", receipt.toJSON().toString())
-        item.putString("userIdAmazon", userData.userId)
-        item.putString("userMarketplaceAmazon", userData.marketplace)
-        item.putString("userJsonAmazon", userData.toJSON().toString())
-        item.putBoolean("isCanceledAmazon", receipt.isCanceled)
-        item.putString("termSku", receipt.termSku)
-        item.putString("productType", receipt.productType.typeString)
-        return item
-    }
-
     override fun onPurchaseResponse(response: PurchaseResponse) {
         val requestId = response.requestId.toString()
         val userId = response.userData.userId
@@ -195,7 +176,7 @@ class RNIapAmazonListener(
             PurchaseResponse.RequestStatus.SUCCESSFUL -> {
                 val receipt = response.receipt
                 val userData = response.userData
-                val item = receiptToMap(userData, receipt)
+                val item = receipt.toMap(userData)
                 val promiseItem: WritableMap = Arguments.createMap()
                 promiseItem.merge(item)
                 eventSender?.sendEvent("purchase-updated", item)
@@ -301,6 +282,7 @@ class RNIapAmazonListener(
                 val item = Arguments.createMap()
                 item.putString("userIdAmazon", userData.userId)
                 item.putString("userMarketplaceAmazon", userData.marketplace)
+                item.putString("userCountryCode", userData.countryCode)
                 item.putString("userJsonAmazon", userData.toJSON().toString())
                 PromiseUtils
                     .resolvePromisesForKey(RNIapAmazonModule.PROMISE_GET_USER_DATA, item)

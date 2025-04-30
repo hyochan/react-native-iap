@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat.startActivity
 import com.amazon.device.drm.LicensingService
 import com.amazon.device.drm.model.LicenseResponse
 import com.amazon.device.iap.model.FulfillmentResult
+import com.amazon.device.iap.model.ProrationMode
 import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -50,8 +51,7 @@ class RNIapAmazonModule(
                     }
                 }
         }
-        RNIapActivityListener.amazonListener?.eventSender = eventSender
-        RNIapActivityListener.amazonListener?.purchasingService = purchasingService
+        RNIapActivityListener.initListeners(eventSender, purchasingService)
         promise.resolve(true)
     }
 
@@ -131,10 +131,18 @@ class RNIapAmazonModule(
     @ReactMethod
     fun buyItemByType(
         sku: String?,
+        proration: String?,
         promise: Promise,
     ) {
         PromiseUtils.addPromiseForKey(PROMISE_BUY_ITEM, promise)
-        val requestId = purchasingService.purchase(sku)
+        val requestId = if (!proration.isNullOrEmpty()) {
+            purchasingService.modifySubscription(
+                sku,
+                if (proration == "DEFERRED") ProrationMode.DEFERRED else ProrationMode.IMMEDIATE,
+            )
+        } else {
+            purchasingService.purchase(sku)
+        }
     }
 
     @ReactMethod

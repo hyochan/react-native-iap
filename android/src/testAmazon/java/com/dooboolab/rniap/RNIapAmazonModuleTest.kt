@@ -114,7 +114,7 @@ class RNIapAmazonModuleTest {
 
         val promise = mockk<Promise>(relaxed = true)
 
-        module.buyItemByType("mySku", promise)
+        module.buyItemByType("mySku", "", promise)
         verify(exactly = 0) { promise.reject(any(), any<String>()) }
         val response = slot<WritableMap>()
         verify { promise.resolve(capture(response)) }
