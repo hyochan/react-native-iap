@@ -14,7 +14,7 @@ project = Xcodeproj::Project.open(project_path)
 config_list = project.root_object.build_configuration_list
 debug_config = config_list.build_configurations.find { |config| config.name == 'Debug' }
 min_ios_version = debug_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
-default_min_ios_version = '15.1'
+default_min_ios_version = '12.4'
 if min_ios_version.nil? || min_ios_version.empty?
   puts "IPHONEOS_DEPLOYMENT_TARGET not set at the project level for Debug configuration. Using default value of #{default_min_ios_version}"
   min_ios_version = default_min_ios_version
