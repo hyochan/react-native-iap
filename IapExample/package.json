@@ -13,7 +13,6 @@
     "postinstall": "rm -rf node_modules/react-native-iap/node_modules"
   },
   "dependencies": {
-    "@react-native-community/cli-platform-android": "^12.2.0",
     "@react-native-masked-view/masked-view": "^0.3.0",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
