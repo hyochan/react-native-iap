@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
 
   successMessage: {
     ...theme.P1,
-    colors: colors.green,
+    color: colors.green,
   },
 
   container: {
