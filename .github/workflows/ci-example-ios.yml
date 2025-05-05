@@ -47,11 +47,11 @@ jobs:
           cache_key: ${{ runner.os }}-buildcache-${{ hashFiles('**/Podfile.lock') }}-${{ hashFiles('**/Podfile')}}
 
       - name: Setup Ruby (bundle)
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@eaecf785f6a34567a6d97f686bbb7bccc1ac1e5c # v1.237.0
         with:
           working-directory: IapExample
           bundler-cache: true
-          ruby-version: '2.7'
+          ruby-version: '3.2'
 
       - name: Install SwiftLint
         run: brew install swiftlint
