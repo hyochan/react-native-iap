@@ -1,11 +1,3 @@
-//
-//  AppDelegate.swift
-//  IapExample
-//
-//  Created by Filipp Mikheev on 3/5/25.
-//
-
-
 import UIKit
 import React
 import React_RCTAppDelegate
