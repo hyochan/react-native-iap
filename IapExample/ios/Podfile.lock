@@ -1588,7 +1588,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNIap (12.16.3):
+  - RNIap (12.16.2):
     - RCT-Folly
     - RCTRequired
     - RCTTypeSafety
@@ -1935,7 +1935,7 @@ SPEC CHECKSUMS:
   ReactCommon: 5340e44b608ed628c3fe87408297185811285c22
   RNCMaskedView: f7c74478c83c4fdfc5cf4df51f80c0dd5cf125c6
   RNGestureHandler: 923e8b8af33907eb738e7d312311c9bfda5782f7
-  RNIap: 792fde978a4c1e9e7fbbacd2287d0d4901a8dd96
+  RNIap: daac81aa70fe3ac6d6967c1c8da3dc4b415b73d6
   RNScreens: 2faba2591006e59fa14b9b665599ce29435a749a
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: 31a098f74c16780569aebd614a0f37a907de0189
