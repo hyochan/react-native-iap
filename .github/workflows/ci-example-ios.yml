@@ -77,10 +77,6 @@ jobs:
           key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock')}}-${{ hashFiles('**/Podfile')}}
           restore-keys: ${{ runner.os }}-pods-
 
-      - name: Update Hermes podspec
-        working-directory: IapExample/ios
-        run: bundle exec pod update hermes-engine --no-repo-update
-
       - name: Install Pods
         run: bundle exec pod install
         working-directory: IapExample/ios
