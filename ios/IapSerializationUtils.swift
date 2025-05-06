@@ -177,31 +177,31 @@ func serialize(_ t: Transaction) -> [String: Any?] {
         #endif
     }
 
-    var result: [String: Any] = [
-        "appAccountToken": t.appAccountToken?.uuidString ?? "",
+    var result: [String: Any?] = [
+        "appAccountToken": t.appAccountToken?.uuidString,
         "appBundleID": t.appBundleID,
-        "debugDescription": serializeDebug(t.debugDescription) ?? "",
+        "debugDescription": serializeDebug(t.debugDescription),
         "deviceVerification": t.deviceVerification,
         "deviceVerificationNonce": t.deviceVerificationNonce.uuidString,
-        "expirationDate": t.expirationDate?.millisecondsSince1970 ?? 0,
-        "environment": environment ?? "",
+        "expirationDate": t.expirationDate?.millisecondsSince1970,
+        "environment": environment,
         "id": t.id,
         "isUpgraded": t.isUpgraded,
-        "jsonRepresentation": serialize(t.jsonRepresentation) ?? "",
-        "offerID": t.offerID ?? "",
-        "offerType": serialize(t.offerType) ?? "",
+        "jsonRepresentation": serialize(t.jsonRepresentation),
+        "offerID": t.offerID,
+        "offerType": serialize(t.offerType),
         "originalID": t.originalID,
         "originalPurchaseDate": t.originalPurchaseDate.millisecondsSince1970,
-        "ownershipType": serialize(t.ownershipType) ?? "",
+        "ownershipType": serialize(t.ownershipType),
         "productID": t.productID,
-        "productType": serialize(t.productType) ?? "",
+        "productType": serialize(t.productType),
         "purchaseDate": t.purchaseDate.millisecondsSince1970,
         "purchasedQuantity": t.purchasedQuantity,
-        "revocationDate": t.revocationDate?.millisecondsSince1970 ?? 0,
-        "revocationReason": t.revocationReason ?? "",
+        "revocationDate": t.revocationDate?.millisecondsSince1970,
+        "revocationReason": t.revocationReason,
         "signedDate": t.signedDate.millisecondsSince1970,
-        "subscriptionGroupID": t.subscriptionGroupID ?? "",
-        "webOrderLineItemID": t.webOrderLineItemID ?? ""
+        "subscriptionGroupID": t.subscriptionGroupID,
+        "webOrderLineItemID": t.webOrderLineItemID
     ]
 
     #if compiler(>=5.10)
