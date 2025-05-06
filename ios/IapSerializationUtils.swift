@@ -177,7 +177,6 @@ func serialize(_ t: Transaction) -> [String: Any?] {
         #endif
     }
 
-
     var result: [String: Any] = [
         "appAccountToken": t.appAccountToken?.uuidString ?? "",
         "appBundleID": t.appBundleID,
