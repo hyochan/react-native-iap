@@ -12,7 +12,9 @@
 
 ## Announcement
 
-Announcing the Migration of react-native-iap to an Expo Module for Improved Maintenance and Compatibility in [discussion #2754](https://github.com/hyochan/react-native-iap/discussions/2754).
+Announcing the Migration of react-native-iap to an Expo Module for Improved Maintenance and Compatibility in [discussion #2754](https://github.com/hyochan/react-native-iap/discussions/2754). 
+
+The [expo-iap](https://github.com/hyochan/expo-iap) library is now ready to use, with support for StoreKit 2 and Google Play Billing.
 
 ## Documentation
 
