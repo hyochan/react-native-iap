@@ -111,7 +111,7 @@ export type TransactionSk2 = {
   deviceVerificationNonce: string;
   expirationDate: number;
   environment?: 'Production' | 'Sandbox' | 'Xcode'; // Could be undefined in some cases on iOS 15, but it's stable since iOS 16
-  id: number;
+  id: string;
   isUpgraded: boolean;
   jsonRepresentation: string;
   offerID: string;
@@ -189,7 +189,7 @@ export const transactionSk2ToPurchaseMap = ({
   }
   const purchase: Purchase = {
     productId: productID,
-    transactionId: String(id),
+    transactionId: id,
     transactionDate: purchaseDate, //??
     transactionReceipt: '', // Not available
     purchaseToken: '', //Not available
