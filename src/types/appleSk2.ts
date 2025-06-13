@@ -106,6 +106,7 @@ export const subscriptionSk2Map = ({
 export type TransactionSk2 = {
   appAccountToken: string;
   appBundleID: string;
+  appTransactionID?: string;
   debugDescription: string;
   deviceVerification: string;
   deviceVerificationNonce: string;
@@ -175,6 +176,7 @@ export const transactionSk2ToPurchaseMap = ({
   originalID,
   verificationResult,
   appAccountToken,
+  appTransactionID,
   jsonRepresentation,
 }: TransactionSk2): Purchase => {
   let transactionReasonIOS;
@@ -198,6 +200,7 @@ export const transactionSk2ToPurchaseMap = ({
     originalTransactionIdentifierIOS: originalID,
     verificationResultIOS: verificationResult ?? '',
     appAccountToken: appAccountToken ?? '',
+    appTransactionID: appTransactionID ?? '',
     transactionReasonIOS: transactionReasonIOS ?? '',
   };
   return purchase;

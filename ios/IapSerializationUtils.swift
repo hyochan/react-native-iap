@@ -177,31 +177,40 @@ func serialize(_ t: Transaction) -> [String: Any?] {
         #endif
     }
 
-    return ["appAccountToken": t.appAccountToken?.uuidString,
-            "appBundleID": t.appBundleID,
-            "debugDescription": serializeDebug(t.debugDescription),
-            "deviceVerification": t.deviceVerification,
-            "deviceVerificationNonce": t.deviceVerificationNonce.uuidString,
-            "expirationDate": t.expirationDate?.millisecondsSince1970,
-            "environment": environment,
-            "id": t.id,
-            "isUpgraded": t.isUpgraded,
-            "jsonRepresentation": serialize(t.jsonRepresentation),
-            "offerID": t.offerID,
-            "offerType": serialize(t.offerType),
-            "originalID": t.originalID,
-            "originalPurchaseDate": t.originalPurchaseDate.millisecondsSince1970,
-            "ownershipType": serialize(t.ownershipType),
-            "productID": t.productID,
-            "productType": serialize(t.productType),
-            "purchaseDate": t.purchaseDate.millisecondsSince1970,
-            "purchasedQuantity": t.purchasedQuantity,
-            "revocationDate": t.revocationDate?.millisecondsSince1970,
-            "revocationReason": t.revocationReason,
-            "signedDate": t.signedDate.millisecondsSince1970,
-            "subscriptionGroupID": t.subscriptionGroupID,
-            "webOrderLineItemID": t.webOrderLineItemID
+    var result: [String: Any?] = [
+        "appAccountToken": t.appAccountToken?.uuidString,
+        "appBundleID": t.appBundleID,
+        "debugDescription": serializeDebug(t.debugDescription),
+        "deviceVerification": t.deviceVerification,
+        "deviceVerificationNonce": t.deviceVerificationNonce.uuidString,
+        "expirationDate": t.expirationDate?.millisecondsSince1970,
+        "environment": environment,
+        "id": t.id,
+        "isUpgraded": t.isUpgraded,
+        "jsonRepresentation": serialize(t.jsonRepresentation),
+        "offerID": t.offerID,
+        "offerType": serialize(t.offerType),
+        "originalID": t.originalID,
+        "originalPurchaseDate": t.originalPurchaseDate.millisecondsSince1970,
+        "ownershipType": serialize(t.ownershipType),
+        "productID": t.productID,
+        "productType": serialize(t.productType),
+        "purchaseDate": t.purchaseDate.millisecondsSince1970,
+        "purchasedQuantity": t.purchasedQuantity,
+        "revocationDate": t.revocationDate?.millisecondsSince1970,
+        "revocationReason": t.revocationReason,
+        "signedDate": t.signedDate.millisecondsSince1970,
+        "subscriptionGroupID": t.subscriptionGroupID,
+        "webOrderLineItemID": t.webOrderLineItemID
     ]
+
+    #if compiler(>=5.10)
+    if #available(iOS 15.2, tvOS 15.2, *) {
+        result["appTransactionID"] = t.appTransactionID
+    }
+    #endif
+
+    return result
 }
 @available(iOS 15.0, tvOS 15.0, *)
 func serialize(_ t: Transaction, _ v: VerificationResult<Transaction>) -> [String: Any?] {
