@@ -4,6 +4,7 @@ import android.content.Context
 import com.amazon.device.iap.PurchasingListener
 import com.amazon.device.iap.PurchasingService
 import com.amazon.device.iap.model.FulfillmentResult
+import com.amazon.device.iap.model.ProrationMode
 import com.amazon.device.iap.model.RequestId
 
 class PurchasingServiceProxyAmazonImpl : PurchasingServiceProxy {
@@ -24,4 +25,7 @@ class PurchasingServiceProxyAmazonImpl : PurchasingServiceProxy {
         var0: String?,
         var1: FulfillmentResult?,
     ) = PurchasingService.notifyFulfillment(var0, var1)
+
+    override fun modifySubscription(var0: String?, var1: ProrationMode): RequestId =
+        PurchasingService.modifySubscription(var0, var1)
 }

@@ -1,7 +1,7 @@
 import {NativeModules} from 'react-native';
 
 import {enhancedFetch} from '../internal';
-import type {Product, Purchase, Sku} from '../types';
+import type {Product, ProrationModesAmazon, Purchase, Sku} from '../types';
 import type {
   AmazonLicensingStatus,
   ReceiptType,
@@ -15,7 +15,10 @@ type GetUser = () => Promise<UserDataAmazon>;
 type FlushFailedPurchasesCachedAsPending = () => Promise<boolean>;
 type GetItemsByType = (type: string, skus: Sku[]) => Promise<Product[]>;
 type GetAvailableItems = () => Promise<Purchase[]>;
-type BuyItemByType = (sku: Sku) => Promise<Purchase>;
+type BuyItemByType = (
+  sku: Sku,
+  proration: ProrationModesAmazon,
+) => Promise<Purchase>;
 
 type AcknowledgePurchase = (
   purchaseToken: string,
