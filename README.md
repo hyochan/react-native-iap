@@ -36,7 +36,7 @@ Read the [documentation](https://react-native-iap.hyo.dev). See the [troubleshoo
 
 - Version `8.0.0` has finally landed in Jan 28th. Since this is early release, please use it with caution 🚧. We recommend user to use `>=8.0.0` with react-native `>=0.65.1`. The `next` package is no longer updated until we organize the roadmap for `9.0.0`.
 
-- Version `8.0.0` is currently in release candidate. The module is completely rewritten with `Kotlin` and `Swift` for maintenenance issue by [andresesfm](https://github.com/andresesfm) 🔆. You may install this for early preview.
+- Version `8.0.0` is currently in release candidate. The module is completely rewritten with `Kotlin` and `Swift` for maintenance issue by [andresesfm](https://github.com/andresesfm) 🔆. You may install this for early preview.
 
 - React Native IAP hook is out. You can see [medium post](https://medium.com/hyochan/announcing-react-native-iap-hooks-96c7ffd3f19a) on how to use it.
 
