@@ -13,38 +13,42 @@
     "postinstall": "rm -rf node_modules/react-native-iap/node_modules"
   },
   "dependencies": {
-    "@react-native-community/cli-platform-android": "^12.2.0",
     "@react-native-masked-view/masked-view": "^0.3.0",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
     "react-native-iap": "file:..",
     "lodash": "^4.17.21",
-    "react": "18.2.0",
-    "react-native": "0.72.17",
-    "react-native-gesture-handler": "^2.14.0",
-    "react-native-safe-area-context": "^4.7.4",
-    "react-native-screens": "^3.27.0"
+    "react": "18.3.1",
+    "react-native": "0.77.2",
+    "react-native-gesture-handler": "2.23.0",
+    "react-native-safe-area-context": "5.2.0",
+    "react-native-screens": "4.9.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "@babel/preset-env": "^7.20.0",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.26.10",
+    "@react-native/babel-preset": "0.77.2",
     "@react-native/eslint-config": "^0.72.2",
-    "@react-native/metro-config": "^0.72.11",
-    "@tsconfig/react-native": "^3.0.0",
+    "@react-native/metro-config": "0.77.2",
+    "@react-native/typescript-config": "0.77.2",
+    "@react-native-community/cli": "15.0.1",
+    "@react-native-community/cli-platform-android": "15.0.1",
+    "@react-native-community/cli-platform-ios": "15.0.1",
+    "@types/jest": "^29.5.13",
     "@types/lodash": "^4.14.202",
-    "@types/react": "^18.0.24",
+    "@types/react": "^18.2.6",
     "@types/react-test-renderer": "^18.0.0",
     "babel-jest": "^29.2.1",
     "eslint": "^8.19.0",
-    "jest": "^29.2.1",
+    "jest": "^29.6.3",
     "metro-react-native-babel-preset": "0.76.8",
     "pod-install": "^0.1.39",
-    "prettier": "^2.4.1",
-    "react-test-renderer": "18.2.0",
-    "typescript": "4.8.4"
+    "prettier": "2.8.8",
+    "react-test-renderer": "18.3.1",
+    "typescript": "5.0.4"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   }
 }

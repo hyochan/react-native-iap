@@ -14,7 +14,7 @@ project = Xcodeproj::Project.open(project_path)
 config_list = project.root_object.build_configuration_list
 debug_config = config_list.build_configurations.find { |config| config.name == 'Debug' }
 min_ios_version = debug_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
-default_min_ios_version = '12.4'
+default_min_ios_version = '15.1'
 if min_ios_version.nil? || min_ios_version.empty?
   puts "IPHONEOS_DEPLOYMENT_TARGET not set at the project level for Debug configuration. Using default value of #{default_min_ios_version}"
   min_ios_version = default_min_ios_version
@@ -34,14 +34,8 @@ end
 target 'IapExample' do
   config = use_native_modules!
 
-  # Flags change depending on the env values.
-  flags = get_default_flags()
-
   use_react_native!(
     :path => config[:reactNativePath],
-    # Hermes is now enabled by default. Disable by setting this flag to false.
-    :hermes_enabled => flags[:hermes_enabled],
-    :fabric_enabled => flags[:fabric_enabled],
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
@@ -56,8 +50,8 @@ target 'IapExample' do
     react_native_post_install(
       installer,
       config[:reactNativePath],
-      :mac_catalyst_enabled => false
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
     )
-    __apply_Xcode_12_5_M1_post_install_workaround(installer)
   end
 end
