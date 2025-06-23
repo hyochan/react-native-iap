@@ -1,6 +1,6 @@
 {
   "name": "react-native-iap",
-  "version": "12.16.2",
+  "version": "12.16.3",
   "description": "React Native In App Purchase Module.",
   "repository": "https://github.com/hyochan/react-native-iap",
   "author": "hyochan <hyo@hyo.dev> (https://github.com/hyochan)",
