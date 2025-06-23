@@ -75,7 +75,7 @@ jobs:
             ~/Library/Caches/CocoaPods
             ~/.cocoapods
           key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock')}}-${{ hashFiles('**/Podfile')}}
-          restore-keys: ${{ runner.os }}-pods-
+          # restore-keys: ${{ runner.os }}-pods-
 
       - name: Install Pods
         run: bundle exec pod install
