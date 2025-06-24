@@ -29,6 +29,7 @@ import {
   Product,
   ProductPurchase,
   ProductType,
+  ProrationModesAmazon,
   Purchase,
   PurchaseResult,
   PurchaseStateAndroid,
@@ -632,7 +633,7 @@ export const requestPurchase = (
             throw new Error('sku is required for Amazon purchase');
           }
           const {sku} = request;
-          return RNIapAmazonModule.buyItemByType(sku);
+          return RNIapAmazonModule.buyItemByType(sku, '');
         } else {
           if (!('skus' in request) || !request.skus.length) {
             throw new Error('skus is required for Android purchase');
@@ -644,7 +645,7 @@ export const requestPurchase = (
             obfuscatedProfileIdAndroid,
             isOfferPersonalized,
           } = request;
-          return getAndroidModule().buyItemByType(
+          return RNIapModule.buyItemByType(
             ANDROID_ITEM_TYPE_IAP,
             skus,
             undefined,
@@ -789,7 +790,11 @@ export const requestSubscription = (
             throw new Error('sku is required for Amazon subscriptions');
           }
           const {sku} = request;
-          return RNIapAmazonModule.buyItemByType(sku);
+          var prorationModeAmazon: ProrationModesAmazon = '';
+          if ('prorationModeAmazon' in request) {
+            prorationModeAmazon = request.prorationModeAmazon || '';
+          }
+          return RNIapAmazonModule.buyItemByType(sku, prorationModeAmazon);
         } else {
           if (
             !('subscriptionOffers' in request) ||

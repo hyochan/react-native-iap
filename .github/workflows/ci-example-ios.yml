@@ -7,7 +7,7 @@ on:
       - 'src/**'
       - 'ios/**'
       - 'IapExample/ios/**'
-      - .github/ci-example-ios.yml
+      - .github/workflows/ci-example-ios.yml
 
   pull_request:
     types: [opened, synchronize, reopened]
@@ -15,7 +15,7 @@ on:
       - 'src/**'
       - 'ios/**'
       - 'IapExample/ios/**'
-      - .github/ci-example-ios.yml
+      - .github/workflows/ci-example-ios.yml
 
 jobs:
   build_ios_example:
@@ -40,18 +40,23 @@ jobs:
         run: yarn install --immutable
         working-directory: IapExample
 
+      - name: Select Xcode version
+        uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
+        with:
+          xcode-version: '16.3'
+
       - name: Restore buildcache
-        uses: mikehardy/buildcache-action@v2
+        uses: mikehardy/buildcache-action@1db83fb06b0da378aa7db7a1110923b904417cbc # v2.1.0
         continue-on-error: true
         with:
           cache_key: ${{ runner.os }}-buildcache-${{ hashFiles('**/Podfile.lock') }}-${{ hashFiles('**/Podfile')}}
 
       - name: Setup Ruby (bundle)
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@eaecf785f6a34567a6d97f686bbb7bccc1ac1e5c # v1.237.0
         with:
           working-directory: IapExample
           bundler-cache: true
-          ruby-version: '2.7'
+          ruby-version: '3.2'
 
       - name: Install SwiftLint
         run: brew install swiftlint
@@ -81,7 +86,7 @@ jobs:
         working-directory: IapExample/ios
 
       - name: Build App
-        uses: sersoft-gmbh/xcodebuild-action@v3
+        uses: sersoft-gmbh/xcodebuild-action@0ca4718a95614a09f11d8a588970a1ccc4c77619 # v3.2.0
         with:
           workspace: IapExample/ios/IapExample.xcworkspace
           scheme: IapExample
