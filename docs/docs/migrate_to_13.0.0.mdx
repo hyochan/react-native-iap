@@ -1,0 +1,136 @@
+---
+title: Migrating to 13.0.0
+sidebar_label: Migrating to 13.0.0
+---
+
+import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+
+<AdFitTopFixed />
+
+# Migrating to 13.0.0
+
+This version brings react-native-iap in line with expo-iap v2.5.2, adding several new features and field names for better compatibility.
+
+## New Features
+
+### iOS Receipt Validation
+
+Added new methods for iOS receipt validation:
+
+```ts
+import { getReceiptIos, validateReceiptIos } from 'react-native-iap';
+
+// Get the receipt data
+const receipt = await getReceiptIos();
+
+// Validate the receipt with Apple's servers
+const validationResult = await validateReceiptIos({
+  'receipt-data': receipt,
+  password: 'your-shared-secret', // Only for auto-renewable subscriptions
+}, true); // isTest: true for sandbox, false for production
+```
+
+### Enhanced useIAP Hook
+
+The `useIAP` hook now supports callbacks and additional methods:
+
+```ts
+const { 
+  restorePurchases,
+  validateReceipt,
+} = useIAP({
+  onPurchaseSuccess: (purchase) => {
+    console.log('Purchase successful:', purchase);
+  },
+  onPurchaseError: (error) => {
+    console.error('Purchase failed:', error);
+  },
+  onRestoreSuccess: (purchases) => {
+    console.log('Restore successful:', purchases);
+  },
+  onRestoreError: (error) => {
+    console.error('Restore failed:', error);
+  },
+});
+```
+
+### iOS 16+ Transaction Fields
+
+New transaction fields for iOS 16 and 17:
+
+- `jwsRepresentationIos`: JWS representation of the transaction (StoreKit 2)
+- `environmentIos`: Transaction environment (Production/Sandbox)
+- `storefrontCountryCodeIos`: Storefront country code
+- `reasonIos`: Transaction reason (iOS 16.4+)
+- `offerIos`: Promotional offer information (iOS 17.2+)
+- `priceIos`: Transaction price (iOS 17.2+)
+- `currencyIos`: Transaction currency (iOS 17.2+)
+
+## Field Name Compatibility
+
+To ensure compatibility with expo-iap, the following field names are now available alongside the existing ones:
+
+### Product Fields
+
+| Original Field | New Compatible Field |
+|---------------|---------------------|
+| `productId` | `id` |
+| `productIds` | `ids` |
+| `productType` | `type` |
+| `name` | `displayName` |
+
+### Purchase Fields
+
+| Original Field | New Compatible Field |
+|---------------|---------------------|
+| `productId` | `id` |
+| `productIds` | `ids` |
+| `purchaseToken` | `purchaseTokenAndroid` |
+
+All responses now include a `platform` field set to either `"ios"` or `"android"`.
+
+### Android-specific Fields
+
+For Android products with one-time purchase details:
+- `currency`: Currency code from `oneTimePurchaseOfferDetails`
+- `displayPrice`: Formatted price from `oneTimePurchaseOfferDetails`
+
+## Type Updates
+
+New discriminated union types are available for better type safety:
+
+```ts
+import { ProductWithPlatform, PurchaseWithPlatform } from 'react-native-iap';
+
+// These types include platform discrimination
+const product: ProductWithPlatform = {
+  platform: 'ios',
+  productId: 'com.example.product',
+  // ... iOS-specific fields
+};
+
+const purchase: PurchaseWithPlatform = {
+  platform: 'android',
+  productId: 'com.example.product',
+  purchaseTokenAndroid: '...',
+  // ... Android-specific fields
+};
+```
+
+## Backward Compatibility
+
+All original field names are maintained for backward compatibility. Your existing code will continue to work without changes. The new field names are added alongside the existing ones to provide compatibility with expo-iap.
+
+## Example Migration
+
+If you're migrating from expo-iap to react-native-iap, you can now use the same field names:
+
+```ts
+// Works with both expo-iap and react-native-iap 13.0.0+
+products.map(product => ({
+  id: product.id,              // Same as productId
+  type: product.type,          // Same as productType
+  displayName: product.displayName, // Same as name
+  platform: product.platform,  // 'ios' or 'android'
+}));
+```

@@ -209,6 +209,42 @@ func serialize(_ t: Transaction) -> [String: Any?] {
         result["appTransactionID"] = t.appTransactionID
     }
     #endif
+    
+    // Additional fields from expo-iap
+    if #available(iOS 16.0, tvOS 16.0, *) {
+        result["environmentIos"] = t.environment.rawValue
+    }
+    
+    if #available(iOS 17.0, tvOS 17.0, *) {
+        result["storefrontCountryCodeIos"] = t.storefront.countryCode
+        result["reasonIos"] = t.reason.rawValue
+    }
+    
+    if #available(iOS 17.2, tvOS 17.2, *) {
+        if let offer = t.offer {
+            result["offerIos"] = [
+                "id": offer.id,
+                "type": offer.type.rawValue,
+                "paymentMode": offer.paymentMode?.rawValue ?? ""
+            ]
+        }
+    }
+    
+    // Extract price and currency from JSON representation
+    if #available(iOS 15.4, tvOS 15.4, *) {
+        do {
+            if let jsonObj = try JSONSerialization.jsonObject(with: t.jsonRepresentation) as? [String: Any] {
+                if let price = jsonObj["price"] as? NSNumber {
+                    result["priceIos"] = price.doubleValue
+                }
+                if let currency = jsonObj["currency"] as? String {
+                    result["currencyIos"] = currency
+                }
+            }
+        } catch {
+            // Ignore JSON parsing errors
+        }
+    }
 
     return result
 }
@@ -216,6 +252,7 @@ func serialize(_ t: Transaction) -> [String: Any?] {
 func serialize(_ t: Transaction, _ v: VerificationResult<Transaction>) -> [String: Any?] {
     var transaction = serialize(t)
     transaction.updateValue(v.jwsRepresentation, forKey: "verificationResult")
+    transaction.updateValue(v.jwsRepresentation, forKey: "jwsRepresentationIos")
     return transaction
 }
 @available(iOS 15.0, tvOS 15.0, *)

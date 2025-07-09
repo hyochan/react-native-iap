@@ -9,6 +9,11 @@ import type * as Apple from './apple';
 
 export type Sku = string;
 
+// Platform discrimination types
+export type IosPlatform = {platform: 'ios'};
+export type AndroidPlatform = {platform: 'android'};
+export type AmazonPlatform = {platform: 'amazon'};
+
 export type ProrationModesAmazon = '' | 'DEFERRED' | 'IMMEDIATE';
 
 export enum ReplacementModesAndroid {
@@ -56,18 +61,22 @@ export enum TransactionReason {
 export interface ProductCommon {
   type: 'subs' | 'sub' | 'inapp' | 'iap';
   productId: string; //iOS
+  id?: string; // Alias for productId (expo-iap compatibility)
   productIds?: string[];
   title: string;
   description: string;
   price: string;
   currency: string;
   localizedPrice: string;
+  displayPrice?: string; // Alias for localizedPrice (expo-iap compatibility)
   originalPrice?: string;
   countryCode?: string;
 }
 
 export interface ProductPurchase {
   productId: string;
+  id?: string; // Alias for productId (expo-iap compatibility)
+  ids?: string[]; // For Android multi-purchase support
   transactionId?: string;
   transactionDate: number;
   transactionReceipt: string;
@@ -79,6 +88,30 @@ export interface ProductPurchase {
   verificationResultIOS?: string;
   appAccountToken?: string;
   appTransactionID?: string;
+  jwsRepresentationIos?: string;
+  environmentIos?: string; // iOS 16+
+  storefrontCountryCodeIos?: string; // iOS 17+
+  reasonIos?: string; // iOS 17+
+  offerIos?: {
+    // iOS 17.2+
+    id: string;
+    type: string;
+    paymentMode: string;
+  };
+  priceIos?: number; // iOS 15.4+
+  currencyIos?: string; // iOS 15.4+
+  // Additional iOS fields from expo-iap
+  expirationDateIos?: number;
+  webOrderLineItemIdIos?: number;
+  appBundleIdIos?: string;
+  productTypeIos?: string;
+  subscriptionGroupIdIos?: string;
+  isUpgradedIos?: boolean;
+  ownershipTypeIos?: string;
+  reasonStringRepresentationIos?: string;
+  transactionReasonIOS?: TransactionReason | string;
+  revocationDateIos?: number;
+  revocationReasonIos?: string;
   //Android
   productIds?: string[];
   dataAndroid?: string;
@@ -113,6 +146,14 @@ export interface SubscriptionPurchase extends ProductPurchase {
   transactionReasonIOS?: TransactionReason | string;
 }
 
+// New discriminated union type matching expo-iap
+export type PurchaseWithPlatform =
+  | ((ProductPurchase & {productIds?: string[]}) & AndroidPlatform)
+  | ((ProductPurchase & {quantityIOS?: number}) & IosPlatform)
+  | ((ProductPurchase & {userIdAmazon?: string}) & AmazonPlatform)
+  | SubscriptionPurchase;
+
+// For backward compatibility, keep the original Purchase type
 export type Purchase = ProductPurchase | SubscriptionPurchase;
 
 export interface Discount {
@@ -136,8 +177,22 @@ export interface ProductAndroid extends ProductCommon {
 }
 export interface ProductIOS extends ProductCommon {
   type: 'inapp' | 'iap';
+  // iOS specific fields from expo-iap
+  displayName?: string;
+  isFamilyShareable?: boolean;
+  jsonRepresentation?: string;
+  subscription?: any; // SubscriptionInfo type
 }
 
+// Legacy type for backward compatibility
+export type ProductLegacy = ProductAndroid & ProductIOS;
+
+// New discriminated union type matching expo-iap
+export type ProductWithPlatform =
+  | (ProductAndroid & AndroidPlatform)
+  | (ProductIOS & IosPlatform);
+
+// For backward compatibility, keep the original Product type
 export type Product = ProductAndroid & ProductIOS;
 
 /**
@@ -273,6 +328,35 @@ export type RequestSubscription =
   | RequestSubscriptionAndroid
   | RequestSubscriptionAmazon
   | RequestSubscriptionIOS;
+
+// Unified request types (expo-iap compatibility)
+export interface UnifiedRequestPurchaseProps {
+  // Universal properties - works on both platforms
+  readonly sku?: string; // Single SKU (iOS native, Android fallback)
+  readonly skus?: string[]; // Multiple SKUs (Android native, iOS uses first item)
+
+  // iOS-specific properties (ignored on Android)
+  readonly andDangerouslyFinishTransactionAutomaticallyIOS?: boolean;
+  readonly appAccountToken?: string;
+  readonly quantity?: number;
+  readonly withOffer?: Apple.PaymentDiscount;
+
+  // Android-specific properties (ignored on iOS)
+  readonly obfuscatedAccountIdAndroid?: string;
+  readonly obfuscatedProfileIdAndroid?: string;
+  readonly isOfferPersonalized?: boolean;
+}
+
+export interface UnifiedRequestSubscriptionProps
+  extends UnifiedRequestPurchaseProps {
+  // Android subscription-specific properties
+  readonly purchaseTokenAndroid?: string;
+  readonly replacementModeAndroid?: number;
+  readonly subscriptionOffers?: {
+    sku: string;
+    offerToken: string;
+  }[];
+}
 
 declare module 'react-native' {
   interface NativeModulesStatic {

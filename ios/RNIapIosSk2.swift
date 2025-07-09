@@ -443,6 +443,8 @@ class RNIapIosSk2iOS15: Sk2Delegate {
     private let _hasListenersQueue = DispatchQueue(label: "com.dooboolab.rniap.hasListenersQueue", attributes: .concurrent)
     private var transactions: [String: Transaction]
     private var updateListenerTask: Task<Void, Error>?
+    private var subscriptionPollingTask: Task<Void, Never>?
+    private var pollingSkus: Set<String> = []
     fileprivate var sendEvent: ((String?, Any?) -> Void)?
     var hasListeners: Bool {
         get {
@@ -990,8 +992,17 @@ class RNIapIosSk2iOS15: Sk2Delegate {
                 return
             }
 
+            // Get all subscription SKUs before showing the management UI
+            let subscriptionSkus = await getAllSubscriptionProductIds()
+            self.pollingSkus = Set(subscriptionSkus)
+
             do {
                 try await AppStore.showManageSubscriptions(in: scene)
+                
+                // Start polling for subscription status changes after UI is shown
+                if !self.pollingSkus.isEmpty {
+                    self.pollForSubscriptionStatusChanges()
+                }
             } catch {
                 print("Error:(error)")
             }
@@ -1070,6 +1081,187 @@ class RNIapIosSk2iOS15: Sk2Delegate {
         Task {
             let storefront = await Storefront.current
             resolve(storefront?.countryCode)
+        }
+    }
+    
+    // MARK: - New methods from expo-iap
+    
+    public func getReceiptData(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
+           FileManager.default.fileExists(atPath: appStoreReceiptURL.path) {
+            do {
+                let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
+                let receiptString = receiptData.base64EncodedString(options: [])
+                resolve(receiptString)
+            } catch {
+                reject(IapErrors.E_RECEIPT_FAILED.rawValue, "Error reading receipt data: \(error.localizedDescription)", error)
+            }
+        } else {
+            reject(IapErrors.E_RECEIPT_FAILED.rawValue, "App Store receipt not found", nil)
+        }
+    }
+    
+    public func isTransactionVerified(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        Task {
+            if let product = await productStore.getProduct(productID: sku),
+               let result = await product.latestTransaction {
+                do {
+                    // If this doesn't throw, the transaction is verified
+                    _ = try checkVerified(result)
+                    resolve(true)
+                } catch {
+                    resolve(false)
+                }
+            } else {
+                resolve(false)
+            }
+        }
+    }
+    
+    public func getTransactionJws(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        Task {
+            if let product = await productStore.getProduct(productID: sku),
+               let result = await product.latestTransaction {
+                resolve(result.jwsRepresentation)
+            } else {
+                reject(IapErrors.E_DEVELOPER_ERROR.rawValue, "Can't find transaction for sku \(sku)", nil)
+            }
+        }
+    }
+    
+    public func validateReceiptIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        Task {
+            // Get receipt data
+            var receiptData: String = ""
+            if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
+               FileManager.default.fileExists(atPath: appStoreReceiptURL.path) {
+                do {
+                    let data = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
+                    receiptData = data.base64EncodedString(options: [])
+                } catch {
+                    // Continue with validation even if receipt retrieval fails
+                }
+            }
+            
+            var isValid = false
+            var jwsRepresentation: String? = nil
+            var latestTransaction: [String: Any?]? = nil
+            
+            // Get JWS representation and verify transaction
+            if let product = await productStore.getProduct(productID: sku),
+               let result = await product.latestTransaction {
+                jwsRepresentation = result.jwsRepresentation
+                
+                do {
+                    // If this doesn't throw, the transaction is verified
+                    let transaction = try checkVerified(result)
+                    isValid = true
+                    latestTransaction = serialize(transaction, result)
+                } catch {
+                    isValid = false
+                }
+            }
+            
+            let response: [String: Any] = [
+                "isValid": isValid,
+                "receiptData": receiptData,
+                "jwsRepresentation": jwsRepresentation ?? "",
+                "latestTransaction": latestTransaction as Any
+            ]
+            
+            resolve(response)
+        }
+    }
+    
+    // MARK: - Subscription polling helpers
+    
+    private func getAllSubscriptionProductIds() async -> [String] {
+        let products = await productStore.getAllProducts()
+        return products.compactMap { product in
+            if product.subscription != nil {
+                return product.id
+            }
+            return nil
+        }
+    }
+    
+    private func pollForSubscriptionStatusChanges() {
+        subscriptionPollingTask?.cancel()
+        subscriptionPollingTask = Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+            
+            var previousStatuses: [String: Bool] = [:] // Track auto-renewal state with Bool
+            
+            for sku in self.pollingSkus {
+                guard let product = await self.productStore.getProduct(productID: sku),
+                      let status = try? await product.subscription?.status.first else { continue }
+                
+                // Track willAutoRenew as a bool value
+                var willAutoRenew = false
+                if case .verified(let info) = status.renewalInfo {
+                    willAutoRenew = info.willAutoRenew
+                }
+                previousStatuses[sku] = willAutoRenew
+            }
+
+            for _ in 1...5 {
+                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                if Task.isCancelled {
+                    return
+                }
+                
+                for sku in self.pollingSkus {
+                    guard let product = await self.productStore.getProduct(productID: sku),
+                          let status = try? await product.subscription?.status.first,
+                          let result = await product.latestTransaction else { continue }
+                    // Try to verify the transaction
+                    let transaction: Transaction
+                    do {
+                        transaction = try checkVerified(result)
+                    } catch {
+                        continue // Skip if verification fails
+                    }
+                    
+                    // Track current auto-renewal state
+                    var currentWillAutoRenew = false
+                    if case .verified(let info) = status.renewalInfo {
+                        currentWillAutoRenew = info.willAutoRenew
+                    }
+                    
+                    // Compare with previous state
+                    if let previousWillAutoRenew = previousStatuses[sku], 
+                       previousWillAutoRenew != currentWillAutoRenew {
+                        
+                        // Use the jwsRepresentation when serializing the transaction
+                        var purchaseMap = serialize(transaction, result)
+                        
+                        if case .verified(let renewalInfo) = status.renewalInfo {
+                            if let renewalInfoDict = serialize(renewalInfo) {
+                                purchaseMap["renewalInfo"] = renewalInfoDict
+                            }
+                        }
+                        
+                        self.sendEvent?("purchase-updated", purchaseMap)
+                        previousStatuses[sku] = currentWillAutoRenew
+                    }
+                }
+            }
+            self.pollingSkus.removeAll()
         }
     }
 }

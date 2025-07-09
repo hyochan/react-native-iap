@@ -130,6 +130,18 @@ export type TransactionSk2 = {
   subscriptionGroupID: number;
   webOrderLineItemID: number;
   verificationResult?: string;
+  jwsRepresentationIos?: string;
+  environmentIos?: string; // iOS 16+
+  storefrontCountryCodeIos?: string; // iOS 17+
+  reasonIos?: string; // iOS 17+
+  offerIos?: {
+    // iOS 17.2+
+    id: string;
+    type: string;
+    paymentMode: string;
+  };
+  priceIos?: number; // iOS 15.4+
+  currencyIos?: string; // iOS 15.4+
 };
 
 export type TransactionError = PurchaseError;
@@ -178,6 +190,13 @@ export const transactionSk2ToPurchaseMap = ({
   appAccountToken,
   appTransactionID,
   jsonRepresentation,
+  jwsRepresentationIos,
+  environmentIos,
+  storefrontCountryCodeIos,
+  reasonIos,
+  offerIos,
+  priceIos,
+  currencyIos,
 }: TransactionSk2): Purchase => {
   let transactionReasonIOS;
   try {
@@ -202,6 +221,13 @@ export const transactionSk2ToPurchaseMap = ({
     appAccountToken: appAccountToken ?? '',
     appTransactionID: appTransactionID ?? '',
     transactionReasonIOS: transactionReasonIOS ?? '',
+    jwsRepresentationIos,
+    environmentIos,
+    storefrontCountryCodeIos,
+    reasonIos,
+    offerIos,
+    priceIos,
+    currencyIos,
   };
   return purchase;
 };

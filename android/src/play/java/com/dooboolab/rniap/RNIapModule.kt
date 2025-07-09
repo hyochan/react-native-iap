@@ -283,11 +283,16 @@ class RNIapModule(
                     skus[skuDetails.productId] = skuDetails
 
                     val item = Arguments.createMap()
+                    // Add both field names for compatibility
                     item.putString("productId", skuDetails.productId)
+                    item.putString("id", skuDetails.productId)
                     item.putString("title", skuDetails.title)
                     item.putString("description", skuDetails.description)
                     item.putString("productType", skuDetails.productType)
+                    item.putString("type", skuDetails.productType)
                     item.putString("name", skuDetails.name)
+                    item.putString("displayName", skuDetails.name)
+                    item.putString("platform", "android")
 
                     skuDetails.oneTimePurchaseOfferDetails?.let {
                         val oneTimePurchaseOfferDetails =
@@ -297,6 +302,9 @@ class RNIapModule(
                                 putString("priceAmountMicros", it.priceAmountMicros.toString())
                             }
                         item.putMap("oneTimePurchaseOfferDetails", oneTimePurchaseOfferDetails)
+                        // Add expo-iap compatible fields
+                        item.putString("currency", it.priceCurrencyCode)
+                        item.putString("displayPrice", it.formattedPrice)
                     }
 
                     skuDetails.subscriptionOfferDetails?.let {
@@ -378,15 +386,19 @@ class RNIapModule(
                 if (!isValidResult(billingResult, promise)) return@queryPurchasesAsync
                 purchases?.forEach { purchase ->
                     val item = WritableNativeMap()
-                    item.putString("productId", purchase.products[0]) // kept for convenience/backward-compatibility. productIds has the complete list
+                    // Add both field names for compatibility
+                    item.putString("productId", purchase.products[0]) // kept for convenience/backward-compatibility
+                    item.putString("id", purchase.products[0])
                     val products = Arguments.createArray()
                     purchase.products.forEach { products.pushString(it) }
                     item.putArray("productIds", products)
+                    item.putArray("ids", products)
                     item.putString("transactionId", purchase.orderId)
                     item.putDouble("transactionDate", purchase.purchaseTime.toDouble())
                     item.putString("transactionReceipt", purchase.originalJson)
                     item.putString("orderId", purchase.orderId)
                     item.putString("purchaseToken", purchase.purchaseToken)
+                    item.putString("purchaseTokenAndroid", purchase.purchaseToken)
                     item.putString("developerPayloadAndroid", purchase.developerPayload)
                     item.putString("signatureAndroid", purchase.signature)
                     item.putInt("purchaseStateAndroid", purchase.purchaseState)
@@ -403,6 +415,7 @@ class RNIapModule(
                     if (type == BillingClient.ProductType.SUBS) {
                         item.putBoolean("autoRenewingAndroid", purchase.isAutoRenewing)
                     }
+                    item.putString("platform", "android")
                     items.pushMap(item)
                 }
                 promise.safeResolve(items)
@@ -432,16 +445,21 @@ class RNIapModule(
                 val items = Arguments.createArray()
                 purchaseHistoryRecordList?.forEach { purchase ->
                     val item = Arguments.createMap()
+                    // Add both field names for compatibility
                     item.putString("productId", purchase.products[0])
+                    item.putString("id", purchase.products[0])
                     val products = Arguments.createArray()
                     purchase.products.forEach { products.pushString(it) }
                     item.putArray("productIds", products)
+                    item.putArray("ids", products)
                     item.putDouble("transactionDate", purchase.purchaseTime.toDouble())
                     item.putString("transactionReceipt", purchase.originalJson)
                     item.putString("purchaseToken", purchase.purchaseToken)
+                    item.putString("purchaseTokenAndroid", purchase.purchaseToken)
                     item.putString("dataAndroid", purchase.originalJson)
                     item.putString("signatureAndroid", purchase.signature)
                     item.putString("developerPayload", purchase.developerPayload.orEmpty())
+                    item.putString("platform", "android")
                     items.pushMap(item)
                 }
                 promise.safeResolve(items)
@@ -598,6 +616,7 @@ class RNIapModule(
                 map.putString("code", errorData.code)
                 map.putString("message", errorData.message)
                 map.putString("purchaseToken", purchaseToken)
+                map.putString("purchaseTokenAndroid", purchaseToken)
                 promise.safeResolve(map)
             }
         }
@@ -623,14 +642,18 @@ class RNIapModule(
             val promiseItems: WritableArray = Arguments.createArray()
             purchases.forEach { purchase ->
                 val item = Arguments.createMap()
+                // Add both productId (for backward compatibility) and id (for expo-iap compatibility)
                 item.putString("productId", purchase.products[0])
+                item.putString("id", purchase.products[0])
                 val products = Arguments.createArray()
                 purchase.products.forEach { products.pushString(it) }
                 item.putArray("productIds", products)
+                item.putArray("ids", products)
                 item.putString("transactionId", purchase.orderId)
                 item.putDouble("transactionDate", purchase.purchaseTime.toDouble())
                 item.putString("transactionReceipt", purchase.originalJson)
                 item.putString("purchaseToken", purchase.purchaseToken)
+                item.putString("purchaseTokenAndroid", purchase.purchaseToken)
                 item.putString("dataAndroid", purchase.originalJson)
                 item.putString("signatureAndroid", purchase.signature)
                 item.putBoolean("autoRenewingAndroid", purchase.isAutoRenewing)
@@ -649,6 +672,7 @@ class RNIapModule(
                         accountIdentifiers.obfuscatedProfileId,
                     )
                 }
+                item.putString("platform", "android")
                 promiseItems.pushMap(item.copy())
                 sendEvent(reactContext, "purchase-updated", item)
             }
