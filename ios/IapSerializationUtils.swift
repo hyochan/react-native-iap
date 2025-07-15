@@ -209,17 +209,17 @@ func serialize(_ t: Transaction) -> [String: Any?] {
         result["appTransactionID"] = t.appTransactionID
     }
     #endif
-    
+
     // Additional fields from expo-iap
     if #available(iOS 16.0, tvOS 16.0, *) {
         result["environmentIos"] = t.environment.rawValue
     }
-    
+
     if #available(iOS 17.0, tvOS 17.0, *) {
         result["storefrontCountryCodeIos"] = t.storefront.countryCode
         result["reasonIos"] = t.reason.rawValue
     }
-    
+
     if #available(iOS 17.2, tvOS 17.2, *) {
         if let offer = t.offer {
             result["offerIos"] = [
@@ -229,7 +229,7 @@ func serialize(_ t: Transaction) -> [String: Any?] {
             ]
         }
     }
-    
+
     // Extract price and currency from JSON representation
     if #available(iOS 15.4, tvOS 15.4, *) {
         do {

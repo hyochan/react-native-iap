@@ -10,7 +10,13 @@
       "Bash(./gradlew:*)",
       "Bash(grep:*)",
       "Bash(npm run android:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(find:*)",
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(sudo mv:*)",
+      "Bash(./ktlint:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

@@ -2,7 +2,6 @@ package com.dooboolab.rniap
 
 import android.util.Log
 import com.facebook.react.bridge.Promise
-import java.lang.RuntimeException
 
 /**
  * Extension functions used to simplify promise handling since we don't
