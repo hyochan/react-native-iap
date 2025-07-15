@@ -458,7 +458,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.dooboolab.test;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.IapExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/IapExample.app/IapExample";
 			};
@@ -483,7 +483,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.dooboolab.test;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.IapExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/IapExample.app/IapExample";
 			};
@@ -496,7 +496,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = LCXV255WTL;
+				DEVELOPMENT_TEAM = PRDQGB267K;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = IapExample/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -509,7 +509,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.dooboolab.test;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.hyo.martie;
 				PRODUCT_NAME = IapExample;
 				SWIFT_OBJC_BRIDGING_HEADER = "IapExample-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -525,7 +525,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = LCXV255WTL;
+				DEVELOPMENT_TEAM = PRDQGB267K;
 				INFOPLIST_FILE = IapExample/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -537,7 +537,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.dooboolab.test;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.hyo.martie;
 				PRODUCT_NAME = IapExample;
 				SWIFT_OBJC_BRIDGING_HEADER = "IapExample-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

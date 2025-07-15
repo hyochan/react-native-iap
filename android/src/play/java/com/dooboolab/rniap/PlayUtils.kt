@@ -87,6 +87,12 @@ object PlayUtils {
                         "You already own this item.",
                     )
                 }
+                BillingClient.BillingResponseCode.ITEM_NOT_OWNED -> {
+                    BillingResponse(
+                        PromiseUtils.E_ITEM_UNAVAILABLE,
+                        "Item not owned. It may have already been consumed.",
+                    )
+                }
                 else -> {
                     BillingResponse(
                         PromiseUtils.E_UNKNOWN,

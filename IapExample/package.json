@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android:play": "react-native run-android --variant=GooglePlayDebug",
-    "android:amazon": "react-native run-android --variant=AmazonDebug",
+    "android:play": "react-native run-android --mode=GooglePlayDebug",
+    "android:amazon": "react-native run-android --mode=AmazonDebug",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",

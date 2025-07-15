@@ -648,7 +648,10 @@ class RNIapModule(
                 val products = Arguments.createArray()
                 purchase.products.forEach { products.pushString(it) }
                 item.putArray("productIds", products)
-                item.putArray("ids", products)
+                // Create a new array for "ids" to avoid "Array already consumed" error
+                val productsForIds = Arguments.createArray()
+                purchase.products.forEach { productsForIds.pushString(it) }
+                item.putArray("ids", productsForIds)
                 item.putString("transactionId", purchase.orderId)
                 item.putDouble("transactionDate", purchase.purchaseTime.toDouble())
                 item.putString("transactionReceipt", purchase.originalJson)

@@ -81,9 +81,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.dooboolab.test"
+    namespace "dev.hyo.martie"
     defaultConfig {
-        applicationId "com.dooboolab.test"
+        applicationId "dev.hyo.martie"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

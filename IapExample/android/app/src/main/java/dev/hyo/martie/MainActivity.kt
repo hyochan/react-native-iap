@@ -1,4 +1,4 @@
-package com.dooboolab.test
+package dev.hyo.martie
 
 import android.os.Bundle
 import com.dooboolab.rniap.RNIapActivityListener.Companion.registerActivity

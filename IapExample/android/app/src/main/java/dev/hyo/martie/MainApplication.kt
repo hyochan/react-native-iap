@@ -1,4 +1,6 @@
-package com.dooboolab.test
+package dev.hyo.martie
+
+import dev.hyo.martie.BuildConfig
 
 import android.app.Application
 import com.facebook.react.PackageList

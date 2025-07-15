@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import {
   Alert,
   EmitterSubscription,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -42,6 +43,9 @@ interface State {
   productList: (Product | Subscription)[];
   receipt: string;
   availableItemsMessage: string;
+  connected: boolean;
+  products: Product[];
+  subscriptions: Subscription[];
 }
 
 export class ClassSetup extends Component<{}, State> {
@@ -56,12 +60,18 @@ export class ClassSetup extends Component<{}, State> {
       productList: [],
       receipt: '',
       availableItemsMessage: '',
+      connected: false,
+      products: [],
+      subscriptions: [],
     };
   }
 
   async componentDidMount() {
     try {
       await initConnection();
+
+      // Set connected state to true after successful connection
+      this.setState({connected: true});
 
       if (isAndroid) {
         await flushFailedPurchasesCachedAsPendingAndroid();
@@ -129,7 +139,10 @@ export class ClassSetup extends Component<{}, State> {
     try {
       const products = await getProducts({skus: constants.productSkus});
 
-      this.setState({productList: products});
+      this.setState({
+        productList: products,
+        products: products as Product[],
+      });
     } catch (error) {
       errorLog({message: 'getItems', error});
     }
@@ -137,11 +150,14 @@ export class ClassSetup extends Component<{}, State> {
 
   getSubscriptions = async () => {
     try {
-      const products = await getSubscriptions({
+      const subscriptions = await getSubscriptions({
         skus: constants.subscriptionSkus,
       });
 
-      this.setState({productList: products});
+      this.setState({
+        productList: subscriptions,
+        subscriptions: subscriptions as Subscription[],
+      });
     } catch (error) {
       errorLog({message: 'getSubscriptions', error});
     }
@@ -163,8 +179,25 @@ export class ClassSetup extends Component<{}, State> {
   };
 
   purchase = async (sku: Sku) => {
+    if (!this.state.connected) {
+      Alert.alert('Not Connected', 'Please try again later');
+      return;
+    }
+
+    if (!['ios', 'android'].includes(Platform.OS)) {
+      Alert.alert('Not Supported', 'This platform is not supported');
+      return;
+    }
+
     try {
-      requestPurchase({sku});
+      if (Platform.OS === 'ios') {
+        await requestPurchase({
+          sku,
+          andDangerouslyFinishTransactionAutomaticallyIOS: false,
+        });
+      } else {
+        await requestPurchase({skus: [sku]});
+      }
     } catch (error) {
       if (error instanceof PurchaseError) {
         errorLog({message: `[${error.code}]: ${error.message}`, error});
@@ -175,8 +208,56 @@ export class ClassSetup extends Component<{}, State> {
   };
 
   subscribe = async (sku: Sku) => {
+    if (!this.state.connected) {
+      Alert.alert('Not Connected', 'Please try again later');
+      return;
+    }
+
+    if (!['ios', 'android'].includes(Platform.OS)) {
+      Alert.alert('Not Supported', 'This platform is not supported');
+      return;
+    }
+
     try {
-      requestSubscription({sku});
+      if (Platform.OS === 'ios') {
+        await requestSubscription({sku});
+      } else if (Platform.OS === 'android') {
+        // Find the subscription to get offer details
+        const subscription = this.state.subscriptions.find(
+          s => s.productId === sku,
+        );
+
+        if (!subscription) {
+          throw new Error(`Subscription with ID ${sku} not found`);
+        }
+
+        // Check if the subscription has offer details for Android
+        if (
+          'subscriptionOfferDetails' in subscription &&
+          subscription.subscriptionOfferDetails &&
+          subscription.subscriptionOfferDetails.length > 0
+        ) {
+          const offerDetails = subscription.subscriptionOfferDetails;
+          const subscriptionOffers = offerDetails.map((offer: any) => ({
+            sku,
+            offerToken: offer.offerToken,
+          }));
+
+          await requestSubscription({
+            subscriptionOffers,
+          });
+        } else {
+          // Fallback for Android without offer details
+          await requestSubscription({
+            subscriptionOffers: [
+              {
+                sku,
+                offerToken: '',
+              },
+            ],
+          });
+        }
+      }
     } catch (error) {
       if (error instanceof PurchaseError) {
         errorLog({message: `[${error.code}]: ${error.message}`, error});
