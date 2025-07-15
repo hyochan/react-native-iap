@@ -27,6 +27,21 @@
 
 The [expo-iap](https://github.com/hyochan/expo-iap) library is production-ready with full support for StoreKit 2 and Google Play Billing Library v6+.
 
+### About This Update (v13.0.0)
+
+**This update focuses on API compatibility with expo-iap and will be the final major release.**
+
+- 🔄 **API Synchronization**: Maximum compatibility with expo-iap API specifications
+- ⚠️ **Deprecation Notice**: react-native-iap will be deprecated in favor of expo-iap
+- 🚫 **No Further Updates**: No additional feature updates or major releases are planned
+- 🏗️ **Modern Features**: For TurboModules support and latest React Native features, please migrate to [expo-iap](https://github.com/hyochan/expo-iap)
+
+**Migration is highly recommended** for:
+- TurboModules support
+- Better performance and stability
+- Continued updates and support
+- Modern React Native architecture
+
 ## Documentation
 
 Read the [documentation](https://react-native-iap.hyo.dev). See the [troubleshooting](https://react-native-iap.hyo.dev/docs/guides/troubleshooting#common-issues) for the common issues to avoid.
