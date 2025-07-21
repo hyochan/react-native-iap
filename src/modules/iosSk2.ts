@@ -39,6 +39,17 @@ type presentCodeRedemptionSheet = () => Promise<null>;
 type showManageSubscriptions = () => Promise<null>;
 type getStorefront = () => Promise<string>;
 
+type getAppTransaction = () => Promise<{
+  appTransactionID: string;
+  originalAppVersion: string;
+  originalPurchaseDate: number;
+  deviceVerification: string;
+  deviceVerificationNonce: string;
+  appVersion: string;
+  signedDate: number;
+  environment: string;
+}>;
+
 export interface IosModulePropsSk2 extends NativeModuleProps {
   isAvailable(): number;
   latestTransaction(sku: string): Promise<TransactionSk2>;
@@ -60,6 +71,7 @@ export interface IosModulePropsSk2 extends NativeModuleProps {
   disable: () => Promise<null>;
   beginRefundRequest: (sku: string) => Promise<RefundRequestStatus>;
   getStorefront: getStorefront;
+  getAppTransaction: getAppTransaction;
   getReceiptData: () => Promise<string>;
   isTransactionVerified: (sku: string) => Promise<boolean>;
   getTransactionJws: (sku: string) => Promise<string>;

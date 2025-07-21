@@ -971,3 +971,45 @@ export const getStorefront = (): Promise<string> => {
     }) || (() => Promise.reject(new Error('Unsupported Platform')))
   )();
 };
+
+/**
+ * Get the app transaction information (iOS only, StoreKit 2).
+ * This contains the appTransactionID and other app purchase information.
+ * 
+ * @platform iOS (16.0+)
+ * @returns {Promise<AppTransaction>} A promise that resolves to the app transaction information
+ * 
+ * @example
+ * ```tsx
+ * import React from 'react';
+ * import {getAppTransaction} from 'react-native-iap';
+ * 
+ * const App = () => {
+ *   React.useEffect(() => {
+ *     getAppTransaction().then((appTransaction) => {
+ *       console.log('App Transaction ID:', appTransaction.appTransactionID);
+ *     }).catch(error => {
+ *       console.error('Error getting app transaction:', error);
+ *     });
+ *   }, []);
+ * };
+ * ```
+ */
+export const getAppTransaction = (): Promise<{
+  appTransactionID: string;
+  originalAppVersion: string;
+  originalPurchaseDate: number;
+  deviceVerification: string;
+  deviceVerificationNonce: string;
+  appVersion: string;
+  signedDate: number;
+  environment: string;
+}> => {
+  return (
+    Platform.select({
+      ios: async () => {
+        return await RNIapIosSk2.getAppTransaction();
+      },
+    }) || (() => Promise.reject(new Error('getAppTransaction is only available on iOS')))
+  )();
+};

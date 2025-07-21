@@ -107,6 +107,11 @@ protocol Sk2Delegate {
         reject: @escaping RCTPromiseRejectBlock
     )
 
+    func getAppTransaction(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    )
+
     func startObserving()
     func stopObserving()
 }
@@ -246,6 +251,13 @@ class DummySk2: Sk2Delegate {
     }
 
     func getStorefront(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        reject(errorCode, errorMessage, nil)
+    }
+
+    func getAppTransaction(
         _ resolve: @escaping RCTPromiseResolveBlock,
         reject: @escaping RCTPromiseRejectBlock
     ) {
@@ -434,6 +446,13 @@ class RNIapIosSk2: RCTEventEmitter, Sk2Delegate {
         reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
     ) {
         delegate.getStorefront(resolve, reject: reject)
+    }
+
+    @objc public func getAppTransaction(
+        _ resolve: @escaping RCTPromiseResolveBlock = { _ in },
+        reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
+    ) {
+        delegate.getAppTransaction(resolve, reject: reject)
     }
 }
 
@@ -1081,6 +1100,46 @@ class RNIapIosSk2iOS15: Sk2Delegate {
         Task {
             let storefront = await Storefront.current
             resolve(storefront?.countryCode)
+        }
+    }
+
+    public func getAppTransaction(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        if #available(iOS 16.0, tvOS 16.0, *) {
+            Task {
+                do {
+                    let shared = try await AppTransaction.shared
+                    
+                    switch shared {
+                    case .verified(let appTransaction):
+                        var result: [String: Any] = [:]
+                        
+                        // Add appTransactionID 
+                        result["appTransactionID"] = appTransaction.appTransactionID
+                        
+                        // Add other AppTransaction properties
+                        result["originalAppVersion"] = appTransaction.originalAppVersion
+                        result["originalPurchaseDate"] = appTransaction.originalPurchaseDate.timeIntervalSince1970 * 1000
+                        result["deviceVerification"] = appTransaction.deviceVerification.base64EncodedString()
+                        result["deviceVerificationNonce"] = appTransaction.deviceVerificationNonce.uuidString
+                        result["appVersion"] = appTransaction.appVersion
+                        result["signedDate"] = appTransaction.signedDate.timeIntervalSince1970 * 1000
+                        result["environment"] = appTransaction.environment.rawValue
+                        
+                        resolve(result)
+                        
+                    case .unverified(_, let error):
+                        reject(IapErrors.E_TRANSACTION_VALIDATION_FAILED.rawValue, 
+                              "AppTransaction verification failed: \(error.localizedDescription)", 
+                              error)
+                    }
+                } catch {
+                    reject(IapErrors.E_UNKNOWN.rawValue, 
+                          "Failed to get AppTransaction: \(error.localizedDescription)", 
+                          error)
+                }
+            }
+        } else {
+            reject(IapErrors.E_SERVICE_ERROR.rawValue, "AppTransaction is only available on iOS 16.0+", nil)
         }
     }
 

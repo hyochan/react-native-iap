@@ -204,11 +204,8 @@ func serialize(_ t: Transaction) -> [String: Any?] {
         "webOrderLineItemID": t.webOrderLineItemID
     ]
 
-    #if compiler(>=5.10)
-    if #available(iOS 15.2, tvOS 15.2, *) {
-        result["appTransactionID"] = t.appTransactionID
-    }
-    #endif
+    // appTransactionID is a property of AppTransaction, not Transaction
+    // It's available in iOS 15.4+ but only for AppTransaction type
 
     // Additional fields from expo-iap
     if #available(iOS 16.0, tvOS 16.0, *) {

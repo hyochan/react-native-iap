@@ -87,7 +87,6 @@ export interface ProductPurchase {
   originalTransactionIdentifierIOS?: string;
   verificationResultIOS?: string;
   appAccountToken?: string;
-  appTransactionID?: string;
   jwsRepresentationIos?: string;
   environmentIos?: string; // iOS 16+
   storefrontCountryCodeIos?: string; // iOS 17+
@@ -129,6 +128,17 @@ export interface ProductPurchase {
   userJsonAmazon?: string;
   isCanceledAmazon?: boolean;
 }
+
+export type AppTransaction = {
+  appTransactionID: string; // iOS 16+
+  originalAppVersion: string;
+  originalPurchaseDate: number;
+  deviceVerification: string;
+  deviceVerificationNonce: string;
+  appVersion: string;
+  signedDate: number;
+  environment: string; // iOS 16+
+};
 
 export interface PurchaseResult {
   responseCode?: number;
