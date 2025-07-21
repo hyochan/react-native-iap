@@ -1108,14 +1108,14 @@ class RNIapIosSk2iOS15: Sk2Delegate {
             Task {
                 do {
                     let shared = try await AppTransaction.shared
-                    
+
                     switch shared {
                     case .verified(let appTransaction):
                         var result: [String: Any] = [:]
-                        
-                        // Add appTransactionID 
+
+                        // Add appTransactionID
                         result["appTransactionID"] = appTransaction.appTransactionID
-                        
+
                         // Add other AppTransaction properties
                         result["originalAppVersion"] = appTransaction.originalAppVersion
                         result["originalPurchaseDate"] = appTransaction.originalPurchaseDate.timeIntervalSince1970 * 1000
@@ -1124,18 +1124,18 @@ class RNIapIosSk2iOS15: Sk2Delegate {
                         result["appVersion"] = appTransaction.appVersion
                         result["signedDate"] = appTransaction.signedDate.timeIntervalSince1970 * 1000
                         result["environment"] = appTransaction.environment.rawValue
-                        
+
                         resolve(result)
-                        
+
                     case .unverified(_, let error):
-                        reject(IapErrors.E_TRANSACTION_VALIDATION_FAILED.rawValue, 
-                              "AppTransaction verification failed: \(error.localizedDescription)", 
-                              error)
+                        reject(IapErrors.E_TRANSACTION_VALIDATION_FAILED.rawValue,
+                               "AppTransaction verification failed: \(error.localizedDescription)",
+                               error)
                     }
                 } catch {
-                    reject(IapErrors.E_UNKNOWN.rawValue, 
-                          "Failed to get AppTransaction: \(error.localizedDescription)", 
-                          error)
+                    reject(IapErrors.E_UNKNOWN.rawValue,
+                           "Failed to get AppTransaction: \(error.localizedDescription)",
+                           error)
                 }
             }
         } else {
