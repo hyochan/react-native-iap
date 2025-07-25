@@ -72,6 +72,27 @@ export const purchaseUpdatedListener = (
   return emitterSubscription;
 };
 
+export const userChoiceBillingUpdateListenerAndroid = (
+  listener: (event: Purchase) => void,
+) => {
+  const eventEmitter = new NativeEventEmitter(getNativeModule());
+  const proxyListener = isIosStorekit2()
+    ? (event: Purchase) => {
+        listener(transactionSk2ToPurchaseMap(event as any));
+      }
+    : listener;
+  const emitterUserChoiceBilling = eventEmitter.addListener(
+    'user-alternative-billing',
+    proxyListener,
+  );
+
+  if (isAndroid) {
+    getAndroidModule().startListening();
+  }
+
+  return emitterUserChoiceBilling;
+};
+
 /**
  * Add IAP purchase error event
  * Register a callback that gets called when there has been an error with a purchase. Returns a React Native `EmitterSubscription` on which you can call `.remove()` to stop receiving updates.
