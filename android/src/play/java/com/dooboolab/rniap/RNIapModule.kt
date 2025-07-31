@@ -372,18 +372,23 @@ class RNIapModule(
         type: String,
         promise: Promise,
     ) {
+        Log.d(TAG, "getAvailableItemsByType called for type: $type")
         ensureConnection(
             promise,
         ) { billingClient ->
             val items = WritableNativeArray()
+            val productType = if (type == "subs") BillingClient.ProductType.SUBS else BillingClient.ProductType.INAPP
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams
                     .newBuilder()
-                    .setProductType(
-                        if (type == "subs") BillingClient.ProductType.SUBS else BillingClient.ProductType.INAPP,
-                    ).build(),
+                    .setProductType(productType)
+                    .build(),
             ) { billingResult: BillingResult, purchases: List<Purchase>? ->
-                if (!isValidResult(billingResult, promise)) return@queryPurchasesAsync
+                Log.d(TAG, "queryPurchasesAsync response for $type: ${billingResult.responseCode}, purchases count: ${purchases?.size ?: 0}")
+                if (!isValidResult(billingResult, promise)) {
+                    Log.e(TAG, "Invalid result for getAvailableItemsByType: ${billingResult.debugMessage}")
+                    return@queryPurchasesAsync
+                }
                 purchases?.forEach { purchase ->
                     val item = WritableNativeMap()
                     // Add both field names for compatibility
@@ -392,7 +397,10 @@ class RNIapModule(
                     val products = Arguments.createArray()
                     purchase.products.forEach { products.pushString(it) }
                     item.putArray("productIds", products)
-                    item.putArray("ids", products)
+                    // Create a copy for ids to avoid "Array already consumed" error
+                    val productsForIds = Arguments.createArray()
+                    purchase.products.forEach { productsForIds.pushString(it) }
+                    item.putArray("ids", productsForIds)
                     item.putString("transactionId", purchase.orderId)
                     item.putDouble("transactionDate", purchase.purchaseTime.toDouble())
                     item.putString("transactionReceipt", purchase.originalJson)
@@ -418,7 +426,124 @@ class RNIapModule(
                     item.putString("platform", "android")
                     items.pushMap(item)
                 }
+                Log.d(TAG, "getAvailableItemsByType returning ${items.toArrayList().size} items for type: $type")
                 promise.safeResolve(items)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun getAvailableItems(promise: Promise) {
+        ensureConnection(
+            promise,
+        ) { billingClient ->
+            val allItems = WritableNativeArray()
+            val remainingTypes = mutableListOf(BillingClient.ProductType.INAPP, BillingClient.ProductType.SUBS)
+            var completedQueries = 0
+            
+            fun checkCompletion() {
+                completedQueries++
+                if (completedQueries >= 2) {
+                    Log.d(TAG, "getAvailableItems returning ${allItems.toArrayList().size} items")
+                    promise.safeResolve(allItems)
+                }
+            }
+            
+            // Query INAPP purchases
+            billingClient.queryPurchasesAsync(
+                QueryPurchasesParams
+                    .newBuilder()
+                    .setProductType(BillingClient.ProductType.INAPP)
+                    .build(),
+            ) { billingResult: BillingResult, purchases: List<Purchase>? ->
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    purchases?.forEach { purchase ->
+                        val item = WritableNativeMap()
+                        // Add both field names for compatibility
+                        item.putString("productId", purchase.products[0]) // kept for convenience/backward-compatibility
+                        item.putString("id", purchase.products[0])
+                        val products = Arguments.createArray()
+                        purchase.products.forEach { products.pushString(it) }
+                        item.putArray("productIds", products)
+                        // Create a copy for ids to avoid "Array already consumed" error
+                        val productsForIds = Arguments.createArray()
+                        purchase.products.forEach { productsForIds.pushString(it) }
+                        item.putArray("ids", productsForIds)
+                        item.putString("transactionId", purchase.orderId)
+                        item.putDouble("transactionDate", purchase.purchaseTime.toDouble())
+                        item.putString("transactionReceipt", purchase.originalJson)
+                        item.putString("orderId", purchase.orderId)
+                        item.putString("purchaseToken", purchase.purchaseToken)
+                        item.putString("purchaseTokenAndroid", purchase.purchaseToken)
+                        item.putString("developerPayloadAndroid", purchase.developerPayload)
+                        item.putString("signatureAndroid", purchase.signature)
+                        item.putInt("purchaseStateAndroid", purchase.purchaseState)
+                        item.putBoolean("isAcknowledgedAndroid", purchase.isAcknowledged)
+                        item.putString("packageNameAndroid", purchase.packageName)
+                        item.putString(
+                            "obfuscatedAccountIdAndroid",
+                            purchase.accountIdentifiers?.obfuscatedAccountId,
+                        )
+                        item.putString(
+                            "obfuscatedProfileIdAndroid",
+                            purchase.accountIdentifiers?.obfuscatedProfileId,
+                        )
+                        item.putString("platform", "android")
+                        allItems.pushMap(item)
+                    }
+                } else {
+                    Log.w(TAG, "Failed to query INAPP purchases: ${billingResult.debugMessage}")
+                }
+                checkCompletion()
+            }
+            
+            // Query SUBS purchases
+            billingClient.queryPurchasesAsync(
+                QueryPurchasesParams
+                    .newBuilder()
+                    .setProductType(BillingClient.ProductType.SUBS)
+                    .build(),
+            ) { billingResult: BillingResult, purchases: List<Purchase>? ->
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    purchases?.forEach { purchase ->
+                        val item = WritableNativeMap()
+                        // Add both field names for compatibility
+                        item.putString("productId", purchase.products[0]) // kept for convenience/backward-compatibility
+                        item.putString("id", purchase.products[0])
+                        val products = Arguments.createArray()
+                        purchase.products.forEach { products.pushString(it) }
+                        item.putArray("productIds", products)
+                        // Create a copy for ids to avoid "Array already consumed" error
+                        val productsForIds = Arguments.createArray()
+                        purchase.products.forEach { productsForIds.pushString(it) }
+                        item.putArray("ids", productsForIds)
+                        item.putString("transactionId", purchase.orderId)
+                        item.putDouble("transactionDate", purchase.purchaseTime.toDouble())
+                        item.putString("transactionReceipt", purchase.originalJson)
+                        item.putString("orderId", purchase.orderId)
+                        item.putString("purchaseToken", purchase.purchaseToken)
+                        item.putString("purchaseTokenAndroid", purchase.purchaseToken)
+                        item.putString("developerPayloadAndroid", purchase.developerPayload)
+                        item.putString("signatureAndroid", purchase.signature)
+                        item.putInt("purchaseStateAndroid", purchase.purchaseState)
+                        item.putBoolean("isAcknowledgedAndroid", purchase.isAcknowledged)
+                        item.putString("packageNameAndroid", purchase.packageName)
+                        item.putString(
+                            "obfuscatedAccountIdAndroid",
+                            purchase.accountIdentifiers?.obfuscatedAccountId,
+                        )
+                        item.putString(
+                            "obfuscatedProfileIdAndroid",
+                            purchase.accountIdentifiers?.obfuscatedProfileId,
+                        )
+                        item.putBoolean("autoRenewingAndroid", purchase.isAutoRenewing)
+                        item.putString("platform", "android")
+                        allItems.pushMap(item)
+                    }
+                } else {
+                    Log.w(TAG, "Failed to query SUBS purchases: ${billingResult.debugMessage}")
+                }
+                checkCompletion()
             }
         }
     }

@@ -367,15 +367,12 @@ export const getPurchaseHistory = ({
           return await RNIapAmazonModule.getAvailableItems();
         }
 
-        const products = await RNIapModule.getPurchaseHistoryByType(
-          ANDROID_ITEM_TYPE_IAP,
+        // getPurchaseHistoryByType was removed in Google Play Billing Library v8
+        // Android doesn't provide purchase history anymore, only active purchases
+        console.warn(
+          'getPurchaseHistory is not supported on Android with Google Play Billing Library v8. Use getAvailablePurchases instead to get active purchases.',
         );
-
-        const subscriptions = await RNIapModule.getPurchaseHistoryByType(
-          ANDROID_ITEM_TYPE_SUBSCRIPTION,
-        );
-
-        return products.concat(subscriptions);
+        return [];
       },
     }) || (() => Promise.resolve([]))
   )();
@@ -494,15 +491,47 @@ export const getAvailablePurchases = ({
           return await RNIapAmazonModule.getAvailableItems();
         }
 
-        const products = await RNIapModule.getAvailableItemsByType(
-          ANDROID_ITEM_TYPE_IAP,
+        // Use the new getAvailableItems method if available
+        if (RNIapModule.getAvailableItems) {
+          try {
+            return await RNIapModule.getAvailableItems();
+          } catch (error) {
+            console.warn(
+              'getAvailableItems failed, falling back to getAvailableItemsByType',
+              error,
+            );
+            // Fall through to the old method
+          }
+        }
+
+        // Fallback to the old method for backward compatibility
+        // Use Promise.all with timeout to avoid hanging
+        const timeout = 10000; // 10 seconds timeout
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('getAvailablePurchases timeout')),
+            timeout,
+          ),
         );
 
-        const subscriptions = await RNIapModule.getAvailableItemsByType(
-          ANDROID_ITEM_TYPE_SUBSCRIPTION,
-        );
+        try {
+          const [products, subscriptions] = await Promise.race([
+            Promise.all([
+              RNIapModule.getAvailableItemsByType(ANDROID_ITEM_TYPE_IAP).catch(
+                () => [] as Purchase[],
+              ),
+              RNIapModule.getAvailableItemsByType(
+                ANDROID_ITEM_TYPE_SUBSCRIPTION,
+              ).catch(() => [] as Purchase[]),
+            ]),
+            timeoutPromise,
+          ]);
 
-        return products.concat(subscriptions);
+          return products.concat(subscriptions);
+        } catch (error) {
+          console.error('getAvailablePurchases error:', error);
+          return [];
+        }
       },
     }) || (() => Promise.resolve([]))
   )();
@@ -975,15 +1004,15 @@ export const getStorefront = (): Promise<string> => {
 /**
  * Get the app transaction information (iOS only, StoreKit 2).
  * This contains the appTransactionID and other app purchase information.
- * 
+ *
  * @platform iOS (16.0+)
  * @returns {Promise<AppTransaction>} A promise that resolves to the app transaction information
- * 
+ *
  * @example
  * ```tsx
  * import React from 'react';
  * import {getAppTransaction} from 'react-native-iap';
- * 
+ *
  * const App = () => {
  *   React.useEffect(() => {
  *     getAppTransaction().then((appTransaction) => {
@@ -1010,6 +1039,8 @@ export const getAppTransaction = (): Promise<{
       ios: async () => {
         return await RNIapIosSk2.getAppTransaction();
       },
-    }) || (() => Promise.reject(new Error('getAppTransaction is only available on iOS')))
+    }) ||
+    (() =>
+      Promise.reject(new Error('getAppTransaction is only available on iOS')))
   )();
 };

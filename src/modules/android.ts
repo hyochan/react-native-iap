@@ -59,6 +59,7 @@ type ConsumeProduct = (
 type StartListening = () => Promise<void>;
 type GetPackageName = () => Promise<string>;
 type GetStorefront = () => Promise<string>;
+type GetAvailableItems = () => Promise<Purchase[]>;
 
 export interface AndroidModuleProps extends NativeModuleProps {
   flushFailedPurchasesCachedAsPending: FlushFailedPurchasesCachedAsPending;
@@ -73,6 +74,7 @@ export interface AndroidModuleProps extends NativeModuleProps {
   getPackageName: GetPackageName;
   getStorefront: GetStorefront;
   isFeatureSupported: (feature: Android.FeatureType) => Promise<boolean>;
+  getAvailableItems?: GetAvailableItems;
 }
 
 export const AndroidModule = NativeModules.RNIapModule as AndroidModuleProps;
