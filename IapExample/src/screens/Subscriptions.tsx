@@ -10,7 +10,9 @@ import {
 import {
   isIosStorekit2,
   PurchaseError,
-  requestSubscription,
+  requestPurchase as rnIapRequestPurchase,
+  requestSubscription as rnIapRequestSubscription,
+  SubscriptionAndroid,
   useIAP,
 } from 'react-native-iap';
 
@@ -23,6 +25,73 @@ import {
   isIos,
   isPlay,
 } from '../utils';
+
+// Unified requestPurchase API wrapper (like expo-iap v2.7.0)
+interface UnifiedRequestPurchase {
+  request: {
+    ios?: {
+      sku: string;
+      appAccountToken?: string;
+      quantity?: number;
+    };
+    android?: {
+      skus: string[];
+      subscriptionOffers?: Array<{
+        sku: string;
+        offerToken: string;
+      }>;
+      obfuscatedAccountIdAndroid?: string;
+      obfuscatedProfileIdAndroid?: string;
+      isOfferPersonalized?: boolean;
+    };
+  };
+  type?: 'inapp' | 'subs';
+}
+
+// Wrapper to provide expo-iap v2.7.0 style API
+const requestPurchase = async (params: UnifiedRequestPurchase) => {
+  const {request, type = 'inapp'} = params;
+
+  if (Platform.OS === 'ios' && request.ios) {
+    const {sku, appAccountToken, quantity} = request.ios;
+    return rnIapRequestPurchase({
+      sku,
+      appAccountToken,
+      quantity,
+    });
+  } else if (Platform.OS === 'android' && request.android) {
+    const {
+      skus,
+      subscriptionOffers,
+      obfuscatedAccountIdAndroid,
+      obfuscatedProfileIdAndroid,
+      isOfferPersonalized,
+    } = request.android;
+
+    if (type === 'subs') {
+      if (!subscriptionOffers || subscriptionOffers.length === 0) {
+        throw new Error(
+          'subscriptionOffers are required for Android subscriptions',
+        );
+      }
+      return rnIapRequestSubscription({
+        subscriptionOffers,
+        obfuscatedAccountIdAndroid,
+        obfuscatedProfileIdAndroid,
+        isOfferPersonalized,
+      });
+    } else {
+      return rnIapRequestPurchase({
+        skus,
+        obfuscatedAccountIdAndroid,
+        obfuscatedProfileIdAndroid,
+        isOfferPersonalized,
+      });
+    }
+  }
+
+  throw new Error('Invalid platform or request configuration');
+};
 
 export const Subscriptions = () => {
   const {
@@ -79,38 +148,37 @@ export const Subscriptions = () => {
 
     setPurchasingSubscription(productId);
 
-    if (isPlay && !offerToken) {
-      console.warn(
-        `There are no subscription Offers for selected product (Only required for Google Play purchases): ${productId}`,
-      );
-    }
-
     try {
-      if (Platform.OS === 'ios') {
-        console.log('iOS: Requesting subscription with sku:', productId);
-        await requestSubscription({
-          sku: productId,
-        });
-      } else if (Platform.OS === 'android') {
-        if (offerToken) {
-          console.log('Android: Requesting subscription with offer token');
-          await requestSubscription({
-            subscriptionOffers: [{sku: productId, offerToken}],
-          });
-        } else {
-          console.log(
-            'Android: Requesting subscription without offer token - this may fail',
-          );
-          console.warn(
-            'Android requires subscriptionOffers with offerToken for subscriptions',
-          );
-          // Note: This will likely fail on Google Play as subscriptionOffers are required
-          // But we'll try anyway for compatibility
-          await requestSubscription({
-            subscriptionOffers: [{sku: productId, offerToken: ''}],
-          });
-        }
-      }
+      // Find the subscription to get all available offers
+      const subscription = subscriptions.find(
+        sub => sub.productId === productId,
+      );
+
+      // Use unified API (expo-iap v2.7.0 style)
+      await requestPurchase({
+        request: {
+          ios: {
+            sku: productId,
+            // Add app account token for better tracking
+            appAccountToken: 'user-example-token',
+          },
+          android: {
+            skus: [productId],
+            subscriptionOffers: offerToken
+              ? [{sku: productId, offerToken}]
+              : subscription && 'subscriptionOfferDetails' in subscription
+              ? (
+                  subscription as SubscriptionAndroid
+                ).subscriptionOfferDetails?.map(offer => ({
+                  sku: productId,
+                  offerToken: offer.offerToken,
+                })) || []
+              : [],
+          },
+        },
+        type: 'subs',
+      });
+
       console.log('✅ Subscription request completed for:', productId);
     } catch (error) {
       console.log('❌ Subscription purchase failed for:', productId, error);

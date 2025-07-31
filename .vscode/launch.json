@@ -6,8 +6,8 @@
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/IapExample",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["react-native", "run-android", "--mode=GooglePlayDebug"],
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["android:play"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"
@@ -18,8 +18,8 @@
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/IapExample",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["react-native", "run-android", "--mode=AmazonDebug"],
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["android:amazon"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"
@@ -30,8 +30,8 @@
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/IapExample",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["react-native", "run-ios"],
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["ios"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"
@@ -42,17 +42,17 @@
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/IapExample",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["react-native", "start"],
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["start"],
       "console": "integratedTerminal"
     },
     {
       "name": "Install Pods",
       "type": "node",
       "request": "launch",
-      "cwd": "${workspaceFolder}/IapExample/ios",
-      "runtimeExecutable": "pod",
-      "runtimeArgs": ["install"],
+      "cwd": "${workspaceFolder}/IapExample",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["pods"],
       "console": "integratedTerminal"
     },
     {
@@ -69,7 +69,7 @@
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/IapExample",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "yarn",
       "runtimeArgs": ["test"],
       "console": "integratedTerminal"
     },
@@ -78,8 +78,8 @@
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/IapExample",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "lint"],
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["lint"],
       "console": "integratedTerminal"
     },
     {
@@ -87,8 +87,8 @@
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/IapExample",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["react-native", "start", "--reset-cache"],
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["start", "--reset-cache"],
       "console": "integratedTerminal"
     },
     {
@@ -96,7 +96,7 @@
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/IapExample",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "yarn",
       "runtimeArgs": ["install"],
       "console": "integratedTerminal"
     }
