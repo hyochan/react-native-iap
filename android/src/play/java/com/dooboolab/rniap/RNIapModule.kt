@@ -440,7 +440,7 @@ class RNIapModule(
             val allItems = WritableNativeArray()
             val remainingTypes = mutableListOf(BillingClient.ProductType.INAPP, BillingClient.ProductType.SUBS)
             var completedQueries = 0
-            
+
             fun checkCompletion() {
                 completedQueries++
                 if (completedQueries >= 2) {
@@ -448,7 +448,7 @@ class RNIapModule(
                     promise.safeResolve(allItems)
                 }
             }
-            
+
             // Query INAPP purchases
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams
@@ -496,7 +496,7 @@ class RNIapModule(
                 }
                 checkCompletion()
             }
-            
+
             // Query SUBS purchases
             billingClient.queryPurchasesAsync(
                 QueryPurchasesParams
