@@ -112,6 +112,29 @@ protocol Sk2Delegate {
         reject: @escaping RCTPromiseRejectBlock
     )
 
+    func getReceiptDataIos(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    )
+
+    func isTransactionVerifiedIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    )
+
+    func getTransactionJwsIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    )
+
+    func validateReceiptIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    )
+
     func startObserving()
     func stopObserving()
 }
@@ -259,6 +282,37 @@ class DummySk2: Sk2Delegate {
 
     func getAppTransaction(
         _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        reject(errorCode, errorMessage, nil)
+    }
+
+    func getReceiptDataIos(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        reject(errorCode, errorMessage, nil)
+    }
+
+    func isTransactionVerifiedIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        reject(errorCode, errorMessage, nil)
+    }
+
+    func getTransactionJwsIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        reject(errorCode, errorMessage, nil)
+    }
+
+    func validateReceiptIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock,
         reject: @escaping RCTPromiseRejectBlock
     ) {
         reject(errorCode, errorMessage, nil)
@@ -453,6 +507,37 @@ class RNIapIosSk2: RCTEventEmitter, Sk2Delegate {
         reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
     ) {
         delegate.getAppTransaction(resolve, reject: reject)
+    }
+
+    @objc public func getReceiptDataIos(
+        _ resolve: @escaping RCTPromiseResolveBlock = { _ in },
+        reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
+    ) {
+        delegate.getReceiptDataIos(resolve, reject: reject)
+    }
+
+    @objc public func isTransactionVerifiedIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock = { _ in },
+        reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
+    ) {
+        delegate.isTransactionVerifiedIos(sku, resolve: resolve, reject: reject)
+    }
+
+    @objc public func getTransactionJwsIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock = { _ in },
+        reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
+    ) {
+        delegate.getTransactionJwsIos(sku, resolve: resolve, reject: reject)
+    }
+
+    @objc public func validateReceiptIos(
+        _ sku: String,
+        resolve: @escaping RCTPromiseResolveBlock = { _ in },
+        reject: @escaping RCTPromiseRejectBlock = { _, _, _ in }
+    ) {
+        delegate.validateReceiptIos(sku, resolve: resolve, reject: reject)
     }
 }
 
@@ -1148,7 +1233,7 @@ class RNIapIosSk2iOS15: Sk2Delegate {
 
     // MARK: - New methods from expo-iap
 
-    public func getReceiptData(
+    public func getReceiptDataIos(
         _ resolve: @escaping RCTPromiseResolveBlock,
         reject: @escaping RCTPromiseRejectBlock
     ) {
@@ -1166,7 +1251,7 @@ class RNIapIosSk2iOS15: Sk2Delegate {
         }
     }
 
-    public func isTransactionVerified(
+    public func isTransactionVerifiedIos(
         _ sku: String,
         resolve: @escaping RCTPromiseResolveBlock,
         reject: @escaping RCTPromiseRejectBlock
@@ -1187,7 +1272,7 @@ class RNIapIosSk2iOS15: Sk2Delegate {
         }
     }
 
-    public func getTransactionJws(
+    public func getTransactionJwsIos(
         _ sku: String,
         resolve: @escaping RCTPromiseResolveBlock,
         reject: @escaping RCTPromiseRejectBlock

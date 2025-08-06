@@ -104,16 +104,16 @@ RCT_EXTERN_METHOD(getAppTransaction:
                   (RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(getReceiptData:
+RCT_EXTERN_METHOD(getReceiptDataIos:
                   (RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(isTransactionVerified:
+RCT_EXTERN_METHOD(isTransactionVerifiedIos:
                   (NSString*)sku
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(getTransactionJws:
+RCT_EXTERN_METHOD(getTransactionJwsIos:
                   (NSString*)sku
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
