@@ -678,6 +678,7 @@ export const requestPurchase = (
             ANDROID_ITEM_TYPE_IAP,
             skus,
             undefined,
+            undefined,
             -1,
             obfuscatedAccountIdAndroid,
             obfuscatedProfileIdAndroid,
@@ -837,6 +838,7 @@ export const requestSubscription = (
           const {
             subscriptionOffers,
             purchaseTokenAndroid,
+            externalTransactionIdAndroid,
             replacementModeAndroid = -1,
             obfuscatedAccountIdAndroid,
             obfuscatedProfileIdAndroid,
@@ -847,6 +849,7 @@ export const requestSubscription = (
             ANDROID_ITEM_TYPE_SUBSCRIPTION,
             subscriptionOffers?.map((so) => so.sku),
             purchaseTokenAndroid,
+            externalTransactionIdAndroid,
             replacementModeAndroid,
             obfuscatedAccountIdAndroid,
             obfuscatedProfileIdAndroid,
