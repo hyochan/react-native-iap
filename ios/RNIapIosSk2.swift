@@ -1360,7 +1360,7 @@ class RNIapIosSk2iOS15: Sk2Delegate {
 
                 // Track willAutoRenew as a bool value
                 var willAutoRenew = false
-                if case .verified(let info) = status.renewalInfo {
+                if case .verified(let info) = status?.renewalInfo {
                     willAutoRenew = info.willAutoRenew
                 }
                 previousStatuses[sku] = willAutoRenew
@@ -1386,7 +1386,7 @@ class RNIapIosSk2iOS15: Sk2Delegate {
 
                     // Track current auto-renewal state
                     var currentWillAutoRenew = false
-                    if case .verified(let info) = status.renewalInfo {
+                    if case .verified(let info) = status?.renewalInfo {
                         currentWillAutoRenew = info.willAutoRenew
                     }
 
@@ -1396,7 +1396,7 @@ class RNIapIosSk2iOS15: Sk2Delegate {
                         // Use the jwsRepresentation when serializing the transaction
                         var purchaseMap = serialize(transaction, result)
 
-                        if case .verified(let renewalInfo) = status.renewalInfo {
+                        if case .verified(let renewalInfo) = status?.renewalInfo {
                             if let renewalInfoDict = serialize(renewalInfo) {
                                 purchaseMap["renewalInfo"] = renewalInfoDict
                             }
