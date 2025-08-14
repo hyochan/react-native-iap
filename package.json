@@ -76,7 +76,7 @@
     "bootstrap": "yarn example && yarn && yarn example pods",
     "gen:doc": "typedoc",
     "build:plugin": "tsc --build plugin",
-    "clean:plugin": "expo-module clean plugin",
+    "clean:plugin": "node -e \"if (process.platform !== 'win32'){process.exit(1)} \" || expo-module clean plugin",
     "lint:plugin": "eslint plugin/src/*"
   },
   "devDependencies": {

@@ -7,7 +7,7 @@
 
 import Foundation
 import StoreKit
-import React
+import React_Core
 
 public func debugMessage(_ object: Any...) {
     #if DEBUG
