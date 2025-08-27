@@ -1,5 +1,5 @@
-import React, {useEffect} from 'react';
-import {Redirect} from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Redirect } from 'react-router-dom';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
 export default function Home() {

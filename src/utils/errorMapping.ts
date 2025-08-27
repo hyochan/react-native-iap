@@ -3,23 +3,20 @@
  * Provides helper functions for handling platform-specific errors
  */
 
-import {ErrorCode} from '../purchaseError';
+import { ErrorCode } from '../types';
+
+type ErrorLike = { code?: string; message?: string };
+
+const getCode = (e: unknown): string | undefined =>
+  typeof e === 'string' ? e : (e as ErrorLike | null | undefined)?.code;
 
 /**
  * Checks if an error is a user cancellation
  * @param error Error object or error code
  * @returns True if the error represents user cancellation
  */
-export function isUserCancelledError(error: any): boolean {
-  if (typeof error === 'string') {
-    return error === ErrorCode.E_USER_CANCELLED;
-  }
-
-  if (error && error.code) {
-    return error.code === ErrorCode.E_USER_CANCELLED;
-  }
-
-  return false;
+export function isUserCancelledError(error: unknown): boolean {
+  return getCode(error) === ErrorCode.E_USER_CANCELLED;
 }
 
 /**
@@ -27,15 +24,14 @@ export function isUserCancelledError(error: any): boolean {
  * @param error Error object or error code
  * @returns True if the error is network-related
  */
-export function isNetworkError(error: any): boolean {
+export function isNetworkError(error: unknown): boolean {
   const networkErrors = [
     ErrorCode.E_NETWORK_ERROR,
     ErrorCode.E_REMOTE_ERROR,
     ErrorCode.E_SERVICE_ERROR,
-  ];
-
-  const errorCode = typeof error === 'string' ? error : error?.code;
-  return networkErrors.includes(errorCode);
+  ] as const;
+  const code = getCode(error);
+  return !!code && (networkErrors as readonly string[]).includes(code);
 }
 
 /**
@@ -43,16 +39,15 @@ export function isNetworkError(error: any): boolean {
  * @param error Error object or error code
  * @returns True if the error is potentially recoverable
  */
-export function isRecoverableError(error: any): boolean {
+export function isRecoverableError(error: unknown): boolean {
   const recoverableErrors = [
     ErrorCode.E_NETWORK_ERROR,
     ErrorCode.E_REMOTE_ERROR,
     ErrorCode.E_SERVICE_ERROR,
     ErrorCode.E_INTERRUPTED,
-  ];
-
-  const errorCode = typeof error === 'string' ? error : error?.code;
-  return recoverableErrors.includes(errorCode);
+  ] as const;
+  const code = getCode(error);
+  return !!code && (recoverableErrors as readonly string[]).includes(code);
 }
 
 /**
@@ -60,8 +55,8 @@ export function isRecoverableError(error: any): boolean {
  * @param error Error object or error code
  * @returns User-friendly error message
  */
-export function getUserFriendlyErrorMessage(error: any): string {
-  const errorCode = typeof error === 'string' ? error : error?.code;
+export function getUserFriendlyErrorMessage(error: unknown): string {
+  const errorCode = getCode(error);
 
   switch (errorCode) {
     case ErrorCode.E_USER_CANCELLED:
@@ -83,6 +78,6 @@ export function getUserFriendlyErrorMessage(error: any): string {
     case ErrorCode.E_RECEIPT_FAILED:
       return 'Receipt processing failed';
     default:
-      return error?.message || 'An unexpected error occurred';
+      return (error as ErrorLike)?.message || 'An unexpected error occurred';
   }
 }

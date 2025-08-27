@@ -8,29 +8,32 @@ jobs:
   deploy:
     if: github.event.release.prerelease
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          cache: 'yarn'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: 20.x
 
-      - name: Remove example code
-        run: rm -rf IapExample
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
-      - name: Install dependencies
-        run: yarn install --immutable
+      - name: Install modules
+        run: bun install --immutable
 
-      - name: Build typescript
-        run: yarn lint:ci
+      - name: Run lint scripts
+        run: bun run lint:ci
 
       - name: Verify no files have changed after auto-fix
-        run: git diff -- ":(exclude)IapExample/*" --exit-code HEAD
+        run: git diff -- ":(exclude)example/*" --exit-code HEAD
+
+      - name: Prepare package
+        run: bun run prepare
+
+      - name: Configure npm for publishing
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
       - run: npm publish --tag next
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,6 +1,5 @@
-IapExample/vendor
-IapExample/ios
-IapExample/android
+example/ios
+example/android
 lib
 ios
 android

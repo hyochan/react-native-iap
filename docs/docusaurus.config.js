@@ -20,9 +20,9 @@ const config = {
       },
       items: [
         {
-          href: 'https://github.com/hyochan/react-native-iap',
-          position: 'right',
-          className: 'header-github-link',
+          'href': 'https://github.com/hyochan/react-native-iap',
+          'position': 'right',
+          'className': 'header-github-link',
           'aria-label': 'GitHub repository',
         },
       ],
@@ -87,7 +87,7 @@ const config = {
           editUrl:
             'https://github.com/hyochan/react-native-iap/edit/main/docs/',
           remarkPlugins: [
-            [require('@docusaurus/remark-plugin-npm2yarn'), {sync: true}],
+            [require('@docusaurus/remark-plugin-npm2yarn'), { sync: true }],
           ],
         },
         theme: {

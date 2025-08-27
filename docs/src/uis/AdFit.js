@@ -1,5 +1,5 @@
 import React from 'react';
-import {useEffect} from 'react';
+import { useEffect } from 'react';
 
 export default function AdFit({
   className = 'adfit',
@@ -27,7 +27,7 @@ export default function AdFit({
 
   return (
     <div style={style}>
-      <div className={className}></div>
+      <div className={className} />
     </div>
   );
 }

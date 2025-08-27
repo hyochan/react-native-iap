@@ -1,17 +1,21 @@
-import {WarningAggregator, withAppBuildGradle} from 'expo/config-plugins';
-import {ConfigPlugin, createRunOncePlugin} from 'expo/config-plugins';
+import type { ConfigPlugin } from 'expo/config-plugins';
+import {
+  WarningAggregator,
+  withAppBuildGradle,
+  createRunOncePlugin,
+} from 'expo/config-plugins';
 
 const pkg = require('../../package.json');
 
 type PaymentProvider = 'Amazon AppStore' | 'both' | 'Play Store';
 
 const hasPaymentProviderProperValue = (
-  paymentProvider: string,
+  paymentProvider: string
 ): paymentProvider is PaymentProvider => {
   return ['Amazon AppStore', 'Play Store', 'both'].includes(paymentProvider);
 };
 
-const linesToAdd: {[key in PaymentProvider]: string} = {
+const linesToAdd: { [key in PaymentProvider]: string } = {
   ['Amazon AppStore']: `missingDimensionStrategy "store", "amazon"`,
   ['Play Store']: `missingDimensionStrategy "store", "play"`,
   ['both']: `flavorDimensions "appstore"
@@ -33,7 +37,7 @@ const addToBuildGradle = (
   newLine: string,
   anchor: RegExp | string,
   offset: number,
-  buildGradle: string,
+  buildGradle: string
 ) => {
   const lines = buildGradle.split('\n');
   const lineIndex = lines.findIndex((line) => line.match(anchor));
@@ -44,7 +48,7 @@ const addToBuildGradle = (
 
 export const modifyAppBuildGradle = (
   buildGradle: string,
-  paymentProvider: PaymentProvider,
+  paymentProvider: PaymentProvider
 ) => {
   if (paymentProvider === 'both') {
     if (buildGradle.includes(`flavorDimensions "appstore"`)) {
@@ -54,7 +58,7 @@ export const modifyAppBuildGradle = (
       linesToAdd[paymentProvider],
       'defaultConfig',
       -1,
-      buildGradle,
+      buildGradle
     );
   }
 
@@ -66,19 +70,19 @@ export const modifyAppBuildGradle = (
     missingDimensionStrategy,
     'defaultConfig',
     1,
-    buildGradle,
+    buildGradle
   );
 };
 
-const withIAPAndroid: ConfigPlugin<{paymentProvider: PaymentProvider}> = (
+const withIAPAndroid: ConfigPlugin<{ paymentProvider: PaymentProvider }> = (
   config,
-  {paymentProvider},
+  { paymentProvider }
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-shadow
   config = withAppBuildGradle(config, (config) => {
     config.modResults.contents = modifyAppBuildGradle(
       config.modResults.contents,
-      paymentProvider,
+      paymentProvider
     );
     return config;
   });
@@ -97,17 +101,17 @@ const withIAP: ConfigPlugin<Props | undefined> = (config, props) => {
     WarningAggregator.addWarningAndroid(
       'react-native-iap',
 
-      `The payment provider '${paymentProvider}' is not supported. Please update your app.json file with one of the following supported values: 'Play Store', 'Amazon AppStore', or 'both'.`,
+      `The payment provider '${paymentProvider}' is not supported. Please update your app.json file with one of the following supported values: 'Play Store', 'Amazon AppStore', or 'both'.`
     );
     return config;
   }
   try {
-    config = withIAPAndroid(config, {paymentProvider});
+    config = withIAPAndroid(config, { paymentProvider });
   } catch (error) {
     WarningAggregator.addWarningAndroid(
       'react-native-iap',
 
-      `There was a problem configuring react-native-iap in your native Android project: ${error}`,
+      `There was a problem configuring react-native-iap in your native Android project: ${error}`
     );
   }
 

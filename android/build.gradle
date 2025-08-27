@@ -1,6 +1,7 @@
 buildscript {
-  // Buildscript is evaluated before everything else so we can't use getExtOrDefault
-  def kotlinVersion = rootProject.ext.has("kotlinVersion") ? rootProject.ext.get("kotlinVersion") : project.properties["RNIap_kotlinVersion"]
+  ext.getExtOrDefault = {name ->
+    return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['Iap_' + name]
+  }
 
   repositories {
     google()
@@ -8,189 +9,127 @@ buildscript {
   }
 
   dependencies {
-    classpath "com.android.tools.build:gradle:7.4.2"
-    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    classpath "com.android.tools.build:gradle:8.7.2"
+    // noinspection DifferentKotlinGradleVersion
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${getExtOrDefault('kotlinVersion')}"
   }
 }
 
-def isNewArchitectureEnabled() {
-  return rootProject.hasProperty("newArchEnabled") &&  rootProject.getProperty("newArchEnabled") == "true"
+def reactNativeArchitectures() {
+  def value = rootProject.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
 }
 
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
-
-if (isNewArchitectureEnabled()) {
-  apply plugin: "com.facebook.react"
-}
-
-def getExtOrDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["RNIap_" + name]
-}
+apply from: '../nitrogen/generated/android/iap+autolinking.gradle'
 
 def getExtOrIntegerDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["RNIap_" + name]).toInteger()
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["Iap_" + name]).toInteger()
 }
 
 android {
+  namespace "com.margelo.nitro.iap"
+
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
   defaultConfig {
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
-    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
-    buildConfigField "boolean", "IS_AMAZON_DRM_ENABLED", getExtOrDefault("isAmazonDrmEnabled")
-  }
 
-  buildTypes {
-    release {
-      minifyEnabled false
+    externalNativeBuild {
+      cmake {
+        cppFlags "-frtti -fexceptions -Wall -fstack-protector-all"
+        arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+        abiFilters (*reactNativeArchitectures())
+      }
     }
   }
 
-  lintOptions {
-    abortOnError false
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+
+  packagingOptions {
+    excludes = [
+            "META-INF",
+            "META-INF/**",
+            "**/libc++_shared.so",
+            "**/libfbjni.so",
+            "**/libjsi.so",
+            "**/libfolly_json.so",
+            "**/libfolly_runtime.so",
+            "**/libglog.so",
+            "**/libhermes.so",
+            "**/libhermes-executor-debug.so",
+            "**/libhermes_executor.so",
+            "**/libreactnative.so",
+            "**/libreactnativejni.so",
+            "**/libturbomodulejsijni.so",
+            "**/libreact_nativemodule_core.so",
+            "**/libjscexecutor.so"
+    ]
+  }
+
+  buildFeatures {
+    buildConfig true
+    prefab true
+  }
+
+  buildTypes {
+    debug {
+      externalNativeBuild {
+        cmake {
+          cppFlags "-O1 -g"
+        }
+      }
+    }
+    release {
+      minifyEnabled false
+      externalNativeBuild {
+        cmake {
+          cppFlags "-O2"
+        }
+      }
+    }
+  }
+
+  lint {
     disable "GradleCompatible"
   }
 
   compileOptions {
-    sourceCompatibility JavaVersion.VERSION_1_8
-    targetCompatibility JavaVersion.VERSION_1_8
+    sourceCompatibility JavaVersion.VERSION_11
+    targetCompatibility JavaVersion.VERSION_11
   }
 
-  flavorDimensions "store"
-
-  productFlavors {
-    amazon {
-      dimension "store"
+  sourceSets {
+    main {
+      java.srcDirs += [
+        "generated/java",
+        "generated/jni"
+      ]
     }
-
-    play {
-      dimension "store"
-    }
-  }
-
-  testOptions {
-    unitTests.all {
-      jvmArgs '-noverify'
-    }
-    unitTests.returnDefaultValues = true
   }
 }
 
 repositories {
   mavenCentral()
   google()
-
-  def found = false
-  def defaultDir = null
-  def androidSourcesName = "React Native sources"
-
-  if (rootProject.ext.has("reactNativeAndroidRoot")) {
-    defaultDir = rootProject.ext.get("reactNativeAndroidRoot")
-  } else {
-    defaultDir = new File(
-      projectDir,
-      "/../../../node_modules/react-native/android"
-    )
-  }
-
-  if (defaultDir.exists()) {
-    maven {
-      url defaultDir.toString()
-      name androidSourcesName
-    }
-
-    logger.info(":${project.name}:reactNativeAndroidRoot ${defaultDir.canonicalPath}")
-    found = true
-  } else {
-    def parentDir = rootProject.projectDir
-
-    1.upto(5, {
-      if (found) return true
-      parentDir = parentDir.parentFile
-
-      def androidSourcesDir = new File(
-        parentDir,
-        "node_modules/react-native"
-      )
-
-      def androidPrebuiltBinaryDir = new File(
-        parentDir,
-        "node_modules/react-native/android"
-      )
-
-      if (androidPrebuiltBinaryDir.exists()) {
-        maven {
-          url androidPrebuiltBinaryDir.toString()
-          name androidSourcesName
-        }
-
-        logger.info(":${project.name}:reactNativeAndroidRoot ${androidPrebuiltBinaryDir.canonicalPath}")
-        found = true
-      } else if (androidSourcesDir.exists()) {
-        maven {
-          url androidSourcesDir.toString()
-          name androidSourcesName
-        }
-
-        logger.info(":${project.name}:reactNativeAndroidRoot ${androidSourcesDir.canonicalPath}")
-        found = true
-      }
-    })
-  }
-
-  if (!found) {
-    throw new GradleException(
-      "${project.name}: unable to locate React Native android sources. " +
-      "Ensure you have you installed React Native as a dependency in your project and try again."
-    )
-  }
 }
 
-def kotlinVersion = getExtOrDefault("kotlinVersion")
-def playServicesVersion = getExtOrDefault("playServicesVersion")
-def supportLibVersion = getExtOrDefault("supportLibVersion")
-def androidXVersion = getExtOrDefault("androidXVersion")
-def androidXAnnotation = getExtOrDefault("androidXAnnotation")
-def androidXBrowser = getExtOrDefault("androidXBrowser")
-def amazonSdkVersion = getExtOrDefault("amazonSdkVersion")
-def playBillingSdkVersion = getExtOrDefault("playBillingSdkVersion")
+def kotlin_version = getExtOrDefault("kotlinVersion")
 
 dependencies {
-  implementation "com.facebook.react:react-native:+"
-  implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-
-  testImplementation "junit:junit:4.13.2"
-  testImplementation "io.mockk:mockk:1.13.5"
-
-  playImplementation "com.android.billingclient:billing-ktx:$playBillingSdkVersion"
-  playImplementation "com.google.android.gms:play-services-base:$playServicesVersion"
-
-  amazonImplementation  "com.amazon.device:amazon-appstore-sdk:$amazonSdkVersion"
-
-  if (supportLibVersion && androidXVersion == null) {
-    implementation "com.android.support:support-annotations:$supportLibVersion"
-    implementation "com.android.support:customtabs:$supportLibVersion"
-  } else {
-    def defaultAndroidXVersion = "1.2.0"
-
-    if (androidXVersion == null) {
-      androidXVersion = defaultAndroidXVersion
-    }
-
-    def annotationVersion = androidXAnnotation ? androidXAnnotation : androidXVersion
-    def browserVersion = androidXBrowser ? androidXBrowser : androidXVersion
-
-    implementation "androidx.annotation:annotation:$annotationVersion"
-    implementation "androidx.browser:browser:$browserVersion"
-  }
-}
-
-if (isNewArchitectureEnabled()) {
-  react {
-    jsRootDir = file("../src/")
-    libraryName = "RNIap"
-    codegenJavaPackageName = "com.reactnativeiap"
-  }
+  implementation "com.facebook.react:react-android"
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+  implementation project(":react-native-nitro-modules")
+  
+  // Google Play Billing Library v8
+  implementation 'com.android.billingclient:billing-ktx:8.0.0'
+  
+  // Kotlin Coroutines for async operations
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }

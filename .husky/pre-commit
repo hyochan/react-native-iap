@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Run typecheck for entire project
+echo "🔍 Running TypeScript check..."
+bun run typecheck
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript check failed. Please fix errors before committing."
+  exit 1
+fi
+
+# Run lint-staged for changed files only
+echo "✨ Running lint-staged..."
+bunx lint-staged
+if [ $? -ne 0 ]; then
+  echo "❌ Lint-staged failed. Please fix errors before committing."
+  exit 1
+fi
+
+# Run tests
+echo "🧪 Running tests..."
+bun run test
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please fix errors before committing."
+  exit 1
+fi
+
+echo "✅ All checks passed! Ready to commit."

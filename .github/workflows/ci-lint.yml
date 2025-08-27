@@ -1,0 +1,53 @@
+name: CI - Lint
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-lint.yml'
+      - '.github/actions/**'
+      - 'src/**'
+      - 'example/src/**'
+      - '*.ts'
+      - '*.tsx'
+      - '*.js'
+      - '*.jsx'
+      - '.eslintrc*'
+      - 'tsconfig*.json'
+      - 'package.json'
+      - 'bun.lock'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-lint.yml'
+      - '.github/actions/**'
+      - 'src/**'
+      - 'example/src/**'
+      - '*.ts'
+      - '*.tsx'
+      - '*.js'
+      - '*.jsx'
+      - '.eslintrc*'
+      - 'tsconfig*.json'
+      - 'package.json'
+      - 'bun.lock'
+  merge_group:
+    types:
+      - checks_requested
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Lint files
+        run: bun run lint
+
+      - name: Typecheck files
+        run: bun run typecheck

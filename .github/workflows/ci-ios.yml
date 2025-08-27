@@ -1,0 +1,101 @@
+name: CI - iOS Build
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-ios.yml'
+      - '.github/actions/**'
+      - 'src/**'
+      - 'ios/**'
+      - 'nitrogen/**'
+      - 'example/ios/**'
+      - 'example/src/**'
+      - 'example/Gemfile*'
+      - 'example/Podfile*'
+      - 'package.json'
+      - 'bun.lock'
+      - 'nitro.json'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-ios.yml'
+      - '.github/actions/**'
+      - 'src/**'
+      - 'ios/**'
+      - 'nitrogen/**'
+      - 'example/ios/**'
+      - 'example/src/**'
+      - 'example/Gemfile*'
+      - 'example/Podfile*'
+      - 'package.json'
+      - 'bun.lock'
+      - 'nitro.json'
+  merge_group:
+    types:
+      - checks_requested
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    env:
+      XCODE_VERSION: 16.2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Generate nitrogen code
+        run: bun run nitrogen
+
+      - name: Use appropriate Xcode version
+        uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Cache CocoaPods
+        id: cocoapods-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            example/ios/Pods
+            example/Podfile.lock
+          key: ${{ runner.os }}-cocoapods-${{ hashFiles('example/Gemfile.lock', 'example/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cocoapods-
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@c04af2bb7258bb6a03df1d3c1865998ac9390972 # v1.194.0
+        with:
+          ruby-version: '2.7.2'
+          working-directory: example
+
+      - name: Install Ruby dependencies
+        run: |
+          cd example
+          bundle config set --local deployment false
+          bundle config set --local path vendor/bundle
+          bundle install
+
+      - name: Install example dependencies
+        run: |
+          cd example
+          bun install
+          # Remove circular references to prevent infinite recursion
+          rm -rf node_modules/react-native-iap/example
+          rm -rf node_modules/react-native-iap/node_modules
+
+      - name: Install cocoapods
+        if: steps.cocoapods-cache.outputs.cache-hit != 'true'
+        run: |
+          cd example
+          bundle exec pod repo update --verbose
+          bundle exec pod install --project-directory=ios
+
+      - name: Build example for iOS
+        run: |
+          cd example/ios
+          xcodebuild -workspace IapExample.xcworkspace -scheme IapExample -configuration Debug -sdk iphonesimulator -derivedDataPath build

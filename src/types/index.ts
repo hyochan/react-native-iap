@@ -1,20 +1,341 @@
+/**
+ * Main types file that combines all platform-specific and common types
+ * This file maintains compatibility with expo-iap types
+ */
+
+// ============================================================================
+// Base Types
+// ============================================================================
+
+export type ProductType = 'inapp' | 'subs';
+export type DevicePlatform = 'ios' | 'android';
+
+export type IosPlatform = { platform: 'ios' };
+export type AndroidPlatform = { platform: 'android' };
+
+// ============================================================================
+// Error Types (from Iap.types.ts)
+// ============================================================================
+
+export enum ErrorCode {
+  E_UNKNOWN = 'E_UNKNOWN',
+  E_USER_CANCELLED = 'E_USER_CANCELLED',
+  E_DEVELOPER_ERROR = 'E_DEVELOPER_ERROR',
+  E_ITEM_UNAVAILABLE = 'E_ITEM_UNAVAILABLE',
+  E_REMOTE_ERROR = 'E_REMOTE_ERROR',
+  E_NETWORK_ERROR = 'E_NETWORK_ERROR',
+  E_SERVICE_ERROR = 'E_SERVICE_ERROR',
+  E_RECEIPT_FAILED = 'E_RECEIPT_FAILED',
+  E_RECEIPT_FINISHED_FAILED = 'E_RECEIPT_FINISHED_FAILED',
+  E_NOT_PREPARED = 'E_NOT_PREPARED',
+  E_NOT_ENDED = 'E_NOT_ENDED',
+  E_ALREADY_OWNED = 'E_ALREADY_OWNED',
+  E_DEFERRED_PAYMENT = 'E_DEFERRED_PAYMENT',
+  E_TRANSACTION_VALIDATION_FAILED = 'E_TRANSACTION_VALIDATION_FAILED',
+  E_PENDING = 'E_PENDING',
+  E_INTERRUPTED = 'E_INTERRUPTED',
+  E_IAP_NOT_AVAILABLE = 'E_IAP_NOT_AVAILABLE',
+}
+
+export interface PurchaseError {
+  code: string;
+  message: string;
+  productId?: string;
+}
+
+// ============================================================================
+// Receipt Types
+// ============================================================================
+
+export interface ReceiptAndroid {
+  startTimeMillis?: number;
+  expiryTimeMillis?: number;
+  autoRenewing?: boolean;
+  priceCurrencyCode?: string;
+  priceAmountMicros?: number;
+  countryCode?: string;
+  developerPayload?: string;
+  orderId?: string;
+  purchaseType?: number;
+  acknowledgementState?: number;
+  kind?: string;
+}
+
+// ============================================================================
+// iOS Types (Extended)
+// ============================================================================
+
+export type SubscriptionIosPeriod = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR' | '';
+export type PaymentMode = '' | 'FREETRIAL' | 'PAYASYOUGO' | 'PAYUPFRONT';
+
+export interface SubscriptionInfoIos {
+  readonly introductoryOffer?: SubscriptionOfferIos;
+  readonly promotionalOffers?: SubscriptionOfferIos[];
+  readonly subscriptionGroupID: string;
+  readonly subscriptionPeriod: SubscriptionIosPeriod;
+}
+
+export interface SubscriptionOfferIos {
+  readonly displayPrice: string;
+  readonly id: string;
+  readonly paymentMode: PaymentMode;
+  readonly period: SubscriptionIosPeriod;
+  readonly periodCount: number;
+  readonly price: number;
+  readonly type: 'introductory' | 'promotional';
+}
+
+export interface DiscountIos {
+  readonly identifier: string;
+  readonly type: string;
+  readonly numberOfPeriods: string;
+  readonly price: string;
+  readonly localizedPrice: string;
+  readonly paymentMode: PaymentMode;
+  readonly subscriptionPeriod: string;
+}
+
+export interface RenewalInfoIos {
+  readonly jsonRepresentation?: string;
+  readonly willAutoRenew: boolean;
+  readonly autoRenewPreference?: string;
+}
+
+export interface TransactionInfoIos {
+  readonly jsonRepresentation?: string;
+  readonly transactionId: string;
+  readonly productId: string;
+  readonly purchaseDate: number;
+  readonly quantity: number;
+  readonly storefront: string;
+  readonly storefrontId: string;
+  readonly transactionReason: string;
+  readonly environment: string;
+  readonly originalTransactionId?: string;
+  readonly expiresDate?: number;
+  readonly originalPurchaseDate?: number;
+  readonly isUpgraded?: boolean;
+  readonly offerType?: string;
+  readonly offerIdentifier?: string;
+  readonly revocationDate?: number;
+  readonly revocationReason?: string;
+  readonly appAccountToken?: string;
+  readonly webOrderLineItemId?: string;
+  readonly type?:
+    | 'Auto-Renewable Subscription'
+    | 'Non-Consumable'
+    | 'Consumable'
+    | 'Non-Renewing Subscription';
+  readonly subscriptionGroupIdentifier?: string;
+  readonly price?: number;
+  readonly currency?: string;
+}
+
+export interface ProductPurchaseIos {
+  readonly id: string;
+  readonly productId: string; // The product ID that was purchased
+  readonly transactionId?: string;
+  readonly transactionDate: number;
+  readonly transactionReceipt: string;
+  readonly originalTransactionDate?: string;
+  readonly originalTransactionIdentifier?: string;
+  readonly verificationResultIOS?: string;
+  readonly transactionInfoJsonRepresentation?: string;
+  readonly appAccountToken?: string;
+  readonly renewalInfo?: RenewalInfoIos;
+  readonly transactionInfo?: TransactionInfoIos;
+}
+
+export interface AppTransactionIOS {
+  appTransactionId?: string; // Only available in iOS 18.4+
+  originalPlatform?: string; // Only available in iOS 18.4+
+  bundleId: string;
+  appVersion: string;
+  originalAppVersion: string;
+  originalPurchaseDate: string;
+  deviceVerification: string;
+  deviceVerificationNonce: string;
+  signedDate: string;
+}
+
+// ============================================================================
+// Android Types (Extended)
+// ============================================================================
+
+export interface OneTimePurchaseOfferDetailsAndroid {
+  readonly priceCurrencyCode: string;
+  readonly formattedPrice: string;
+  readonly priceAmountMicros: string;
+}
+
+export interface PricingPhasesAndroid {
+  readonly pricingPhaseList: import('./IapAndroid.types').PricingPhaseAndroid[];
+}
+
+export interface SubscriptionOfferDetailAndroid {
+  readonly basePlanId: string;
+  readonly offerId: string;
+  readonly offerToken: string;
+  readonly offerTags: string[];
+  readonly pricingPhases: PricingPhasesAndroid;
+}
+
+// ============================================================================
+// Unified Types
+// ============================================================================
+
 import type {
-  AmazonModuleProps,
-  AndroidModuleProps,
-  IosModuleProps,
-} from '../modules';
-import type {IosModulePropsSk2} from '../modules/iosSk2';
+  ProductPurchaseAndroid,
+  SubscriptionProductAndroid,
+  ProductAndroid,
+} from './IapAndroid.types';
+import type { ProductIOS, SubscriptionProductIOS } from './IapIos.types';
 
-import type * as Apple from './apple';
+// Extend Android purchase type for cross-platform unions
+export type ProductPurchaseAndroidExtended = ProductPurchaseAndroid & {
+  readonly id: string;
+  readonly productId: string; // The product ID that was purchased
+  readonly transactionId?: string;
+  readonly transactionDate: number;
+  readonly transactionReceipt: string;
+  readonly productIds?: string[];
+  // Keep these optional to remain compatible with the base type.
+  readonly purchaseToken?: string;
+  readonly dataAndroid?: string;
+  readonly packageNameAndroid?: string;
+  readonly developerPayloadAndroid?: string;
+  readonly accountIdentifiersAndroid?: {
+    obfuscatedAccountId?: string;
+    obfuscatedProfileId?: string;
+  };
+  readonly receipt?: ReceiptAndroid;
+};
 
-export type Sku = string;
+export type Product =
+  | (ProductAndroid & AndroidPlatform)
+  | (ProductIOS & IosPlatform);
 
-// Platform discrimination types
-export type IosPlatform = {platform: 'ios'};
-export type AndroidPlatform = {platform: 'android'};
-export type AmazonPlatform = {platform: 'amazon'};
+export type SubscriptionProduct =
+  | (SubscriptionProductAndroid & AndroidPlatform)
+  | (SubscriptionProductIOS & IosPlatform);
 
-export type ProrationModesAmazon = '' | 'DEFERRED' | 'IMMEDIATE';
+// Union type for platform-specific purchase types
+export type Purchase =
+  | (ProductPurchaseAndroidExtended & AndroidPlatform)
+  | (ProductPurchaseIos & IosPlatform);
+
+// Union type for platform-specific subscription purchase types
+export type SubscriptionPurchase =
+  | (ProductPurchaseAndroidExtended &
+      AndroidPlatform & { autoRenewingAndroid: boolean })
+  | (ProductPurchaseIos & IosPlatform);
+
+export type ProductPurchase = Purchase;
+
+export type PurchaseResult =
+  | ProductPurchase
+  | SubscriptionPurchase
+  | null
+  | void;
+
+// ============================================================================
+// Request Types (from RequestTypes.ts)
+// ============================================================================
+
+/**
+ * iOS-specific purchase request parameters
+ */
+export interface RequestPurchaseIosProps {
+  readonly sku: string;
+  readonly andDangerouslyFinishTransactionAutomatically?: boolean;
+  readonly andDangerouslyFinishTransactionAutomaticallyIOS?: boolean; // Legacy alias
+  readonly appAccountToken?: string;
+  readonly quantity?: number;
+  readonly withOffer?: any; // PaymentDiscount type
+}
+
+/**
+ * Android-specific purchase request parameters
+ */
+export interface RequestPurchaseAndroidProps {
+  readonly skus: string[];
+  readonly obfuscatedAccountIdAndroid?: string;
+  readonly obfuscatedProfileIdAndroid?: string;
+  readonly isOfferPersonalized?: boolean;
+}
+
+/**
+ * Android-specific subscription request parameters
+ */
+export interface RequestSubscriptionAndroidProps
+  extends RequestPurchaseAndroidProps {
+  readonly purchaseTokenAndroid?: string;
+  readonly purchaseToken?: string; // Alias for compatibility
+  readonly replacementModeAndroid?: number;
+  readonly subscriptionOffers?: {
+    sku: string;
+    offerToken: string;
+  }[];
+}
+
+/**
+ * iOS-specific subscription request parameters
+ */
+export interface RequestSubscriptionIosProps extends RequestPurchaseIosProps {
+  // iOS subscriptions use the same props as regular purchases
+}
+
+/**
+ * Modern platform-specific request structure (expo-iap v2.7.0+ compatible)
+ * Allows clear separation of iOS and Android parameters
+ */
+export interface RequestPurchaseProps {
+  readonly ios?: RequestPurchaseIosProps;
+  readonly android?: RequestPurchaseAndroidProps;
+}
+
+/**
+ * Modern platform-specific subscription request structure (expo-iap v2.7.0+ compatible)
+ */
+export interface RequestSubscriptionProps {
+  readonly ios?: RequestSubscriptionIosProps;
+  readonly android?: RequestSubscriptionAndroidProps;
+}
+
+/**
+ * Combined request type for internal use
+ */
+export type PurchaseRequestInternal = {
+  request: RequestPurchaseProps | RequestSubscriptionProps;
+  type?: 'inapp' | 'subs';
+};
+
+// Define discriminated union for purchase requests
+export type PurchaseRequest =
+  | {
+      request: RequestPurchaseIosProps | RequestPurchaseAndroidProps;
+      type?: 'inapp';
+    }
+  | {
+      request: RequestSubscriptionAndroidProps | RequestSubscriptionIosProps;
+      type: 'subs';
+    };
+
+// ============================================================================
+// Feature Types (Android)
+// ============================================================================
+
+export enum FeatureTypeAndroid {
+  IN_APP_MESSAGING = 'IN_APP_MESSAGING',
+  SUBSCRIPTIONS = 'SUBSCRIPTIONS',
+  SUBSCRIPTIONS_UPDATE = 'SUBSCRIPTIONS_UPDATE',
+  PRICE_CHANGE_CONFIRMATION = 'PRICE_CHANGE_CONFIRMATION',
+}
+
+export interface SubscriptionOfferInfo {
+  readonly sku: string;
+  readonly offerToken: string;
+}
 
 export enum ReplacementModesAndroid {
   UNKNOWN_REPLACEMENT_MODE = 0,
@@ -25,355 +346,61 @@ export enum ReplacementModesAndroid {
   DEFERRED = 6,
 }
 
-export enum PurchaseStateAndroid {
-  UNSPECIFIED_STATE = 0,
-  PURCHASED = 1,
-  PENDING = 2,
+// ============================================================================
+// Active Subscription Types
+// ============================================================================
+
+export interface ActiveSubscription {
+  id: string;
+  isActive: boolean;
+  expirationDate?: number;
+  autoRenewing?: boolean;
+  purchaseDate?: number;
+  originalPurchaseDate?: number;
+  platform?: DevicePlatform;
 }
 
-export const PROMOTED_PRODUCT = 'iap-promoted-product';
+// ============================================================================
+// Legacy Type Aliases
+// ============================================================================
 
-export enum InstallSourceAndroid {
-  NOT_SET = 0,
-  GOOGLE_PLAY = 1,
-  AMAZON = 2,
+/**
+ * Legacy base Product type (from Iap.types.ts)
+ */
+export interface NitroProduct {
+  readonly id: string;
+  readonly displayName?: string;
+  readonly displayPrice?: string;
+  readonly price?: number;
+  readonly currency?: string;
+  readonly description?: string;
+  readonly title?: string;
+  readonly type?: string;
+  readonly localizedPrice?: string;
+  readonly platform?: DevicePlatform;
+  readonly isFamilyShareable?: boolean;
+  readonly jsonRepresentation?: string;
+  readonly subscription?: string;
 }
 
-export enum ProductType {
-  /** Subscription */
-  subs = 'subs',
-
-  /** Subscription */
-  sub = 'sub',
-
-  /** Consumable */
-  inapp = 'inapp',
-
-  /** Consumable */
-  iap = 'iap',
-}
-
-export enum TransactionReason {
-  PURCHASE = 'PURCHASE',
-  RENEWAL = 'RENEWAL',
-}
-
-export interface ProductCommon {
-  type: 'subs' | 'sub' | 'inapp' | 'iap';
-  productId: string; //iOS
-  id?: string; // Alias for productId (expo-iap compatibility)
-  productIds?: string[];
-  title: string;
-  description: string;
-  price: string;
-  currency: string;
-  localizedPrice: string;
-  displayPrice?: string; // Alias for localizedPrice (expo-iap compatibility)
-  originalPrice?: string;
-  countryCode?: string;
-}
-
-export interface ProductPurchase {
-  productId: string;
-  id?: string; // Alias for productId (expo-iap compatibility)
-  ids?: string[]; // For Android multi-purchase support
+/**
+ * Legacy base Purchase type (from Iap.types.ts)
+ */
+export interface NitroPurchase {
+  id: string;
   transactionId?: string;
   transactionDate: number;
   transactionReceipt: string;
-  purchaseToken?: string;
-  //iOS
-  quantityIOS?: number;
-  originalTransactionDateIOS?: number;
-  originalTransactionIdentifierIOS?: string;
-  verificationResultIOS?: string;
-  appAccountToken?: string;
-  jwsRepresentationIos?: string;
-  environmentIos?: string; // iOS 16+
-  storefrontCountryCodeIos?: string; // iOS 17+
-  reasonIos?: string; // iOS 17+
-  offerIos?: {
-    // iOS 17.2+
-    id: string;
-    type: string;
-    paymentMode: string;
-  };
-  priceIos?: number; // iOS 15.4+
-  currencyIos?: string; // iOS 15.4+
-  // Additional iOS fields from expo-iap
-  expirationDateIos?: number;
-  webOrderLineItemIdIos?: number;
-  appBundleIdIos?: string;
-  productTypeIos?: string;
-  subscriptionGroupIdIos?: string;
-  isUpgradedIos?: boolean;
-  ownershipTypeIos?: string;
-  reasonStringRepresentationIos?: string;
-  transactionReasonIOS?: TransactionReason | string;
-  revocationDateIos?: number;
-  revocationReasonIos?: string;
-  //Android
-  productIds?: string[];
+  platform?: DevicePlatform;
   dataAndroid?: string;
-  signatureAndroid?: string;
   autoRenewingAndroid?: boolean;
-  purchaseStateAndroid?: PurchaseStateAndroid;
-  isAcknowledgedAndroid?: boolean;
-  packageNameAndroid?: string;
-  developerPayloadAndroid?: string;
-  obfuscatedAccountIdAndroid?: string;
-  obfuscatedProfileIdAndroid?: string;
-  //Amazon
-  userIdAmazon?: string;
-  userMarketplaceAmazon?: string;
-  userJsonAmazon?: string;
-  isCanceledAmazon?: boolean;
-}
-
-export type AppTransaction = {
-  appTransactionID?: string; // iOS 18.4+
-  originalPlatform?: string; // iOS 18.4+
-  originalAppVersion: string;
-  originalPurchaseDate: number;
-  deviceVerification: string;
-  deviceVerificationNonce: string;
-  appVersion: string;
-  signedDate: number;
-  environment: string; // iOS 16+
-};
-
-export interface PurchaseResult {
-  responseCode?: number;
-  debugMessage?: string;
-  code?: string;
-  message?: string;
-  purchaseToken?: string;
-}
-
-export interface SubscriptionPurchase extends ProductPurchase {
-  autoRenewingAndroid?: boolean;
+  // iOS subscription fields
+  expirationDateIOS?: number;
+  environmentIOS?: string;
   originalTransactionDateIOS?: number;
   originalTransactionIdentifierIOS?: string;
-  verificationResultIOS?: string;
-  transactionReasonIOS?: TransactionReason | string;
 }
 
-// New discriminated union type matching expo-iap
-export type PurchaseWithPlatform =
-  | ((ProductPurchase & {productIds?: string[]}) & AndroidPlatform)
-  | ((ProductPurchase & {quantityIOS?: number}) & IosPlatform)
-  | ((ProductPurchase & {userIdAmazon?: string}) & AmazonPlatform)
-  | SubscriptionPurchase;
-
-// For backward compatibility, keep the original Purchase type
-export type Purchase = ProductPurchase | SubscriptionPurchase;
-
-export interface Discount {
-  identifier: string;
-  type: string;
-  numberOfPeriods: string;
-  price: string;
-  localizedPrice: string;
-  paymentMode: '' | 'FREETRIAL' | 'PAYASYOUGO' | 'PAYUPFRONT';
-  subscriptionPeriod: string;
-}
-
-export interface ProductAndroid extends ProductCommon {
-  type: 'inapp' | 'iap';
-  name?: string;
-  oneTimePurchaseOfferDetails?: {
-    priceCurrencyCode: string;
-    formattedPrice: string;
-    priceAmountMicros: string;
-  };
-}
-export interface ProductIOS extends ProductCommon {
-  type: 'inapp' | 'iap';
-  // iOS specific fields from expo-iap
-  displayName?: string;
-  isFamilyShareable?: boolean;
-  jsonRepresentation?: string;
-  subscription?: any; // SubscriptionInfo type
-}
-
-// Legacy type for backward compatibility
-export type ProductLegacy = ProductAndroid & ProductIOS;
-
-// New discriminated union type matching expo-iap
-export type ProductWithPlatform =
-  | (ProductAndroid & AndroidPlatform)
-  | (ProductIOS & IosPlatform);
-
-// For backward compatibility, keep the original Product type
-export type Product = ProductAndroid & ProductIOS;
-
-/**
- * Can be used to distinguish the different platforms' subscription information
- */
-export enum SubscriptionPlatform {
-  android = 'android',
-  amazon = 'amazon',
-  ios = 'ios',
-}
-
-/** Android Billing v5 type */
-export interface SubscriptionAndroid {
-  platform: SubscriptionPlatform.android;
-  productType: 'subs';
-  name: string;
-  title: string;
-  description: string;
-  productId: string;
-  subscriptionOfferDetails: SubscriptionOfferAndroid[];
-}
-
-export interface SubscriptionOfferAndroid {
-  basePlanId: string;
-  offerId: string | null;
-  offerToken: string;
-  pricingPhases: {
-    pricingPhaseList: PricingPhaseAndroid[];
-  };
-  offerTags: string[];
-}
-
-export interface PricingPhaseAndroid {
-  formattedPrice: string;
-  priceCurrencyCode: string;
-  /**
-   * P1W, P1M, P1Y
-   */
-  billingPeriod: string;
-  billingCycleCount: number;
-  priceAmountMicros: string;
-  recurrenceMode: number;
-}
-
-/**
- * TODO: As of 2022-10-10, this typing is not verified against the real
- * Amazon API. Please update this if you have a more accurate type.
- */
-export interface SubscriptionAmazon extends ProductCommon {
-  platform: SubscriptionPlatform.amazon;
-  type: 'subs';
-
-  productType?: string;
-  name?: string;
-}
-
-export type SubscriptionIosPeriod = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR' | '';
-export interface SubscriptionIOS extends ProductCommon {
-  platform: SubscriptionPlatform.ios;
-  type: 'subs';
-  discounts?: Discount[];
-  introductoryPrice?: string;
-  introductoryPriceAsAmountIOS?: string;
-  introductoryPricePaymentModeIOS?:
-    | ''
-    | 'FREETRIAL'
-    | 'PAYASYOUGO'
-    | 'PAYUPFRONT';
-  introductoryPriceNumberOfPeriodsIOS?: string;
-  introductoryPriceSubscriptionPeriodIOS?: SubscriptionIosPeriod;
-
-  subscriptionPeriodNumberIOS?: string;
-  subscriptionPeriodUnitIOS?: SubscriptionIosPeriod;
-}
-
-export type Subscription =
-  | SubscriptionAndroid
-  | SubscriptionAmazon
-  | SubscriptionIOS;
-
-export interface RequestPurchaseBaseAndroid {
-  obfuscatedAccountIdAndroid?: string;
-  obfuscatedProfileIdAndroid?: string;
-  isOfferPersonalized?: boolean; // For AndroidBilling V5 https://developer.android.com/google/play/billing/integrate#personalized-price
-}
-
-export interface RequestPurchaseAndroid extends RequestPurchaseBaseAndroid {
-  skus: Sku[];
-}
-
-export interface RequestPurchaseIOS {
-  sku: Sku;
-  andDangerouslyFinishTransactionAutomaticallyIOS?: boolean;
-  /**
-   * UUID representing user account
-   */
-  appAccountToken?: string;
-  quantity?: number;
-  withOffer?: Apple.PaymentDiscount;
-}
-
-/** As of 2022-10-12, we only use the `sku` field for Amazon purchases */
-export type RequestPurchaseAmazon = RequestPurchaseIOS;
-
-export type RequestPurchase =
-  | RequestPurchaseAndroid
-  | RequestPurchaseAmazon
-  | RequestPurchaseIOS;
-
-/**
- * In order to purchase a new subscription, every sku must have a selected offerToken
- * @see SubscriptionAndroid.subscriptionOfferDetails.offerToken
- */
-export interface SubscriptionOffer {
-  sku: Sku;
-  offerToken: string;
-}
-
-export interface RequestSubscriptionAndroid extends RequestPurchaseBaseAndroid {
-  purchaseTokenAndroid?: string;
-  replacementModeAndroid?: ReplacementModesAndroid;
-  subscriptionOffers: SubscriptionOffer[];
-}
-
-export type RequestSubscriptionIOS = RequestPurchaseIOS;
-
-/** As of 2022-10-12, we only use the `sku` field for Amazon subscriptions */
-export interface RequestSubscriptionAmazon extends RequestSubscriptionIOS {
-  prorationModeAmazon?: ProrationModesAmazon;
-}
-
-export type RequestSubscription =
-  | RequestSubscriptionAndroid
-  | RequestSubscriptionAmazon
-  | RequestSubscriptionIOS;
-
-// Unified request types (expo-iap compatibility)
-export interface UnifiedRequestPurchaseProps {
-  // Universal properties - works on both platforms
-  readonly sku?: string; // Single SKU (iOS native, Android fallback)
-  readonly skus?: string[]; // Multiple SKUs (Android native, iOS uses first item)
-
-  // iOS-specific properties (ignored on Android)
-  readonly andDangerouslyFinishTransactionAutomaticallyIOS?: boolean;
-  readonly appAccountToken?: string;
-  readonly quantity?: number;
-  readonly withOffer?: Apple.PaymentDiscount;
-
-  // Android-specific properties (ignored on iOS)
-  readonly obfuscatedAccountIdAndroid?: string;
-  readonly obfuscatedProfileIdAndroid?: string;
-  readonly isOfferPersonalized?: boolean;
-}
-
-export interface UnifiedRequestSubscriptionProps
-  extends UnifiedRequestPurchaseProps {
-  // Android subscription-specific properties
-  readonly purchaseTokenAndroid?: string;
-  readonly replacementModeAndroid?: number;
-  readonly subscriptionOffers?: {
-    sku: string;
-    offerToken: string;
-  }[];
-}
-
-declare module 'react-native' {
-  interface NativeModulesStatic {
-    RNIapIos: IosModuleProps;
-    RNIapIosSk2: IosModulePropsSk2;
-    RNIapModule: AndroidModuleProps;
-    RNIapAmazonModule: AmazonModuleProps;
-  }
-}
+// Re-export all platform-specific types
+export * from './IapAndroid.types';
+export * from './IapIos.types';

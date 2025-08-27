@@ -1,0 +1,25 @@
+{
+  "cxxNamespace": ["iap"],
+  "ios": {
+    "iosModuleName": "Iap"
+  },
+  "android": {
+    "androidNamespace": ["iap"],
+    "androidCxxLibName": "iap"
+  },
+  "autolinking": {
+    "Iap": {
+      "swift": "Iap",
+      "kotlin": "Iap"
+    }
+  },
+  "ignorePaths": [
+    "**/node_modules/**",
+    "lib/**",
+    "example/node_modules/**",
+    "**/build/**",
+    "android/**/build/**",
+    "ios/**/build/**",
+    "**/*.js.map"
+  ]
+}

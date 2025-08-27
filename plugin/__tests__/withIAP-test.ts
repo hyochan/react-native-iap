@@ -3,6 +3,6 @@ jest.mock('expo/config-plugins', () => {
 
   return {
     ...plugins,
-    WarningAggregator: {addWarningAndroid: jest.fn()},
+    WarningAggregator: { addWarningAndroid: jest.fn() },
   };
 });
