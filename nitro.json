@@ -1,25 +1,17 @@
 {
   "cxxNamespace": ["iap"],
   "ios": {
-    "iosModuleName": "Iap"
+    "iosModuleName": "NitroIap"
   },
   "android": {
     "androidNamespace": ["iap"],
-    "androidCxxLibName": "iap"
+    "androidCxxLibName": "NitroIap"
   },
   "autolinking": {
-    "Iap": {
-      "swift": "Iap",
-      "kotlin": "Iap"
+    "RnIap": {
+      "swift": "HybridRnIap",
+      "kotlin": "HybridRnIap"
     }
   },
-  "ignorePaths": [
-    "**/node_modules/**",
-    "lib/**",
-    "example/node_modules/**",
-    "**/build/**",
-    "android/**/build/**",
-    "ios/**/build/**",
-    "**/*.js.map"
-  ]
+  "ignorePaths": ["node_modules"]
 }

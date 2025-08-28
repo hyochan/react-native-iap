@@ -1,4 +1,14 @@
 {
-  "extends": "./tsconfig",
-  "exclude": ["example", "lib", "plugin"]
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "composite": false
+  },
+  "exclude": [
+    "example",
+    "lib",
+    "node_modules"
+  ]
 }
