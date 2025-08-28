@@ -6,13 +6,12 @@ on:
     paths:
       - '.github/workflows/ci-android.yml'
       - '.github/actions/**'
-      - 'src/**'
       - 'android/**'
       - 'nitrogen/**'
+      - 'src/types/**'
+      - 'src/*.nitro.ts'
       - 'example/android/**'
-      - 'example/src/**'
-      - 'package.json'
-      - 'bun.lock'
+      - 'example/package.json'
       - 'nitro.json'
   pull_request:
     branches:
@@ -20,13 +19,12 @@ on:
     paths:
       - '.github/workflows/ci-android.yml'
       - '.github/actions/**'
-      - 'src/**'
       - 'android/**'
       - 'nitrogen/**'
+      - 'src/types/**'
+      - 'src/*.nitro.ts'
       - 'example/android/**'
-      - 'example/src/**'
-      - 'package.json'
-      - 'bun.lock'
+      - 'example/package.json'
       - 'nitro.json'
   merge_group:
     types:

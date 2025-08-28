@@ -1021,6 +1021,19 @@ class Iap : HybridIapSpec(), PurchasesUpdatedListener, BillingClientStateListene
         }
     }
     
+    override fun getStorefront(): Promise<String> {
+        return Promise.async {
+            // Android doesn't have a direct equivalent to iOS storefront
+            // Return the country code from locale or "UNKNOWN"
+            try {
+                val locale = java.util.Locale.getDefault()
+                locale.country.ifEmpty { "UNKNOWN" }
+            } catch (e: Exception) {
+                "UNKNOWN"
+            }
+        }
+    }
+    
     protected fun finalize() {
         scope.cancel()
         billingClient?.endConnection()

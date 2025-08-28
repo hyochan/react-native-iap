@@ -6,15 +6,14 @@ on:
     paths:
       - '.github/workflows/ci-ios.yml'
       - '.github/actions/**'
-      - 'src/**'
       - 'ios/**'
       - 'nitrogen/**'
+      - 'src/types/**'
+      - 'src/*.nitro.ts'
       - 'example/ios/**'
-      - 'example/src/**'
       - 'example/Gemfile*'
       - 'example/Podfile*'
-      - 'package.json'
-      - 'bun.lock'
+      - 'example/package.json'
       - 'nitro.json'
   pull_request:
     branches:
@@ -22,15 +21,14 @@ on:
     paths:
       - '.github/workflows/ci-ios.yml'
       - '.github/actions/**'
-      - 'src/**'
       - 'ios/**'
       - 'nitrogen/**'
+      - 'src/types/**'
+      - 'src/*.nitro.ts'
       - 'example/ios/**'
-      - 'example/src/**'
       - 'example/Gemfile*'
       - 'example/Podfile*'
-      - 'package.json'
-      - 'bun.lock'
+      - 'example/package.json'
       - 'nitro.json'
   merge_group:
     types:
@@ -89,10 +87,11 @@ jobs:
           rm -rf node_modules/react-native-iap/node_modules
 
       - name: Install cocoapods
-        if: steps.cocoapods-cache.outputs.cache-hit != 'true'
         run: |
           cd example
-          bundle exec pod repo update --verbose
+          if [ "${{ steps.cocoapods-cache.outputs.cache-hit }}" != "true" ]; then
+            bundle exec pod repo update --verbose
+          fi
           bundle exec pod install --project-directory=ios
 
       - name: Build example for iOS

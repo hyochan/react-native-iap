@@ -1,121 +1,121 @@
-import type { ConfigPlugin } from 'expo/config-plugins';
 import {
-  WarningAggregator,
-  withAppBuildGradle,
+  ConfigPlugin,
   createRunOncePlugin,
+  WarningAggregator,
+  withAndroidManifest,
+  withAppBuildGradle,
 } from 'expo/config-plugins';
 
 const pkg = require('../../package.json');
 
-type PaymentProvider = 'Amazon AppStore' | 'both' | 'Play Store';
+// Global flag to prevent duplicate logs
+let hasLoggedPluginExecution = false;
 
-const hasPaymentProviderProperValue = (
-  paymentProvider: string
-): paymentProvider is PaymentProvider => {
-  return ['Amazon AppStore', 'Play Store', 'both'].includes(paymentProvider);
-};
-
-const linesToAdd: { [key in PaymentProvider]: string } = {
-  ['Amazon AppStore']: `missingDimensionStrategy "store", "amazon"`,
-  ['Play Store']: `missingDimensionStrategy "store", "play"`,
-  ['both']: `flavorDimensions "appstore"
-
-productFlavors {
-  googlePlay {
-    dimension "appstore"
-    missingDimensionStrategy "store", "play"
-  }
-
-  amazon {
-    dimension "appstore"
-    missingDimensionStrategy "store", "amazon"
-  }
-}`,
-};
-
-const addToBuildGradle = (
-  newLine: string,
+const addLineToGradle = (
+  content: string,
   anchor: RegExp | string,
-  offset: number,
-  buildGradle: string
-) => {
-  const lines = buildGradle.split('\n');
-  const lineIndex = lines.findIndex((line) => line.match(anchor));
-  // add after given line
-  lines.splice(lineIndex + offset, 0, newLine);
+  lineToAdd: string,
+  offset: number = 1
+): string => {
+  const lines = content.split('\n');
+  const index = lines.findIndex((line) => line.match(anchor));
+  if (index === -1) {
+    console.warn(
+      `Anchor "${anchor}" not found in build.gradle. Appending to end.`
+    );
+    lines.push(lineToAdd);
+  } else {
+    lines.splice(index + offset, 0, lineToAdd);
+  }
   return lines.join('\n');
 };
 
-export const modifyAppBuildGradle = (
-  buildGradle: string,
-  paymentProvider: PaymentProvider
-) => {
-  if (paymentProvider === 'both') {
-    if (buildGradle.includes(`flavorDimensions "appstore"`)) {
-      return buildGradle;
-    }
-    return addToBuildGradle(
-      linesToAdd[paymentProvider],
-      'defaultConfig',
-      -1,
-      buildGradle
+const modifyAppBuildGradle = (gradle: string): string => {
+  let modified = gradle;
+
+  // Add billing library dependencies to app-level build.gradle
+  const billingDep = `    implementation "com.android.billingclient:billing-ktx:8.0.0"`;
+  const gmsDep = `    implementation "com.google.android.gms:play-services-base:18.1.0"`;
+
+  let hasAddedDependency = false;
+
+  if (!modified.includes(billingDep)) {
+    modified = addLineToGradle(modified, /dependencies\s*{/, billingDep);
+    hasAddedDependency = true;
+  }
+  if (!modified.includes(gmsDep)) {
+    modified = addLineToGradle(modified, /dependencies\s*{/, gmsDep, 1);
+    hasAddedDependency = true;
+  }
+
+  // Log only once and only if we actually added dependencies
+  if (hasAddedDependency && !hasLoggedPluginExecution) {
+    console.log(
+      '🛠️ react-native-iap: Added billing dependencies to build.gradle'
     );
   }
 
-  const missingDimensionStrategy = linesToAdd[paymentProvider];
-  if (buildGradle.includes(missingDimensionStrategy)) {
-    return buildGradle;
-  }
-  return addToBuildGradle(
-    missingDimensionStrategy,
-    'defaultConfig',
-    1,
-    buildGradle
-  );
+  return modified;
 };
 
-const withIAPAndroid: ConfigPlugin<{ paymentProvider: PaymentProvider }> = (
-  config,
-  { paymentProvider }
-) => {
-  // eslint-disable-next-line @typescript-eslint/no-shadow
+const withIapAndroid: ConfigPlugin = (config) => {
+  // Add IAP dependencies to app build.gradle
   config = withAppBuildGradle(config, (config) => {
     config.modResults.contents = modifyAppBuildGradle(
-      config.modResults.contents,
-      paymentProvider
+      config.modResults.contents
     );
+    return config;
+  });
+
+  config = withAndroidManifest(config, (config) => {
+    const manifest = config.modResults;
+    if (!manifest.manifest['uses-permission']) {
+      manifest.manifest['uses-permission'] = [];
+    }
+
+    const permissions = manifest.manifest['uses-permission'];
+    const billingPerm = {
+      $: { 'android:name': 'com.android.vending.BILLING' },
+    };
+
+    const alreadyExists = permissions.some(
+      (p) => p.$['android:name'] === 'com.android.vending.BILLING'
+    );
+    if (!alreadyExists) {
+      permissions.push(billingPerm);
+      if (!hasLoggedPluginExecution) {
+        console.log(
+          '✅ Added com.android.vending.BILLING to AndroidManifest.xml'
+        );
+      }
+    } else {
+      if (!hasLoggedPluginExecution) {
+        console.log(
+          'ℹ️ com.android.vending.BILLING already exists in AndroidManifest.xml'
+        );
+      }
+    }
+
     return config;
   });
 
   return config;
 };
 
-interface Props {
-  paymentProvider?: PaymentProvider;
-}
-
-const withIAP: ConfigPlugin<Props | undefined> = (config, props) => {
-  const paymentProvider = props?.paymentProvider ?? 'Play Store';
-
-  if (!hasPaymentProviderProperValue(paymentProvider)) {
-    WarningAggregator.addWarningAndroid(
-      'react-native-iap',
-
-      `The payment provider '${paymentProvider}' is not supported. Please update your app.json file with one of the following supported values: 'Play Store', 'Amazon AppStore', or 'both'.`
-    );
-    return config;
-  }
+const withIAP: ConfigPlugin = (config, _props) => {
   try {
-    config = withIAPAndroid(config, { paymentProvider });
+    const result = withIapAndroid(config);
+    // Set flag after first execution to prevent duplicate logs
+    hasLoggedPluginExecution = true;
+    return result;
   } catch (error) {
     WarningAggregator.addWarningAndroid(
       'react-native-iap',
-
-      `There was a problem configuring react-native-iap in your native Android project: ${error}`
+      `react-native-iap plugin encountered an error: ${error}`
     );
+    console.error('react-native-iap plugin error:', error);
+    return config;
   }
-
-  return config;
 };
 
 export default createRunOncePlugin(withIAP, pkg.name, pkg.version);

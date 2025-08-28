@@ -7,15 +7,10 @@ on:
       - '.github/workflows/ci-lint.yml'
       - '.github/actions/**'
       - 'src/**'
-      - 'example/src/**'
-      - '*.ts'
-      - '*.tsx'
-      - '*.js'
-      - '*.jsx'
+      - 'eslint.config.mjs'
       - '.eslintrc*'
-      - 'tsconfig*.json'
-      - 'package.json'
-      - 'bun.lock'
+      - 'prettier.config.*'
+      - 'tsconfig.json'
   pull_request:
     branches:
       - main
@@ -23,15 +18,10 @@ on:
       - '.github/workflows/ci-lint.yml'
       - '.github/actions/**'
       - 'src/**'
-      - 'example/src/**'
-      - '*.ts'
-      - '*.tsx'
-      - '*.js'
-      - '*.jsx'
+      - 'eslint.config.mjs'
       - '.eslintrc*'
-      - 'tsconfig*.json'
-      - 'package.json'
-      - 'bun.lock'
+      - 'prettier.config.*'
+      - 'tsconfig.json'
   merge_group:
     types:
       - checks_requested

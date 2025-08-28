@@ -130,3 +130,33 @@ export const consumeProductAndroid = async ({
     platform: 'android' as const,
   } as ProductPurchase;
 };
+
+/**
+ * Open redeem offer code screen on Android (Google Play only).
+ * @returns {Promise<void>}
+ */
+export const openRedeemOfferCodeAndroid = async (): Promise<void> => {
+  if (Platform.OS !== 'android') {
+    throw new Error('This method is only available on Android');
+  }
+  // Google Play doesn't have a direct API to open redeem code screen
+  // This would require implementation in native Android module
+  console.warn('openRedeemOfferCodeAndroid: Not implemented yet');
+  return Promise.resolve();
+};
+
+/**
+ * Get package name (Android only)
+ * Returns the application's package name
+ *
+ * @returns Promise resolving to package name
+ * @throws Error if called on non-Android platform
+ *
+ * @platform Android
+ */
+export const getPackageNameAndroid = async (): Promise<string> => {
+  if (Platform.OS !== 'android') {
+    throw new Error('This method is only available on Android');
+  }
+  return IapModule.getPackageName();
+};

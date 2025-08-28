@@ -14,15 +14,15 @@ React Native Nitro IAP - A high-performance in-app purchase library using Nitro 
 
 ## Project Structure
 
-```
+```sh
 src/
 ├── index.tsx           # Main exports and API
-├── Iap.nitro.ts       # Nitro interface definitions
+├── Iap.nitro.ts       # Nitro interface definitions (native bridge)
 ├── IapTypes.nitro.ts  # TypeScript type definitions
 ├── useIap.ts          # React hook for IAP management
 ├── modules/
-│   ├── ios.ts         # iOS-specific functions
-│   └── android.ts     # Android-specific functions
+│   ├── ios.ts         # iOS-specific functions and exports
+│   └── android.ts     # Android-specific functions and exports
 └── utils/
     └── errorMapping.ts # Error handling utilities
 
@@ -33,6 +33,40 @@ android/
 └── src/main/java/com/margelo/nitro/iap/
     └── Iap.kt         # Android native implementation (Play Billing v8.0.0)
 ```
+
+## Architecture Guidelines
+
+### Module Organization
+
+1. **Iap.nitro.ts** - Native Bridge Interface
+   - Contains the Nitro interface definition that bridges to native code
+   - Includes ALL native method declarations (both common and platform-specific)
+   - This is the contract between TypeScript and native implementations
+   - Platform-specific methods must be declared here for native access
+
+2. **modules/ios.ts** - iOS TypeScript Exports
+   - Contains iOS-specific TypeScript wrapper functions
+   - Exports iOS-only functionality with proper Platform.OS checks
+   - Provides iOS-suffixed function names (e.g., `getStorefrontIOS`)
+   - Includes deprecated aliases for backward compatibility
+
+3. **modules/android.ts** - Android TypeScript Exports
+   - Contains Android-specific TypeScript wrapper functions
+   - Exports Android-only functionality with proper Platform.OS checks
+   - Provides Android-suffixed function names (e.g., `consumeProductAndroid`)
+
+4. **index.tsx** - Main API Surface
+   - Re-exports all public APIs from platform modules
+   - Provides common functionality that works on both platforms
+   - Manages event listeners and module initialization
+   - Should NOT contain duplicate implementations of platform-specific functions
+
+### Important Notes
+
+- Platform-specific native methods MUST be declared in `Iap.nitro.ts` for the native bridge to work
+- TypeScript wrappers for platform-specific methods should be in their respective platform files
+- Always use Platform.OS checks in platform-specific functions
+- Maintain API compatibility with expo-iap for seamless migration
 
 ## Coding Standards
 
@@ -80,6 +114,7 @@ android/
    ```
 
 4. **Run All Checks**
+
    ```bash
    # Run all checks in sequence
    yarn install && yarn tsc --noEmit && yarn lint --fix
@@ -94,7 +129,7 @@ android/
 
 ## API Compatibility
 
-This library maintains 100% API compatibility with expo-iap, ensuring seamless migration.
+This library maintains 100% API compatibility with expo-iap, ensuring seamless migration. All functions available in expo-iap are also available in react-native-iap with identical signatures and behavior.
 
 ## Platform-Specific Features
 
@@ -115,7 +150,7 @@ This library maintains 100% API compatibility with expo-iap, ensuring seamless m
 - Purchase acknowledgment
 - Product consumption
 
-## Important Notes
+## Development Guidelines
 
 - Always run `yarn typecheck` and `yarn lint` before committing
 - Maintain API compatibility with expo-iap

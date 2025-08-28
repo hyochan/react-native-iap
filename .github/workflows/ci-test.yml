@@ -6,30 +6,20 @@ on:
     paths:
       - '.github/workflows/ci-test.yml'
       - '.github/actions/**'
-      - 'src/**'
-      - '__tests__/**'
-      - '*.test.ts'
-      - '*.test.tsx'
-      - '*.test.js'
-      - '*.test.jsx'
+      - 'src/**/__tests__/**'
+      - 'src/**/*.test.*'
       - 'jest.config.*'
-      - 'package.json'
-      - 'bun.lock'
+      - 'jest.setup.*'
   pull_request:
     branches:
       - main
     paths:
       - '.github/workflows/ci-test.yml'
       - '.github/actions/**'
-      - 'src/**'
-      - '__tests__/**'
-      - '*.test.ts'
-      - '*.test.tsx'
-      - '*.test.js'
-      - '*.test.jsx'
+      - 'src/**/__tests__/**'
+      - 'src/**/*.test.*'
       - 'jest.config.*'
-      - 'package.json'
-      - 'bun.lock'
+      - 'jest.setup.*'
   merge_group:
     types:
       - checks_requested

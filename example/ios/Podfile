@@ -34,11 +34,13 @@ target 'IapExample' do
     )
     
     # Fix Node path for Hermes
+    # Try to find node dynamically
+    node_binary = ENV['NODE_BINARY'] || `which node`.strip
+    
     installer.pods_project.targets.each do |target|
       if target.name == 'hermes-engine'
         target.build_configurations.each do |config|
-          config.build_settings["NODE_BINARY"] = ENV['NODE_BINARY']
-          # config.build_settings["NODE_BINARY"] = ENV['NODE_BINARY'] || '/Users/hyo/.nvm/versions/node/v20.19.4/bin/node'
+          config.build_settings["NODE_BINARY"] = node_binary
         end
       end
     end

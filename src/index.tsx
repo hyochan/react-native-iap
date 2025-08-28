@@ -32,25 +32,43 @@ export {
   validateReceiptAndroid,
   acknowledgePurchaseAndroid,
   consumeProductAndroid,
+  openRedeemOfferCodeAndroid,
 } from './modules/android';
 export {
   // iOS-specific exports
   isProductIOS,
   sync,
+  syncIOS,
   isEligibleForIntroOffer,
+  isEligibleForIntroOfferIOS,
   subscriptionStatus,
+  subscriptionStatusIOS,
   currentEntitlement,
+  currentEntitlementIOS,
   latestTransaction,
+  latestTransactionIOS,
   beginRefundRequest,
+  beginRefundRequestIOS,
   showManageSubscriptions,
+  showManageSubscriptionsIOS,
   getReceiptIos,
+  getReceiptIOS,
   isTransactionVerified,
+  isTransactionVerifiedIOS,
   getTransactionJws,
+  getTransactionJwsIOS,
   getAppTransactionIOS,
   validateReceiptIOS,
   presentCodeRedemptionSheet,
+  presentCodeRedemptionSheetIOS,
   clearTransaction,
+  clearTransactionIOS,
   getPendingTransactions,
+  getPromotedProductIOS,
+  buyPromotedProductIOS,
+  transactionUpdatedIOS,
+  getStorefront,
+  getStorefrontIOS,
 } from './modules/ios';
 export * from './useIAP';
 export * from './utils/errorMapping';
@@ -731,40 +749,6 @@ export const finishTransaction = async ({
     }
   }
   return Promise.reject(new Error('Unsupported Platform'));
-};
-
-/**
- * Retrieves the current storefront information from iOS App Store
- *
- * @returns Promise resolving to the storefront country code
- * @throws Error if called on non-iOS platform
- *
- * @example
- * ```typescript
- * const storefront = await getStorefrontIOS();
- * console.log(storefront); // 'US'
- * ```
- *
- * @platform iOS
- */
-export const getStorefrontIOS = (): Promise<string> => {
-  if (Platform.OS !== 'ios') {
-    console.warn('getStorefrontIOS: This method is only available on iOS');
-    return Promise.resolve('');
-  }
-  // Note: This functionality needs to be added to the native iOS implementation
-  // For now, we'll use getPlatform as a placeholder
-  return Promise.resolve('US'); // Default fallback
-};
-
-/**
- * @deprecated Use `getStorefrontIOS` instead. This function will be removed in version 3.0.0.
- */
-export const getStorefront = (): Promise<string> => {
-  console.warn(
-    '`getStorefront` is deprecated. Use `getStorefrontIOS` instead. This function will be removed in version 3.0.0.'
-  );
-  return getStorefrontIOS();
 };
 
 /**

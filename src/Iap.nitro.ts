@@ -92,6 +92,7 @@ export interface Iap extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   getTransactionJws(sku: string): Promise<string | null>;
   getAppTransaction(): Promise<AppTransactionIOS | null>;
   validateReceiptIOS(sku: string): Promise<ProductStatusIOS>;
+  getStorefront(): Promise<string>;
 
   // ============================================================================
   // ANDROID SPECIFIC METHODS

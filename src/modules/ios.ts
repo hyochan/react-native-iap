@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { IapModule } from '../IapModule';
-import type { ProductStatusIOS } from '../types';
+import type { ProductStatusIOS, Product, PurchaseError } from '../types';
 import type { Purchase, AppTransactionIOS } from '../types';
 
 // Type guards
@@ -200,6 +200,11 @@ export const clearTransaction = (): Promise<void> => {
 };
 
 /**
+ * Clear all transactions (iOS only) - alias
+ */
+export const clearTransactionIOS = clearTransaction;
+
+/**
  * Get pending transactions (iOS only)
  */
 export const getPendingTransactions = async (): Promise<Purchase[]> => {
@@ -213,3 +218,80 @@ export const getPendingTransactions = async (): Promise<Purchase[]> => {
     platform: 'ios' as const,
   })) as unknown as Purchase[];
 };
+
+// Aliases for iOS functions to match expo-iap API
+export const transactionUpdatedIOS = (
+  _listener: (event: { transaction?: Purchase; error?: PurchaseError }) => void
+) => {
+  // Note: In react-native-iap, listener management is handled by the event manager in index.tsx
+  // This is provided for API compatibility with expo-iap
+  return {
+    remove: () => {
+      // Listener removal is managed centrally
+    },
+  };
+};
+
+export const syncIOS = sync;
+export const isEligibleForIntroOfferIOS = isEligibleForIntroOffer;
+export const subscriptionStatusIOS = subscriptionStatus;
+export const currentEntitlementIOS = currentEntitlement;
+export const latestTransactionIOS = latestTransaction;
+export const beginRefundRequestIOS = beginRefundRequest;
+export const showManageSubscriptionsIOS = showManageSubscriptions;
+export const getReceiptIOS = getReceiptIos;
+export const isTransactionVerifiedIOS = isTransactionVerified;
+export const getTransactionJwsIOS = getTransactionJws;
+export const presentCodeRedemptionSheetIOS = presentCodeRedemptionSheet;
+
+/**
+ * Get promoted product (iOS only)
+ * @returns Promise resolving to promoted product or null
+ */
+export const getPromotedProductIOS = async (): Promise<Product | null> => {
+  if (Platform.OS !== 'ios') {
+    console.warn('getPromotedProductIOS: This method is only available on iOS');
+    return null;
+  }
+  // This feature is not yet implemented in react-native-iap
+  // Promoted products are handled through the promotedProductListenerIOS event
+  console.warn(
+    'getPromotedProductIOS: Use promotedProductListenerIOS event instead'
+  );
+  return null;
+};
+
+/**
+ * Buy promoted product (iOS only)
+ * @returns Promise resolving to purchase
+ */
+export const buyPromotedProductIOS = async (): Promise<Purchase | null> => {
+  if (Platform.OS !== 'ios') {
+    console.warn('buyPromotedProductIOS: This method is only available on iOS');
+    return null;
+  }
+  // This feature is not yet implemented in react-native-iap
+  // Use regular requestPurchase with the promoted product SKU
+  console.warn(
+    'buyPromotedProductIOS: Use requestPurchase with the promoted product SKU instead'
+  );
+  return null;
+};
+
+/**
+ * Get storefront country code (iOS only)
+ * Returns the current App Store storefront country code (e.g., "US", "GB")
+ *
+ * @returns Promise resolving to storefront country code
+ * @throws Error if called on non-iOS platform
+ *
+ * @platform iOS
+ */
+export const getStorefrontIOS = async (): Promise<string> => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('This method is only available on iOS');
+  }
+  return IapModule.getStorefront();
+};
+
+export const getStorefront = getStorefrontIOS;

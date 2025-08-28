@@ -7,11 +7,10 @@ on:
       - '.github/workflows/ci-library.yml'
       - '.github/actions/**'
       - 'src/**'
-      - 'nitrogen/**'
       - 'package.json'
       - 'bun.lock'
       - 'nitro.json'
-      - 'react-native-builder-bob.config.js'
+      - 'tsconfig.build.json'
   pull_request:
     branches:
       - main
@@ -19,11 +18,10 @@ on:
       - '.github/workflows/ci-library.yml'
       - '.github/actions/**'
       - 'src/**'
-      - 'nitrogen/**'
       - 'package.json'
       - 'bun.lock'
       - 'nitro.json'
-      - 'react-native-builder-bob.config.js'
+      - 'tsconfig.build.json'
   merge_group:
     types:
       - checks_requested
