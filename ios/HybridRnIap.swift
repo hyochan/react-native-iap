@@ -35,7 +35,7 @@ class HybridRnIap: HybridRnIapSpec {
     
     // MARK: - Product methods
     
-    func getProducts(skus: [String]) throws -> Promise<[Product]> {
+    func getProducts(skus: [String]) throws -> Promise<[ProductCommon]> {
         return Promise.async {
             let products = try await SKProduct.products(for: Set(skus))
             
@@ -46,26 +46,30 @@ class HybridRnIap: HybridRnIapSpec {
             
             // Convert to our Product type
             return products.map { product in
-                Product(
+                ProductCommon(
                     id: product.id,
                     title: product.displayName,
                     description: product.description,
+                    type: .inapp, // Will be determined later
+                    displayName: product.displayName,
+                    displayPrice: product.displayPrice,
+                    currency: product.priceFormatStyle.currencyCode ?? "USD",
                     price: NSDecimalNumber(decimal: product.price).doubleValue,
-                    currency: product.priceFormatStyle.currencyCode,
-                    localizedPrice: product.displayPrice
+                    debugDescription: product.description,
+                    platform: "ios"
                 )
             }
         }
     }
     
-    func getSubscriptions(skus: [String]) throws -> Promise<[Product]> {
+    func getSubscriptions(skus: [String]) throws -> Promise<[ProductCommon]> {
         // Same as getProducts for now
         return try getProducts(skus: skus)
     }
     
     // MARK: - Purchase methods
     
-    func buyProduct(sku: String) throws -> Promise<Purchase> {
+    func buyProduct(sku: String) throws -> Promise<PurchaseCommon> {
         return Promise.async {
             guard let product = self.products[sku] else {
                 throw RuntimeError.error(withMessage: "Product not found for sku: \(sku)")
@@ -77,12 +81,15 @@ class HybridRnIap: HybridRnIapSpec {
             case .success(let verification):
                 switch verification {
                 case .verified(let transaction):
-                    let purchase = Purchase(
+                    let purchase = PurchaseCommon(
                         id: String(transaction.id),
                         productId: transaction.productID,
+                        ids: nil,
                         transactionId: String(transaction.id),
                         transactionDate: Double(transaction.purchaseDate.timeIntervalSince1970 * 1000),
-                        transactionReceipt: "" // We'll need to get the receipt data
+                        transactionReceipt: "", // We'll need to get the receipt data
+                        purchaseToken: nil,
+                        platform: "ios"
                     )
                     
                     // Finish the transaction
@@ -106,18 +113,21 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func getAvailablePurchases() throws -> Promise<[Purchase]> {
+    func getAvailablePurchases() throws -> Promise<[PurchaseCommon]> {
         return Promise.async {
-            var purchases: [Purchase] = []
+            var purchases: [PurchaseCommon] = []
             
             for await transaction in Transaction.currentEntitlements {
                 if case .verified(let t) = transaction {
-                    let purchase = Purchase(
+                    let purchase = PurchaseCommon(
                         id: String(t.id),
                         productId: t.productID,
+                        ids: nil,
                         transactionId: String(t.id),
                         transactionDate: Double(t.purchaseDate.timeIntervalSince1970 * 1000),
-                        transactionReceipt: ""
+                        transactionReceipt: "",
+                        purchaseToken: nil,
+                        platform: "ios"
                     )
                     purchases.append(purchase)
                 }

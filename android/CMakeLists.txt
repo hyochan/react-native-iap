@@ -14,7 +14,7 @@ add_library(${PACKAGE_NAME} SHARED
 )
 
 # Add Nitrogen specs :)
-include(${CMAKE_SOURCE_DIR}/../nitrogen/generated/android/RnIAP+autolinking.cmake)
+include(${CMAKE_SOURCE_DIR}/../nitrogen/generated/android/NitroIap+autolinking.cmake)
 
 # Set up local includes
 include_directories(
