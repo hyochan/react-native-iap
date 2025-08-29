@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Nitrogen + iOS Simulator",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bunx kill-port 8081 && bun run specs && cd example && bunx react-native run-ios"],
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Nitrogen + iOS Device",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bunx kill-port 8081 && bun run specs && cd example && bunx react-native run-ios --device"],
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Nitrogen + Android",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bunx kill-port 8081 && bun run specs && cd example && bunx react-native run-android"],
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  ]
+}

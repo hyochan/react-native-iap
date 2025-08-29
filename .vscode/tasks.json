@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "nitrogen-ios-simulator",
+      "type": "shell",
+      "command": "bun run specs && cd Example && bunx react-native run-ios",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": false
+    },
+    {
+      "label": "nitrogen-ios-device",
+      "type": "shell",
+      "command": "bun run specs && cd Example && bunx react-native run-ios --device",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": false
+    },
+    {
+      "label": "nitrogen-android",
+      "type": "shell",
+      "command": "bun run specs && cd Example && bunx react-native run-android",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": false
+    }
+  ]
+}

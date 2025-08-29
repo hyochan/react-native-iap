@@ -6,147 +6,34 @@ import StoreKit
 class HybridRnIap: HybridRnIapSpec {
     // MARK: - Properties
     
-    private var products: [String: SKProduct] = [:]
+    private var updateListenerTask: Task<Void, Never>?
     
-    // Type alias to avoid conflicts
-    typealias SKProduct = StoreKit.Product
+    // MARK: - Initialization
     
-    // MARK: - Test method
+    override init() {
+        super.init()
+    }
     
-    func hello(name: String) throws -> String {
-        return "Hello, \(name)!"
+    deinit {
+        updateListenerTask?.cancel()
     }
     
     // MARK: - Connection methods
     
     func initConnection() throws -> Promise<Bool> {
         return Promise.async {
-            // Initialize StoreKit connection
-            return true
+            // StoreKit 2 doesn't require explicit connection initialization
+            // Just verify that the store is available
+            return SKPaymentQueue.canMakePayments()
         }
     }
     
     func endConnection() throws -> Promise<Bool> {
         return Promise.async {
-            // Clean up StoreKit connection
+            // Cancel transaction listener if any
+            self.updateListenerTask?.cancel()
+            self.updateListenerTask = nil
             return true
         }
-    }
-    
-    // MARK: - Product methods
-    
-    func getProducts(skus: [String]) throws -> Promise<[ProductCommon]> {
-        return Promise.async {
-            let products = try await SKProduct.products(for: Set(skus))
-            
-            // Store products for later use
-            for product in products {
-                self.products[product.id] = product
-            }
-            
-            // Convert to our Product type
-            return products.map { product in
-                ProductCommon(
-                    id: product.id,
-                    title: product.displayName,
-                    description: product.description,
-                    type: .inapp, // Will be determined later
-                    displayName: product.displayName,
-                    displayPrice: product.displayPrice,
-                    currency: product.priceFormatStyle.currencyCode ?? "USD",
-                    price: NSDecimalNumber(decimal: product.price).doubleValue,
-                    debugDescription: product.description,
-                    platform: "ios"
-                )
-            }
-        }
-    }
-    
-    func getSubscriptions(skus: [String]) throws -> Promise<[ProductCommon]> {
-        // Same as getProducts for now
-        return try getProducts(skus: skus)
-    }
-    
-    // MARK: - Purchase methods
-    
-    func buyProduct(sku: String) throws -> Promise<PurchaseCommon> {
-        return Promise.async {
-            guard let product = self.products[sku] else {
-                throw RuntimeError.error(withMessage: "Product not found for sku: \(sku)")
-            }
-            
-            let result = try await product.purchase()
-            
-            switch result {
-            case .success(let verification):
-                switch verification {
-                case .verified(let transaction):
-                    let purchase = PurchaseCommon(
-                        id: String(transaction.id),
-                        productId: transaction.productID,
-                        ids: nil,
-                        transactionId: String(transaction.id),
-                        transactionDate: Double(transaction.purchaseDate.timeIntervalSince1970 * 1000),
-                        transactionReceipt: "", // We'll need to get the receipt data
-                        purchaseToken: nil,
-                        platform: "ios"
-                    )
-                    
-                    // Finish the transaction
-                    await transaction.finish()
-                    
-                    return purchase
-                    
-                case .unverified(_, _):
-                    throw RuntimeError.error(withMessage: "Transaction verification failed")
-                }
-                
-            case .userCancelled:
-                throw RuntimeError.error(withMessage: "User cancelled the purchase")
-                
-            case .pending:
-                throw RuntimeError.error(withMessage: "Purchase is pending")
-                
-            @unknown default:
-                throw RuntimeError.error(withMessage: "Unknown purchase result")
-            }
-        }
-    }
-    
-    func getAvailablePurchases() throws -> Promise<[PurchaseCommon]> {
-        return Promise.async {
-            var purchases: [PurchaseCommon] = []
-            
-            for await transaction in Transaction.currentEntitlements {
-                if case .verified(let t) = transaction {
-                    let purchase = PurchaseCommon(
-                        id: String(t.id),
-                        productId: t.productID,
-                        ids: nil,
-                        transactionId: String(t.id),
-                        transactionDate: Double(t.purchaseDate.timeIntervalSince1970 * 1000),
-                        transactionReceipt: "",
-                        purchaseToken: nil,
-                        platform: "ios"
-                    )
-                    purchases.append(purchase)
-                }
-            }
-            
-            return purchases
-        }
-    }
-    
-    func finishTransaction(transactionId: String) throws -> Promise<Void> {
-        return Promise.async {
-            // In StoreKit 2, transactions are usually finished automatically
-            // This method is kept for compatibility
-        }
-    }
-    
-    // MARK: - Platform
-    
-    func getPlatform() throws -> String {
-        return "ios"
     }
 }

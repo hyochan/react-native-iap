@@ -137,5 +137,14 @@ dependencies {
 
   // Add a dependency on NitroModules
   implementation project(":react-native-nitro-modules")
+  
+  // Google Play Billing Library
+  implementation 'com.android.billingclient:billing-ktx:8.0.0'
+  
+  // Google Play Services
+  implementation 'com.google.android.gms:play-services-base:18.5.0'
+  
+  // Kotlin coroutines
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }
 
