@@ -1,25 +1,33 @@
-IapExample/
-.idea/
-gen/
+# example app
+example/
+
+# Build artifacts
+lib/
+build/
+android/build/
+ios/build/
+DerivedData/
+
+# Node modules
 node_modules/
-android/react-native-iap.iml
-android/android.iml
-tsconfig.tsbuildinfo
-*.ts
-*.tsx
-!*.d.ts
-tsconfig.json
-react-native-iap-*.tgz
+**/node_modules/
+
+# Development files
 .vscode/
-docs/
-.github/
-*.md
-.eslintrc.js
-.eslintignore
-.prettierrc.js
-.gitattributes
-.yarn/cache
-package/
-plugin/src
-plugin/jest.config.js
-plugin/tsconfig.json
+.idea/
+*.iml
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*.swo

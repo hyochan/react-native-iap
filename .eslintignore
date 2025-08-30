@@ -1,3 +1,5 @@
-node_modules
-*.js
+docs/
+example/
+build/
+node_modules/
 *.d.ts

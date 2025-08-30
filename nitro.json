@@ -1,0 +1,17 @@
+{
+  "cxxNamespace": ["iap"],
+  "ios": {
+    "iosModuleName": "NitroIap"
+  },
+  "android": {
+    "androidNamespace": ["iap"],
+    "androidCxxLibName": "NitroIap"
+  },
+  "autolinking": {
+    "RnIap": {
+      "swift": "HybridRnIap",
+      "kotlin": "HybridRnIap"
+    }
+  },
+  "ignorePaths": ["node_modules", "example"]
+}

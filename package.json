@@ -1,125 +1,124 @@
 {
   "name": "react-native-iap",
-  "version": "13.0.4",
-  "description": "React Native In App Purchase Module.",
-  "repository": "https://github.com/hyochan/react-native-iap",
-  "author": "hyochan <hyo@hyo.dev> (https://github.com/hyochan)",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/hyochan/react-native-iap/issues"
-  },
-  "homepage": "https://github.com/hyochan/react-native-iap#readme",
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
-  },
-  "contributors": [
-    {
-      "name": "hyochan",
-      "url": "https://github.com/hyochan"
+  "version": "14.0.0",
+  "description": "react-native-iap",
+  "main": "./lib/module/index.js",
+  "types": "./lib/typescript/src/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./lib/typescript/src/index.d.ts",
+      "default": "./lib/module/index.js",
+      "react-native": "./src/index.ts"
     },
-    {
-      "name": "Andres Aguilar",
-      "url": "https://github.com/andresesfm"
-    },
-    {
-      "name": "Jérémy Barbet",
-      "url": "https://github.com/jeremybarbet"
-    }
-  ],
-  "keywords": [
-    "react-native",
-    "react-native-iap",
-    "IAP",
-    "in app purchase",
-    "in-app-purchase",
-    "Billing",
-    "iOS",
-    "Android",
-    "Amazon",
-    "Play"
-  ],
-  "main": "lib/commonjs/index",
-  "module": "lib/module/index",
-  "types": "lib/typescript/src/index.d.ts",
-  "react-native": "src/index",
-  "source": "src/index",
+    "./package.json": "./package.json"
+  },
   "files": [
     "src",
     "lib",
     "android",
     "ios",
-    "RNIap.podspec",
-    "plugin/build",
-    "app.plugin.js",
-    "!android/.gradle",
-    "!android/.idea",
-    "!android/build",
-    "!android/src/testPlay",
+    "cpp",
+    "nitrogen",
+    "nitro.json",
+    "*.podspec",
+    "react-native.config.js",
+    "!example",
     "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
     "!**/__tests__",
     "!**/__fixtures__",
-    "!**/__mocks__"
+    "!**/__mocks__",
+    "!**/.*"
   ],
   "scripts": {
-    "prepare": "bob build && npm run clean:plugin && npm run build:plugin",
-    "release": "release-it",
-    "example": "yarn --cwd IapExample",
-    "test": "jest",
-    "lint": "yarn lint:tsc && yarn lint:eslint && yarn lint:prettier",
-    "lint:tsc": "tsc -p tsconfig.json --noEmit --skipLibCheck",
-    "lint:eslint": "eslint --fix '**/*.{ts,tsx}'",
-    "lint:ci": "yarn lint:tsc && yarn lint:eslint -f ./node_modules/@firmnav/eslint-github-actions-formatter/dist/formatter.js && yarn lint:prettier",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf android/build node_modules/**/android/build lib nitrogen/generated",
+    "lint": "eslint --ext .ts,.tsx,.js,.jsx src",
+    "lint:eslint": "eslint --fix 'src/**/*.{ts,tsx}' 'plugin/src/**/*.{ts,tsx}'",
     "lint:prettier": "prettier --write \"**/*.{md,js,jsx,ts,tsx}\"",
-    "lint:swift": "swiftlint lint --fix --format ios/*.swift --config .swiftlint.yml",
-    "lint:kotlin": "ktlint --format",
-    "format": "git ls-files -m | xargs yarn prettier --write --ignore-unknown --no-error-on-unmatched-pattern",
-    "bootstrap": "yarn example && yarn && yarn example pods",
-    "gen:doc": "typedoc",
-    "build:plugin": "tsc --build plugin",
-    "clean:plugin": "expo-module clean plugin",
-    "lint:plugin": "eslint plugin/src/*"
+    "lint:tsc": "tsc -p tsconfig.json --noEmit --skipLibCheck",
+    "lint:ci": "bun run lint:tsc && bun run lint:eslint && bun run lint:prettier",
+    "prepare": "bob build && yarn nitrogen",
+    "nitrogen": "nitro-codegen",
+    "specs": "nitro-codegen --logLevel=\"debug\""
+  },
+  "keywords": [
+    "react-native",
+    "nitro"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrousavy/nitro.git"
+  },
+  "author": "Marc Rousavy <me@mrousavy.com> (https://github.com/mrousavy)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mrousavy/nitro/issues"
+  },
+  "homepage": "https://github.com/mrousavy/nitro#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
-    "@babel/eslint-parser": "7.21.8",
-    "@firmnav/eslint-github-actions-formatter": "^1.0.1",
-    "@jeremybarbet/apple-api-types": "1.4.0",
-    "@jeremybarbet/google-api-types": "1.4.0",
-    "@react-native-community/eslint-config": "3.2.0",
-    "@release-it/conventional-changelog": "5.1.1",
-    "@types/jest": "29.5.1",
-    "@types/react": "*",
-    "@typescript-eslint/eslint-plugin": "5.57.1",
-    "@typescript-eslint/parser": "5.57.1",
-    "babel-jest": "29.5.0",
-    "eslint": "8.43.0",
-    "eslint-config-prettier": "8.8.0",
-    "eslint-plugin-jest": "27.2.2",
-    "eslint-plugin-prettier": "4.2.1",
-    "eslint-plugin-simple-import-sort": "10.0.0",
-    "expo": "^51.0.14",
-    "expo-module-scripts": "^3.0.7",
-    "jest": "29.5.0",
-    "monolinter": "1.0.4",
-    "pod-install": "0.1.38",
-    "prettier": "2.8.8",
-    "react": "18.2.0",
-    "react-native": "*",
-    "react-native-builder-bob": "0.20.4",
-    "release-it": "15.10.3",
-    "ts-jest": "29.1.0",
-    "typedoc": "^0.24.0",
-    "typedoc-plugin-markdown": "^3.14.0",
-    "typescript": "5.0.4"
+    "@react-native/eslint-config": "0.81.0",
+    "@types/jest": "^29.5.12",
+    "@types/react": "^19.0.6",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "nitro-codegen": "*",
+    "prettier": "^3.3.3",
+    "react": "19.1.0",
+    "react-native": "0.81.0",
+    "react-native-builder-bob": "^0.38.4",
+    "react-native-nitro-modules": "*",
+    "typescript": "^5.9.2"
   },
   "peerDependencies": {
-    "expo": ">=47.0.0",
-    "react": ">=16.13.1",
-    "react-native": ">=0.65.1"
+    "react": "*",
+    "react-native": "*",
+    "react-native-nitro-modules": "*"
   },
-  "peerDependenciesMeta": {
-    "expo": {
-      "optional": true
-    }
+  "eslintIgnore": [
+    "node_modules/",
+    "lib/"
+  ],
+  "prettier": {
+    "quoteProps": "consistent",
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false,
+    "semi": false
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "custom",
+        {
+          "script": "nitrogen",
+          "clean": "nitrogen/"
+        }
+      ],
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  }
 }
