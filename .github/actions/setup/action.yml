@@ -19,10 +19,12 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: |
-          **/node_modules
-        key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}-${{ hashFiles('**/package.json', '!node_modules/**') }}
+          node_modules
+          example/node_modules
+          ~/.bun/install/cache
+        key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'example/bun.lock') }}-${{ hashFiles('package.json', 'example/package.json') }}
         restore-keys: |
-          ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'example/bun.lock') }}
           ${{ runner.os }}-bun-
 
     - name: Install dependencies
@@ -35,5 +37,7 @@ runs:
       uses: actions/cache/save@v4
       with:
         path: |
-          **/node_modules
+          node_modules
+          example/node_modules
+          ~/.bun/install/cache
         key: ${{ steps.bun-cache.outputs.cache-primary-key }}

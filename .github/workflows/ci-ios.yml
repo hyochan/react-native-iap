@@ -37,11 +37,12 @@ on:
 jobs:
   build-ios:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 30
     env:
       XCODE_VERSION: 16.4
       CCACHE_DIR: ~/.ccache
       CCACHE_MAXSIZE: 2G
+      USE_HERMES: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -86,7 +87,8 @@ jobs:
             ~/.cocoapods/repos/trunk
             example/ios/Pods
             ~/Library/Caches/CocoaPods
-          key: ${{ runner.os }}-pods-${{ hashFiles('example/Podfile.lock') }}
+            example/ios/build
+          key: ${{ runner.os }}-pods-${{ hashFiles('example/ios/Podfile.lock', 'example/ios/Podfile') }}
           restore-keys: |
             ${{ runner.os }}-pods-
 
@@ -103,16 +105,27 @@ jobs:
 
       - name: Install CocoaPods dependencies
         working-directory: example/ios
-        run: bundle exec pod install
-
-      - name: List available simulators
-        run: xcrun simctl list devices
+        run: |
+          if [ -f "Podfile.lock" ] && [ -d "Pods" ]; then
+            echo "Pods directory exists, checking if update needed..."
+            bundle exec pod install --deployment
+          else
+            echo "Installing pods from scratch..."
+            bundle exec pod install
+          fi
 
       - name: Build iOS app
         working-directory: example/ios
         run: |
           set -o pipefail
-          xcodebuild build -workspace example.xcworkspace -scheme example -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO | xcpretty
+          xcodebuild build \
+            -workspace example.xcworkspace \
+            -scheme example \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            | xcpretty --simple
 
       - name: ccache stats
         run: ccache --show-stats

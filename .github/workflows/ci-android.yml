@@ -33,9 +33,9 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     env:
-      GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError"'
+      GRADLE_OPTS: '-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.configureondemand=true -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError"'
       GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
     steps:
       - name: Checkout
@@ -59,7 +59,10 @@ jobs:
           path: |
             ~/.gradle/wrapper
             ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/gradle/wrapper/gradle-wrapper.properties') }}
+            example/android/.gradle
+            example/android/app/build
+            example/android/build
+          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/gradle/wrapper/gradle-wrapper.properties', 'example/android/**/*.gradle*', 'example/android/gradle.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -84,4 +87,4 @@ jobs:
 
       - name: Build Android app
         working-directory: example/android
-        run: ./gradlew :app:assembleDebug --no-daemon --warning-mode all
+        run: ./gradlew :app:assembleDebug --build-cache --parallel --configure-on-demand
