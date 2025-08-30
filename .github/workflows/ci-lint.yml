@@ -1,0 +1,47 @@
+name: CI - Lint
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-lint.yml'
+      - '.github/actions/**'
+      - 'src/**'
+      - 'eslint.config.mjs'
+      - '.eslintrc*'
+      - 'prettier.config.*'
+      - 'tsconfig.json'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-lint.yml'
+      - '.github/actions/**'
+      - 'src/**'
+      - 'eslint.config.mjs'
+      - '.eslintrc*'
+      - 'prettier.config.*'
+      - 'tsconfig.json'
+  merge_group:
+    types:
+      - checks_requested
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Install example dependencies
+        working-directory: example
+        run: bun install
+
+      - name: Lint files
+        run: bun run lint
+
+      - name: Typecheck files
+        run: bun run typecheck

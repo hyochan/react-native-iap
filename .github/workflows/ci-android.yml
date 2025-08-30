@@ -1,0 +1,87 @@
+name: CI - Android Build
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-android.yml'
+      - '.github/actions/**'
+      - 'android/**'
+      - 'nitrogen/**'
+      - 'src/types/**'
+      - 'src/*.nitro.ts'
+      - 'example/android/**'
+      - 'example/package.json'
+      - 'nitro.json'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-android.yml'
+      - '.github/actions/**'
+      - 'android/**'
+      - 'nitrogen/**'
+      - 'src/types/**'
+      - 'src/*.nitro.ts'
+      - 'example/android/**'
+      - 'example/package.json'
+      - 'nitro.json'
+  merge_group:
+    types:
+      - checks_requested
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError"'
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Generate nitrogen code
+        run: bun run nitrogen
+
+      - name: Install JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Cache Kotlin
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.konan
+          key: ${{ runner.os }}-kotlin-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-kotlin-
+
+      - name: Accept Android SDK licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Install node_modules for root
+        run: bun install --no-save
+
+      - name: Install node_modules for example
+        working-directory: example
+        run: bun install --no-save
+
+      - name: Build Android app
+        working-directory: example/android
+        run: ./gradlew :app:assembleDebug --no-daemon --warning-mode all

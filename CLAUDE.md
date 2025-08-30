@@ -123,7 +123,8 @@ Access these from the Run and Debug panel (⌘⇧D) in VSCode.
 
 3. **Native Implementation**
    - iOS: `ios/HybridIAP.swift` - StoreKit 2 implementation
-   - Android: `android/.../Iap.kt` - Play Billing implementation
+   - Android: `android/.../Iap.kt` - Play Billing implementation with auto-reconnection
+   - **Connection Management**: Uses Google Play Billing v8.0.0+ automatic service reconnection
 
 ## Coding Standards
 
@@ -185,6 +186,71 @@ bun install && bun run typecheck && bun run lint --fix
 - Obfuscated account/profile IDs
 - Purchase acknowledgment
 - Product consumption
+- **Automatic Service Reconnection** - Uses `enableAutoServiceReconnection()` to handle disconnections automatically
+- **Simplified Connection Handling** - Only checks if billing client exists (not connection state), auto-reconnection handles the rest
+
+## Error Handling
+
+### Centralized Error Management
+
+The project uses a centralized error handling approach across all platforms:
+
+**TypeScript (`src/utils.ts` + `src/types.ts`)**
+- `parseErrorStringToJsonObj()` - Parses native error strings into structured objects
+- `isUserCancelledError()` - Helper to check for user cancellation
+- `ErrorCode` enum (from types.ts) - Standardized error codes across platforms
+
+**Android (`android/src/main/java/com/margelo/nitro/iap/Types.kt`)**
+- `IapErrorCode` object - Centralized error codes
+- `BillingUtils.getBillingErrorData()` - Maps Android billing codes to error objects
+- `BillingUtils.createErrorJson()` - Serializes errors to JSON strings
+
+**iOS (`ios/ErrorUtils.swift`)**
+- `IapErrorCode` struct - iOS error code constants (matches Android)
+- `ErrorUtils.getStoreKitErrorData()` - Maps StoreKit errors to error objects
+- `ErrorUtils.createErrorJson()` - Serializes errors to JSON strings
+
+### Error Format
+
+All native modules return errors as JSON strings:
+
+```json
+{
+  "code": "E_USER_CANCELLED",
+  "message": "User cancelled the purchase",
+  "responseCode": 1,
+  "debugMessage": "User pressed cancel",
+  "productId": "dev.hyo.martie.10bulbs"
+}
+```
+
+### Usage Example
+
+```typescript
+import { parseErrorStringToJsonObj, isUserCancelledError } from 'react-native-iap'
+
+try {
+  await requestPurchase({ ... })
+} catch (error) {
+  const parsedError = parseErrorStringToJsonObj(error)
+  
+  if (isUserCancelledError(parsedError)) {
+    console.log('User cancelled purchase')
+  } else {
+    console.error('Purchase failed:', parsedError.code, parsedError.message)
+  }
+}
+```
+
+### Common Error Codes
+
+- `E_USER_CANCELLED` - User cancelled the operation
+- `E_ITEM_UNAVAILABLE` - Product not available in store
+- `E_NETWORK_ERROR` - Network connection issues
+- `E_SERVICE_ERROR` - Platform service issues
+- `E_DEVELOPER_ERROR` - Invalid API usage
+- `E_NOT_PREPARED` - Service not initialized
+- `E_UNKNOWN` - Unexpected error
 
 ## Development Guidelines
 
@@ -192,7 +258,8 @@ bun install && bun run typecheck && bun run lint --fix
 - Run `bun run typecheck` and `bun run lint` before committing
 - Regenerate Nitro files with `bun run specs` after modifying interfaces
 - Use Platform.OS checks for platform-specific code
-- Handle errors gracefully with proper error codes
+- Handle errors gracefully using `parseErrorStringToJsonObj()` utility
+- Test error scenarios on both platforms
 
 ## Troubleshooting
 

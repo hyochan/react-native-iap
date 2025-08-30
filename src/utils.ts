@@ -1,51 +1,97 @@
-import type { Product, ProductCommon, Purchase, PurchaseCommon } from './types'
-
 /**
- * Transform ProductCommon to platform-specific Product type
+ * Error utilities for parsing platform-specific error responses
  */
-export const transformProduct = (
-  product: ProductCommon,
-  platform: string
-): Product => {
-  if (platform === 'ios') {
-    // Add iOS-specific fields
-    return {
-      ...product,
-      platform: 'ios',
-      displayNameIOS: product.displayName || product.title,
-      isFamilyShareableIOS: false,
-      jsonRepresentationIOS: JSON.stringify(product),
-    } as Product
-  } else if (platform === 'android') {
-    // Add Android-specific fields
-    return {
-      ...product,
-      platform: 'android',
-      nameAndroid: product.displayName || product.title,
-    } as Product
-  }
 
-  return product as Product
+import {ErrorCode} from './types';
+
+export interface IapError {
+  code: string;
+  message: string;
+  responseCode?: number;
+  debugMessage?: string;
+  productId?: string;
+  [key: string]: any; // Allow additional platform-specific fields
 }
 
 /**
- * Transform PurchaseCommon to platform-specific Purchase type
+ * Parses error string from native modules into a structured error object
+ *
+ * Native modules return errors in different formats:
+ * - Android: JSON string like '{"code":"E_USER_CANCELLED","message":"User cancelled the purchase","responseCode":1}'
+ * - iOS: JSON string or plain message
+ * - Legacy: "CODE: message" format
+ *
+ * @param errorString - The error string from native module
+ * @returns Parsed error object with code and message
  */
-export const transformPurchase = (
-  purchase: PurchaseCommon,
-  platform: string
-): Purchase => {
-  if (platform === 'ios') {
-    return {
-      ...purchase,
-      platform: 'ios',
-    } as Purchase
-  } else if (platform === 'android') {
-    return {
-      ...purchase,
-      platform: 'android',
-    } as Purchase
+export function parseErrorStringToJsonObj(
+  errorString: string | Error | unknown,
+): IapError {
+  // Handle Error objects
+  if (errorString instanceof Error) {
+    errorString = errorString.message;
   }
 
-  return purchase as Purchase
+  // Handle non-string inputs
+  if (typeof errorString !== 'string') {
+    return {
+      code: ErrorCode.E_UNKNOWN,
+      message: 'Unknown error occurred',
+    };
+  }
+
+  // Try to parse as JSON first
+  try {
+    const parsed = JSON.parse(errorString);
+    if (typeof parsed === 'object' && parsed !== null) {
+      // Ensure it has at least code and message
+      return {
+        code: parsed.code || ErrorCode.E_UNKNOWN,
+        message: parsed.message || errorString,
+        ...parsed,
+      };
+    }
+  } catch {
+    // Not JSON, continue with other formats
+  }
+
+  // Try to parse "CODE: message" format
+  const colonIndex = errorString.indexOf(':');
+  if (colonIndex > 0 && colonIndex < 50) {
+    // Reasonable position for error code
+    const potentialCode = errorString.substring(0, colonIndex).trim();
+    // Check if it looks like an error code (starts with E_ or contains uppercase)
+    if (potentialCode.startsWith('E_') || /^[A-Z_]+$/.test(potentialCode)) {
+      return {
+        code: potentialCode,
+        message: errorString.substring(colonIndex + 1).trim(),
+      };
+    }
+  }
+
+  // Fallback: treat entire string as message
+  return {
+    code: ErrorCode.E_UNKNOWN,
+    message: errorString,
+  };
+}
+
+/**
+ * Checks if an error code indicates user cancellation
+ * @param error - Error object or string
+ * @returns true if the error is a user cancellation
+ */
+export function isUserCancelledError(
+  error: IapError | string | Error | unknown,
+): boolean {
+  const errorObj =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? (error as IapError)
+      : parseErrorStringToJsonObj(error);
+
+  return (
+    errorObj.code === ErrorCode.E_USER_CANCELLED ||
+    errorObj.code === 'E_USER_CANCELED' || // Alternative spelling
+    errorObj.responseCode === 1
+  ); // Android BillingClient.BillingResponseCode.USER_CANCELED
 }

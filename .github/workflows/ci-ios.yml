@@ -1,0 +1,118 @@
+name: CI - iOS Build
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-ios.yml'
+      - '.github/actions/**'
+      - 'ios/**'
+      - 'nitrogen/**'
+      - 'src/types/**'
+      - 'src/*.nitro.ts'
+      - 'example/ios/**'
+      - 'example/Gemfile*'
+      - 'example/Podfile*'
+      - 'example/package.json'
+      - 'nitro.json'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-ios.yml'
+      - '.github/actions/**'
+      - 'ios/**'
+      - 'nitrogen/**'
+      - 'src/types/**'
+      - 'src/*.nitro.ts'
+      - 'example/ios/**'
+      - 'example/Gemfile*'
+      - 'example/Podfile*'
+      - 'example/package.json'
+      - 'nitro.json'
+  merge_group:
+    types:
+      - checks_requested
+
+jobs:
+  build-ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      XCODE_VERSION: 16.4
+      CCACHE_DIR: ~/.ccache
+      CCACHE_MAXSIZE: 2G
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Generate nitrogen code
+        run: bun run nitrogen
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Setup ccache
+        run: |
+          brew install ccache
+          ccache --set-config=compiler_check=content
+          ccache --zero-stats
+
+      - name: Cache Ruby gems
+        uses: actions/cache@v4
+        with:
+          path: example/vendor/bundle
+          key: ${{ runner.os }}-ruby-${{ hashFiles('example/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-ruby-
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cocoapods/repos/trunk
+            example/ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-pods-${{ hashFiles('example/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install node_modules for root
+        run: bun install --no-save
+
+      - name: Install node_modules for example
+        working-directory: example
+        run: bun install --no-save
+
+      - name: Install Ruby dependencies
+        working-directory: example
+        run: bundle install
+
+      - name: Install CocoaPods dependencies
+        working-directory: example/ios
+        run: bundle exec pod install
+
+      - name: List available simulators
+        run: xcrun simctl list devices
+
+      - name: Build iOS app
+        working-directory: example/ios
+        run: |
+          set -o pipefail
+          xcodebuild build -workspace example.xcworkspace -scheme example -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO | xcpretty
+
+      - name: ccache stats
+        run: ccache --show-stats

@@ -1,0 +1,39 @@
+name: Setup
+description: Setup Node.js and install dependencies
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Restore dependencies
+      id: bun-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          **/node_modules
+        key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}-${{ hashFiles('**/package.json', '!node_modules/**') }}
+        restore-keys: |
+          ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          ${{ runner.os }}-bun-
+
+    - name: Install dependencies
+      if: steps.bun-cache.outputs.cache-hit != 'true'
+      run: bun install
+      shell: bash
+
+    - name: Cache dependencies
+      if: steps.bun-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          **/node_modules
+        key: ${{ steps.bun-cache.outputs.cache-primary-key }}

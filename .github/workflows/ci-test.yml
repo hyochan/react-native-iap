@@ -1,0 +1,42 @@
+name: CI - Test
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-test.yml'
+      - '.github/actions/**'
+      - 'src/**/__tests__/**'
+      - 'src/**/*.test.*'
+      - 'jest.config.*'
+      - 'jest.setup.*'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-test.yml'
+      - '.github/actions/**'
+      - 'src/**/__tests__/**'
+      - 'src/**/*.test.*'
+      - 'jest.config.*'
+      - 'jest.setup.*'
+  merge_group:
+    types:
+      - checks_requested
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Install example dependencies
+        working-directory: example
+        run: bun install
+
+      - name: Run unit tests
+        run: bun run test:ci

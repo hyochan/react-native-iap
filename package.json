@@ -45,7 +45,9 @@
     "lint:ci": "bun run lint:tsc && bun run lint:eslint && bun run lint:prettier",
     "prepare": "bob build && yarn nitrogen",
     "nitrogen": "nitro-codegen",
-    "specs": "nitro-codegen --logLevel=\"debug\""
+    "specs": "nitro-codegen --logLevel=\"debug\"",
+    "test": "jest",
+    "test:ci": "jest --maxWorkers=2 --coverage"
   },
   "keywords": [
     "react-native",
@@ -66,11 +68,15 @@
   },
   "devDependencies": {
     "@react-native/eslint-config": "0.81.0",
+    "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.12",
     "@types/react": "^19.0.6",
+    "babel-jest": "^30.1.1",
     "eslint": "^8.57.0",
+    "eslint-config-expo": "^9.2.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
+    "jest": "^30.1.1",
     "nitro-codegen": "*",
     "prettier": "^3.3.3",
     "react": "19.1.0",

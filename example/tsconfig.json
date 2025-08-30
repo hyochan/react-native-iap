@@ -1,7 +1,7 @@
 {
   "extends": "@react-native/typescript-config/tsconfig.json",
   "compilerOptions": {
-    "jsx": "react-native",
+    "jsx": "react-jsx",
     "module": "ESNext",
     "target": "ESNext",
     "lib": ["ESNext"],
