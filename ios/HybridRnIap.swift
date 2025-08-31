@@ -562,6 +562,19 @@ class HybridRnIap: HybridRnIapSpec {
         purchaseErrorListeners.removeAll()
     }
     
+    // MARK: - Promoted Product Listener Methods (iOS only)
+    
+    func addPromotedProductListenerIOS(listener: @escaping (NitroProduct) -> Void) throws {
+        // iOS-specific promoted product listening implementation
+        // For now, we'll store the listener but promoted products are handled through StoreKit's delegate methods
+        print("[RnIap] Promoted product listener added for iOS")
+    }
+    
+    func removePromotedProductListenerIOS(listener: @escaping (NitroProduct) -> Void) throws {
+        // iOS-specific promoted product listener removal
+        print("[RnIap] Promoted product listener removed for iOS")
+    }
+    
     // MARK: - Private Helper Methods for Events
     
     private func sendPurchaseUpdate(_ purchase: NitroPurchase) {

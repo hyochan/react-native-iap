@@ -2,7 +2,7 @@
  * Error utilities for parsing platform-specific error responses
  */
 
-import {ErrorCode} from './types';
+import {ErrorCode} from '../types';
 
 export interface IapError {
   code: string;

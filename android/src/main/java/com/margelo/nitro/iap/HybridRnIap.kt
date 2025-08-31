@@ -9,6 +9,8 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.margelo.nitro.NitroModules
 import com.margelo.nitro.core.Promise
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -31,6 +33,7 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     // Event listeners
     private val purchaseUpdatedListeners = mutableListOf<(NitroPurchase) -> Unit>()
     private val purchaseErrorListeners = mutableListOf<(NitroPurchaseResult) -> Unit>()
+    private val promotedProductListenersIOS = mutableListOf<(NitroProduct) -> Unit>()
     
     // Connection methods
     override fun initConnection(): Promise<Boolean> {
@@ -69,6 +72,8 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     // Product methods
     override fun requestProducts(skus: Array<String>, type: String): Promise<Array<NitroProduct>> {
         return Promise.async {
+            Log.d(TAG, "requestProducts called with SKUs: ${skus.joinToString()}, type: $type")
+            
             // Validate SKU list
             if (skus.isEmpty()) {
                 throw Exception(BillingUtils.createErrorJson(
@@ -102,11 +107,14 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             
             val result = suspendCancellableCoroutine<List<ProductDetails>> { continuation ->
                 billingClient?.queryProductDetailsAsync(params) { billingResult, productDetailsResult ->
+                    Log.d(TAG, "queryProductDetailsAsync response: code=${billingResult.responseCode}")
                     if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                         val productDetailsList = productDetailsResult.productDetailsList
+                        Log.d(TAG, "Retrieved ${productDetailsList?.size ?: 0} products")
                         // Cache the product details
                         if (!productDetailsList.isNullOrEmpty()) {
                             for (details in productDetailsList) {
+                                Log.d(TAG, "Product: ${details.productId}, has offers: ${details.subscriptionOfferDetails?.size ?: 0}")
                                 skuDetailsCache[details.productId] = details
                             }
                             continuation.resume(productDetailsList)
@@ -121,9 +129,14 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
                 }
             }
             
-            result.map { productDetails ->
+            Log.d(TAG, "Converting ${result.size} products to NitroProducts")
+            
+            val nitroProducts = result.map { productDetails ->
                 convertToNitroProduct(productDetails, type)
             }.toTypedArray()
+            
+            Log.d(TAG, "Returning ${nitroProducts.size} NitroProducts to JS")
+            nitroProducts
         }
     }
     
@@ -352,6 +365,18 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
         purchaseErrorListeners.clear()
     }
     
+    override fun addPromotedProductListenerIOS(listener: (product: NitroProduct) -> Unit) {
+        // Promoted products are iOS-only, but we implement the interface for consistency
+        promotedProductListenersIOS.add(listener)
+        Log.w(TAG, "addPromotedProductListenerIOS called on Android - promoted products are iOS-only")
+    }
+    
+    override fun removePromotedProductListenerIOS(listener: (product: NitroProduct) -> Unit) {
+        // Promoted products are iOS-only, but we implement the interface for consistency
+        promotedProductListenersIOS.clear()
+        Log.w(TAG, "removePromotedProductListenerIOS called on Android - promoted products are iOS-only")
+    }
+    
     // BillingClientStateListener implementation
     override fun onBillingSetupFinished(billingResult: BillingResult) {
         // Handled inline in initConnection
@@ -506,7 +531,43 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             else -> Triple("", "N/A", 0L)
         }
         
-        return NitroProduct(
+        // Convert subscription offer details to JSON string if available
+        val subscriptionOfferDetailsJson = productDetails.subscriptionOfferDetails?.let { offers ->
+            Log.d(TAG, "Product ${productDetails.productId} has ${offers.size} subscription offers")
+            
+            val jsonArray = JSONArray().apply {
+                offers.forEach { offer ->
+                    Log.d(TAG, "Offer: basePlanId=${offer.basePlanId}, offerId=${offer.offerId}, offerToken=${offer.offerToken}")
+                    
+                    val offerJson = JSONObject().apply {
+                        put("offerToken", offer.offerToken)
+                        put("basePlanId", offer.basePlanId)
+                        offer.offerId?.let { put("offerId", it) }
+                        
+                        val pricingPhasesArray = JSONArray().apply {
+                            offer.pricingPhases.pricingPhaseList.forEach { phase ->
+                                put(JSONObject().apply {
+                                    put("formattedPrice", phase.formattedPrice)
+                                    put("priceCurrencyCode", phase.priceCurrencyCode)
+                                    put("priceAmountMicros", phase.priceAmountMicros)
+                                    put("billingCycleCount", phase.billingCycleCount)
+                                    put("billingPeriod", phase.billingPeriod)
+                                    put("recurrenceMode", phase.recurrenceMode)
+                                })
+                            }
+                        }
+                        put("pricingPhases", pricingPhasesArray)
+                    }
+                    put(offerJson)
+                }
+            }
+            
+            val jsonString = jsonArray.toString()
+            Log.d(TAG, "Subscription offer details JSON: $jsonString")
+            jsonString
+        }
+        
+        val nitroProduct = NitroProduct(
             id = productDetails.productId,
             title = productDetails.title,
             description = productDetails.description,
@@ -533,8 +594,13 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             introductoryPriceCycles = null,
             introductoryPricePeriod = null,
             subscriptionPeriod = null, // TODO: Extract from subscription offers
-            freeTrialPeriod = null
+            freeTrialPeriod = null,
+            subscriptionOfferDetailsAndroid = subscriptionOfferDetailsJson
         )
+        
+        Log.d(TAG, "Created NitroProduct for ${productDetails.productId}: has subscriptionOfferDetailsAndroid=${nitroProduct.subscriptionOfferDetailsAndroid != null}")
+        
+        return nitroProduct
     }
     
     private fun convertToNitroPurchase(purchase: Purchase): NitroPurchase {

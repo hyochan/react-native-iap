@@ -285,3 +285,11 @@ try {
    cd example
    bunx react-native start --reset-cache
    ```
+
+5. **React Hook Issues (useState null error)**
+   
+   ⚠️ **WARNING**: Do NOT install `@testing-library/react-native` in the root package.json!
+   
+   Installing testing libraries in the root package.json can cause circular React import issues that break React hooks (causing "Cannot read property 'useState' of null" errors).
+   
+   **Solution**: Only install testing libraries in the example app's package.json, never in the root package.json.

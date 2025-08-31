@@ -28,9 +28,9 @@ const Home: React.FC<Props> = ({navigation}) => {
     },
     {
       title: 'Subscription Flow',
-      subtitle: 'Test subscription purchases',
+      subtitle: 'Test subscription purchases with useIAP hook',
       route: 'SubscriptionFlow' as keyof RootStackParamList,
-      enabled: false,
+      enabled: true,
     },
     {
       title: 'Available Purchases',

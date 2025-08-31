@@ -12,6 +12,9 @@ const config = {
     ],
     extraNodeModules: {
       'react-native-iap': path.resolve(__dirname, '..'),
+      // Force React and React Native to be resolved from example's node_modules
+      'react': path.resolve(__dirname, 'node_modules/react'),
+      'react-native': path.resolve(__dirname, 'node_modules/react-native'),
     },
     // Remove blockList to allow resolution of react-native
     blockList: [

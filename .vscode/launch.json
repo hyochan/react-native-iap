@@ -9,7 +9,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "bunx kill-port 8081 && rm -rf node_modules example/node_modules && bun install && bun run specs && cd example && bun install && cd ios && bundle exec pod install && cd .. && bunx react-native run-ios"
+        "bun install && cd example && bun install && npx pod-install && bun ios"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -24,7 +24,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "bunx kill-port 8081 && rm -rf node_modules example/node_modules && bun install && bun run specs && cd example && bun install && cd ios && bundle exec pod install && cd .. && bunx react-native run-ios --device"
+        "bun install && cd example && bun install && npx pod-install && bun ios --device"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -39,7 +39,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "bunx kill-port 8081 && rm -rf node_modules example/node_modules && bun install && bun run specs && cd example && bun install && bunx react-native run-android"
+        "rm -rf node_modules && bun install && cd example && rm -rf node_modules && bun install && rm -rf node_modules/react-native-iap/node_modules && bunx react-native start --reset-cache & sleep 5 && bunx react-native run-android"
       ],
       "console": "integratedTerminal",
       "env": {

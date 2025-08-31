@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,10 +17,8 @@ import {
   requestProducts,
   requestPurchase,
   finishTransaction,
-  addPurchaseUpdatedListener,
-  addPurchaseErrorListener,
-  removePurchaseUpdatedListener,
-  removePurchaseErrorListener,
+  purchaseUpdatedListener,
+  purchaseErrorListener,
   type Product,
   type Purchase,
   type NitroPurchaseResult,
@@ -37,6 +35,7 @@ const PurchaseFlow: React.FC = () => {
   const [purchaseResult, setPurchaseResult] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const subscriptionsRef = useRef<{updateSub?: any; errorSub?: any}>({});
 
   useEffect(() => {
     // Initialize connection when component mounts
@@ -46,18 +45,18 @@ const PurchaseFlow: React.FC = () => {
     // Cleanup when component unmounts
     return () => {
       // Clean up listeners
-      removePurchaseUpdatedListener(handlePurchaseUpdate);
-      removePurchaseErrorListener(handlePurchaseError);
+      subscriptionsRef.current.updateSub?.remove();
+      subscriptionsRef.current.errorSub?.remove();
       endConnection();
     };
   }, []);
 
   const setupPurchaseListeners = () => {
     // Set up purchase success listener
-    addPurchaseUpdatedListener(handlePurchaseUpdate);
+    subscriptionsRef.current.updateSub = purchaseUpdatedListener(handlePurchaseUpdate);
     
     // Set up purchase error listener
-    addPurchaseErrorListener(handlePurchaseError);
+    subscriptionsRef.current.errorSub = purchaseErrorListener(handlePurchaseError);
   };
 
   const handlePurchaseUpdate = (purchase: Purchase) => {
@@ -213,14 +212,10 @@ const PurchaseFlow: React.FC = () => {
   };
 
   const getProductDisplayPrice = (product: Product): string => {
-    if (
-      'oneTimePurchaseOfferDetailsAndroid' in product &&
-      product.oneTimePurchaseOfferDetailsAndroid
-    ) {
-      return (
-        product.oneTimePurchaseOfferDetailsAndroid.formattedPrice ||
-        product.displayPrice
-      );
+    // Use the simplified Android offer price fields (added by type bridge)
+    const androidProduct = product as any;
+    if (Platform.OS === 'android' && androidProduct.oneTimePurchaseOfferFormattedPrice) {
+      return androidProduct.oneTimePurchaseOfferFormattedPrice;
     }
     return product.displayPrice;
   };

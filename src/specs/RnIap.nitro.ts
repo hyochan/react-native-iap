@@ -25,6 +25,7 @@ interface NitroSubscriptionOffer {
   offerToken: string;
 }
 
+
 /**
  * Android-specific purchase request parameters
  */
@@ -174,6 +175,7 @@ export interface NitroProduct {
   introductoryPricePeriod?: string;
   subscriptionPeriod?: string;
   freeTrialPeriod?: string;
+  subscriptionOfferDetailsAndroid?: string; // Android subscription offer details as JSON string
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
@@ -258,4 +260,18 @@ export interface RnIap extends HybridObject<{ ios: 'swift', android: 'kotlin' }>
    * @param listener - Function to remove from listeners
    */
   removePurchaseErrorListener(listener: (error: NitroPurchaseResult) => void): void;
+  
+  /**
+   * Add a listener for iOS promoted product events
+   * @param listener - Function to call when a promoted product is selected in the App Store
+   * @platform iOS
+   */
+  addPromotedProductListenerIOS(listener: (product: NitroProduct) => void): void;
+  
+  /**
+   * Remove a promoted product listener
+   * @param listener - Function to remove from listeners
+   * @platform iOS
+   */
+  removePromotedProductListenerIOS(listener: (product: NitroProduct) => void): void;
 }

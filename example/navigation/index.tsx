@@ -3,10 +3,9 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import Home from '../screens/Home';
 import PurchaseFlow from '../screens/PurchaseFlow';
-// import SubscriptionFlow from '../screens/SubscriptionFlow';
+import SubscriptionFlow from '../screens/SubscriptionFlow';
 // import AvailablePurchases from '../screens/AvailablePurchases';
 // import OfferCode from '../screens/OfferCode';
-// import DebugScreen from '../screens/Debug';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -14,7 +13,6 @@ export type RootStackParamList = {
   SubscriptionFlow: undefined;
   AvailablePurchases: undefined;
   OfferCode: undefined;
-  Debug: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -33,12 +31,12 @@ export default function AppNavigator() {
           component={PurchaseFlow}
           options={{title: 'In-App Purchase Flow'}}
         />
-        {/* <Stack.Screen
+        <Stack.Screen
           name="SubscriptionFlow"
           component={SubscriptionFlow}
-          options={{ title: 'Subscription Flow' }}
+          options={{title: 'Subscription Flow'}}
         />
-        <Stack.Screen
+        {/* <Stack.Screen
           name="AvailablePurchases"
           component={AvailablePurchases}
           options={{ title: 'Available Purchases' }}
