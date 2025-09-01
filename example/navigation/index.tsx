@@ -4,8 +4,8 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Home from '../screens/Home';
 import PurchaseFlow from '../screens/PurchaseFlow';
 import SubscriptionFlow from '../screens/SubscriptionFlow';
-// import AvailablePurchases from '../screens/AvailablePurchases';
-// import OfferCode from '../screens/OfferCode';
+import AvailablePurchases from '../screens/AvailablePurchases';
+import OfferCode from '../screens/OfferCode';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -36,21 +36,16 @@ export default function AppNavigator() {
           component={SubscriptionFlow}
           options={{title: 'Subscription Flow'}}
         />
-        {/* <Stack.Screen
+        <Stack.Screen
           name="AvailablePurchases"
           component={AvailablePurchases}
-          options={{ title: 'Available Purchases' }}
+          options={{title: 'Available Purchases'}}
         />
         <Stack.Screen
           name="OfferCode"
           component={OfferCode}
-          options={{ title: 'Offer Code Redemption' }}
+          options={{title: 'Offer Code Redemption'}}
         />
-        <Stack.Screen
-          name="Debug"
-          component={DebugScreen}
-          options={{ title: 'Debug' }}
-        /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -8,7 +8,7 @@ on:
       - '.github/actions/**'
       - 'src/**'
       - 'package.json'
-      - 'bun.lock'
+      - 'yarn.lock'
       - 'nitro.json'
       - 'tsconfig.build.json'
   pull_request:
@@ -19,7 +19,7 @@ on:
       - '.github/actions/**'
       - 'src/**'
       - 'package.json'
-      - 'bun.lock'
+      - 'yarn.lock'
       - 'nitro.json'
       - 'tsconfig.build.json'
   merge_group:
@@ -37,4 +37,4 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Build package
-        run: bun run prepare
+        run: yarn prepare

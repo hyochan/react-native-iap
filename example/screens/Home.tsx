@@ -36,19 +36,13 @@ const Home: React.FC<Props> = ({navigation}) => {
       title: 'Available Purchases',
       subtitle: 'View and manage your purchases',
       route: 'AvailablePurchases' as keyof RootStackParamList,
-      enabled: false,
+      enabled: true,
     },
     {
       title: 'Offer Code',
       subtitle: 'Redeem promotional offers',
       route: 'OfferCode' as keyof RootStackParamList,
-      enabled: false,
-    },
-    {
-      title: 'Debug',
-      subtitle: 'Debug information and logs',
-      route: 'Debug' as keyof RootStackParamList,
-      enabled: false,
+      enabled: true,
     },
   ];
 

@@ -36,13 +36,16 @@
     "!**/.*"
   ],
   "scripts": {
+    "example:ios": "yarn workspace rn-iap-example ios",
+    "example:android": "yarn workspace rn-iap-example android",
+    "example:start": "yarn workspace rn-iap-example start",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf android/build node_modules/**/android/build lib nitrogen/generated",
     "lint": "eslint --ext .ts,.tsx,.js,.jsx src",
     "lint:eslint": "eslint --fix 'src/**/*.{ts,tsx}' 'plugin/src/**/*.{ts,tsx}'",
     "lint:prettier": "prettier --write \"**/*.{md,js,jsx,ts,tsx}\"",
     "lint:tsc": "tsc -p tsconfig.json --noEmit --skipLibCheck",
-    "lint:ci": "bun run lint:tsc && bun run lint:eslint && bun run lint:prettier",
+    "lint:ci": "yarn lint:tsc && yarn lint:eslint && yarn lint:prettier",
     "prepare": "bob build && yarn nitrogen",
     "nitrogen": "nitro-codegen",
     "specs": "nitro-codegen --logLevel=\"debug\"",
@@ -87,6 +90,9 @@
     "react-native": "*",
     "react-native-nitro-modules": "*"
   },
+  "workspaces": [
+    "example"
+  ],
   "eslintIgnore": [
     "node_modules/",
     "lib/"
@@ -123,5 +129,6 @@
         }
       ]
     ]
-  }
+  },
+  "packageManager": "yarn@4.9.4"
 }

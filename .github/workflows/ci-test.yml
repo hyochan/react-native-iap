@@ -34,9 +34,6 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
-      - name: Install example dependencies
-        working-directory: example
-        run: bun install
 
       - name: Run unit tests
-        run: bun run test:ci
+        run: yarn test:ci

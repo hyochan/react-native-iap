@@ -45,7 +45,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Generate nitrogen code
-        run: bun run nitrogen
+        run: yarn nitrogen
 
       - name: Install JDK
         uses: actions/setup-java@v4
@@ -78,12 +78,6 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Install node_modules for root
-        run: bun install --no-save
-
-      - name: Install node_modules for example
-        working-directory: example
-        run: bun install --no-save
 
       - name: Build Android app
         working-directory: example/android

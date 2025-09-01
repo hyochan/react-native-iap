@@ -8,7 +8,6 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-    "postinstall": "rm -rf node_modules/react-native-iap/node_modules && rm -rf ../node_modules/react ../node_modules/react-native ../node_modules/react-test-renderer",
     "logcat": "adb logcat | grep -i 'dev.hyo.martie'"
   },
   "dependencies": {
@@ -18,7 +17,7 @@
     "@react-navigation/native-stack": "^7.3.25",
     "react": "19.1.0",
     "react-native": "0.81.1",
-    "react-native-iap": "file:..",
+    "react-native-iap": "*",
     "react-native-nitro-modules": "^0.29.0",
     "react-native-safe-area-context": "^5.6.1",
     "react-native-screens": "^4.15.4"

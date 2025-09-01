@@ -36,12 +36,9 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
-      - name: Install example dependencies
-        working-directory: example
-        run: bun install
 
       - name: Lint files
-        run: bun run lint
+        run: yarn lint
 
       - name: Typecheck files
-        run: bun run typecheck
+        run: yarn typecheck

@@ -9,7 +9,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "bun install && cd example && bun install && npx pod-install && bun ios"
+        "yarn install && cd example/ios && pod install && cd ../.. && yarn workspace rn-iap-example ios"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -24,7 +24,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "bun install && cd example && bun install && npx pod-install && bun ios --device"
+        "yarn install && cd example/ios && pod install && cd ../.. && yarn workspace rn-iap-example ios --device"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -39,7 +39,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "rm -rf node_modules && bun install && cd example && rm -rf node_modules && bun install && rm -rf node_modules/react-native-iap/node_modules && bunx react-native start --reset-cache & sleep 5 && bunx react-native run-android"
+        "yarn install && yarn workspace rn-iap-example start --reset-cache & sleep 5 && yarn workspace rn-iap-example android"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -52,7 +52,7 @@
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd example && bunx react-native run-ios"],
+      "runtimeArgs": ["-c", "yarn workspace rn-iap-example ios"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"
@@ -64,7 +64,7 @@
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd example && bunx react-native run-ios --device"],
+      "runtimeArgs": ["-c", "yarn workspace rn-iap-example ios --device"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"
@@ -76,7 +76,7 @@
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd example && bunx react-native run-android"],
+      "runtimeArgs": ["-c", "yarn workspace rn-iap-example android"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"

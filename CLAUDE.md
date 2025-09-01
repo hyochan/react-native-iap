@@ -11,17 +11,18 @@ React Native IAP - A high-performance in-app purchase library using Nitro Module
 - TypeScript
 - Swift (iOS with StoreKit 2)
 - Kotlin (Android with Google Play Billing)
-- **Bun** (Package manager - MUST be used for all operations)
+- **Yarn 3** (Package manager with workspace support)
 
 ## Package Manager
 
-⚠️ **IMPORTANT: This project uses Bun exclusively**
+⚠️ **IMPORTANT: This project uses Yarn 3 with workspaces**
 
-- **ALWAYS use `bun` instead of `npm` or `yarn`**
-- Install dependencies: `bun install`
-- Add packages: `bun add [package]`
-- Run scripts: `bun run [script]`
-- Execute packages: `bunx [package]`
+- **Workspace Structure**: The project uses Yarn workspaces to manage the library and example app
+- Install dependencies: `yarn install` (installs for both library and example)
+- Add packages to library: `yarn add [package]`
+- Add packages to example: `yarn workspace rn-iap-example add [package]`
+- Run scripts: `yarn [script]`
+- Execute packages: `yarn dlx [package]` or `npx [package]`
 
 ## Project Structure
 
@@ -56,37 +57,39 @@ example/               # example React Native app for testing
 
 ```bash
 # Generate Nitro bridge files (nitrogen)
-bun run specs
+yarn specs
 
 # TypeScript type checking
-bun run typecheck
+yarn typecheck
 
 # Linting
-bun run lint
-bun run lint --fix
+yarn lint
+yarn lint --fix
 
 # Clean build artifacts
-bun run clean
+yarn clean
 ```
 
 ### Example App
 
 ```bash
-# Navigate to example directory
-cd example
-
-# Install dependencies
-bun install
+# No need to navigate to example directory or install separately
+# Dependencies are managed via workspaces
 
 # iOS
-bunx react-native run-ios
-bunx react-native run-ios --device  # For physical device
+cd example && yarn ios
+cd example && yarn ios --device  # For physical device
 
 # Android
-bunx react-native run-android
+cd example && yarn android
 
 # Start Metro bundler
-bunx react-native start
+cd example && yarn start
+
+# Or from root:
+yarn workspace rn-iap-example ios
+yarn workspace rn-iap-example android
+yarn workspace rn-iap-example start
 ```
 
 ### iOS Setup
@@ -147,19 +150,19 @@ Access these from the Run and Debug panel (⌘⇧D) in VSCode.
 
 ```bash
 # Install dependencies
-bun install
+yarn install
 
 # TypeScript Check
-bun run typecheck
+yarn typecheck
 
 # Linting
-bun run lint --fix
+yarn lint --fix
 
 # Generate Nitro files if specs changed
-bun run specs
+yarn specs
 
 # Run all checks in sequence
-bun install && bun run typecheck && bun run lint --fix
+yarn install && yarn typecheck && yarn lint --fix
 ```
 
 ### Common CI Fixes
@@ -254,9 +257,9 @@ try {
 
 ## Development Guidelines
 
-- Always use `bun` for package management
-- Run `bun run typecheck` and `bun run lint` before committing
-- Regenerate Nitro files with `bun run specs` after modifying interfaces
+- Always use `yarn` for package management (project uses Yarn 3 with workspaces)
+- Run `yarn typecheck` and `yarn lint` before committing
+- Regenerate Nitro files with `yarn specs` after modifying interfaces
 - Use Platform.OS checks for platform-specific code
 - Handle errors gracefully using `parseErrorStringToJsonObj()` utility
 - Test error scenarios on both platforms
@@ -266,7 +269,7 @@ try {
 ### Common Issues
 
 1. **Build failures after modifying .nitro.ts files**
-   - Run `bun run specs` to regenerate Nitro bridge files
+   - Run `yarn specs` to regenerate Nitro bridge files
 
 2. **iOS build errors**
 
@@ -276,20 +279,14 @@ try {
    ```
 
 3. **Package installation issues**
-   - Ensure you're using `bun` not `npm` or `yarn`
-   - Clear cache: `bun pm cache rm --all`
+   - Run `yarn install` from the root directory
+   - Clear yarn cache: `yarn cache clean`
+   - Delete node_modules and reinstall: `rm -rf node_modules example/node_modules && yarn install`
 
 4. **Metro bundler issues**
 
    ```sh
    cd example
-   bunx react-native start --reset-cache
+   yarn start --reset-cache
    ```
 
-5. **React Hook Issues (useState null error)**
-   
-   ⚠️ **WARNING**: Do NOT install `@testing-library/react-native` in the root package.json!
-   
-   Installing testing libraries in the root package.json can cause circular React import issues that break React hooks (causing "Cannot read property 'useState' of null" errors).
-   
-   **Solution**: Only install testing libraries in the example app's package.json, never in the root package.json.
