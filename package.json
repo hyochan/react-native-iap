@@ -40,7 +40,7 @@
   "scripts": {
     "postinstall": "yarn prepare",
     "build:plugin": "tsc --build plugin",
-    "setup:expo": "cd example-expo && bun setup",
+    "setup:expo": "cd example-expo && bun setup && build:plugin",
     "example": "yarn workspace rn-iap-example",
     "example:ios": "yarn workspace rn-iap-example ios",
     "example:android": "yarn workspace rn-iap-example android",
@@ -55,7 +55,8 @@
     "prepare": "npx tsx scripts/check-nitro-versions.ts && bob build && yarn nitrogen && yarn build:plugin",
     "nitrogen": "nitro-codegen",
     "specs": "nitro-codegen --logLevel=\"debug\"",
-    "test": "jest",
+    "test": "yarn workspace rn-iap-example test",
+    "test:plugin": "cd example-expo/plugin && bun test",
     "test:ci": "jest --maxWorkers=2 --coverage",
     "prepare:husky": "husky install",
     "precommit": "lint-staged",

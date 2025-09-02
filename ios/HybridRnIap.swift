@@ -14,9 +14,14 @@ class HybridRnIap: HybridRnIapSpec {
     private var productStore: ProductStore?
     private var transactions: [String: Transaction] = [:]
     
+    // Promoted products
+    private var promotedProduct: Product?
+    private var promotedPayment: SKPayment?
+    
     // Event listeners
     private var purchaseUpdatedListeners: [(NitroPurchase) -> Void] = []
     private var purchaseErrorListeners: [(NitroPurchaseResult) -> Void] = []
+    private var promotedProductListeners: [(NitroProduct) -> Void] = []
     
     // MARK: - Initialization
     
@@ -28,7 +33,7 @@ class HybridRnIap: HybridRnIapSpec {
         updateListenerTask?.cancel()
     }
     
-    // MARK: - Connection methods
+    // MARK: - Public Methods (Cross-platform)
     
     func initConnection() throws -> Promise<Bool> {
         return Promise.async {
@@ -58,8 +63,6 @@ class HybridRnIap: HybridRnIapSpec {
             return true
         }
     }
-    
-    // MARK: - Product methods
     
     func requestProducts(skus: [String], type: String) throws -> Promise<[NitroProduct]> {
         return Promise.async {
@@ -91,8 +94,6 @@ class HybridRnIap: HybridRnIapSpec {
             }
         }
     }
-    
-    // MARK: - Purchase methods (Unified)
     
     func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<Void> {
         return Promise.async {
@@ -209,15 +210,13 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    
-    // MARK: - Available purchases methods (Unified)
-    
     func getAvailablePurchases(options: NitroAvailablePurchasesOptions?) throws -> Promise<[NitroPurchase]> {
         return Promise.async {
             try self.ensureConnection()
             
-            let alsoPublishToEventListener = options?.ios?.alsoPublishToEventListener ?? false
-            let onlyIncludeActiveItems = options?.ios?.onlyIncludeActiveItems ?? false
+            // Support both new IOS suffixed and deprecated parameters
+            let _ = options?.ios?.alsoPublishToEventListenerIOS ?? options?.ios?.alsoPublishToEventListener ?? false
+            let onlyIncludeActiveItems = options?.ios?.onlyIncludeActiveItemsIOS ?? options?.ios?.onlyIncludeActiveItems ?? false
             
             var purchases: [NitroPurchase] = []
             
@@ -253,9 +252,6 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    
-    // MARK: - Transaction management methods (Unified)
-    
     func finishTransaction(params: NitroFinishTransactionParams) throws -> Promise<Variant_Bool_NitroPurchaseResult> {
         return Promise.async {
             // iOS implementation
@@ -287,6 +283,322 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
+    func validateReceipt(params: NitroReceiptValidationParams) throws -> Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
+        return Promise.async {
+            do {
+                // Get the app receipt data
+                guard let receiptURL = Bundle.main.appStoreReceiptURL,
+                      let receiptData = try? Data(contentsOf: receiptURL) else {
+                    let errorJson = ErrorUtils.createErrorJson(
+                        code: IapErrorCode.receiptFailed,
+                        message: "App receipt not found or could not be read"
+                    )
+                    throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+                }
+                
+                let receiptDataBase64 = receiptData.base64EncodedString()
+                
+                // For StoreKit 2, we can use Transaction.currentEntitlements or Transaction.all
+                // to get the latest transaction for the specified SKU
+                var latestTransaction: NitroPurchase? = nil
+                
+                // Find the latest transaction for the specified SKU
+                for await verificationResult in Transaction.currentEntitlements {
+                        switch verificationResult {
+                        case .verified(let transaction):
+                            if transaction.productID == params.sku {
+                                // Fetch the product details for this transaction
+                                if let products = try? await StoreKit.Product.products(for: [transaction.productID]),
+                                   let product = products.first {
+                                    latestTransaction = self.convertToNitroPurchase(transaction, product: product, jwsRepresentation: nil)
+                                }
+                                break
+                            }
+                        case .unverified(_, let verificationError):
+                            // Handle unverified transactions if needed
+                            print("Unverified transaction for SKU \(params.sku): \(verificationError)")
+                        }
+                    }
+                
+                // For StoreKit 2, the receipt is always considered valid if we can read it
+                // and the transaction verification passed
+                let isValid = latestTransaction != nil
+                
+                // Generate JWS representation (simplified for now)
+                let jwsRepresentation = receiptDataBase64 // In a real implementation, this would be the actual JWS
+                
+                let result = NitroReceiptValidationResultIOS(
+                    isValid: isValid,
+                    receiptData: receiptDataBase64,
+                    jwsRepresentation: jwsRepresentation,
+                    latestTransaction: latestTransaction
+                )
+                return Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid(result)
+                
+            } catch {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.receiptFailed,
+                    message: "Receipt validation failed: \(error.localizedDescription)"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+        }
+    }
+    
+    // MARK: - iOS-specific Public Methods
+    
+    func getStorefrontIOS() throws -> Promise<String> {
+        return Promise.async {
+            // Get the current storefront from StoreKit 2
+            if let storefront = await Storefront.current {
+                // Return the country code (e.g., "USA", "GBR", "KOR")
+                return storefront.countryCode
+            } else {
+                // If no storefront is available, throw an error
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.unknown,
+                    message: "Unable to retrieve storefront information"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+        }
+    }
+    
+    func getAppTransactionIOS() throws -> Promise<[String: Any?]?> {
+        return Promise.async {
+            if #available(iOS 16.0, *) {
+                #if compiler(>=5.7)
+                let verificationResult = try await AppTransaction.shared
+                
+                let appTransaction: AppTransaction
+                switch verificationResult {
+                case .verified(let verified):
+                    appTransaction = verified
+                case .unverified(_, _):
+                    return nil
+                }
+                
+                var result: [String: Any?] = [
+                    "bundleId": appTransaction.bundleID,
+                    "appVersion": appTransaction.appVersion,
+                    "originalAppVersion": appTransaction.originalAppVersion,
+                    "originalPurchaseDate": appTransaction.originalPurchaseDate.timeIntervalSince1970 * 1000,
+                    "deviceVerification": appTransaction.deviceVerification.base64EncodedString(),
+                    "deviceVerificationNonce": appTransaction.deviceVerificationNonce.uuidString,
+                    "environment": appTransaction.environment.rawValue,
+                    "signedDate": appTransaction.signedDate.timeIntervalSince1970 * 1000,
+                    "appId": appTransaction.appID,
+                    "appVersionId": appTransaction.appVersionID,
+                    "preorderDate": appTransaction.preorderDate.map { $0.timeIntervalSince1970 * 1000 }
+                ]
+                
+                // iOS 18.4+ properties - only compile with Xcode 16.4+ (Swift 6.1+)
+                // This prevents build failures on Xcode 16.3 and below
+                #if swift(>=6.1)
+                if #available(iOS 18.4, *) {
+                    result["appTransactionId"] = appTransaction.appTransactionID
+                    result["originalPlatform"] = appTransaction.originalPlatform.rawValue
+                }
+                #endif
+                
+                return result
+                #else
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.unknown,
+                    message: "getAppTransaction requires Xcode 15.0+ with iOS 16.0 SDK for compilation"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+                #endif
+            } else {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.unknown,
+                    message: "getAppTransaction requires iOS 16.0 or later"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+        }
+    }
+    
+    func requestPromotedProductIOS() throws -> Promise<NitroProduct?> {
+        return Promise.async {
+            // Return the stored promoted product if available
+            guard let product = self.promotedProduct else {
+                return nil
+            }
+            
+            // Convert Product to NitroProduct
+            return self.convertProductToNitroProduct(product, type: "inapp")
+        }
+    }
+    
+    func buyPromotedProductIOS() throws -> Promise<Void> {
+        return Promise.async {
+            // Check if we have a promoted payment to process
+            guard let payment = self.promotedPayment else {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.itemUnavailable,
+                    message: "No promoted product available"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+            
+            // Add the deferred payment to the queue
+            SKPaymentQueue.default().add(payment)
+            
+            // Clear the promoted product data
+            self.promotedPayment = nil
+            self.promotedProduct = nil
+        }
+    }
+    
+    func presentCodeRedemptionSheetIOS() throws -> Promise<Bool> {
+        return Promise.async {
+            // Present the App Store's code redemption sheet
+            #if !targetEnvironment(simulator)
+            await MainActor.run {
+                SKPaymentQueue.default().presentCodeRedemptionSheet()
+            }
+            return true
+            #else
+            // Not available on simulator
+            let errorJson = ErrorUtils.createErrorJson(
+                code: IapErrorCode.itemUnavailable,
+                message: "Code redemption sheet is not available on simulator"
+            )
+            throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            #endif
+        }
+    }
+    
+    func clearTransactionIOS() throws -> Promise<Void> {
+        return Promise.async {
+            // Clear all unfinished transactions
+            for await result in Transaction.unfinished {
+                do {
+                    let transaction = try self.checkVerified(result)
+                    await transaction.finish()
+                    self.transactions.removeValue(forKey: String(transaction.id))
+                } catch {
+                    print("Failed to finish transaction: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    func beginRefundRequestIOS(sku: String) throws -> Promise<String?> {
+        return Promise.async {
+            #if !os(tvOS)
+            if #available(iOS 15.0, macOS 12.0, *) {
+                // Find the latest transaction for the SKU
+                var latestTransaction: Transaction? = nil
+                
+                for await result in Transaction.currentEntitlements {
+                    switch result {
+                    case .verified(let transaction):
+                        if transaction.productID == sku {
+                            latestTransaction = transaction
+                            break
+                        }
+                    case .unverified(_, _):
+                        continue
+                    }
+                }
+                
+                guard let transaction = latestTransaction else {
+                    let errorJson = ErrorUtils.createErrorJson(
+                        code: IapErrorCode.itemUnavailable,
+                        message: "Can't find transaction for SKU \(sku)"
+                    )
+                    throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+                }
+                
+                // Begin refund request
+                do {
+                    // Get the active window scene
+                    guard let windowScene = await UIApplication.shared.connectedScenes
+                        .compactMap({ $0 as? UIWindowScene })
+                        .first(where: { $0.activationState == .foregroundActive }) else {
+                        let errorJson = ErrorUtils.createErrorJson(
+                            code: IapErrorCode.serviceError,
+                            message: "Cannot find active window scene"
+                        )
+                        throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+                    }
+                    
+                    let refundStatus = try await transaction.beginRefundRequest(in: windowScene)
+                    
+                    // Convert refund status to string
+                    switch refundStatus {
+                    case .success:
+                        return "success"
+                    case .userCancelled:
+                        return "userCancelled"
+                    @unknown default:
+                        return "unknown"
+                    }
+                } catch {
+                    let errorJson = ErrorUtils.createErrorJson(
+                        code: IapErrorCode.serviceError,
+                        message: "Failed to begin refund request: \(error.localizedDescription)"
+                    )
+                    throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+                }
+            } else {
+                // Refund request is only available on iOS 15+
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.itemUnavailable,
+                    message: "Refund request requires iOS 15.0 or later"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+            #else
+            // Not available on tvOS
+            let errorJson = ErrorUtils.createErrorJson(
+                code: IapErrorCode.itemUnavailable,
+                message: "Refund request is not available on tvOS"
+            )
+            throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            #endif
+        }
+    }
+    
+    func addPromotedProductListenerIOS(listener: @escaping (NitroProduct) -> Void) throws {
+        promotedProductListeners.append(listener)
+        
+        // If we already have a promoted product, notify the new listener immediately
+        if let product = promotedProduct {
+            let nitroProduct = convertProductToNitroProduct(product, type: "inapp")
+            listener(nitroProduct)
+        }
+    }
+    
+    func removePromotedProductListenerIOS(listener: @escaping (NitroProduct) -> Void) throws {
+        // Note: In Swift, comparing closures is not straightforward, so we'll clear all listeners
+        // In a real implementation, you might want to use a unique identifier for each listener
+        promotedProductListeners.removeAll()
+    }
+    
+    // MARK: - Event Listener Methods
+    
+    func addPurchaseUpdatedListener(listener: @escaping (NitroPurchase) -> Void) throws {
+        purchaseUpdatedListeners.append(listener)
+    }
+    
+    func addPurchaseErrorListener(listener: @escaping (NitroPurchaseResult) -> Void) throws {
+        purchaseErrorListeners.append(listener)
+    }
+    
+    func removePurchaseUpdatedListener(listener: @escaping (NitroPurchase) -> Void) throws {
+        // Note: This is a limitation of Swift closures - we can't easily remove by reference
+        // For now, we'll just clear all listeners when requested
+        purchaseUpdatedListeners.removeAll()
+    }
+    
+    func removePurchaseErrorListener(listener: @escaping (NitroPurchaseResult) -> Void) throws {
+        // Note: This is a limitation of Swift closures - we can't easily remove by reference
+        // For now, we'll just clear all listeners when requested
+        purchaseErrorListeners.removeAll()
+    }
     
     // MARK: - Private Helper Methods
     
@@ -405,199 +717,6 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
-        switch result {
-        case .verified(let safe):
-            return safe
-        case .unverified(_, let error):
-            let errorJson = ErrorUtils.createErrorJson(
-                code: IapErrorCode.transactionValidationFailed,
-                message: "Transaction verification failed: \(error)",
-                underlyingError: error
-            )
-            throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
-        }
-    }
-    
-    private func ensureConnection() throws {
-        guard isInitialized else {
-            let errorJson = ErrorUtils.createErrorJson(
-                code: IapErrorCode.notPrepared,
-                message: "Connection not initialized. Call initConnection() first."
-            )
-            throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
-        }
-        
-        guard SKPaymentQueue.canMakePayments() else {
-            let errorJson = ErrorUtils.createErrorJson(
-                code: IapErrorCode.iapNotAvailable,
-                message: "In-app purchases are not available on this device"
-            )
-            throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
-        }
-    }
-    
-    @MainActor
-    private func currentWindowScene() async -> UIWindowScene? {
-        #if os(iOS) || os(tvOS)
-            // Find the active window scene
-            for scene in UIApplication.shared.connectedScenes {
-                if let windowScene = scene as? UIWindowScene,
-                   windowScene.activationState == .foregroundActive {
-                    return windowScene
-                }
-            }
-            
-            // Fallback to first window scene if no active one found
-            for scene in UIApplication.shared.connectedScenes {
-                if let windowScene = scene as? UIWindowScene {
-                    return windowScene
-                }
-            }
-        #endif
-        return nil
-    }
-    
-    private func convertToNitroProduct(_ storeProduct: StoreKit.Product, type: String) -> NitroProduct {
-        var product = NitroProduct()
-        
-        // Basic fields
-        product.id = storeProduct.id
-        product.title = storeProduct.displayName
-        product.description = storeProduct.description
-        product.type = type
-        product.displayName = storeProduct.displayName
-        product.displayPrice = storeProduct.displayPrice
-        product.platform = "ios"
-        
-        // Price and currency - priceFormatStyle.currencyCode is not optional
-        product.currency = storeProduct.priceFormatStyle.currencyCode ?? ""
-        
-        // Convert Decimal price to Double - price is not optional
-        product.price = NSDecimalNumber(decimal: storeProduct.price).doubleValue
-        
-        // iOS specific fields
-        product.isFamilyShareable = storeProduct.isFamilyShareable
-        product.jsonRepresentation = storeProduct.jsonRepresentation.base64EncodedString()
-        
-        // Subscription information
-        if let subscription = storeProduct.subscription {
-            // Subscription period - value is Int, need to convert to Double
-            product.subscriptionPeriodUnitIOS = getPeriodString(subscription.subscriptionPeriod.unit)
-            product.subscriptionPeriodNumberIOS = Double(subscription.subscriptionPeriod.value)
-            
-            // Introductory offer
-            if let introOffer = subscription.introductoryOffer {
-                product.introductoryPriceIOS = introOffer.displayPrice
-                product.introductoryPriceAsAmountIOS = NSDecimalNumber(decimal: introOffer.price).doubleValue
-                product.introductoryPricePaymentModeIOS = String(introOffer.paymentMode.rawValue)
-                product.introductoryPriceNumberOfPeriodsIOS = Double(introOffer.periodCount)
-                product.introductoryPriceSubscriptionPeriodIOS = getPeriodString(introOffer.period.unit)
-            }
-        }
-        
-        return product
-    }
-    
-    private func getPeriodString(_ unit: StoreKit.Product.SubscriptionPeriod.Unit) -> String {
-        switch unit {
-        case .day: return "DAY"
-        case .week: return "WEEK"
-        case .month: return "MONTH"
-        case .year: return "YEAR"
-        @unknown default: return ""
-        }
-    }
-    
-    private func convertToNitroPurchase(_ transaction: Transaction, product: StoreKit.Product, jwsRepresentation: String? = nil) -> NitroPurchase {
-        var purchase = NitroPurchase()
-        
-        // Basic fields
-        purchase.id = String(transaction.id)
-        purchase.productId = transaction.productID
-        purchase.transactionDate = transaction.purchaseDate.timeIntervalSince1970 * 1000 // Convert to milliseconds
-        purchase.platform = "ios"
-        
-        // iOS specific fields
-        purchase.quantityIOS = Double(transaction.purchasedQuantity)
-        
-        // originalID is not optional in StoreKit 2
-        purchase.originalTransactionIdentifierIOS = String(transaction.originalID)
-        
-        // originalPurchaseDate is not optional
-        purchase.originalTransactionDateIOS = transaction.originalPurchaseDate.timeIntervalSince1970 * 1000
-        
-        if let appAccountToken = transaction.appAccountToken {
-            purchase.appAccountToken = appAccountToken.uuidString
-        }
-        
-        // Store the JWS representation as purchaseToken for verification
-        // JWS is passed from VerificationResult
-        if let jws = jwsRepresentation {
-            purchase.purchaseToken = jws
-        }
-        
-        return purchase
-    }
-    
-    // MARK: - Event Listener Methods
-    
-    func addPurchaseUpdatedListener(listener: @escaping (NitroPurchase) -> Void) throws {
-        purchaseUpdatedListeners.append(listener)
-    }
-    
-    func addPurchaseErrorListener(listener: @escaping (NitroPurchaseResult) -> Void) throws {
-        purchaseErrorListeners.append(listener)
-    }
-    
-    func removePurchaseUpdatedListener(listener: @escaping (NitroPurchase) -> Void) throws {
-        // Note: This is a limitation of Swift closures - we can't easily remove by reference
-        // For now, we'll just clear all listeners when requested
-        purchaseUpdatedListeners.removeAll()
-    }
-    
-    func removePurchaseErrorListener(listener: @escaping (NitroPurchaseResult) -> Void) throws {
-        // Note: This is a limitation of Swift closures - we can't easily remove by reference
-        // For now, we'll just clear all listeners when requested
-        purchaseErrorListeners.removeAll()
-    }
-    
-    // MARK: - Promoted Product Listener Methods (iOS only)
-    
-    func addPromotedProductListenerIOS(listener: @escaping (NitroProduct) -> Void) throws {
-        // iOS-specific promoted product listening implementation
-        // For now, we'll store the listener but promoted products are handled through StoreKit's delegate methods
-        print("[RnIap] Promoted product listener added for iOS")
-    }
-    
-    func removePromotedProductListenerIOS(listener: @escaping (NitroProduct) -> Void) throws {
-        // iOS-specific promoted product listener removal
-        print("[RnIap] Promoted product listener removed for iOS")
-    }
-    
-    // MARK: - Private Helper Methods for Events
-    
-    private func sendPurchaseUpdate(_ purchase: NitroPurchase) {
-        for listener in purchaseUpdatedListeners {
-            listener(purchase)
-        }
-    }
-    
-    private func sendPurchaseError(_ error: NitroPurchaseResult) {
-        for listener in purchaseErrorListeners {
-            listener(error)
-        }
-    }
-    
-    private func createPurchaseErrorResult(code: String, message: String, productId: String? = nil) -> NitroPurchaseResult {
-        var result = NitroPurchaseResult()
-        result.responseCode = 0
-        result.code = code
-        result.message = message
-        result.purchaseToken = productId
-        return result
-    }
-    
     private func purchaseProductWithEvents(
         _ product: Product,
         sku: String,
@@ -714,6 +833,166 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
+    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        switch result {
+        case .verified(let safe):
+            return safe
+        case .unverified(_, let error):
+            let errorJson = ErrorUtils.createErrorJson(
+                code: IapErrorCode.transactionValidationFailed,
+                message: "Transaction verification failed: \(error)",
+                underlyingError: error
+            )
+            throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+        }
+    }
+    
+    private func ensureConnection() throws {
+        guard isInitialized else {
+            let errorJson = ErrorUtils.createErrorJson(
+                code: IapErrorCode.notPrepared,
+                message: "Connection not initialized. Call initConnection() first."
+            )
+            throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+        }
+        
+        guard SKPaymentQueue.canMakePayments() else {
+            let errorJson = ErrorUtils.createErrorJson(
+                code: IapErrorCode.iapNotAvailable,
+                message: "In-app purchases are not available on this device"
+            )
+            throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+        }
+    }
+    
+    @MainActor
+    private func currentWindowScene() async -> UIWindowScene? {
+        #if os(iOS) || os(tvOS)
+            // Find the active window scene
+            for scene in UIApplication.shared.connectedScenes {
+                if let windowScene = scene as? UIWindowScene,
+                   windowScene.activationState == .foregroundActive {
+                    return windowScene
+                }
+            }
+            
+            // Fallback to first window scene if no active one found
+            for scene in UIApplication.shared.connectedScenes {
+                if let windowScene = scene as? UIWindowScene {
+                    return windowScene
+                }
+            }
+        #endif
+        return nil
+    }
+    
+    private func convertToNitroProduct(_ storeProduct: StoreKit.Product, type: String) -> NitroProduct {
+        var product = NitroProduct()
+        
+        // Basic fields
+        product.id = storeProduct.id
+        product.title = storeProduct.displayName
+        product.description = storeProduct.description
+        product.type = type
+        product.displayName = storeProduct.displayName
+        product.displayPrice = storeProduct.displayPrice
+        product.platform = "ios"
+        
+        // Price and currency - priceFormatStyle.currencyCode is not optional
+        product.currency = storeProduct.priceFormatStyle.currencyCode
+        
+        // Convert Decimal price to Double - price is not optional
+        product.price = NSDecimalNumber(decimal: storeProduct.price).doubleValue
+        
+        // iOS specific fields
+        product.isFamilyShareable = storeProduct.isFamilyShareable
+        product.jsonRepresentation = storeProduct.jsonRepresentation.base64EncodedString()
+        
+        // Subscription information
+        if let subscription = storeProduct.subscription {
+            // Subscription period - value is Int, need to convert to Double
+            product.subscriptionPeriodUnitIOS = getPeriodString(subscription.subscriptionPeriod.unit)
+            product.subscriptionPeriodNumberIOS = Double(subscription.subscriptionPeriod.value)
+            
+            // Introductory offer
+            if let introOffer = subscription.introductoryOffer {
+                product.introductoryPriceIOS = introOffer.displayPrice
+                product.introductoryPriceAsAmountIOS = NSDecimalNumber(decimal: introOffer.price).doubleValue
+                product.introductoryPricePaymentModeIOS = String(introOffer.paymentMode.rawValue)
+                product.introductoryPriceNumberOfPeriodsIOS = Double(introOffer.periodCount)
+                product.introductoryPriceSubscriptionPeriodIOS = getPeriodString(introOffer.period.unit)
+            }
+        }
+        
+        return product
+    }
+    
+    private func convertProductToNitroProduct(_ product: Product, type: String) -> NitroProduct {
+        return convertToNitroProduct(product, type: type)
+    }
+    
+    private func getPeriodString(_ unit: StoreKit.Product.SubscriptionPeriod.Unit) -> String {
+        switch unit {
+        case .day: return "DAY"
+        case .week: return "WEEK"
+        case .month: return "MONTH"
+        case .year: return "YEAR"
+        @unknown default: return ""
+        }
+    }
+    
+    private func convertToNitroPurchase(_ transaction: Transaction, product: StoreKit.Product, jwsRepresentation: String? = nil) -> NitroPurchase {
+        var purchase = NitroPurchase()
+        
+        // Basic fields
+        purchase.id = String(transaction.id)
+        purchase.productId = transaction.productID
+        purchase.transactionDate = transaction.purchaseDate.timeIntervalSince1970 * 1000 // Convert to milliseconds
+        purchase.platform = "ios"
+        
+        // iOS specific fields
+        purchase.quantityIOS = Double(transaction.purchasedQuantity)
+        
+        // originalID is not optional in StoreKit 2
+        purchase.originalTransactionIdentifierIOS = String(transaction.originalID)
+        
+        // originalPurchaseDate is not optional
+        purchase.originalTransactionDateIOS = transaction.originalPurchaseDate.timeIntervalSince1970 * 1000
+        
+        if let appAccountToken = transaction.appAccountToken {
+            purchase.appAccountToken = appAccountToken.uuidString
+        }
+        
+        // Store the JWS representation as purchaseToken for verification
+        // JWS is passed from VerificationResult
+        if let jws = jwsRepresentation {
+            purchase.purchaseToken = jws
+        }
+        
+        return purchase
+    }
+    
+    private func sendPurchaseUpdate(_ purchase: NitroPurchase) {
+        for listener in purchaseUpdatedListeners {
+            listener(purchase)
+        }
+    }
+    
+    private func sendPurchaseError(_ error: NitroPurchaseResult) {
+        for listener in purchaseErrorListeners {
+            listener(error)
+        }
+    }
+    
+    private func createPurchaseErrorResult(code: String, message: String, productId: String? = nil) -> NitroPurchaseResult {
+        var result = NitroPurchaseResult()
+        result.responseCode = 0
+        result.code = code
+        result.message = message
+        result.purchaseToken = productId
+        return result
+    }
+    
     private func cleanupExistingState() {
         // Cancel transaction listener if any
         updateListenerTask?.cancel()
@@ -725,51 +1004,5 @@ class HybridRnIap: HybridRnIapSpec {
         // Clear event listeners
         purchaseUpdatedListeners.removeAll()
         purchaseErrorListeners.removeAll()
-    }
-    
-    // MARK: - iOS-specific methods
-    
-    func getStorefrontIOS() throws -> Promise<String> {
-        return Promise.async {
-            // Get the current storefront from StoreKit 2
-            if let storefront = await Storefront.current {
-                // Return the country code (e.g., "USA", "GBR", "KOR")
-                return storefront.countryCode
-            } else {
-                // If no storefront is available, throw an error
-                let errorJson = ErrorUtils.createErrorJson(
-                    code: IapErrorCode.unknown,
-                    message: "Unable to retrieve storefront information"
-                )
-                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
-            }
-        }
-    }
-    
-    func getAppTransactionIOS() throws -> Promise<String?> {
-        return Promise.async {
-            // AppTransaction is only available in iOS 16.0+
-            if #available(iOS 16.0, *) {
-                do {
-                    // Try to get the app transaction using StoreKit 2
-                    let appTransaction = try await AppTransaction.shared
-                    
-                    // Extract the verified app transaction
-                    let verifiedTransaction = try appTransaction.payloadValue
-                    
-                    // Get the original app version - it's a String, not Optional
-                    let originalVersion = verifiedTransaction.originalAppVersion
-                    
-                    // Return the original app version
-                    return originalVersion
-                } catch {
-                    // If there's an error or app wasn't purchased, return nil
-                    return nil
-                }
-            } else {
-                // AppTransaction is not available on iOS < 16.0
-                return nil
-            }
-        }
     }
 }

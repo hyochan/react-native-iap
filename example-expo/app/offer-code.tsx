@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import {
   presentCodeRedemptionSheetIOS,
-  openRedeemOfferCodeAndroid,
   useIAP,
 } from 'react-native-iap';
 
@@ -65,11 +64,10 @@ export default function OfferCodeScreen() {
           );
         }
       } else {
-        // Open Play Store for Android
-        await openRedeemOfferCodeAndroid();
+        // Android doesn't have a direct API for offer code redemption
         Alert.alert(
-          'Play Store Opened',
-          'Enter your code in the Play Store. After redemption, return to the app to see your purchase.',
+          'Android Offer Codes',
+          'Please redeem your offer code directly in the Google Play Store app. Go to Play Store > Menu > Payments & subscriptions > Redeem.',
         );
       }
     } catch (error) {

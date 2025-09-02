@@ -447,13 +447,23 @@ export type AppTransactionIOS = {
 // ============================================================================
 
 /**
- * Options for getAvailablePurchases and getPurchaseHistories methods
+ * Options for getAvailablePurchases methods
  */
 export interface PurchaseOptions {
-  /** Whether to also publish purchases to event listener */
+  /** 
+   * @deprecated Use alsoPublishToEventListenerIOS instead
+   * Whether to also publish purchases to event listener (iOS only)
+   */
   alsoPublishToEventListener?: boolean;
-  /** Whether to only include active items (subscriptions that are still active) */
+  /** 
+   * @deprecated Use onlyIncludeActiveItemsIOS instead
+   * Whether to only include active items (iOS only)
+   */
   onlyIncludeActiveItems?: boolean;
+  /** Whether to also publish purchases to event listener (iOS only) */
+  alsoPublishToEventListenerIOS?: boolean;
+  /** Whether to only include active items (subscriptions that are still active) (iOS only) */
+  onlyIncludeActiveItemsIOS?: boolean;
 }
 
 /**
@@ -547,11 +557,6 @@ export interface IapContext {
    * - Active subscriptions
    */
   getAvailablePurchases(options?: PurchaseOptions): Promise<Purchase[]>;
-  /**
-   * Get purchase history (iOS only, deprecated on Android).
-   * On Android with Play Billing v8+, returns empty array.
-   */
-  getPurchaseHistories(options?: PurchaseOptions): Promise<Purchase[]>;
 
   // Receipt validation
   /** Validate a receipt (server-side validation recommended) */
@@ -619,6 +624,40 @@ export interface ReceiptAndroid {
  * Receipt validation result from receipt validation
  */
 export type ReceiptValidationResult = ReceiptAndroid | ReceiptIOS;
+
+/**
+ * New iOS receipt validation result (matches user specification)
+ */
+export interface ReceiptValidationResultIOS {
+  isValid: boolean;
+  receiptData: string;
+  jwsRepresentation: string;
+  latestTransaction?: Purchase;
+}
+
+/**
+ * New Android receipt validation result (matches user specification)
+ */
+export interface ReceiptValidationResultAndroid {
+  autoRenewing: boolean;
+  betaProduct: boolean;
+  cancelDate: number | null;
+  cancelReason: string;
+  deferredDate: number | null;
+  deferredSku: number | null;
+  freeTrialEndDate: number;
+  gracePeriodEndDate: number;
+  parentProductId: string;
+  productId: string;
+  productType: string;
+  purchaseDate: number;
+  quantity: number;
+  receiptId: string;
+  renewalDate: number;
+  term: string;
+  termSku: string;
+  testTransaction: boolean;
+}
 
 /**
  * Represents an active subscription with platform-specific details

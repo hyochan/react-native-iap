@@ -3,7 +3,13 @@ import {Platform} from 'react-native';
 import {NitroModules} from 'react-native-nitro-modules';
 
 // Internal modules
-import type {NitroPurchaseResult, RnIap} from './specs/RnIap.nitro';
+import type {
+  NitroPurchaseResult,
+  RnIap,
+  NitroReceiptValidationParams,
+  NitroReceiptValidationResultIOS,
+  NitroReceiptValidationResultAndroid,
+} from './specs/RnIap.nitro';
 import type {
   Product,
   Purchase,
@@ -13,6 +19,8 @@ import type {
   RequestSubscriptionAndroidProps,
   PurchaseOptions,
   FinishTransactionParams,
+  ReceiptValidationResultIOS,
+  ReceiptValidationResultAndroid,
 } from './types';
 import {
   convertNitroProductToProduct,
@@ -20,6 +28,7 @@ import {
   validateNitroProduct,
   validateNitroPurchase,
 } from './utils/type-bridge';
+import {parseErrorStringToJsonObj} from './utils/error';
 
 // Export all types
 export type {
@@ -219,28 +228,36 @@ export const requestPurchase = async ({
 /**
  * Get available purchases (purchased items not yet consumed/finished)
  * @param params - Options for getting available purchases
- * @param params.alsoPublishToEventListener - Whether to also publish to event listener
- * @param params.onlyIncludeActiveItems - Whether to only include active items
+ * @param params.alsoPublishToEventListenerIOS - Whether to also publish to event listener (iOS only)
+ * @param params.onlyIncludeActiveItemsIOS - Whether to only include active items (iOS only)
+ * @param params.alsoPublishToEventListener - @deprecated Use alsoPublishToEventListenerIOS instead
+ * @param params.onlyIncludeActiveItems - @deprecated Use onlyIncludeActiveItemsIOS instead
  *
  * @example
  * ```typescript
  * const purchases = await getAvailablePurchases({
- *   onlyIncludeActiveItems: true
+ *   onlyIncludeActiveItemsIOS: true
  * });
  * ```
  */
 export const getAvailablePurchases = async ({
   alsoPublishToEventListener = false,
   onlyIncludeActiveItems = true,
+  alsoPublishToEventListenerIOS,
+  onlyIncludeActiveItemsIOS,
 }: PurchaseOptions = {}): Promise<Purchase[]> => {
   try {
     // Create unified options
     const options: any = {};
 
     if (Platform.OS === 'ios') {
+      // Use new IOS suffixed parameters if provided, fallback to deprecated ones
       options.ios = {
-        alsoPublishToEventListener,
-        onlyIncludeActiveItems,
+        alsoPublishToEventListenerIOS: alsoPublishToEventListenerIOS ?? alsoPublishToEventListener,
+        onlyIncludeActiveItemsIOS: onlyIncludeActiveItemsIOS ?? onlyIncludeActiveItems,
+        // Keep deprecated parameters for backward compatibility
+        alsoPublishToEventListener: alsoPublishToEventListenerIOS ?? alsoPublishToEventListener,
+        onlyIncludeActiveItems: onlyIncludeActiveItemsIOS ?? onlyIncludeActiveItems,
       };
     } else if (Platform.OS === 'android') {
       // For Android, we need to call twice for inapp and subs
@@ -278,51 +295,6 @@ export const getAvailablePurchases = async ({
     return validPurchases.map(convertNitroPurchaseToPurchase);
   } catch (error) {
     console.error('Failed to get available purchases:', error);
-    throw error;
-  }
-};
-
-/**
- * Get purchase histories
- * @param options - Options for getting purchase histories
- * @returns Promise<Purchase[]> - Array of purchase histories
- */
-export const getPurchaseHistories = async (
-  options: PurchaseOptions = {},
-): Promise<Purchase[]> => {
-  try {
-    if (Platform.OS === 'ios') {
-      const iosOptions = {
-        ios: {
-          alsoPublishToEventListener:
-            options.alsoPublishToEventListener || false,
-          onlyIncludeActiveItems: options.onlyIncludeActiveItems || false,
-        },
-      };
-      const nitroPurchases = await iap.getAvailablePurchases(iosOptions);
-
-      // Validate and convert NitroPurchases to TypeScript Purchases
-      const validPurchases = nitroPurchases.filter(validateNitroPurchase);
-      if (validPurchases.length !== nitroPurchases.length) {
-        console.warn(
-          `[getPurchaseHistories] Some purchases failed validation: ${nitroPurchases.length - validPurchases.length} invalid`,
-        );
-      }
-
-      return validPurchases.map(convertNitroPurchaseToPurchase);
-    }
-
-    if (Platform.OS === 'android') {
-      // Google Play Billing Library v8 doesn't support purchase history anymore
-      console.warn(
-        'getPurchaseHistories is not supported on Android with Google Play Billing Library v8. Use getAvailablePurchases instead.',
-      );
-      return [];
-    }
-
-    throw new Error('Unsupported platform');
-  } catch (error) {
-    console.error('Failed to get purchase histories:', error);
     throw error;
   }
 };
@@ -393,15 +365,15 @@ export const finishTransaction = async ({
  *
  * @example
  * ```typescript
- * await acknowledgePurchase('purchase_token_here');
+ * await acknowledgePurchaseAndroid('purchase_token_here');
  * ```
  */
-export const acknowledgePurchase = async (
+export const acknowledgePurchaseAndroid = async (
   purchaseToken: string,
 ): Promise<NitroPurchaseResult> => {
   try {
     if (Platform.OS !== 'android') {
-      throw new Error('acknowledgePurchase is only available on Android');
+      throw new Error('acknowledgePurchaseAndroid is only available on Android');
     }
 
     const result = await iap.finishTransaction({
@@ -423,7 +395,7 @@ export const acknowledgePurchase = async (
     }
     return result as NitroPurchaseResult;
   } catch (error) {
-    console.error('Failed to acknowledge purchase:', error);
+    console.error('Failed to acknowledge purchase Android:', error);
     throw error;
   }
 };
@@ -434,15 +406,15 @@ export const acknowledgePurchase = async (
  *
  * @example
  * ```typescript
- * await consumePurchase('purchase_token_here');
+ * await consumePurchaseAndroid('purchase_token_here');
  * ```
  */
-export const consumePurchase = async (
+export const consumePurchaseAndroid = async (
   purchaseToken: string,
 ): Promise<NitroPurchaseResult> => {
   try {
     if (Platform.OS !== 'android') {
-      throw new Error('consumePurchase is only available on Android');
+      throw new Error('consumePurchaseAndroid is only available on Android');
     }
 
     const result = await iap.finishTransaction({
@@ -464,7 +436,7 @@ export const consumePurchase = async (
     }
     return result as NitroPurchaseResult;
   } catch (error) {
-    console.error('Failed to consume purchase:', error);
+    console.error('Failed to consume purchase Android:', error);
     throw error;
   }
 };
@@ -632,11 +604,10 @@ export const promotedProductListenerIOS = (
 // ============================================================================
 
 /**
- * Validate receipt (iOS only)
+ * Validate receipt on both iOS and Android platforms
  * @param sku - Product SKU
- * @param androidOptions - Android-specific validation options (ignored on iOS)
- * @returns Promise<any> - Receipt validation result
- * @platform iOS
+ * @param androidOptions - Android-specific validation options (required for Android)
+ * @returns Promise<ReceiptValidationResultIOS | ReceiptValidationResultAndroid> - Platform-specific receipt validation result
  */
 export const validateReceipt = async (
   sku: string,
@@ -646,18 +617,64 @@ export const validateReceipt = async (
     accessToken: string;
     isSub?: boolean;
   },
-): Promise<any> => {
-  if (Platform.OS !== 'ios') {
-    throw new Error('validateReceipt is only available on iOS');
+): Promise<ReceiptValidationResultIOS | ReceiptValidationResultAndroid> => {
+  if (!iap) {
+    const errorJson = parseErrorStringToJsonObj(
+      'RnIap: Service not initialized. Call initConnection() first.',
+    );
+    throw new Error(errorJson.message);
   }
 
-  // For now, return a placeholder - this would need native implementation
-  void androidOptions; // Suppress unused parameter warning\n  console.warn('validateReceipt: Native implementation needed');
-  return {
-    productId: sku,
-    status: 0,
-    message: 'Receipt validation not implemented',
-  };
+  try {
+    const params: NitroReceiptValidationParams = {
+      sku,
+      androidOptions,
+    };
+
+    const nitroResult = await iap.validateReceipt(params);
+
+    // Convert Nitro result to public API result
+    if (Platform.OS === 'ios') {
+      const iosResult = nitroResult as NitroReceiptValidationResultIOS;
+      const result: ReceiptValidationResultIOS = {
+        isValid: iosResult.isValid,
+        receiptData: iosResult.receiptData,
+        jwsRepresentation: iosResult.jwsRepresentation,
+        latestTransaction: iosResult.latestTransaction
+          ? convertNitroPurchaseToPurchase(iosResult.latestTransaction)
+          : undefined,
+      };
+      return result;
+    } else {
+      // Android
+      const androidResult = nitroResult as NitroReceiptValidationResultAndroid;
+      const result: ReceiptValidationResultAndroid = {
+        autoRenewing: androidResult.autoRenewing,
+        betaProduct: androidResult.betaProduct,
+        cancelDate: androidResult.cancelDate,
+        cancelReason: androidResult.cancelReason,
+        deferredDate: androidResult.deferredDate,
+        deferredSku: androidResult.deferredSku,
+        freeTrialEndDate: androidResult.freeTrialEndDate,
+        gracePeriodEndDate: androidResult.gracePeriodEndDate,
+        parentProductId: androidResult.parentProductId,
+        productId: androidResult.productId,
+        productType: androidResult.productType,
+        purchaseDate: androidResult.purchaseDate,
+        quantity: androidResult.quantity,
+        receiptId: androidResult.receiptId,
+        renewalDate: androidResult.renewalDate,
+        term: androidResult.term,
+        termSku: androidResult.termSku,
+        testTransaction: androidResult.testTransaction,
+      };
+      return result;
+    }
+  } catch (error) {
+    console.error('[validateReceipt] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
 };
 
 /**
@@ -675,18 +692,59 @@ export const syncIOS = async (): Promise<void> => {
 };
 
 /**
- * Get promoted product on iOS
- * @returns Promise<Product | null> - The promoted product or null if none
+ * Request the promoted product from the App Store (iOS only)
+ * @returns Promise<Product | null> - The promoted product or null if none available
  * @platform iOS
  */
-export const getPromotedProductIOS = async (): Promise<Product | null> => {
+export const requestPromotedProductIOS = async (): Promise<Product | null> => {
   if (Platform.OS !== 'ios') {
     return null;
   }
 
-  // For now, return null - this would need native implementation
-  console.warn('getPromotedProductIOS: Native implementation needed');
-  return null;
+  if (!iap) {
+    const errorJson = parseErrorStringToJsonObj(
+      'RnIap: Service not initialized. Call initConnection() first.',
+    );
+    throw new Error(errorJson.message);
+  }
+
+  try {
+    const nitroProduct = await iap.requestPromotedProductIOS();
+    if (nitroProduct) {
+      return convertNitroProductToProduct(nitroProduct);
+    }
+    return null;
+  } catch (error) {
+    console.error('[getPromotedProductIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+/**
+ * Present the code redemption sheet for offer codes (iOS only)
+ * @returns Promise<boolean> - True if the sheet was presented successfully
+ * @platform iOS
+ */
+export const presentCodeRedemptionSheetIOS = async (): Promise<boolean> => {
+  if (Platform.OS !== 'ios') {
+    return false;
+  }
+
+  if (!iap) {
+    const errorJson = parseErrorStringToJsonObj(
+      'RnIap: Service not initialized. Call initConnection() first.',
+    );
+    throw new Error(errorJson.message);
+  }
+
+  try {
+    return await iap.presentCodeRedemptionSheetIOS();
+  } catch (error) {
+    console.error('[presentCodeRedemptionSheetIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
 };
 
 /**
@@ -705,10 +763,65 @@ export const buyPromotedProductIOS = async (): Promise<void> => {
 };
 
 /**
+ * Clear unfinished transactions on iOS
+ * @returns Promise<void>
+ * @platform iOS
+ */
+export const clearTransactionIOS = async (): Promise<void> => {
+  if (Platform.OS !== 'ios') {
+    return;
+  }
+
+  if (!iap) {
+    const errorJson = parseErrorStringToJsonObj(
+      'RnIap: Service not initialized. Call initConnection() first.',
+    );
+    throw new Error(errorJson.message);
+  }
+
+  try {
+    await iap.clearTransactionIOS();
+  } catch (error) {
+    console.error('[clearTransactionIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+/**
+ * Begin a refund request for a product on iOS 15+
+ * @param sku - The product SKU to refund
+ * @returns Promise<string | null> - The refund status or null if not available
+ * @platform iOS
+ */
+export const beginRefundRequestIOS = async (
+  sku: string,
+): Promise<string | null> => {
+  if (Platform.OS !== 'ios') {
+    return null;
+  }
+
+  if (!iap) {
+    const errorJson = parseErrorStringToJsonObj(
+      'RnIap: Service not initialized. Call initConnection() first.',
+    );
+    throw new Error(errorJson.message);
+  }
+
+  try {
+    return await iap.beginRefundRequestIOS(sku);
+  } catch (error) {
+    console.error('[beginRefundRequestIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+/**
  * Get the storefront identifier for the user's App Store account (iOS only)
  * @returns Promise<string> - The storefront identifier (e.g., 'USA' for United States)
  * @platform iOS
- * 
+ *
  * @example
  * ```typescript
  * const storefront = await getStorefrontIOS();
@@ -736,9 +849,9 @@ export const getStorefrontIOS = async (): Promise<string> => {
  * @description
  * This function retrieves the original app transaction information if the app was purchased
  * from the App Store. Returns null if the app was not purchased (e.g., free app or TestFlight).
- * 
+ *
  * @returns {Promise<string | null>} The original app transaction ID or null
- * 
+ *
  * @example
  * ```typescript
  * const appTransaction = await getAppTransactionIOS();
@@ -779,3 +892,14 @@ export {
   validateNitroPurchase,
   checkTypeSynchronization,
 } from './utils/type-bridge';
+
+// Deprecated exports for backward compatibility
+/**
+ * @deprecated Use acknowledgePurchaseAndroid instead
+ */
+export const acknowledgePurchase = acknowledgePurchaseAndroid;
+
+/**
+ * @deprecated Use consumePurchaseAndroid instead
+ */
+export const consumePurchase = consumePurchaseAndroid;

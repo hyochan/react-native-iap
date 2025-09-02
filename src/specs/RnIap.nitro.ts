@@ -4,6 +4,26 @@ import type {HybridObject} from 'react-native-nitro-modules';
 // ║                                  PARAMS                                  ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
+// Receipt validation parameters
+
+/**
+ * Android-specific receipt validation options
+ */
+export interface NitroAndroidReceiptValidationOptions {
+  packageName: string;
+  productToken: string;
+  accessToken: string;
+  isSub?: boolean;
+}
+
+/**
+ * Receipt validation parameters
+ */
+export interface NitroReceiptValidationParams {
+  sku: string;
+  androidOptions?: NitroAndroidReceiptValidationOptions;
+}
+
 // Purchase request parameters
 
 /**
@@ -53,8 +73,10 @@ interface NitroPurchaseRequest {
  * iOS-specific options for getting available purchases
  */
 interface NitroAvailablePurchasesIosOptions {
-  alsoPublishToEventListener?: boolean;
-  onlyIncludeActiveItems?: boolean;
+  alsoPublishToEventListener?: boolean; // @deprecated Use alsoPublishToEventListenerIOS
+  onlyIncludeActiveItems?: boolean; // @deprecated Use onlyIncludeActiveItemsIOS
+  alsoPublishToEventListenerIOS?: boolean;
+  onlyIncludeActiveItemsIOS?: boolean;
 }
 
 /**
@@ -110,6 +132,40 @@ export interface NitroPurchaseResult {
   code: string;
   message: string;
   purchaseToken?: string;
+}
+
+/**
+ * iOS receipt validation result
+ */
+export interface NitroReceiptValidationResultIOS {
+  isValid: boolean;
+  receiptData: string;
+  jwsRepresentation: string;
+  latestTransaction?: NitroPurchase;
+}
+
+/**
+ * Android receipt validation result
+ */
+export interface NitroReceiptValidationResultAndroid {
+  autoRenewing: boolean;
+  betaProduct: boolean;
+  cancelDate: number | null;
+  cancelReason: string;
+  deferredDate: number | null;
+  deferredSku: number | null;
+  freeTrialEndDate: number;
+  gracePeriodEndDate: number;
+  parentProductId: string;
+  productId: string;
+  productType: string;
+  purchaseDate: number;
+  quantity: number;
+  receiptId: string;
+  renewalDate: number;
+  term: string;
+  termSku: string;
+  testTransaction: boolean;
 }
 
 /**
@@ -288,4 +344,47 @@ export interface RnIap extends HybridObject<{ ios: 'swift', android: 'kotlin' }>
    * @platform iOS
    */
   getAppTransactionIOS(): Promise<string | null>;
+
+  /**
+   * Request the promoted product from the App Store (iOS only)
+   * @returns Promise<NitroProduct | null> - The promoted product or null if none available
+   * @platform iOS
+   */
+  requestPromotedProductIOS(): Promise<NitroProduct | null>;
+
+  /**
+   * Buy the promoted product from the App Store (iOS only)
+   * @returns Promise<void>
+   * @platform iOS
+   */
+  buyPromotedProductIOS(): Promise<void>;
+
+  /**
+   * Present the code redemption sheet for offer codes (iOS only)
+   * @returns Promise<boolean> - True if the sheet was presented successfully
+   * @platform iOS
+   */
+  presentCodeRedemptionSheetIOS(): Promise<boolean>;
+
+  /**
+   * Clear unfinished transactions (iOS only)
+   * @returns Promise<void>
+   * @platform iOS
+   */
+  clearTransactionIOS(): Promise<void>;
+
+  /**
+   * Begin a refund request for a product (iOS 15+ only)
+   * @param sku - The product SKU to refund
+   * @returns Promise<string | null> - The refund status or null if not available
+   * @platform iOS
+   */
+  beginRefundRequestIOS(sku: string): Promise<string | null>;
+
+  /**
+   * Validate a receipt on the appropriate platform
+   * @param params - Receipt validation parameters including SKU and platform-specific options
+   * @returns Promise<NitroReceiptValidationResultIOS | NitroReceiptValidationResultAndroid> - Platform-specific validation result
+   */
+  validateReceipt(params: NitroReceiptValidationParams): Promise<NitroReceiptValidationResultIOS | NitroReceiptValidationResultAndroid>;
 }

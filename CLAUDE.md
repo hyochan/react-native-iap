@@ -175,6 +175,42 @@ Access these from the Run and Debug panel (⌘⇧D) in VSCode.
 - TypeScript with strict mode
 - Use type-only imports when importing types (`import type`)
 
+### Native Class Function Ordering Convention
+
+When organizing native implementation classes (Swift/Kotlin), follow this strict ordering:
+
+1. **Properties and Initialization** - Class properties, init, deinit
+2. **Public Cross-platform Methods** - Methods without platform suffixes (e.g., `initConnection`, `requestProducts`)
+3. **Platform-specific Public Methods** - Methods with IOS/Android suffixes (e.g., `getStorefrontIOS`, `consumePurchaseAndroid`)
+4. **Event Listener Methods** - Methods for managing event listeners
+5. **Private Helper Methods** - All private implementation details
+
+Example structure:
+```swift
+class HybridRnIap {
+    // MARK: - Properties
+    private var isInitialized: Bool = false
+    
+    // MARK: - Initialization
+    override init() { }
+    
+    // MARK: - Public Methods (Cross-platform)
+    func initConnection() { }
+    func requestProducts() { }
+    
+    // MARK: - iOS-specific Public Methods  
+    func getStorefrontIOS() { }
+    func clearTransactionIOS() { }
+    
+    // MARK: - Event Listener Methods
+    func addPurchaseUpdatedListener() { }
+    
+    // MARK: - Private Helper Methods
+    private func ensureConnection() { }
+    private func convertToNitroProduct() { }
+}
+```
+
 ## CI Checks (Run Before Committing)
 
 **IMPORTANT**: Always run these checks locally before committing to avoid CI failures:

@@ -17,7 +17,7 @@ import {
   getActiveSubscriptions,
   hasActiveSubscriptions,
 } from '../';
-import {syncIOS, getPromotedProductIOS, buyPromotedProductIOS} from '../';
+import {syncIOS, requestPromotedProductIOS, buyPromotedProductIOS} from '../';
 
 // Types
 import type {
@@ -42,7 +42,6 @@ type UseIap = {
   promotedProductsIOS: Purchase[];
   promotedProductIdIOS?: string;
   subscriptions: SubscriptionProduct[];
-  purchaseHistories: Purchase[];
   availablePurchases: Purchase[];
   currentPurchase?: Purchase;
   currentPurchaseError?: PurchaseError;
@@ -58,7 +57,6 @@ type UseIap = {
     isConsumable?: boolean;
   }) => Promise<PurchaseResult | boolean>;
   getAvailablePurchases: () => Promise<void>;
-  getPurchaseHistories: () => Promise<void>;
   requestProducts: (params: {
     skus: string[];
     type?: 'inapp' | 'subs';
@@ -87,7 +85,7 @@ type UseIap = {
     },
   ) => Promise<any>;
   restorePurchases: () => Promise<void>; // 구매 복원 함수 추가
-  getPromotedProductIOS: () => Promise<any | null>;
+  requestPromotedProductIOS: () => Promise<any | null>;
   buyPromotedProductIOS: () => Promise<void>;
   getActiveSubscriptions: (
     subscriptionIds?: string[],
@@ -112,7 +110,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
   const [products, setProducts] = useState<Product[]>([]);
   const [promotedProductsIOS] = useState<Purchase[]>([]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionProduct[]>([]);
-  const [purchaseHistories, setPurchaseHistories] = useState<Purchase[]>([]);
   const [availablePurchases, setAvailablePurchases] = useState<Purchase[]>([]);
   const [currentPurchase, setCurrentPurchase] = useState<Purchase>();
   const [promotedProductIOS, setPromotedProductIOS] = useState<Product>();
@@ -275,11 +272,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
     [],
   );
 
-  const getPurchaseHistoriesInternal = useCallback(async (): Promise<void> => {
-    const {getPurchaseHistories} = await import('../');
-    setPurchaseHistories(await getPurchaseHistories());
-  }, []);
-
   const finishTransaction = useCallback(
     async ({
       purchase,
@@ -441,7 +433,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
     promotedProductsIOS,
     promotedProductIdIOS,
     subscriptions,
-    purchaseHistories,
     finishTransaction,
     availablePurchases,
     currentPurchase,
@@ -451,14 +442,13 @@ export function useIAP(options?: UseIapOptions): UseIap {
     clearCurrentPurchase,
     clearCurrentPurchaseError,
     getAvailablePurchases: getAvailablePurchasesInternal,
-    getPurchaseHistories: getPurchaseHistoriesInternal,
     requestProducts: requestProductsInternal,
     requestPurchase: requestPurchaseWithReset,
     validateReceipt,
     restorePurchases,
     getProducts: getProductsInternal,
     getSubscriptions: getSubscriptionsInternal,
-    getPromotedProductIOS,
+    requestPromotedProductIOS,
     buyPromotedProductIOS,
     getActiveSubscriptions: getActiveSubscriptionsInternal,
     hasActiveSubscriptions: hasActiveSubscriptionsInternal,

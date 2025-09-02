@@ -72,13 +72,14 @@ yarn setup:expo
 
 # This single command will:
 # ✅ Install all root dependencies
-# ✅ Install example-expo dependencies 
+# ✅ Install example-expo dependencies
 # ✅ Run postinstall script (linking, building, prebuild)
 # ✅ Generate native iOS/Android code
 # ✅ Everything ready to run!
 ```
 
 After this, you can immediately run:
+
 ```bash
 cd example-expo
 bun ios --device  # or bun ios for simulator
@@ -134,10 +135,12 @@ bun start
 
 1. **Edit TypeScript code** in the root `../src/` directory
 2. **Rebuild the library**:
+
    ```bash
    cd ..
    yarn prepare
    ```
+
 3. **Restart Metro** (or it should hot-reload automatically)
 
 ### For Native Code Changes
@@ -152,6 +155,7 @@ bun start
    ```
 
 2. **Android**: After modifying Android native code
+
    ```bash
    bun run android
    ```

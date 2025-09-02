@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,11 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import type {
+  PurchaseError,
+} from 'react-native-iap';
 import {
   useIAP,
-  Purchase,
-  PurchaseError,
 } from 'react-native-iap';
 
 export default function AvailablePurchases() {
@@ -81,7 +82,7 @@ export default function AvailablePurchases() {
     setLoading(true);
     try {
       console.log('Loading available purchases...');
-      await getAvailablePurchases([]);
+      await getAvailablePurchases();
       console.log('Available purchases request sent');
     } catch (error) {
       console.error('Error getting available purchases:', error);
@@ -101,7 +102,7 @@ export default function AvailablePurchases() {
       
       // Then load available purchases
       console.log('[AVAILABLE-PURCHASES] Loading available purchases...');
-      getAvailablePurchases([]).catch(error => {
+      getAvailablePurchases().catch(error => {
         console.warn('[AVAILABLE-PURCHASES] Failed to load available purchases:', error);
       });
     }
@@ -117,6 +118,7 @@ export default function AvailablePurchases() {
       
       return () => clearTimeout(timer);
     }
+    return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
