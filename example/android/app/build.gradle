@@ -85,6 +85,13 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    
+    packagingOptions {
+        pickFirst '**/RNCSafeAreaProviderManagerDelegate.dex'
+        pickFirst '**/RNCSafeAreaProviderManagerInterface.dex'
+        pickFirst '**/RNCSafeAreaViewManagerDelegate.dex'
+        pickFirst '**/RNCSafeAreaViewManagerInterface.dex'
+    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')

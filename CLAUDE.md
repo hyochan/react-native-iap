@@ -17,10 +17,11 @@ React Native IAP - A high-performance in-app purchase library using Nitro Module
 
 ⚠️ **IMPORTANT: This project uses Yarn 3 with workspaces**
 
-- **Workspace Structure**: The project uses Yarn workspaces to manage the library and example app
-- Install dependencies: `yarn install` (installs for both library and example)
+- **Workspace Structure**: Only `example` is in the yarn workspace. `example-expo` is an independent project
+- Install dependencies: `yarn install` (installs for library and example only)
 - Add packages to library: `yarn add [package]`
 - Add packages to example: `yarn workspace rn-iap-example add [package]`
+- Add packages to example-expo: `cd example-expo && bun add [package]` (independent)
 - Run scripts: `yarn [script]`
 - Execute packages: `yarn dlx [package]` or `npx [package]`
 
@@ -45,10 +46,15 @@ android/
 nitrogen/
 └── generated/         # Auto-generated Nitro bridge files (DO NOT EDIT)
 
-example/               # example React Native app for testing
+example/               # React Native example app (workspace)
 ├── ios/
 ├── android/
 └── package.json
+
+example-expo/          # Independent Expo example app (NOT in workspace)
+├── app/
+├── scripts/
+└── package.json       # Uses bun, independent from yarn workspace
 ```
 
 ## Development Commands
@@ -70,7 +76,7 @@ yarn lint --fix
 yarn clean
 ```
 
-### Example App
+### Example App (React Native - Workspace)
 
 ```bash
 # No need to navigate to example directory or install separately
@@ -92,12 +98,37 @@ yarn workspace rn-iap-example android
 yarn workspace rn-iap-example start
 ```
 
+### Example-Expo (Independent Project)
+
+```bash
+# Independent project - requires separate setup
+# Uses bun and expo setup script
+
+# Initial setup (copies lib files and builds)
+cd example-expo && bun setup
+
+# iOS
+cd example-expo && bun ios
+cd example-expo && bun ios --device  # For physical device
+
+# Android
+cd example-expo && bun android
+
+# Start Metro bundler
+cd example-expo && bun start
+```
+
 ### iOS Setup
 
 ```bash
+# For example (workspace)
 cd example/ios
 bundle install  # Install Ruby dependencies
 bundle exec pod install  # Install iOS dependencies
+
+# For example-expo (independent)  
+cd example-expo/ios
+pod install  # iOS dependencies
 ```
 
 ## VSCode Integration
@@ -271,7 +302,28 @@ try {
 1. **Build failures after modifying .nitro.ts files**
    - Run `yarn specs` to regenerate Nitro bridge files
 
-2. **iOS build errors**
+2. **React Duplication Instance Issues** ⚠️ 
+   - **Problem**: "Cannot read properties of null" or "useState of null" errors
+   - **Cause**: Multiple React instances loaded due to workspace setup
+   - **Solution**: Metro resolver alias configuration already applied in `example/metro.config.js`
+   
+   ```javascript
+   // example/metro.config.js uses modern alias approach:
+   resolver: {
+     alias: {
+       'react-native': path.resolve(__dirname, 'node_modules/react-native'),
+       'react': path.resolve(__dirname, 'node_modules/react'),
+       'react-native-iap': path.resolve(__dirname, '..'),
+     }
+   }
+   ```
+   
+   - **Additional Notes**: 
+     - Resolutions are configured in root `package.json` (workspace level)
+     - `example-expo` is **NOT** in yarn workspace (independent project)
+     - Only `example` is included in workspace structure
+
+3. **iOS build errors**
 
    ```bash
    cd example/ios

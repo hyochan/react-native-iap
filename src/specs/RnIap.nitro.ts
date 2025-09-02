@@ -274,4 +274,18 @@ export interface RnIap extends HybridObject<{ ios: 'swift', android: 'kotlin' }>
    * @platform iOS
    */
   removePromotedProductListenerIOS(listener: (product: NitroProduct) => void): void;
+  
+  /**
+   * Get the storefront identifier for the user's App Store account (iOS only)
+   * @returns Promise<string> - The storefront identifier (e.g., 'USA' for United States)
+   * @platform iOS
+   */
+  getStorefrontIOS(): Promise<string>;
+
+  /**
+   * Get the original app transaction ID if the app was purchased from the App Store (iOS only)
+   * @returns Promise<string | null> - The original app transaction ID or null if not purchased
+   * @platform iOS
+   */
+  getAppTransactionIOS(): Promise<string | null>;
 }

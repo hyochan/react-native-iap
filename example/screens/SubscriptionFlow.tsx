@@ -13,18 +13,26 @@ import {
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
   useIAP,
-  type Product,
-  type SubscriptionProductIOS,
+  requestPurchase,
+  type SubscriptionProduct,
+  type PurchaseError,
+  type Purchase,
 } from 'react-native-iap';
 
 /**
- * Subscription Flow Example using useIAP Hook
+ * Subscription Flow Example - Subscription Products
  *
- * Demonstrates subscription handling with useIAP:
- * - Loading subscription products
- * - Handling subscription purchases with event-based API
- * - Checking subscription status
- * - Platform-specific subscription details
+ * Demonstrates useIAP hook approach for subscriptions:
+ * - Uses useIAP hook for subscription management
+ * - Handles subscription callbacks with proper types
+ * - No manual promise handling required
+ * - Clean success/error pattern through hooks
+ * - Focused on recurring subscriptions
+ *
+ * New subscription status checking API:
+ * - getActiveSubscriptions() - gets all active subscriptions automatically
+ * - getActiveSubscriptions(['id1', 'id2']) - gets specific subscriptions
+ * - activeSubscriptions state - automatically updated subscription list
  */
 
 // Sample subscription product IDs
@@ -36,48 +44,85 @@ export default function SubscriptionFlow() {
     subscriptions,
     availablePurchases,
     activeSubscriptions,
-    currentPurchase,
-    currentPurchaseError,
     requestProducts,
-    requestPurchase,
     finishTransaction,
     getAvailablePurchases,
     getActiveSubscriptions,
-    clearCurrentPurchase,
-    clearCurrentPurchaseError,
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
-      console.log('Purchase successful:', purchase);
+      console.log('Subscription successful:', purchase);
+      setIsProcessing(false);
 
-      // Check if this is a duplicate subscription
+      // Check if this is a duplicate subscription (already active)
       const isAlreadySubscribed = activeSubscriptions.some(
-        (sub) => sub.productId === purchase.id,
+        (sub) => sub.productId === purchase.productId,
       );
 
       if (isAlreadySubscribed) {
+        // This is likely a duplicate transaction or restoration
+        setPurchaseResult(
+          `ℹ️ Subscription restored/verified (${purchase.platform})\n` +
+          `Product: ${purchase.productId}\n` +
+          `No additional charge - existing subscription confirmed`
+        );
+
+        await finishTransaction({
+          purchase,
+          isConsumable: false,
+        });
+
         Alert.alert(
           'Subscription Status',
           'Your subscription is already active. No additional charge was made.',
         );
-      } else {
-        Alert.alert('Success', 'Subscription activated successfully!');
+        return;
       }
 
+      // Handle new subscription
+      setPurchaseResult(
+        `✅ Subscription successful (${purchase.platform})\n` +
+        `Product: ${purchase.productId}\n` +
+        `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
+        `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n` +
+        `Receipt: ${purchase.transactionReceipt?.substring(0, 50)}...`
+      );
+
       // IMPORTANT: Server-side receipt validation should be performed here
+      // Send the receipt to your backend server for validation
+      // Example:
+      // const isValid = await validateReceiptOnServer(purchase.transactionReceipt);
+      // if (!isValid) {
+      //   Alert.alert('Error', 'Receipt validation failed');
+      //   return;
+      // }
+
       // After successful server validation, finish the transaction
+      // For subscriptions, isConsumable should be false (subscriptions are non-consumable)
       await finishTransaction({
         purchase,
-        isConsumable: false,
+        isConsumable: false, // Set to false for subscriptions
       });
 
-      // Refresh subscription status
+      Alert.alert('Success', 'Subscription activated successfully!');
+
+      // Refresh subscription status after successful purchase
       setTimeout(() => {
         checkSubscriptionStatus();
       }, 1000);
     },
-    onPurchaseError: (error) => {
-      console.error('Purchase error:', error);
+    onPurchaseError: (error: PurchaseError) => {
+      console.error('Subscription failed:', error);
+      setIsProcessing(false);
+
+      // Handle subscription error
       setPurchaseResult(`❌ Subscription failed: ${error.message}`);
+    },
+    onSyncError: (error: Error) => {
+      console.warn('Sync error:', error);
+      Alert.alert(
+        'Sync Error',
+        `Failed to sync subscriptions: ${error.message}`,
+      );
     },
   });
 
@@ -85,59 +130,59 @@ export default function SubscriptionFlow() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [purchaseResult, setPurchaseResult] = useState('');
   const [selectedSubscription, setSelectedSubscription] =
-    useState<Product | null>(null);
+    useState<SubscriptionProduct | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   // Load subscription products when connected
   useEffect(() => {
     if (connected) {
-      loadSubscriptions();
-      checkSubscriptionStatus();
+      console.log('Connected to store, loading subscription products...');
+      // requestProducts is event-based, not promise-based
+      // Results will be available through the useIAP hook's subscriptions state
+      requestProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
+      console.log('Product loading request sent - waiting for results...');
+
+      // Load available purchases to check subscription history
+      console.log('Loading available purchases...');
+      getAvailablePurchases().catch((error) => {
+        console.warn('Failed to load available purchases:', error);
+      });
     }
+  }, [connected, requestProducts, getAvailablePurchases]);
+
+  // Check subscription status separately to avoid infinite loop
+  useEffect(() => {
+    if (connected) {
+      // Use a timeout to avoid rapid consecutive calls
+      const timer = setTimeout(() => {
+        checkSubscriptionStatus();
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
-  // Handle current purchase updates
+  // Track activeSubscriptions state changes
   useEffect(() => {
-    if (currentPurchase) {
-      setIsProcessing(false);
-      setPurchaseResult(
-        `✅ Subscription successful (${currentPurchase.platform})\n` +
-          `Product: ${currentPurchase.id}\n` +
-          `Transaction ID: ${currentPurchase.transactionId || 'N/A'}\n` +
-          `Date: ${new Date(
-            currentPurchase.transactionDate,
-          ).toLocaleDateString()}\n` +
-          `Receipt: ${currentPurchase.transactionReceipt?.substring(0, 50)}...`,
-      );
-    }
-  }, [currentPurchase]);
+    console.log(
+      '[STATE CHANGE] activeSubscriptions:',
+      activeSubscriptions.length,
+      activeSubscriptions,
+    );
+  }, [activeSubscriptions]);
 
-  // Handle purchase errors
+  // Track subscriptions (products) state changes
   useEffect(() => {
-    if (currentPurchaseError) {
-      setIsProcessing(false);
-      setPurchaseResult(
-        `❌ Subscription failed: ${currentPurchaseError.message}`,
-      );
-    }
-  }, [currentPurchaseError]);
+    console.log(
+      '[STATE CHANGE] subscriptions (products):',
+      subscriptions.length,
+      subscriptions.map((s: SubscriptionProduct) => ({id: s.id, title: s.title})),
+    );
+  }, [subscriptions]);
 
-  // Load subscription products
-  const loadSubscriptions = useCallback(async () => {
-    if (!connected) return;
-
-    try {
-      console.log('Loading subscription products...');
-      await requestProducts({
-        skus: SUBSCRIPTION_IDS,
-        type: 'subs',
-      });
-      console.log('Loaded subscriptions:', subscriptions);
-    } catch (error) {
-      console.error('Failed to load subscriptions:', error);
-      Alert.alert('Error', 'Failed to load subscription products');
-    }
-  }, [connected, requestProducts]);
+  // Removed - handled by onPurchaseSuccess and onPurchaseError callbacks
 
   // Check subscription status
   const checkSubscriptionStatus = useCallback(async () => {
@@ -145,86 +190,48 @@ export default function SubscriptionFlow() {
 
     setIsCheckingStatus(true);
     try {
-      console.log('Checking subscription status...');
-
-      // Get available purchases (includes subscriptions)
-      await getAvailablePurchases();
-
-      // Get active subscriptions
-      await getActiveSubscriptions(SUBSCRIPTION_IDS);
-
-      console.log('Active subscriptions:', activeSubscriptions);
+      // No need to pass subscriptionIds - it will check all active subscriptions
+      const subs = await getActiveSubscriptions();
+      console.log('Active subscriptions result:', subs);
     } catch (error) {
       console.error('Error checking subscription status:', error);
     } finally {
       setIsCheckingStatus(false);
     }
-  }, [
-    connected,
-    isCheckingStatus,
-    getAvailablePurchases,
-    getActiveSubscriptions,
-    activeSubscriptions,
-  ]);
+  }, [connected, getActiveSubscriptions, isCheckingStatus]);
 
   // Handle subscription purchase
-  const handleSubscription = async (productId: string) => {
+  const handleSubscription = async (itemId: string) => {
     try {
       setIsProcessing(true);
       setPurchaseResult('Processing subscription...');
-      clearCurrentPurchase();
-      clearCurrentPurchaseError();
 
-      // Find the subscription product
-      const subscription = subscriptions.find((sub) => sub.id === productId);
-      console.log('Found subscription:', JSON.stringify(subscription, null, 2));
+      // Find the subscription to get offer details for Android
+      const subscription = subscriptions.find((sub) => sub.id === itemId);
 
-      // Prepare Android subscription offers if available
-      let subscriptionOffers: Array<{sku: string; offerToken: string}> = [];
-      if (Platform.OS === 'android' && subscription) {
-        // Get the offer token from subscription details
-        const androidSub = subscription as any;
-        console.log('Android subscription details:', androidSub);
-        
-        if (androidSub.subscriptionOfferDetailsAndroid?.length > 0) {
-          const offer = androidSub.subscriptionOfferDetailsAndroid[0];
-          console.log('Offer details:', offer);
-          
-          if (offer.offerToken) {
-            subscriptionOffers = [{
-              sku: productId,
-              offerToken: offer.offerToken,
-            }];
-            console.log('Using subscription offers:', subscriptionOffers);
-          } else {
-            console.error('No offerToken found in offer details');
-          }
-        } else {
-          console.error('No subscriptionOfferDetailsAndroid found');
-        }
-      }
-
-      // Request purchase (event-based - results come through listeners)
-      const purchaseRequest = {
+      // New platform-specific API (v2.7.0+) - no Platform.OS branching needed
+      // requestPurchase is event-based - results come through onPurchaseSuccess/onPurchaseError
+      await requestPurchase({
         request: {
           ios: {
-            sku: productId,
+            sku: itemId,
+            appAccountToken: 'user-123',
           },
           android: {
-            skus: [productId],
-            subscriptionOffers: subscriptionOffers.length > 0 ? subscriptionOffers : undefined,
+            skus: [itemId],
+            subscriptionOffers:
+              subscription &&
+              'subscriptionOfferDetailsAndroid' in subscription &&
+              subscription.subscriptionOfferDetailsAndroid
+                ? subscription.subscriptionOfferDetailsAndroid.map((offer: any) => ({
+                    sku: itemId,
+                    offerToken: offer.offerToken,
+                  }))
+                : [],
           },
         },
-        type: 'subs' as const,
-      };
-      
-      console.log('Purchase request:', JSON.stringify(purchaseRequest, null, 2));
-      
-      await requestPurchase(purchaseRequest);
-
-      console.log(
-        'Purchase request sent - waiting for result via event listener',
-      );
+        type: 'subs',
+      });
     } catch (error) {
       setIsProcessing(false);
       const errorMessage =
@@ -234,19 +241,46 @@ export default function SubscriptionFlow() {
     }
   };
 
+  // Retry loading subscriptions
+  const retryLoadSubscriptions = () => {
+    requestProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
+  };
+
   // Get subscription display price
-  const getSubscriptionDisplayPrice = (subscription: Product): string => {
-    return subscription.displayPrice || subscription.price?.toString() || 'N/A';
+  const getSubscriptionDisplayPrice = (
+    subscription: SubscriptionProduct,
+  ): string => {
+    if (
+      'subscriptionOfferDetailsAndroid' in subscription &&
+      subscription.subscriptionOfferDetailsAndroid
+    ) {
+      // Android subscription pricing structure
+      const offers = subscription.subscriptionOfferDetailsAndroid;
+      if (offers && offers.length > 0) {
+        const firstOffer = offers[0];
+        if (firstOffer && firstOffer.pricingPhases) {
+          const pricingPhaseList = firstOffer.pricingPhases.pricingPhaseList;
+          if (pricingPhaseList && pricingPhaseList.length > 0) {
+            const firstPhase = pricingPhaseList[0];
+            if (firstPhase) {
+              return firstPhase.formattedPrice;
+            }
+          }
+        }
+      }
+      return subscription.displayPrice;
+    } else {
+      // iOS subscription pricing
+      return subscription.displayPrice;
+    }
   };
 
   // Get subscription period
-  const getSubscriptionPeriod = (subscription: Product): string => {
-    if (Platform.OS === 'ios') {
+  const getSubscriptionPeriod = (subscription: SubscriptionProduct): string => {
+    if (Platform.OS === 'ios' && 'subscriptionPeriodUnitIOS' in subscription) {
       // iOS subscription period
-      const periodUnit = (subscription as SubscriptionProductIOS)
-        .subscriptionPeriodUnitIOS;
-      const periodNumber = (subscription as SubscriptionProductIOS)
-        .subscriptionPeriodNumberIOS;
+      const periodUnit = subscription.subscriptionPeriodUnitIOS;
+      const periodNumber = subscription.subscriptionPeriodNumberIOS;
       if (periodUnit && periodNumber) {
         const units: Record<string, string> = {
           DAY: 'day',
@@ -265,21 +299,20 @@ export default function SubscriptionFlow() {
   };
 
   // Get introductory offer text
-  const getIntroductoryOffer = (subscription: Product): string | null => {
-    if (Platform.OS === 'ios') {
-      const subProduct = subscription as SubscriptionProductIOS;
-      if (subProduct.introductoryPriceIOS) {
-        const paymentMode = subProduct.introductoryPricePaymentModeIOS;
-        const numberOfPeriods = subProduct.introductoryPriceNumberOfPeriodsIOS;
+  const getIntroductoryOffer = (subscription: SubscriptionProduct): string | null => {
+    if (Platform.OS === 'ios' && 'introductoryPriceIOS' in subscription) {
+      if (subscription.introductoryPriceIOS) {
+        const paymentMode = subscription.introductoryPricePaymentModeIOS;
+        const numberOfPeriods = subscription.introductoryPriceNumberOfPeriodsIOS;
         const subscriptionPeriod =
-          subProduct.introductoryPriceSubscriptionPeriodIOS;
+          subscription.introductoryPriceSubscriptionPeriodIOS;
 
         if (paymentMode === 'FREETRIAL') {
           return `${numberOfPeriods} ${subscriptionPeriod} free trial`;
         } else if (paymentMode === 'PAYASYOUGO') {
-          return `${subProduct.introductoryPriceIOS} for ${numberOfPeriods} ${subscriptionPeriod}`;
+          return `${subscription.introductoryPriceIOS} for ${numberOfPeriods} ${subscriptionPeriod}`;
         } else if (paymentMode === 'PAYUPFRONT') {
-          return `${subProduct.introductoryPriceIOS} for first ${numberOfPeriods} ${subscriptionPeriod}`;
+          return `${subscription.introductoryPriceIOS} for first ${numberOfPeriods} ${subscriptionPeriod}`;
         }
       }
     }
@@ -287,7 +320,7 @@ export default function SubscriptionFlow() {
   };
 
   // Handle subscription info press
-  const handleSubscriptionPress = (subscription: Product) => {
+  const handleSubscriptionPress = (subscription: SubscriptionProduct) => {
     setSelectedSubscription(subscription);
     setModalVisible(true);
   };
@@ -370,7 +403,7 @@ export default function SubscriptionFlow() {
               </Text>
             </View>
 
-            {activeSubscriptions.map((sub, index) => (
+            {activeSubscriptions.map((sub: any, index: number) => (
               <View
                 key={sub.productId + index}
                 style={styles.subscriptionStatusItem}
@@ -436,7 +469,7 @@ export default function SubscriptionFlow() {
         {!connected ? (
           <Text style={styles.loadingText}>Connecting to store...</Text>
         ) : subscriptions.length > 0 ? (
-          subscriptions.map((subscription) => (
+          subscriptions.map((subscription: SubscriptionProduct) => (
             <View key={subscription.id} style={styles.subscriptionCard}>
               <View style={styles.subscriptionInfo}>
                 <Text style={styles.subscriptionTitle}>
@@ -517,7 +550,7 @@ export default function SubscriptionFlow() {
             </Text>
             <TouchableOpacity
               style={styles.retryButton}
-              onPress={loadSubscriptions}
+              onPress={retryLoadSubscriptions}
             >
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
@@ -532,7 +565,7 @@ export default function SubscriptionFlow() {
           <Text style={styles.subtitle}>
             Past purchases and subscription transactions
           </Text>
-          {availablePurchases.map((purchase, index) => (
+          {availablePurchases.map((purchase: Purchase, index: number) => (
             <View key={`${purchase.id}-${index}`} style={styles.purchaseCard}>
               <View style={styles.purchaseInfo}>
                 <Text style={styles.purchaseTitle}>{purchase.id}</Text>

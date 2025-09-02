@@ -35,6 +35,7 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     private val purchaseErrorListeners = mutableListOf<(NitroPurchaseResult) -> Unit>()
     private val promotedProductListenersIOS = mutableListOf<(NitroProduct) -> Unit>()
     
+    
     // Connection methods
     override fun initConnection(): Promise<Boolean> {
         return Promise.async {
@@ -109,10 +110,10 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
                 billingClient?.queryProductDetailsAsync(params) { billingResult, productDetailsResult ->
                     Log.d(TAG, "queryProductDetailsAsync response: code=${billingResult.responseCode}")
                     if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        val productDetailsList = productDetailsResult.productDetailsList
-                        Log.d(TAG, "Retrieved ${productDetailsList?.size ?: 0} products")
+                        val productDetailsList = productDetailsResult.productDetailsList ?: emptyList()
+                        Log.d(TAG, "Retrieved ${productDetailsList.size} products")
                         // Cache the product details
-                        if (!productDetailsList.isNullOrEmpty()) {
+                        if (productDetailsList.isNotEmpty()) {
                             for (details in productDetailsList) {
                                 Log.d(TAG, "Product: ${details.productId}, has offers: ${details.subscriptionOfferDetails?.size ?: 0}")
                                 skuDetailsCache[details.productId] = details
@@ -168,10 +169,13 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
                     initConnection().await()
                 }
                 
-                val activity = context.currentActivity ?: run {
+                // Get current activity - this should be done on Main thread
+                val activity = withContext(Dispatchers.Main) {
+                    context.currentActivity
+                } ?: run {
                     sendPurchaseError(createPurchaseErrorResult(
                         IapErrorCode.E_ACTIVITY_UNAVAILABLE,
-                        "Current activity is null"
+                        "Current activity is null. Please ensure the app is in foreground."
                     ))
                     return@async
                 }
@@ -634,4 +638,25 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
         return errorData.message
     }
     
+    // iOS-specific method - not supported on Android
+    override fun getStorefrontIOS(): Promise<String> {
+        return Promise.async {
+            val errorJson = BillingUtils.createErrorJson(
+                IapErrorCode.E_UNKNOWN,
+                "getStorefrontIOS is only available on iOS"
+            )
+            throw Exception(errorJson)
+        }
+    }
+
+    // iOS-specific method - not supported on Android
+    override fun getAppTransactionIOS(): Promise<String?> {
+        return Promise.async {
+            val errorJson = BillingUtils.createErrorJson(
+                IapErrorCode.E_UNKNOWN,
+                "getAppTransactionIOS is only available on iOS"
+            )
+            throw Exception(errorJson)
+        }
+    }
 }

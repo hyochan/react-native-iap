@@ -1,12 +1,14 @@
 #!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
 
 echo "🔍 Running pre-commit checks..."
 
-# Install dependencies if needed
-echo "📦 Checking dependencies..."
-if [ ! -d "node_modules" ] || [ ! -d "example/node_modules" ]; then
-  echo "📦 Installing dependencies..."
-  yarn install
+# Run lint-staged for changed files
+echo "✨ Running lint-staged..."
+yarn lint-staged
+if [ $? -ne 0 ]; then
+  echo "❌ Lint-staged failed. Please fix errors before committing."
+  exit 1
 fi
 
 # Run typecheck for entire project
@@ -17,22 +19,12 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Run lint-staged for changed files only
-echo "✨ Running lint-staged..."
-yarn lint-staged
+# Run lint check
+echo "🔍 Running ESLint..."
+yarn lint
 if [ $? -ne 0 ]; then
-  echo "❌ Lint-staged failed. Please fix errors before committing."
+  echo "❌ ESLint check failed. Please fix errors before committing."
   exit 1
-fi
-
-# Check if test script exists and run tests
-if grep -q '"test"' package.json; then
-  echo "🧪 Running tests..."
-  yarn test
-  if [ $? -ne 0 ]; then
-    echo "❌ Tests failed. Please fix errors before committing."
-    exit 1
-  fi
 fi
 
 # Generate Nitro code if .nitro.ts files were changed

@@ -1,7 +1,9 @@
-# example app
+# example apps
 example/
+example-expo/
 
 # Build artifacts
+nitro.json
 lib/
 build/
 android/build/

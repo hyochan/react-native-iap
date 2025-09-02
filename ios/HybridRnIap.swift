@@ -726,4 +726,50 @@ class HybridRnIap: HybridRnIapSpec {
         purchaseUpdatedListeners.removeAll()
         purchaseErrorListeners.removeAll()
     }
+    
+    // MARK: - iOS-specific methods
+    
+    func getStorefrontIOS() throws -> Promise<String> {
+        return Promise.async {
+            // Get the current storefront from StoreKit 2
+            if let storefront = await Storefront.current {
+                // Return the country code (e.g., "USA", "GBR", "KOR")
+                return storefront.countryCode
+            } else {
+                // If no storefront is available, throw an error
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.unknown,
+                    message: "Unable to retrieve storefront information"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+        }
+    }
+    
+    func getAppTransactionIOS() throws -> Promise<String?> {
+        return Promise.async {
+            // AppTransaction is only available in iOS 16.0+
+            if #available(iOS 16.0, *) {
+                do {
+                    // Try to get the app transaction using StoreKit 2
+                    let appTransaction = try await AppTransaction.shared
+                    
+                    // Extract the verified app transaction
+                    let verifiedTransaction = try appTransaction.payloadValue
+                    
+                    // Get the original app version - it's a String, not Optional
+                    let originalVersion = verifiedTransaction.originalAppVersion
+                    
+                    // Return the original app version
+                    return originalVersion
+                } catch {
+                    // If there's an error or app wasn't purchased, return nil
+                    return nil
+                }
+            } else {
+                // AppTransaction is not available on iOS < 16.0
+                return nil
+            }
+        }
+    }
 }

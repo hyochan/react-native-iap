@@ -4,6 +4,41 @@ This is a new [**React Native**](https://reactnative.dev) project, bootstrapped 
 
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
 
+## Yarn Workspace Configuration
+
+This project is part of a **Yarn workspace** structure. All commands should be run from the **root directory** of the main project, not from this example directory.
+
+### Recommended Development Workflow
+
+1. **Install dependencies** from the root:
+   ```sh
+   yarn install
+   ```
+
+2. **Run the example app** from the root:
+   ```sh
+   # iOS
+   yarn example:ios
+   
+   # Android  
+   yarn example:android
+   
+   # Start Metro bundler
+   yarn example:start
+   ```
+
+### VSCode Integration
+
+If you're using **VSCode**, you can use the pre-configured **launch.json** configurations for easy development:
+
+1. Open the Run and Debug panel (`⌘⇧D` or `Ctrl+Shift+D`)
+2. Select from available configurations:
+   - **Nitrogen + iOS Simulator** - Generates Nitro files and runs on iOS simulator
+   - **Nitrogen + iOS Device** - Generates Nitro files and runs on physical iOS device  
+   - **Nitrogen + Android** - Generates Nitro files and runs on Android
+
+This provides a one-click development experience with automatic Nitro code generation.
+
 ## Step 1: Start Metro
 
 First, you will need to run **Metro**, the JavaScript build tool for React Native.

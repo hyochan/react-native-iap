@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "🔧 Build & Run iOS Simulator",
+      "name": "🔧 RN - iOS Simulator",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -17,7 +17,7 @@
       }
     },
     {
-      "name": "📱 Build & Run iOS Device",
+      "name": "📱 RN - iOS Device",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -32,7 +32,7 @@
       }
     },
     {
-      "name": "🤖 Build & Run Android",
+      "name": "🤖 RN - Android",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -47,36 +47,45 @@
       }
     },
     {
-      "name": "⚡ Quick iOS Simulator (no rebuild)",
+      "name": "🚀 Expo - iOS Simulator",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "yarn workspace rn-iap-example ios"],
+      "runtimeArgs": [
+        "-c",
+        "yarn prepare && cp ios/*.swift example-expo/node_modules/react-native-iap/nitrogen/generated/ios/ && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun ios"
+      ],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"
       }
     },
     {
-      "name": "⚡ Quick iOS Device (no rebuild)",
+      "name": "📱 Expo - iOS Device",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "yarn workspace rn-iap-example ios --device"],
+      "runtimeArgs": [
+        "-c",
+        "yarn prepare && cp ios/*.swift example-expo/node_modules/react-native-iap/nitrogen/generated/ios/ && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun ios --device"
+      ],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"
       }
     },
     {
-      "name": "⚡ Quick Android (no rebuild)",
+      "name": "🤖 Expo - Android",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "yarn workspace rn-iap-example android"],
+      "runtimeArgs": [
+        "-c",
+        "yarn prepare && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun android"
+      ],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"

@@ -11,21 +11,23 @@ Pod::Spec.new do |s|
   s.authors      = package["author"]
 
   s.platforms    = { :ios => min_ios_version_supported, :visionos => 1.0 }
-  s.source       = { :git => "https://github.com/mrousavy/nitro.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/hyochan/react-native-iap.git", :tag => "#{s.version}" }
 
   s.source_files = [
-    # Implementation (Swift)
     "ios/**/*.{swift}",
-    # Autolinking/Registration (Objective-C++)
     "ios/**/*.{m,mm}",
-    # Implementation (C++ objects)
-    "cpp/**/*.{hpp,cpp}",
+  ]
+
+  s.exclude_files = [
+    "ios/RnIap-Bridging-Header.h",
   ]
 
   load 'nitrogen/generated/ios/NitroIap+autolinking.rb'
   add_nitrogen_files(s)
 
+  s.dependency 'React-Core'
   s.dependency 'React-jsi'
   s.dependency 'React-callinvoker'
+
   install_modules_dependencies(s)
 end

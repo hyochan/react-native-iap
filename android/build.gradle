@@ -6,6 +6,7 @@ buildscript {
 
   dependencies {
     classpath "com.android.tools.build:gradle:8.12.1"
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21"
   }
 }
 
@@ -20,12 +21,23 @@ def isNewArchitectureEnabled() {
 
 apply plugin: "com.android.library"
 apply plugin: 'org.jetbrains.kotlin.android'
-apply from: '../nitrogen/generated/android/NitroIap+autolinking.gradle'
+
+// Get kotlinVersion from root project or use default
+def kotlinVersion = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : '2.0.21'
+
+// Only apply Nitro autolinking if the file exists
+def nitroAutolinkingFile = file('../nitrogen/generated/android/NitroIap+autolinking.gradle')
+if (nitroAutolinkingFile.exists()) {
+  apply from: nitroAutolinkingFile
+}
+
 apply from: "./fix-prefab.gradle"
 
-if (isNewArchitectureEnabled()) {
-  apply plugin: "com.facebook.react"
-}
+// DO NOT apply Facebook React plugin for library modules
+// This should only be applied to application modules
+// if (isNewArchitectureEnabled()) {
+//   apply plugin: "com.facebook.react"
+// }
 
 def getExtOrDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["NitroIap_" + name]
@@ -101,6 +113,12 @@ android {
       minifyEnabled false
     }
   }
+  
+  // Configure Kotlin compiler to match billing-ktx 8.0.0 requirements
+  kotlinOptions {
+    jvmTarget = "17"
+    freeCompilerArgs += ["-Xskip-metadata-version-check"]
+  }
 
   lintOptions {
     disable "GradleCompatible"
@@ -111,16 +129,7 @@ android {
     targetCompatibility JavaVersion.VERSION_1_8
   }
 
-  sourceSets {
-    main {
-      if (isNewArchitectureEnabled()) {
-        java.srcDirs += [
-          // React Codegen files
-          "${project.buildDir}/generated/source/codegen/java"
-        ]
-      }
-    }
-  }
+  // Removed sourceSets configuration for codegen as it's not needed for library modules
 }
 
 repositories {
@@ -135,8 +144,10 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
 
-  // Add a dependency on NitroModules
-  implementation project(":react-native-nitro-modules")
+  // Add a dependency on NitroModules (only if available)
+  if (findProject(':react-native-nitro-modules') != null) {
+    implementation project(":react-native-nitro-modules")
+  }
   
   // Google Play Billing Library
   implementation 'com.android.billingclient:billing-ktx:8.0.0'
@@ -146,5 +157,9 @@ dependencies {
   
   // Kotlin coroutines
   implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+}
+
+configurations.all {
+  exclude group: 'com.facebook.react', module: 'react-native-safe-area-context'
 }
 

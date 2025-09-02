@@ -704,6 +704,66 @@ export const buyPromotedProductIOS = async (): Promise<void> => {
   throw new Error('buyPromotedProductIOS: Native implementation needed');
 };
 
+/**
+ * Get the storefront identifier for the user's App Store account (iOS only)
+ * @returns Promise<string> - The storefront identifier (e.g., 'USA' for United States)
+ * @platform iOS
+ * 
+ * @example
+ * ```typescript
+ * const storefront = await getStorefrontIOS();
+ * console.log('User storefront:', storefront); // e.g., 'USA', 'GBR', 'KOR'
+ * ```
+ */
+export const getStorefrontIOS = async (): Promise<string> => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('getStorefrontIOS is only available on iOS');
+  }
+
+  try {
+    // Call the native method to get storefront
+    const storefront = await iap.getStorefrontIOS();
+    return storefront;
+  } catch (error) {
+    console.error('Failed to get storefront:', error);
+    throw error;
+  }
+};
+
+/**
+ * iOS only - Gets the original app transaction ID if the app was purchased from the App Store
+ * @platform iOS
+ * @description
+ * This function retrieves the original app transaction information if the app was purchased
+ * from the App Store. Returns null if the app was not purchased (e.g., free app or TestFlight).
+ * 
+ * @returns {Promise<string | null>} The original app transaction ID or null
+ * 
+ * @example
+ * ```typescript
+ * const appTransaction = await getAppTransactionIOS();
+ * if (appTransaction) {
+ *   console.log('App was purchased, transaction ID:', appTransaction);
+ * } else {
+ *   console.log('App was not purchased from App Store');
+ * }
+ * ```
+ */
+export const getAppTransactionIOS = async (): Promise<string | null> => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('getAppTransactionIOS is only available on iOS');
+  }
+
+  try {
+    // Call the native method to get app transaction
+    const appTransaction = await iap.getAppTransactionIOS();
+    return appTransaction;
+  } catch (error) {
+    console.error('Failed to get app transaction:', error);
+    throw error;
+  }
+};
+
 // Export subscription helpers
 export {
   getActiveSubscriptions,

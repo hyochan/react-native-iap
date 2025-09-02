@@ -1,7 +1,7 @@
 {
   "name": "react-native-iap",
   "version": "14.0.0",
-  "description": "react-native-iap",
+  "description": "React Native In-App Purchases module for iOS and Android using Nitro",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
@@ -11,11 +11,14 @@
       "default": "./lib/module/index.js",
       "react-native": "./src/index.ts"
     },
+    "./plugin": "./app.plugin.js",
+    "./app.plugin.js": "./app.plugin.js",
     "./package.json": "./package.json"
   },
   "files": [
     "src",
     "lib",
+    "plugin",
     "android",
     "ios",
     "cpp",
@@ -23,7 +26,6 @@
     "nitro.json",
     "*.podspec",
     "react-native.config.js",
-    "!example",
     "!ios/build",
     "!android/build",
     "!android/gradle",
@@ -36,6 +38,10 @@
     "!**/.*"
   ],
   "scripts": {
+    "postinstall": "yarn prepare",
+    "build:plugin": "tsc --build plugin",
+    "setup:expo": "cd example-expo && bun setup",
+    "example": "yarn workspace rn-iap-example",
     "example:ios": "yarn workspace rn-iap-example ios",
     "example:android": "yarn workspace rn-iap-example android",
     "example:start": "yarn workspace rn-iap-example start",
@@ -46,11 +52,14 @@
     "lint:prettier": "prettier --write \"**/*.{md,js,jsx,ts,tsx}\"",
     "lint:tsc": "tsc -p tsconfig.json --noEmit --skipLibCheck",
     "lint:ci": "yarn lint:tsc && yarn lint:eslint && yarn lint:prettier",
-    "prepare": "bob build && yarn nitrogen",
+    "prepare": "npx tsx scripts/check-nitro-versions.ts && bob build && yarn nitrogen && yarn build:plugin",
     "nitrogen": "nitro-codegen",
     "specs": "nitro-codegen --logLevel=\"debug\"",
     "test": "jest",
-    "test:ci": "jest --maxWorkers=2 --coverage"
+    "test:ci": "jest --maxWorkers=2 --coverage",
+    "prepare:husky": "husky install",
+    "precommit": "lint-staged",
+    "ci:check": "./scripts/ci-check.sh"
   },
   "keywords": [
     "react-native",
@@ -58,18 +67,19 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrousavy/nitro.git"
+    "url": "git+https://github.com/hyochan/react-native-iap.git"
   },
-  "author": "Marc Rousavy <me@mrousavy.com> (https://github.com/mrousavy)",
+  "author": "hyochan <hyo@hyo.dev> (https://github.com/hyochan)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mrousavy/nitro/issues"
+    "url": "https://github.com/hyochan/react-native-iap/issues"
   },
-  "homepage": "https://github.com/mrousavy/nitro#readme",
+  "homepage": "https://github.com/hyochan/react-native-iap",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-methods": "^7.18.6",
     "@react-native/eslint-config": "0.81.0",
     "@types/jest": "^29.5.12",
     "@types/react": "^19.1.12",
@@ -78,11 +88,16 @@
     "eslint-config-expo": "^9.2.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
+    "expo": "^53.0.20",
+    "husky": "^8.0.3",
     "jest": "^30.1.1",
-    "nitro-codegen": "*",
+    "lint-staged": "^15.2.0",
+    "nitro-codegen": "^0.29.2",
     "prettier": "^3.3.3",
+    "react": "19.1.0",
+    "react-native": "0.81.1",
     "react-native-builder-bob": "^0.38.4",
-    "react-native-nitro-modules": "*",
+    "react-native-nitro-modules": "^0.29.2",
     "typescript": "^5.9.2"
   },
   "peerDependencies": {
@@ -130,5 +145,18 @@
       ]
     ]
   },
-  "packageManager": "yarn@4.9.4"
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "packageManager": "yarn@3.6.1"
 }
