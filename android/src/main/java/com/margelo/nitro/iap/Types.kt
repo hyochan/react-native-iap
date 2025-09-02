@@ -45,6 +45,7 @@ object IapErrorCode {
     
     // Validation errors
     const val E_EMPTY_SKU_LIST = "E_EMPTY_SKU_LIST"
+    const val E_RECEIPT_FAILED = "E_RECEIPT_FAILED"
     
     // Unknown error
     const val E_UNKNOWN = "E_UNKNOWN"

@@ -9,6 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
     "setup": "./scripts/expo-setup.sh",
     "prebuild": "bunx expo prebuild && node ./scripts/fix-podfile.js",
     "postprebuild": "node ./scripts/fix-podfile.js"

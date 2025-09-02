@@ -100,13 +100,8 @@ jobs:
       - name: Install CocoaPods dependencies
         working-directory: example/ios
         run: |
-          if [ -f "Podfile.lock" ] && [ -d "Pods" ]; then
-            echo "Pods directory exists, checking if update needed..."
-            bundle exec pod install --deployment
-          else
-            echo "Installing pods from scratch..."
-            bundle exec pod install
-          fi
+          echo "Installing pods..."
+          bundle exec pod install
 
       - name: Build iOS app
         working-directory: example/ios

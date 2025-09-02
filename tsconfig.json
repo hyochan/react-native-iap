@@ -25,5 +25,8 @@
     "strict": true,
     "target": "ESNext",
     "verbatimModuleSyntax": true
-  }
+  },
+  "exclude": [
+    "example-expo"
+  ]
 }

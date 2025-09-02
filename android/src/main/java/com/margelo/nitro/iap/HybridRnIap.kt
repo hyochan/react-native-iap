@@ -700,7 +700,7 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     }
 
     // Receipt validation
-    override fun validateReceipt(params: NitroReceiptValidationParams): Promise<NitroReceiptValidationResultAndroid> {
+    override fun validateReceipt(params: NitroReceiptValidationParams): Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
         return Promise.async {
             try {
                 // For Android, we need the androidOptions to be provided
@@ -728,21 +728,21 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
                     cancelReason = "",
                     deferredDate = null,
                     deferredSku = null,
-                    freeTrialEndDate = 0,
-                    gracePeriodEndDate = 0,
+                    freeTrialEndDate = 0.0,
+                    gracePeriodEndDate = 0.0,
                     parentProductId = params.sku,
                     productId = params.sku,
                     productType = if (androidOptions.isSub == true) "subs" else "inapp",
-                    purchaseDate = currentTime,
-                    quantity = 1,
+                    purchaseDate = currentTime.toDouble(),
+                    quantity = 1.0,
                     receiptId = androidOptions.productToken,
-                    renewalDate = if (androidOptions.isSub == true) currentTime + (30L * 24 * 60 * 60 * 1000) else 0, // 30 days from now if subscription
+                    renewalDate = if (androidOptions.isSub == true) (currentTime + (30L * 24 * 60 * 60 * 1000)).toDouble() else 0.0, // 30 days from now if subscription
                     term = if (androidOptions.isSub == true) "P1M" else "", // P1M = 1 month
                     termSku = params.sku,
                     testTransaction = false
                 )
                 
-                result
+                Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid.Second(result)
                 
             } catch (e: Exception) {
                 val errorJson = BillingUtils.createErrorJson(
