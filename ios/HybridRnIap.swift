@@ -518,28 +518,27 @@ class HybridRnIap: HybridRnIapSpec {
             let statuses = try await subscription.status
             
             return statuses.map { status in
-                var subscriptionStatus = NitroSubscriptionStatus(
-                    state: Double(status.state.rawValue),
-                    platform: "ios",
-                    renewalInfo: nil
-                )
-                
-                // Add renewal info if available
+                // Get renewal info if available
+                var renewalInfo: NitroSubscriptionRenewalInfo? = nil
                 switch status.renewalInfo {
-                case .verified(let renewalInfo):
-                    subscriptionStatus.renewalInfo = NitroSubscriptionRenewalInfo(
-                        autoRenewStatus: renewalInfo.willAutoRenew,
-                        autoRenewPreference: renewalInfo.autoRenewPreference,
-                        expirationReason: renewalInfo.expirationReason.map { Double($0.rawValue) },
-                        gracePeriodExpirationDate: renewalInfo.gracePeriodExpirationDate?.timeIntervalSince1970,
-                        currentProductID: renewalInfo.currentProductID,
+                case .verified(let info):
+                    renewalInfo = NitroSubscriptionRenewalInfo(
+                        autoRenewStatus: info.willAutoRenew,
+                        autoRenewPreference: info.autoRenewPreference,
+                        expirationReason: info.expirationReason.map { Double($0.rawValue) },
+                        gracePeriodExpirationDate: info.gracePeriodExpirationDate?.timeIntervalSince1970,
+                        currentProductID: info.currentProductID,
                         platform: "ios"
                     )
                 case .unverified:
-                    break
+                    renewalInfo = nil
                 }
                 
-                return subscriptionStatus
+                return NitroSubscriptionStatus(
+                    state: Double(status.state.rawValue),
+                    platform: "ios",
+                    renewalInfo: renewalInfo
+                )
             }
         }
     }
