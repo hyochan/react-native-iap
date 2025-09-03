@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?><?xml-stylesheet type="text/xsl" href="atom.xsl"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://react-native-iap.hyo.dev/blog</id>
+    <title>React Native IAP Blog</title>
+    <updated>2025-06-01T00:00:00.000Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://react-native-iap.hyo.dev/blog"/>
+    <subtitle>React Native IAP Blog</subtitle>
+    <icon>https://react-native-iap.hyo.dev/img/favicon.png</icon>
+    <entry>
+        <title type="html"><![CDATA[Welcome to React Native IAP Documentation]]></title>
+        <id>https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap</id>
+        <link href="https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap"/>
+        <updated>2025-06-01T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Welcome to the official documentation site for React Native IAP! 🎉]]></summary>
+        <content type="html"><![CDATA[<p>Welcome to the official documentation site for <strong>React Native IAP</strong>! 🎉</p>
+<p>We're excited to share this comprehensive resource for developers looking to implement in-app purchases in their Expo and React Native applications.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="whats-new">What's New<a href="https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap#whats-new" class="hash-link" aria-label="Direct link to What's New" title="Direct link to What's New">​</a></h2>
+<p>This documentation site features:</p>
+<ul>
+<li><strong>🚀 Quick Start Guide</strong> - Get up and running in 5 minutes</li>
+<li><strong>📱 Platform-specific Setup</strong> - Detailed guides for iOS and Android</li>
+<li><strong>🎣 useIAP Hook API</strong> - Complete API reference with examples</li>
+<li><strong>⚠️ Error Handling</strong> - Centralized error code management</li>
+<li><strong>🎨 Beautiful Design</strong> - Clean, modern interface with oatmeal theme</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="getting-started">Getting Started<a href="https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap#getting-started" class="hash-link" aria-label="Direct link to Getting Started" title="Direct link to Getting Started">​</a></h2>
+<p>Ready to add in-app purchases to your app? Start with our <a href="https://react-native-iap.hyo.dev/docs/installation">installation guide</a> and follow our step-by-step setup process.</p>
+<p>Have questions or feedback? We'd love to hear from you on <a href="https://github.com/hyochan/react-native-iap" target="_blank" rel="noopener noreferrer">GitHub</a>!</p>]]></content>
+        <author>
+            <name>Hyo</name>
+            <uri>https://github.com/hyochan</uri>
+        </author>
+        <category label="React Native IAP" term="React Native IAP"/>
+        <category label="In-App Purchase" term="In-App Purchase"/>
+        <category label="React Native" term="React Native"/>
+    </entry>
+</feed>

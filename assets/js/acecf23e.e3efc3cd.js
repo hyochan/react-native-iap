@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkreact_native_iap_docs=self.webpackChunkreact_native_iap_docs||[]).push([[1903],{1912:a=>{a.exports=JSON.parse('{"blogBasePath":"/blog","blogTitle":"Blog","authorsListPath":"/blog/authors"}')}}]);
