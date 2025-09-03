@@ -1,38 +1,203 @@
-# react-native-nitro-template
+# React Native IAP
 
-This is a template for Nitro Modules.
+<div align="center">
+  <img src="https://react-native-iap.hyo.dev/img/icon.png" alt="React Native IAP Logo" width="150" />
+  
+[![Version](http://img.shields.io/npm/v/react-native-iap.svg?style=flat-square)](https://npmjs.org/package/react-native-iap)
+[![Next Version](https://img.shields.io/npm/v/react-native-iap/next)](https://npmjs.org/package/react-native-iap)
+[![Download](http://img.shields.io/npm/dm/react-native-iap.svg?style=flat-square)](https://npmjs.org/package/react-native-iap)
+[![Backers and Sponsors](https://img.shields.io/opencollective/all/react-native-iap.svg)](https://opencollective.com/react-native-iap)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhyochan%2Freact-native-iap.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fhyochan%2Freact-native-iap?ref=badge_shield&issueType=license)
+  
+  **React Native IAP** is a high-performance in-app purchase library using Nitro Modules that **conforms to the [Open IAP specification](https://openiap.dev)**. It provides a unified API for handling in-app purchases across iOS and Android platforms with comprehensive error handling and modern TypeScript support.
+  
+  <a href="https://openiap.dev"><img src="https://openiap.dev/logo.png" alt="Open IAP" height="40" /></a>
+</div>
 
-## Usage
+## 📚 Documentation
 
-Clone this repo, and change all `$$*$$` names according to your `nitro.json` file.
+**[📖 Visit our comprehensive documentation site →](https://react-native-iap.hyo.dev)**
+
+## ⚠️ Notice
+
+**Starting from version 14.0.0**, this library uses [Nitro Modules](https://github.com/mrousavy/nitro) for high-performance native bridge implementation. You must install `react-native-nitro-modules` alongside `react-native-iap`.
+
+## ✨ Features
+
+- 🔄 **Cross-platform Support**: Works seamlessly on both iOS and Android
+- ⚡ **Nitro Modules**: High-performance native bridge with minimal overhead
+- 🎯 **TypeScript First**: Full TypeScript support with comprehensive type definitions
+- 🛡️ **Centralized Error Handling**: Unified error management with platform-specific error code mapping
+- 🎣 **React Hooks**: Modern React hooks API with `useIAP`
+- 📱 **Expo Compatible**: Works with Expo development builds
+- 🔍 **Receipt Validation**: Built-in receipt validation for both platforms
+- 💎 **Products & Subscriptions**: Support for both one-time purchases and subscriptions
+- 🚀 **Performance Optimized**: Efficient caching and minimal re-renders
+
+## 🚀 Quick Start
+
+```bash
+npm install react-native-iap react-native-nitro-modules
+# or
+yarn add react-native-iap react-native-nitro-modules
+```
+
+**[📖 See the complete installation guide and quick start tutorial →](https://react-native-iap.hyo.dev/docs/installation)**
+
+## 🏗️ Architecture
+
+React Native IAP is built with a modern architecture that emphasizes:
+
+- **Nitro Modules**: High-performance native bridge with C++ core and platform-specific implementations
+- **Type Safety**: Comprehensive TypeScript definitions for all APIs
+- **Error Resilience**: Centralized error handling with meaningful error codes
+- **Platform Abstraction**: Unified API that handles platform differences internally
+- **Performance**: Optimized for minimal bundle size and runtime performance
+
+## 📱 Platform Support
+
+| Platform          | Support | Notes                                   |
+| ----------------- | ------- | --------------------------------------- |
+| iOS               | ✅      | StoreKit 2 (requires iOS 15+)           |
+| Android           | ✅      | Google Play Billing v8.0.0+             |
+| Expo Go           | ❌      | Not supported (requires native modules) |
+| Expo Dev Client   | ✅      | Full support                            |
+| Bare React Native | ✅      | Full support                            |
+
+## 📦 Installation & Configuration
+
+### Prerequisites
+
+Before installing React Native IAP, make sure you have:
+
+- React Native 0.64 or later, or Expo SDK 45 or later
+- Node.js 16 or later
+- iOS 15+ for iOS apps (StoreKit 2 requirement)
+- Android API level 21+ for Android apps
+
+### Post Installation
+
+#### Android Configuration
+
+Add the following dependencies to your `android/app/build.gradle` file:
+
+```gradle
+dependencies {
+    // Google Play Billing Library
+    implementation "com.android.billingclient:billing-ktx:8.0.0"
+
+    // Google Play Services
+    implementation "com.google.android.gms:play-services-base:18.1.0"
+}
+```
+
+**Kotlin Version Requirement:** This library requires Kotlin 2.0+. Configure your project's Kotlin version:
+
+In your root `android/build.gradle`:
+
+```gradle
+buildscript {
+    ext {
+        kotlinVersion = "2.1.20"
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
+}
+```
+
+#### iOS Configuration
+
+1. **Install pods**:
+
+   ```bash
+   cd ios && pod install
+   ```
+
+2. **Add StoreKit capability** to your iOS app in Xcode:
+   - Open your project in Xcode
+   - Select your app target
+   - Go to "Signing & Capabilities"
+   - Click "+ Capability" and add "In-App Purchase"
+
+#### Expo Configuration
+
+For Expo projects, add the plugin to your `app.json` or `expo.json`:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      "react-native-iap",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.1.20"
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+**Note:** Expo projects require [development build (dev-client)](https://docs.expo.dev/develop/development-builds/introduction/) as this library contains native code.
+
+### Store Configuration
+
+React Native IAP is **OpenIAP compliant**. For detailed store configuration:
+
+- **[iOS Setup →](https://www.openiap.dev/docs/ios-setup)** - App Store Connect configuration
+- **[Android Setup →](https://www.openiap.dev/docs/android-setup)** - Google Play Console configuration
+
+## 🎯 What's Next?
+
+**[📖 Visit our comprehensive documentation site →](https://react-native-iap.hyo.dev)**
+
+### Key Resources
+
+- **[Installation & Quick Start](https://react-native-iap.hyo.dev/docs/installation)** - Get started in minutes
+- **[API Reference](https://react-native-iap.hyo.dev/docs/api)** - Complete useIAP hook documentation
+- **[Examples](https://react-native-iap.hyo.dev/docs/examples/basic-store)** - Production-ready implementations
+- **[Error Handling](https://react-native-iap.hyo.dev/docs/api/error-codes)** - OpenIAP compliant error codes
+- **[Troubleshooting](https://react-native-iap.hyo.dev/docs/guides/troubleshooting)** - Common issues and solutions
+
+## Sponsors
+
+💼 **[View Our Sponsors](https://openiap.dev/sponsors)**
+
+### <p style="color: rgb(255, 182, 193);">Angel</p>
+
+<a href="https://meta.com">
+    <img width="600" alt="courier_dot_com" src="https://static.xx.fbcdn.net/rsrc.php/y3/r/y6QsbGgc866.svg" />
+</a>
+
+## Past Supporters
+
+<div style="display: flex; align-items:center; gap: 10px;">
+  <a href="https://namiml.com" style="opacity: 50%">
+    <img src="https://github.com/hyochan/react-native-iap/assets/27461460/89d71f61-bb73-400a-83bd-fe0f96eb726e" alt="Nami ML" width="140"/>
+  </a>
+  <a href="https://www.courier.com/?utm_source=react-native-iap&utm_campaign=osssponsors" style="opacity: 50%;">
+    <img width="80" alt="courier_dot_com" src="https://github.com/user-attachments/assets/319d8966-6839-498d-8ead-ce8cc72c3bca" />
+  </a>
+</div>
+
+Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [Buy me a coffee](https://www.buymeacoffee.com/hyochan).
+
+---
+
+### OpenCollective Sponsorship
+
+We also manage sponsorships through OpenCollective, which operates separately from our main sponsor program.
+
+**Sponsors:** <a href="https://opencollective.com/react-native-iap#sponsors" target="_blank"><img src="https://opencollective.com/react-native-iap/sponsors.svg?width=890" /></a>
+
+**Backers:** <a href="https://opencollective.com/react-native-iap#backers" target="_blank"><img src="https://opencollective.com/react-native-iap/backers.svg?width=890" /></a>
+
+[Become a sponsor](https://opencollective.com/react-native-iap#sponsor) | [Become a backer](https://opencollective.com/react-native-iap#backer)
 
 ## Contributing
 
-Contribute a change to this template to update it for newer React Native versions.
-
-## Structure
-
-- [`android/`](android): All your `android`-specific implementations.
-  - [`build.gradle`](android/build.gradle): The gradle build file. This contains four important pieces:
-    1. Standard react-native library boilerplate code
-    2. Configures Kotlin (`apply plugin: 'org.jetbrains.kotlin.android'`)
-    3. Adds all Nitrogen files (`apply from: '.../NitroIap+autolinking.gradle'`)
-    4. Triggers the native C++ build (via CMake/`externalNativeBuild`)
-  - [`CMakeLists.txt`](android/CMakeLists.txt): The CMake build file to build C++ code. This contains four important pieces:
-    1. Creates a library called `NitroIap` (same as in `nitro.json`)
-    2. Adds all Nitrogen files (`include(.../NitroIap+autolinking.cmake)`)
-    3. Adds all custom C++ files (only `HybridTestObjectCpp.cpp`)
-    4. Adds a `cpp-adapter.cpp` file, which autolinks all C++ HybridObjects (only `HybridTestObjectCpp`)
-  - [`src/main/java/com/margelo/nitro/iap/`](android/src/main/java/com/margelo/nitro/iap/): All Kotlin implementations.
-    - [`NitroIapPackage.java`](android/src/main/java/com/margelo/nitro/iap/NitroIapPackage.java): The react-native package. You need this because the react-native CLI only adds libraries if they have a `*Package.java` file. In here, you can autolink all Kotlin HybridObjects.
-- [`cpp/`](cpp): All your cross-platform implementations. (only `HybridTestObjectCpp.cpp`)
-- [`ios/`](ios): All your iOS-specific implementations.
-- [`nitrogen/`](nitrogen): All files generated by nitrogen. You should commit this folder to git.
-- [`src/`](src): The TypeScript codebase. This defines all HybridObjects and loads them at runtime.
-  - [`specs/`](src/specs): All HybridObject types. Nitrogen will run on all `*.nitro.ts` files.
-- [`nitro.json`](nitro.json): The configuration file for nitrogen. This will define all native namespaces, as well as the library name.
-- [`NitroIap.podspec`](NitroIap.podspec): The iOS podspec build file to build the iOS code. This contains three important pieces:
-  1. Specifies the Pod's name. This must be identical to the name specified in `nitro.json`.
-  2. Adds all of your `.swift` or `.cpp` files (implementations).
-  3. Adds all Nitrogen files (`add_nitrogen_files(s)`)
-- [`package.json`](package.json): The npm package.json file. `react-native-nitro-modules` should be a `peerDependency`.
+See our [Contributing Guide](./CONTRIBUTING.md) for development setup and guidelines.

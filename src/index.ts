@@ -21,6 +21,8 @@ import type {
   FinishTransactionParams,
   ReceiptValidationResultIOS,
   ReceiptValidationResultAndroid,
+  RequestPurchaseIosProps,
+  RequestPurchaseAndroidProps,
 } from './types'
 import {
   convertNitroProductToProduct,
@@ -202,7 +204,7 @@ export const requestPurchase = async ({
     if (Platform.OS === 'ios' && request.ios) {
       unifiedRequest.ios = {
         ...request.ios,
-      }
+      } as RequestPurchaseIosProps
     }
 
     if (Platform.OS === 'android' && request.android) {
@@ -211,7 +213,7 @@ export const requestPurchase = async ({
         unifiedRequest.android = {
           ...subsRequest,
           subscriptionOffers: subsRequest.subscriptionOffers || [],
-        }
+        } as RequestPurchaseAndroidProps
       } else {
         unifiedRequest.android = request.android
       }

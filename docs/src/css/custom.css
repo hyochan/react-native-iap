@@ -1,0 +1,79 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #d4a574;
+  --ifm-color-primary-dark: #cd9657;
+  --ifm-color-primary-darker: #c9904c;
+  --ifm-color-primary-darkest: #a6772e;
+  --ifm-color-primary-light: #dbb491;
+  --ifm-color-primary-lighter: #dfba9c;
+  --ifm-color-primary-lightest: #ebcdb2;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  
+  /* Oatmeal theme customizations */
+  --ifm-navbar-background-color: #f8f4ef;
+  --ifm-navbar-link-color: #6b4e3d;
+  --ifm-navbar-link-hover-color: #a6772e;
+  --ifm-footer-background-color: #f0ead6;
+  --ifm-footer-color: #6b4e3d;
+  --ifm-font-color-base: #4a3728;
+  --ifm-background-color: #fefcf9;
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #e6c299;
+  --ifm-color-primary-dark: #e1b582;
+  --ifm-color-primary-darker: #dfb075;
+  --ifm-color-primary-darkest: #d49e58;
+  --ifm-color-primary-light: #ebcfb0;
+  --ifm-color-primary-lighter: #edd4bd;
+  --ifm-color-primary-lightest: #f3e4d7;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  
+  /* Dark mode oatmeal theme */
+  --ifm-navbar-background-color: #2d2520;
+  --ifm-navbar-link-color: #e6c299;
+  --ifm-navbar-link-hover-color: #f3e4d7;
+  --ifm-footer-background-color: #1f1b17;
+  --ifm-footer-color: #e6c299;
+  --ifm-background-color: #1a1612;
+  --ifm-font-color-base: #e6c299;
+}
+
+/* Additional oatmeal theme styling */
+.navbar__brand strong {
+  color: var(--ifm-navbar-link-color);
+}
+
+.hero--primary {
+  --ifm-hero-background-color: transparent;
+  --ifm-hero-text-color: #6b4e3d;
+}
+
+[data-theme='dark'] .hero--primary {
+  --ifm-hero-text-color: #e6c299;
+}
+
+/* Blog sidebar title size adjustment */
+.theme-blog-sidebar-item-title {
+  font-size: 0.75rem !important;
+  line-height: 1.3 !important;
+}
+
+/* Blog sidebar container adjustment */
+aside[class*="blogSidebarDesktop"] .theme-blog-sidebar-item-title,
+aside[class*="blogSidebarMobile"] .theme-blog-sidebar-item-title {
+  font-size: 0.75rem !important;
+}
+
+/* Additional blog sidebar styling */
+aside[class*="blogSidebar"] h3 {
+  font-size: 0.875rem !important;
+}

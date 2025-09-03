@@ -471,10 +471,6 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
         }
     }
     
-    /**
-     * Initialize billing client with proper error handling
-     * Following expo-iap pattern for cleaner code organization
-     */
     private suspend fun initBillingClient(): Boolean {
         return suspendCancellableCoroutine { continuation ->
             // For Google Play Billing v8.0.0+, use PendingPurchasesParams

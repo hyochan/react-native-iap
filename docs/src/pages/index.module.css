@@ -1,0 +1,106 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+.heroBanner {
+  padding: 4rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8f4ef 0%, #f0ead6 100%);
+}
+
+[data-theme='dark'] .heroBanner {
+  background: linear-gradient(135deg, #2a241e 0%, #3d342a 100%);
+}
+
+.heroContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.heroText {
+  flex: 1;
+  text-align: left;
+}
+
+.heroText h1 {
+  color: #6b4e3d;
+  margin-bottom: 1rem;
+}
+
+.heroText p {
+  color: #8b6f47;
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+[data-theme='dark'] .heroText h1 {
+  color: #e8d5c2;
+}
+
+[data-theme='dark'] .heroText p {
+  color: #b8a08a;
+}
+
+.heroImage {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.heroImg {
+  max-width: 100%;
+  height: auto;
+  max-height: 400px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+@media screen and (max-width: 1200px) {
+  .heroBanner {
+    padding: 2rem;
+  }
+  
+  .heroContent {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .heroText {
+    text-align: center;
+  }
+  
+  .heroImg {
+    max-height: 300px;
+  }
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 2rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Center buttons when text is centered on smaller screens */
+@media screen and (max-width: 1200px) {
+  .buttons {
+    justify-content: center;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .buttons {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}

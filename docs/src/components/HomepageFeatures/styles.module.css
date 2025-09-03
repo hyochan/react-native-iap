@@ -1,0 +1,54 @@
+.features {
+  display: flex;
+  align-items: center;
+  padding: 4rem 0 2rem 0;
+  width: 100%;
+  background: linear-gradient(to bottom, #fefcf9 0%, #f8f4ef 100%);
+}
+
+.featureSvg {
+  height: 200px;
+  width: 200px;
+}
+
+.featureEmoji {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  height: 6rem;
+  padding: 0;
+  background: rgba(212, 165, 116, 0.1);
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.2);
+}
+
+/* Feature section styling for oatmeal theme */
+.features h3 {
+  color: #6b4e3d;
+  margin-bottom: 1rem;
+}
+
+.features p {
+  color: #8b6f47;
+  line-height: 1.6;
+}
+
+[data-theme='dark'] .features {
+  background: linear-gradient(to bottom, #1a1612 0%, #2d2520 100%);
+}
+
+[data-theme='dark'] .featureEmoji {
+  background: rgba(230, 194, 153, 0.1);
+  box-shadow: 0 4px 12px rgba(230, 194, 153, 0.2);
+}
+
+[data-theme='dark'] .features h3 {
+  color: #e6c299;
+}
+
+[data-theme='dark'] .features p {
+  color: #d4a574;
+}

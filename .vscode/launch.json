@@ -90,6 +90,18 @@
       "env": {
         "NODE_ENV": "development"
       }
+    },
+    {
+      "name": "📚 Start Documentation",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/docs",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bun install && bun start"],
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "development"
+      }
     }
   ]
 }

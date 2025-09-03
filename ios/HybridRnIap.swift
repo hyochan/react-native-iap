@@ -520,7 +520,8 @@ class HybridRnIap: HybridRnIapSpec {
             return statuses.map { status in
                 var subscriptionStatus = NitroSubscriptionStatus(
                     state: Double(status.state.rawValue),
-                    platform: "ios"
+                    platform: "ios",
+                    renewalInfo: nil
                 )
                 
                 // Add renewal info if available
@@ -652,11 +653,11 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             #if !os(tvOS)
             // Get the active window scene
-            guard let windowScene = await MainActor.run { 
+            guard let windowScene = await MainActor.run(body: { 
                 UIApplication.shared.connectedScenes
                     .compactMap({ $0 as? UIWindowScene })
                     .first(where: { $0.activationState == .foregroundActive })
-            } else {
+            }) else {
                 let errorJson = ErrorUtils.createErrorJson(
                     code: IapErrorCode.serviceError,
                     message: "Cannot find active window scene"
@@ -777,11 +778,11 @@ class HybridRnIap: HybridRnIapSpec {
                 // Begin refund request
                 do {
                     // Get the active window scene
-                    guard let windowScene = await MainActor.run {
+                    guard let windowScene = await MainActor.run(body: {
                         UIApplication.shared.connectedScenes
                             .compactMap({ $0 as? UIWindowScene })
                             .first(where: { $0.activationState == .foregroundActive })
-                    } else {
+                    }) else {
                         let errorJson = ErrorUtils.createErrorJson(
                             code: IapErrorCode.serviceError,
                             message: "Cannot find active window scene"

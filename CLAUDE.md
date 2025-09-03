@@ -126,7 +126,7 @@ cd example/ios
 bundle install  # Install Ruby dependencies
 bundle exec pod install  # Install iOS dependencies
 
-# For example-expo (independent)  
+# For example-expo (independent)
 cd example-expo/ios
 pod install  # iOS dependencies
 ```
@@ -180,31 +180,32 @@ Access these from the Run and Debug panel (⌘⇧D) in VSCode.
 When organizing native implementation classes (Swift/Kotlin), follow this strict ordering:
 
 1. **Properties and Initialization** - Class properties, init, deinit
-2. **Public Cross-platform Methods** - Methods without platform suffixes (e.g., `initConnection`, `requestProducts`)
+2. **Public Cross-platform Methods** - Methods without platform suffixes (e.g., `initConnection`, `fetchProducts`)
 3. **Platform-specific Public Methods** - Methods with IOS/Android suffixes (e.g., `getStorefrontIOS`, `consumePurchaseAndroid`)
 4. **Event Listener Methods** - Methods for managing event listeners
 5. **Private Helper Methods** - All private implementation details
 
 Example structure:
+
 ```swift
 class HybridRnIap {
     // MARK: - Properties
     private var isInitialized: Bool = false
-    
+
     // MARK: - Initialization
     override init() { }
-    
+
     // MARK: - Public Methods (Cross-platform)
     func initConnection() { }
-    func requestProducts() { }
-    
-    // MARK: - iOS-specific Public Methods  
+    func fetchProducts() { }
+
+    // MARK: - iOS-specific Public Methods
     func getStorefrontIOS() { }
     func clearTransactionIOS() { }
-    
+
     // MARK: - Event Listener Methods
     func addPurchaseUpdatedListener() { }
-    
+
     // MARK: - Private Helper Methods
     private func ensureConnection() { }
     private func convertToNitroProduct() { }
@@ -266,16 +267,19 @@ yarn install && yarn typecheck && yarn lint --fix
 The project uses a centralized error handling approach across all platforms:
 
 **TypeScript (`src/utils.ts` + `src/types.ts`)**
+
 - `parseErrorStringToJsonObj()` - Parses native error strings into structured objects
 - `isUserCancelledError()` - Helper to check for user cancellation
 - `ErrorCode` enum (from types.ts) - Standardized error codes across platforms
 
 **Android (`android/src/main/java/com/margelo/nitro/iap/Types.kt`)**
+
 - `IapErrorCode` object - Centralized error codes
 - `BillingUtils.getBillingErrorData()` - Maps Android billing codes to error objects
 - `BillingUtils.createErrorJson()` - Serializes errors to JSON strings
 
 **iOS (`ios/ErrorUtils.swift`)**
+
 - `IapErrorCode` struct - iOS error code constants (matches Android)
 - `ErrorUtils.getStoreKitErrorData()` - Maps StoreKit errors to error objects
 - `ErrorUtils.createErrorJson()` - Serializes errors to JSON strings
@@ -303,7 +307,7 @@ try {
   await requestPurchase({ ... })
 } catch (error) {
   const parsedError = parseErrorStringToJsonObj(error)
-  
+
   if (isUserCancelledError(parsedError)) {
     console.log('User cancelled purchase')
   } else {
@@ -338,11 +342,11 @@ try {
 1. **Build failures after modifying .nitro.ts files**
    - Run `yarn specs` to regenerate Nitro bridge files
 
-2. **React Duplication Instance Issues** ⚠️ 
+2. **React Duplication Instance Issues** ⚠️
    - **Problem**: "Cannot read properties of null" or "useState of null" errors
    - **Cause**: Multiple React instances loaded due to workspace setup
    - **Solution**: Metro resolver alias configuration already applied in `example/metro.config.js`
-   
+
    ```javascript
    // example/metro.config.js uses modern alias approach:
    resolver: {
@@ -353,8 +357,8 @@ try {
      }
    }
    ```
-   
-   - **Additional Notes**: 
+
+   - **Additional Notes**:
      - Resolutions are configured in root `package.json` (workspace level)
      - `example-expo` is **NOT** in yarn workspace (independent project)
      - Only `example` is included in workspace structure
@@ -366,15 +370,14 @@ try {
    bundle exec pod install
    ```
 
-3. **Package installation issues**
+4. **Package installation issues**
    - Run `yarn install` from the root directory
    - Clear yarn cache: `yarn cache clean`
    - Delete node_modules and reinstall: `rm -rf node_modules example/node_modules && yarn install`
 
-4. **Metro bundler issues**
+5. **Metro bundler issues**
 
    ```sh
    cd example
    yarn start --reset-cache
    ```
-

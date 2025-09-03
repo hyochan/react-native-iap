@@ -68,9 +68,8 @@ const PurchaseFlow: React.FC = () => {
     const receipt =
       Platform.OS === 'android'
         ? (purchase as any).dataAndroid
-        : purchase.purchaseToken ||
-          (purchase as any).jwsRepresentationIOS ||
-          purchase.transactionReceipt;
+        : purchase.purchaseToken || // Contains JWS representation on iOS
+          purchase.transactionReceipt; // Legacy receipt format
 
     // Get transaction ID based on platform
     const transactionId = purchase.transactionId || purchase.id;
