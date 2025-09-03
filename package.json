@@ -1,6 +1,6 @@
 {
   "name": "react-native-iap",
-  "version": "14.0.0",
+  "version": "14.0.1",
   "description": "React Native In-App Purchases module for iOS and Android using Nitro",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
