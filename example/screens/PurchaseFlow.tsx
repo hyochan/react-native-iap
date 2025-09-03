@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import {
   initConnection,
   endConnection,
-  requestProducts,
+  fetchProducts,
   requestPurchase,
   finishTransaction,
   purchaseUpdatedListener,
@@ -53,29 +53,35 @@ const PurchaseFlow: React.FC = () => {
 
   const setupPurchaseListeners = () => {
     // Set up purchase success listener
-    subscriptionsRef.current.updateSub = purchaseUpdatedListener(handlePurchaseUpdate);
-    
+    subscriptionsRef.current.updateSub =
+      purchaseUpdatedListener(handlePurchaseUpdate);
+
     // Set up purchase error listener
-    subscriptionsRef.current.errorSub = purchaseErrorListener(handlePurchaseError);
+    subscriptionsRef.current.errorSub =
+      purchaseErrorListener(handlePurchaseError);
   };
 
   const handlePurchaseUpdate = (purchase: Purchase) => {
     console.log('✅ Purchase successful:', purchase);
-    
+
     // Get receipt/token based on platform
-    const receipt = Platform.OS === 'android' 
-      ? (purchase as any).dataAndroid 
-      : purchase.purchaseToken || (purchase as any).jwsRepresentationIOS || purchase.transactionReceipt;
-    
+    const receipt =
+      Platform.OS === 'android'
+        ? (purchase as any).dataAndroid
+        : purchase.purchaseToken ||
+          (purchase as any).jwsRepresentationIOS ||
+          purchase.transactionReceipt;
+
     // Get transaction ID based on platform
     const transactionId = purchase.transactionId || purchase.id;
-    
+
     // Build platform-specific result message
-    let resultMessage = `✅ Purchase successful (${purchase.platform || Platform.OS})\n` +
+    let resultMessage =
+      `✅ Purchase successful (${purchase.platform || Platform.OS})\n` +
       `Product: ${purchase.productId}\n` +
       `Transaction ID: ${transactionId || 'N/A'}\n` +
       `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n`;
-    
+
     if (Platform.OS === 'ios') {
       const iosPurchase = purchase as any;
       if (iosPurchase.quantityIOS) {
@@ -93,7 +99,7 @@ const PurchaseFlow: React.FC = () => {
       resultMessage += `JWS Token: ${receipt || 'N/A'}\n`;
     } else if (Platform.OS === 'android') {
       const androidPurchase = purchase as any;
-      resultMessage += 
+      resultMessage +=
         `Purchase Token: ${androidPurchase.purchaseToken || 'N/A'}\n` +
         `Order ID: ${androidPurchase.orderId || 'N/A'}\n` +
         `Package: ${androidPurchase.packageNameAndroid || 'N/A'}\n` +
@@ -104,24 +110,24 @@ const PurchaseFlow: React.FC = () => {
       }
       resultMessage += `Receipt JSON: ${receipt || 'N/A'}\n`;
     }
-    
+
     // Update purchase result display
     setPurchaseResult(resultMessage);
     setPurchasing(false);
-    
+
     // Finish the transaction
     handleFinishTransaction(purchase);
-    
+
     Alert.alert('Success', 'Purchase completed successfully!');
   };
 
   const handlePurchaseError = (error: NitroPurchaseResult) => {
     console.error('❌ Purchase failed:', error);
-    
+
     const errorMessage = error.message || 'Purchase failed';
     setPurchaseResult(`❌ Purchase failed: ${errorMessage}`);
     setPurchasing(false);
-    
+
     if (error.code === 'user_cancelled') {
       Alert.alert('Purchase Cancelled', 'You cancelled the purchase');
     } else {
@@ -134,7 +140,7 @@ const PurchaseFlow: React.FC = () => {
       setLoading(true);
       const isConnected = await initConnection();
       setConnected(isConnected);
-      
+
       if (isConnected) {
         await loadProducts();
       }
@@ -149,11 +155,11 @@ const PurchaseFlow: React.FC = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const fetchedProducts = await requestProducts({
+      const fetchedProducts = await fetchProducts({
         skus: PRODUCT_IDS,
         type: 'inapp',
       });
-      
+
       console.log('Fetched products:', fetchedProducts);
       setProducts(fetchedProducts);
     } catch (error) {
@@ -168,7 +174,7 @@ const PurchaseFlow: React.FC = () => {
     try {
       setPurchasing(true);
       setPurchaseResult('Processing purchase...');
-      
+
       // Request purchase - results will be handled by event listeners
       await requestPurchase({
         request: {
@@ -183,13 +189,16 @@ const PurchaseFlow: React.FC = () => {
         type: 'inapp',
       });
 
-      console.log('Purchase request sent - waiting for result via event listener');
+      console.log(
+        'Purchase request sent - waiting for result via event listener',
+      );
     } catch (error: any) {
       console.error('Purchase request failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Purchase request failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Purchase request failed';
       setPurchaseResult(`❌ Purchase request failed: ${errorMessage}`);
       setPurchasing(false);
-      
+
       Alert.alert('Request Failed', errorMessage);
     }
   };
@@ -214,7 +223,10 @@ const PurchaseFlow: React.FC = () => {
   const getProductDisplayPrice = (product: Product): string => {
     // Use the simplified Android offer price fields (added by type bridge)
     const androidProduct = product as any;
-    if (Platform.OS === 'android' && androidProduct.oneTimePurchaseOfferFormattedPrice) {
+    if (
+      Platform.OS === 'android' &&
+      androidProduct.oneTimePurchaseOfferFormattedPrice
+    ) {
       return androidProduct.oneTimePurchaseOfferFormattedPrice;
     }
     return product.displayPrice;
@@ -258,9 +270,7 @@ const PurchaseFlow: React.FC = () => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>In-App Purchase Flow</Text>
-        <Text style={styles.subtitle}>
-          Testing with react-native-iap
-        </Text>
+        <Text style={styles.subtitle}>Testing with react-native-iap</Text>
         <View style={styles.statusContainer}>
           <Text style={styles.statusText}>
             Store: {connected ? '✅ Connected' : '❌ Disconnected'}
@@ -318,10 +328,7 @@ const PurchaseFlow: React.FC = () => {
               No products found. Make sure to configure your product IDs in your
               app store.
             </Text>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={loadProducts}
-            >
+            <TouchableOpacity style={styles.retryButton} onPress={loadProducts}>
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -375,9 +382,7 @@ const PurchaseFlow: React.FC = () => {
             ? 'Using Sandbox environment for testing'
             : 'Using Android test products'}
         </Text>
-        <Text style={styles.infoText}>
-          Products: {PRODUCT_IDS.join(', ')}
-        </Text>
+        <Text style={styles.infoText}>Products: {PRODUCT_IDS.join(', ')}</Text>
       </View>
     </ScrollView>
   );

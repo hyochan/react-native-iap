@@ -1,0 +1,64 @@
+name: CI - Example Expo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-example-expo.yml'
+      - 'example-expo/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ci-example-expo.yml'
+      - 'example-expo/**'
+  merge_group:
+    types:
+      - checks_requested
+
+jobs:
+  example-expo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install root dependencies
+        run: yarn install --immutable
+
+      - name: Setup example-expo
+        run: yarn setup:expo
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            example-expo/node_modules
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-expo-bun-${{ hashFiles('example-expo/package.json', 'example-expo/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-expo-bun-
+
+      - name: Install example-expo dependencies
+        working-directory: example-expo
+        run: bun install
+
+      - name: Lint files
+        working-directory: example-expo
+        run: bun run lint
+
+      - name: Typecheck files
+        working-directory: example-expo
+        run: bun run typecheck

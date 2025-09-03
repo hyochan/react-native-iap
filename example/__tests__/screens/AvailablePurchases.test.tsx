@@ -33,7 +33,7 @@ jest.mock('react-native-iap', () => ({
     activeSubscriptions: ['dev.hyo.martie.premium'],
     getAvailablePurchases: mockGetAvailablePurchases,
     getActiveSubscriptions: mockGetActiveSubscriptions,
-    requestProducts: mockRequestProducts,
+    fetchProducts: mockRequestProducts,
     finishTransaction: mockFinishTransaction,
   }),
 }));
@@ -126,7 +126,7 @@ describe('AvailablePurchases Screen', () => {
         activeSubscriptions: [],
         getAvailablePurchases: jest.fn().mockResolvedValue([]),
         getActiveSubscriptions: jest.fn().mockResolvedValue([]),
-        requestProducts: jest.fn(),
+        fetchProducts: jest.fn(),
         finishTransaction: jest.fn(),
       }),
     }));

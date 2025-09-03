@@ -38,15 +38,15 @@
     "!**/.*"
   ],
   "scripts": {
-    "postinstall": "yarn prepare",
+    "postinstall": "yarn prepare && yarn build:plugin",
     "build:plugin": "tsc --build plugin",
-    "setup:expo": "cd example-expo && bun setup && build:plugin",
+    "setup:expo": "cd example-expo && bun setup",
     "example": "yarn workspace rn-iap-example",
     "example:ios": "yarn workspace rn-iap-example ios",
     "example:android": "yarn workspace rn-iap-example android",
     "example:start": "yarn workspace rn-iap-example start",
     "typecheck": "yarn typecheck:lib && yarn typecheck:expo",
-    "typecheck:lib": "tsc --noEmit",
+    "typecheck:lib": "yarn tsc --noEmit",
     "typecheck:expo": "cd example-expo && bun run typecheck",
     "clean": "rm -rf android/build node_modules/**/android/build lib nitrogen/generated",
     "lint": "eslint --ext .ts,.tsx,.js,.jsx src",

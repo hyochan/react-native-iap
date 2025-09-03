@@ -71,9 +71,9 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     }
     
     // Product methods
-    override fun requestProducts(skus: Array<String>, type: String): Promise<Array<NitroProduct>> {
+    override fun fetchProducts(skus: Array<String>, type: String): Promise<Array<NitroProduct>> {
         return Promise.async {
-            Log.d(TAG, "requestProducts called with SKUs: ${skus.joinToString()}, type: $type")
+            Log.d(TAG, "fetchProducts called with SKUs: ${skus.joinToString()}, type: $type")
             
             // Validate SKU list
             if (skus.isEmpty()) {

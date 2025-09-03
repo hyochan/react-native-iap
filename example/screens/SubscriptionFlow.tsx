@@ -44,7 +44,7 @@ export default function SubscriptionFlow() {
     subscriptions,
     availablePurchases,
     activeSubscriptions,
-    requestProducts,
+    fetchProducts,
     finishTransaction,
     getAvailablePurchases,
     getActiveSubscriptions,
@@ -62,8 +62,8 @@ export default function SubscriptionFlow() {
         // This is likely a duplicate transaction or restoration
         setPurchaseResult(
           `ℹ️ Subscription restored/verified (${purchase.platform})\n` +
-          `Product: ${purchase.productId}\n` +
-          `No additional charge - existing subscription confirmed`
+            `Product: ${purchase.productId}\n` +
+            `No additional charge - existing subscription confirmed`,
         );
 
         await finishTransaction({
@@ -81,10 +81,10 @@ export default function SubscriptionFlow() {
       // Handle new subscription
       setPurchaseResult(
         `✅ Subscription successful (${purchase.platform})\n` +
-        `Product: ${purchase.productId}\n` +
-        `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
-        `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n` +
-        `Receipt: ${purchase.transactionReceipt?.substring(0, 50)}...`
+          `Product: ${purchase.productId}\n` +
+          `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
+          `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n` +
+          `Receipt: ${purchase.transactionReceipt?.substring(0, 50)}...`,
       );
 
       // IMPORTANT: Server-side receipt validation should be performed here
@@ -137,9 +137,9 @@ export default function SubscriptionFlow() {
   useEffect(() => {
     if (connected) {
       console.log('Connected to store, loading subscription products...');
-      // requestProducts is event-based, not promise-based
+      // fetchProducts is event-based, not promise-based
       // Results will be available through the useIAP hook's subscriptions state
-      requestProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
+      fetchProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
       console.log('Product loading request sent - waiting for results...');
 
       // Load available purchases to check subscription history
@@ -148,7 +148,7 @@ export default function SubscriptionFlow() {
         console.warn('Failed to load available purchases:', error);
       });
     }
-  }, [connected, requestProducts, getAvailablePurchases]);
+  }, [connected, fetchProducts, getAvailablePurchases]);
 
   // Check subscription status separately to avoid infinite loop
   useEffect(() => {
@@ -178,7 +178,10 @@ export default function SubscriptionFlow() {
     console.log(
       '[STATE CHANGE] subscriptions (products):',
       subscriptions.length,
-      subscriptions.map((s: SubscriptionProduct) => ({id: s.id, title: s.title})),
+      subscriptions.map((s: SubscriptionProduct) => ({
+        id: s.id,
+        title: s.title,
+      })),
     );
   }, [subscriptions]);
 
@@ -223,10 +226,12 @@ export default function SubscriptionFlow() {
               subscription &&
               'subscriptionOfferDetailsAndroid' in subscription &&
               subscription.subscriptionOfferDetailsAndroid
-                ? subscription.subscriptionOfferDetailsAndroid.map((offer: any) => ({
-                    sku: itemId,
-                    offerToken: offer.offerToken,
-                  }))
+                ? subscription.subscriptionOfferDetailsAndroid.map(
+                    (offer: any) => ({
+                      sku: itemId,
+                      offerToken: offer.offerToken,
+                    }),
+                  )
                 : [],
           },
         },
@@ -243,7 +248,7 @@ export default function SubscriptionFlow() {
 
   // Retry loading subscriptions
   const retryLoadSubscriptions = () => {
-    requestProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
+    fetchProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
   };
 
   // Get subscription display price
@@ -299,11 +304,14 @@ export default function SubscriptionFlow() {
   };
 
   // Get introductory offer text
-  const getIntroductoryOffer = (subscription: SubscriptionProduct): string | null => {
+  const getIntroductoryOffer = (
+    subscription: SubscriptionProduct,
+  ): string | null => {
     if (Platform.OS === 'ios' && 'introductoryPriceIOS' in subscription) {
       if (subscription.introductoryPriceIOS) {
         const paymentMode = subscription.introductoryPricePaymentModeIOS;
-        const numberOfPeriods = subscription.introductoryPriceNumberOfPeriodsIOS;
+        const numberOfPeriods =
+          subscription.introductoryPriceNumberOfPeriodsIOS;
         const subscriptionPeriod =
           subscription.introductoryPriceSubscriptionPeriodIOS;
 
@@ -533,10 +541,10 @@ export default function SubscriptionFlow() {
                     {isProcessing
                       ? 'Processing...'
                       : activeSubscriptions.some(
-                          (sub) => sub.productId === subscription.id,
-                        )
-                      ? '✅ Subscribed'
-                      : 'Subscribe'}
+                            (sub) => sub.productId === subscription.id,
+                          )
+                        ? '✅ Subscribed'
+                        : 'Subscribe'}
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -7,7 +7,7 @@ import * as RNIap from 'react-native-iap';
 jest.mock('react-native-iap', () => ({
   initConnection: jest.fn(),
   endConnection: jest.fn(),
-  requestProducts: jest.fn(),
+  fetchProducts: jest.fn(),
   requestPurchase: jest.fn(),
   finishTransaction: jest.fn(),
   purchaseUpdatedListener: jest.fn(),
@@ -28,7 +28,7 @@ describe('PurchaseFlow Screen', () => {
     // Setup default mock implementations
     (RNIap.initConnection as jest.Mock).mockResolvedValue(true);
     (RNIap.endConnection as jest.Mock).mockImplementation(() => {});
-    (RNIap.requestProducts as jest.Mock).mockResolvedValue([
+    (RNIap.fetchProducts as jest.Mock).mockResolvedValue([
       {
         id: 'dev.hyo.martie.10bulbs',
         title: '10 Bulbs',
@@ -120,7 +120,7 @@ describe('PurchaseFlow Screen', () => {
     fireEvent.press(loadButton);
 
     await waitFor(() => {
-      expect(RNIap.requestProducts).toHaveBeenCalledWith({
+      expect(RNIap.fetchProducts).toHaveBeenCalledWith({
         products: ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs'],
       });
     });
@@ -152,7 +152,7 @@ describe('PurchaseFlow Screen', () => {
     });
 
     // Make the request take time
-    (RNIap.requestProducts as jest.Mock).mockImplementation(
+    (RNIap.fetchProducts as jest.Mock).mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve([]), 100)),
     );
 
@@ -326,7 +326,7 @@ describe('PurchaseFlow Screen', () => {
   });
 
   it('shows error alert when loading products fails', async () => {
-    (RNIap.requestProducts as jest.Mock).mockRejectedValue(
+    (RNIap.fetchProducts as jest.Mock).mockRejectedValue(
       new Error('Network error'),
     );
 

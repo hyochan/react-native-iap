@@ -114,7 +114,12 @@ android {
     }
   }
   
-  // Configure Kotlin compiler to match billing-ktx 8.0.0 requirements
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+  
+  // Configure Kotlin compiler to match Java compatibility
   kotlinOptions {
     jvmTarget = "17"
     freeCompilerArgs += ["-Xskip-metadata-version-check"]
@@ -122,11 +127,6 @@ android {
 
   lintOptions {
     disable "GradleCompatible"
-  }
-
-  compileOptions {
-    sourceCompatibility JavaVersion.VERSION_1_8
-    targetCompatibility JavaVersion.VERSION_1_8
   }
 
   // Removed sourceSets configuration for codegen as it's not needed for library modules

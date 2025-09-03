@@ -13,10 +13,12 @@ class HybridRnIap: HybridRnIapSpec {
     private var isInitialized: Bool = false
     private var productStore: ProductStore?
     private var transactions: [String: Transaction] = [:]
+    private var paymentObserver: PaymentObserver?
     
     // Promoted products
     private var promotedProduct: Product?
     private var promotedPayment: SKPayment?
+    private var promotedSKProduct: SKProduct?
     
     // Event listeners
     private var purchaseUpdatedListeners: [(NitroPurchase) -> Void] = []
@@ -46,6 +48,12 @@ class HybridRnIap: HybridRnIapSpec {
             if canMakePayments {
                 self.isInitialized = true
                 self.productStore = ProductStore()
+                
+                // Set up PaymentObserver for promoted products
+                if self.paymentObserver == nil {
+                    self.paymentObserver = PaymentObserver(iapModule: self)
+                    SKPaymentQueue.default().add(self.paymentObserver!)
+                }
             } else {
                 let errorJson = ErrorUtils.createErrorJson(
                     code: IapErrorCode.iapNotAvailable,
@@ -64,11 +72,11 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func requestProducts(skus: [String], type: String) throws -> Promise<[NitroProduct]> {
+    func fetchProducts(skus: [String], type: String) throws -> Promise<[NitroProduct]> {
         return Promise.async {
             do {
                 try self.ensureConnection()
-                print("[RnIap] requestProducts called with skus: \(skus), type: \(type)")
+                print("[RnIap] fetchProducts called with skus: \(skus), type: \(type)")
                 
                 // Fetch products from StoreKit 2
                 let storeProducts = try await StoreKit.Product.products(for: Set(skus))
@@ -252,7 +260,7 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func finishTransaction(params: NitroFinishTransactionParams) throws -> Promise<Variant_Bool_NitroPurchaseResult> {
+    func finishTransaction(params: NitroFinishTransactionParams) throws -> Promise<Variant_Boolean_NitroPurchaseResult> {
         return Promise.async {
             // iOS implementation
             guard let iosParams = params.ios else {
@@ -422,12 +430,18 @@ class HybridRnIap: HybridRnIapSpec {
     func requestPromotedProductIOS() throws -> Promise<NitroProduct?> {
         return Promise.async {
             // Return the stored promoted product if available
-            guard let product = self.promotedProduct else {
-                return nil
+            if let product = self.promotedProduct {
+                // Convert Product to NitroProduct
+                return self.convertProductToNitroProduct(product, type: "inapp")
+            } else if let skProduct = self.promotedSKProduct {
+                // Convert SKProduct to NitroProduct (backward compatibility)
+                // First get the StoreKit 2 Product
+                if let products = try? await StoreKit.Product.products(for: [skProduct.productIdentifier]),
+                   let product = products.first {
+                    return self.convertProductToNitroProduct(product, type: "inapp")
+                }
             }
-            
-            // Convert Product to NitroProduct
-            return self.convertProductToNitroProduct(product, type: "inapp")
+            return nil
         }
     }
     
@@ -482,6 +496,250 @@ class HybridRnIap: HybridRnIapSpec {
                     print("Failed to finish transaction: \(error.localizedDescription)")
                 }
             }
+        }
+    }
+    
+    // Additional iOS-only functions for feature parity with expo-iap
+    
+    func subscriptionStatusIOS(sku: String) throws -> Promise<[NitroSubscriptionStatus]?> {
+        return Promise.async {
+            try self.ensureConnection()
+            
+            // Get the product from the store
+            guard let products = try? await StoreKit.Product.products(for: [sku]),
+                  let product = products.first,
+                  let subscription = product.subscription else {
+                return nil
+            }
+            
+            // Get subscription status
+            let statuses = try await subscription.status
+            
+            return statuses.map { status in
+                var subscriptionStatus = NitroSubscriptionStatus(
+                    state: Double(status.state.rawValue),
+                    platform: "ios"
+                )
+                
+                // Add renewal info if available
+                switch status.renewalInfo {
+                case .verified(let renewalInfo):
+                    subscriptionStatus.renewalInfo = NitroSubscriptionRenewalInfo(
+                        autoRenewStatus: renewalInfo.willAutoRenew,
+                        autoRenewPreference: renewalInfo.autoRenewPreference,
+                        expirationReason: renewalInfo.expirationReason.map { Double($0.rawValue) },
+                        gracePeriodExpirationDate: renewalInfo.gracePeriodExpirationDate?.timeIntervalSince1970,
+                        currentProductID: renewalInfo.currentProductID,
+                        platform: "ios"
+                    )
+                case .unverified:
+                    break
+                }
+                
+                return subscriptionStatus
+            }
+        }
+    }
+    
+    func currentEntitlementIOS(sku: String) throws -> Promise<NitroPurchase?> {
+        return Promise.async {
+            try self.ensureConnection()
+            
+            // Get the product from the store
+            guard let products = try? await StoreKit.Product.products(for: [sku]),
+                  let product = products.first else {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.itemUnavailable,
+                    message: "Can't find product for sku \(sku)"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+            
+            // Get current entitlement
+            guard let entitlement = await product.currentEntitlement else {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.itemUnavailable,
+                    message: "Can't find entitlement for sku \(sku)"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+            
+            switch entitlement {
+            case .verified(let transaction):
+                return self.convertToNitroPurchase(transaction, product: product, jwsRepresentation: entitlement.jwsRepresentation)
+            case .unverified:
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.transactionValidationFailed,
+                    message: "Failed to verify transaction for sku \(sku)"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+        }
+    }
+    
+    func latestTransactionIOS(sku: String) throws -> Promise<NitroPurchase?> {
+        return Promise.async {
+            try self.ensureConnection()
+            
+            // Get the product from the store
+            guard let products = try? await StoreKit.Product.products(for: [sku]),
+                  let product = products.first else {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.itemUnavailable,
+                    message: "Can't find product for sku \(sku)"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+            
+            // Get latest transaction
+            guard let latestTransaction = await product.latestTransaction else {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.itemUnavailable,
+                    message: "Can't find latest transaction for sku \(sku)"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+            
+            switch latestTransaction {
+            case .verified(let transaction):
+                return self.convertToNitroPurchase(transaction, product: product, jwsRepresentation: latestTransaction.jwsRepresentation)
+            case .unverified:
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.transactionValidationFailed,
+                    message: "Failed to verify transaction for sku \(sku)"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+        }
+    }
+    
+    func getPendingTransactionsIOS() throws -> Promise<[NitroPurchase]> {
+        return Promise.async {
+            // Return the transactions we're currently tracking
+            var pendingPurchases: [NitroPurchase] = []
+            
+            for (_, transaction) in self.transactions {
+                // Get product info for each transaction
+                if let products = try? await StoreKit.Product.products(for: [transaction.productID]),
+                   let product = products.first {
+                    pendingPurchases.append(self.convertToNitroPurchase(transaction, product: product))
+                }
+            }
+            
+            return pendingPurchases
+        }
+    }
+    
+    func syncIOS() throws -> Promise<Bool> {
+        return Promise.async {
+            do {
+                // Sync with the App Store
+                try await AppStore.sync()
+                return true
+            } catch {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.syncError,
+                    message: "Error synchronizing with the AppStore: \(error.localizedDescription)"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+        }
+    }
+    
+    func showManageSubscriptionsIOS() throws -> Promise<Bool> {
+        return Promise.async {
+            #if !os(tvOS)
+            // Get the active window scene
+            guard let windowScene = await UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first(where: { $0.activationState == .foregroundActive }) else {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.serviceError,
+                    message: "Cannot find active window scene"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+            
+            // Show the subscription management UI
+            try await AppStore.showManageSubscriptions(in: windowScene)
+            return true
+            #else
+            let errorJson = ErrorUtils.createErrorJson(
+                code: IapErrorCode.itemUnavailable,
+                message: "This method is not available on tvOS"
+            )
+            throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            #endif
+        }
+    }
+    
+    func isEligibleForIntroOfferIOS(groupID: String) throws -> Promise<Bool> {
+        return Promise.async {
+            return await Product.SubscriptionInfo.isEligibleForIntroOffer(for: groupID)
+        }
+    }
+    
+    func getReceiptDataIOS() throws -> Promise<String> {
+        return Promise.async {
+            if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
+               FileManager.default.fileExists(atPath: appStoreReceiptURL.path) {
+                do {
+                    let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
+                    return receiptData.base64EncodedString(options: [])
+                } catch {
+                    let errorJson = ErrorUtils.createErrorJson(
+                        code: IapErrorCode.receiptFailed,
+                        message: "Error reading receipt data: \(error.localizedDescription)"
+                    )
+                    throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+                }
+            } else {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.receiptFailed,
+                    message: "App Store receipt not found"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+        }
+    }
+    
+    func isTransactionVerifiedIOS(sku: String) throws -> Promise<Bool> {
+        return Promise.async {
+            try self.ensureConnection()
+            
+            // Get the product from the store
+            guard let products = try? await StoreKit.Product.products(for: [sku]),
+                  let product = products.first,
+                  let result = await product.latestTransaction else {
+                return false
+            }
+            
+            // Check if transaction is verified
+            switch result {
+            case .verified:
+                return true
+            case .unverified:
+                return false
+            }
+        }
+    }
+    
+    func getTransactionJwsIOS(sku: String) throws -> Promise<String?> {
+        return Promise.async {
+            try self.ensureConnection()
+            
+            // Get the product from the store
+            guard let products = try? await StoreKit.Product.products(for: [sku]),
+                  let product = products.first,
+                  let result = await product.latestTransaction else {
+                let errorJson = ErrorUtils.createErrorJson(
+                    code: IapErrorCode.itemUnavailable,
+                    message: "Can't find transaction for sku \(sku)"
+                )
+                throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
+            }
+            
+            return result.jwsRepresentation
         }
     }
     
@@ -1001,8 +1259,62 @@ class HybridRnIap: HybridRnIapSpec {
         productStore = nil
         transactions.removeAll()
         
+        // Remove payment observer if exists
+        if let observer = paymentObserver {
+            SKPaymentQueue.default().remove(observer)
+            paymentObserver = nil
+        }
+        
+        // Clear promoted products
+        promotedProduct = nil
+        promotedPayment = nil
+        promotedSKProduct = nil
+        
         // Clear event listeners
         purchaseUpdatedListeners.removeAll()
         purchaseErrorListeners.removeAll()
+        promotedProductListeners.removeAll()
+    }
+    
+    // Method called by PaymentObserver when a promoted product is received
+    func handlePromotedProduct(payment: SKPayment, product: SKProduct) {
+        self.promotedPayment = payment
+        self.promotedSKProduct = product
+        
+        // Convert SKProduct to StoreKit 2 Product and then to NitroProduct
+        Task {
+            if let products = try? await StoreKit.Product.products(for: [product.productIdentifier]),
+               let storeKit2Product = products.first {
+                self.promotedProduct = storeKit2Product
+                
+                // Notify all promoted product listeners
+                let nitroProduct = self.convertProductToNitroProduct(storeKit2Product, type: "inapp")
+                for listener in self.promotedProductListeners {
+                    listener(nitroProduct)
+                }
+            }
+        }
+    }
+}
+
+// PaymentObserver for handling promoted products
+@available(iOS 15.0, *)
+class PaymentObserver: NSObject, SKPaymentTransactionObserver {
+    weak var iapModule: HybridRnIap?
+    
+    init(iapModule: HybridRnIap) {
+        self.iapModule = iapModule
+    }
+    
+    // Required by SKPaymentTransactionObserver protocol but not used
+    func paymentQueue(_ queue: SKPaymentQueue, updatedTransactions transactions: [SKPaymentTransaction]) {
+        // We don't handle transactions here as StoreKit 2 handles them in HybridRnIap
+    }
+    
+    // Handle promoted products from App Store
+    func paymentQueue(_ queue: SKPaymentQueue, shouldAddStorePayment payment: SKPayment, for product: SKProduct) -> Bool {
+        iapModule?.handlePromotedProduct(payment: payment, product: product)
+        // Return false to defer the payment
+        return false
     }
 }

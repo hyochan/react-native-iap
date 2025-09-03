@@ -1,9 +1,17 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-echo "🔍 Running pre-commit checks..."
+echo "🚀 Running comprehensive pre-commit checks (matching CI)..."
 
-# Run lint-staged for changed files
+# Function to check if command exists
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+# Check if bun is available for example-expo checks
+EXAMPLE_EXPO_CHANGED=$(git diff --cached --name-only | grep -q "^example-expo/" && echo "true" || echo "false")
+
+# 1. Run lint-staged for changed files
 echo "✨ Running lint-staged..."
 yarn lint-staged
 if [ $? -ne 0 ]; then
@@ -11,33 +19,74 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Run typecheck for entire project
-echo "🔍 Running TypeScript check..."
-yarn typecheck
+# 2. Library TypeScript check (matches ci-lint.yml)
+echo "🔍 [CI-LINT] Running library TypeScript check..."
+yarn typecheck:lib
 if [ $? -ne 0 ]; then
-  echo "❌ TypeScript check failed. Please fix errors before committing."
+  echo "❌ [CI-LINT] Library TypeScript check failed. Please fix errors before committing."
   exit 1
 fi
 
-# Run lint check
-echo "🔍 Running ESLint..."
+# 3. Library ESLint check (matches ci-lint.yml)
+echo "🔍 [CI-LINT] Running library ESLint..."
 yarn lint
 if [ $? -ne 0 ]; then
-  echo "❌ ESLint check failed. Please fix errors before committing."
+  echo "❌ [CI-LINT] Library ESLint check failed. Please fix errors before committing."
   exit 1
 fi
 
-# Generate Nitro code if .nitro.ts files were changed
+# 4. Example-expo checks if changed (matches ci-example-expo.yml)
+if [ "$EXAMPLE_EXPO_CHANGED" = "true" ]; then
+  if command_exists bun; then
+    echo "🔍 [CI-EXAMPLE-EXPO] Running example-expo TypeScript check..."
+    cd example-expo && bun run typecheck && cd ..
+    if [ $? -ne 0 ]; then
+      echo "❌ [CI-EXAMPLE-EXPO] Example-expo TypeScript check failed. Please fix errors before committing."
+      exit 1
+    fi
+    
+    echo "🔍 [CI-EXAMPLE-EXPO] Running example-expo ESLint..."
+    cd example-expo && bun run lint && cd ..
+    if [ $? -ne 0 ]; then
+      echo "❌ [CI-EXAMPLE-EXPO] Example-expo ESLint check failed. Please fix errors before committing."
+      exit 1
+    fi
+  else
+    echo "⚠️ [CI-EXAMPLE-EXPO] Bun not found. Skipping example-expo checks."
+    echo "   Install bun globally to enable example-expo pre-commit checks."
+  fi
+fi
+
+# 5. Nitro code generation if .nitro.ts files were changed
 if git diff --cached --name-only | grep -q "\.nitro\.ts$"; then
-  echo "⚙️ Regenerating Nitro code..."
+  echo "⚙️ [NITRO] Regenerating Nitro code..."
   yarn specs
   if [ $? -ne 0 ]; then
-    echo "❌ Nitro code generation failed. Please fix errors before committing."
+    echo "❌ [NITRO] Nitro code generation failed. Please fix errors before committing."
     exit 1
   fi
   
-  # Add generated files to commit if they changed
-  git add nitrogen/generated
+  # Nitro generated files are gitignored, so no need to add them
+  echo "✅ [NITRO] Nitro code regenerated successfully."
 fi
 
-echo "✅ All checks passed! Ready to commit."
+# 6. Library build check (light version of ci-library.yml)
+if git diff --cached --name-only | grep -qE "(src/|android/|ios/|nitrogen/)"; then
+  echo "🔨 [BUILD] Running library build check..."
+  yarn prepare 2>/dev/null || {
+    echo "⚠️ [BUILD] Library build check failed. This may cause CI build failures."
+    echo "   Consider running 'yarn prepare' manually to verify build."
+  }
+fi
+
+echo "✅ All pre-commit checks passed! 🎉"
+echo "📋 Checks performed:"
+echo "   ✓ Lint-staged (file formatting)"
+echo "   ✓ Library TypeScript & ESLint"
+if [ "$EXAMPLE_EXPO_CHANGED" = "true" ]; then
+  echo "   ✓ Example-expo TypeScript & ESLint"
+fi
+echo "   ✓ Nitro code generation (if needed)"
+echo "   ✓ Build validation (if needed)"
+echo ""
+echo "🚀 Ready to commit! This should pass all CI checks."

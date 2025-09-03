@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -8,17 +8,13 @@ import {
   ScrollView,
   Platform,
   Modal,
-} from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import {signal, effect} from '@preact/signals-react';
-import {requestPurchase, useIAP, getAppTransactionIOS} from 'react-native-iap';
-import type {
-  Product,
-  Purchase,
-  PurchaseError,
-} from 'react-native-iap';
+} from 'react-native'
+import * as Clipboard from 'expo-clipboard'
+import { signal, effect } from '@preact/signals-react'
+import { requestPurchase, useIAP, getAppTransactionIOS } from 'react-native-iap'
+import type { Product, Purchase, PurchaseError } from 'react-native-iap'
 
-const PRODUCT_IDS = ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs'];
+const PRODUCT_IDS = ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs']
 
 /**
  * Purchase Flow Example - In-App Products
@@ -31,17 +27,21 @@ const PRODUCT_IDS = ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs'];
  * - Focused on one-time purchases (products)
  */
 // Signals for state management
-const purchaseResultSignal = signal<string>('');
-const isProcessingSignal = signal(false);
-const selectedProductSignal = signal<Product | null>(null);
-const modalVisibleSignal = signal(false);
+const purchaseResultSignal = signal<string>('')
+const isProcessingSignal = signal(false)
+const selectedProductSignal = signal<Product | null>(null)
+const modalVisibleSignal = signal(false)
 
 export default function PurchaseFlow() {
   // React state synced with signals
-  const [purchaseResult, setPurchaseResult] = useState(purchaseResultSignal.value);
-  const [isProcessing, setIsProcessing] = useState(isProcessingSignal.value);
-  const [selectedProduct, setSelectedProduct] = useState(selectedProductSignal.value);
-  const [modalVisible, setModalVisible] = useState(modalVisibleSignal.value);
+  const [purchaseResult, setPurchaseResult] = useState(
+    purchaseResultSignal.value
+  )
+  const [isProcessing, setIsProcessing] = useState(isProcessingSignal.value)
+  const [selectedProduct, setSelectedProduct] = useState(
+    selectedProductSignal.value
+  )
+  const [modalVisible, setModalVisible] = useState(modalVisibleSignal.value)
 
   // Subscribe to signal changes
   useEffect(() => {
@@ -50,26 +50,26 @@ export default function PurchaseFlow() {
       effect(() => setIsProcessing(isProcessingSignal.value)),
       effect(() => setSelectedProduct(selectedProductSignal.value)),
       effect(() => setModalVisible(modalVisibleSignal.value)),
-    ];
+    ]
 
-    return () => unsubscribes.forEach(fn => fn());
-  }, []);
-  
+    return () => unsubscribes.forEach((fn) => fn())
+  }, [])
+
   // Use the useIAP hook for managing purchases
-  const {connected, products, requestProducts, finishTransaction} = useIAP({
+  const { connected, products, fetchProducts, finishTransaction } = useIAP({
     onPurchaseSuccess: async (purchase: Purchase) => {
-      console.log('Purchase successful:', purchase);
-      isProcessingSignal.value = false;
+      console.log('Purchase successful:', purchase)
+      isProcessingSignal.value = false
 
       // Handle successful purchase - Display all purchase data
-      const purchaseData = JSON.stringify(purchase, null, 2);
+      const purchaseData = JSON.stringify(purchase, null, 2)
       purchaseResultSignal.value =
         `✅ Purchase successful (${purchase.platform})\n` +
         `Product: ${purchase.productId}\n` +
         `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
         `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n` +
         `\n📊 Full Purchase Data:\n` +
-        `${purchaseData}`;
+        `${purchaseData}`
 
       // IMPORTANT: Server-side receipt validation should be performed here
       // Send the receipt to your backend server for validation
@@ -85,38 +85,38 @@ export default function PurchaseFlow() {
       await finishTransaction({
         purchase,
         isConsumable: true, // Set to true for consumable products
-      });
+      })
 
-      Alert.alert('Success', 'Purchase completed successfully!');
+      Alert.alert('Success', 'Purchase completed successfully!')
     },
     onPurchaseError: (error: PurchaseError) => {
-      console.error('Purchase failed:', error);
-      isProcessingSignal.value = false;
+      console.error('Purchase failed:', error)
+      isProcessingSignal.value = false
 
       // Handle purchase error - Display full error data
-      const errorData = JSON.stringify(error, null, 2);
-      purchaseResultSignal.value = 
+      const errorData = JSON.stringify(error, null, 2)
+      purchaseResultSignal.value =
         `❌ Purchase failed: ${error.message}\n` +
         `\n🔍 Full Error Data:\n` +
-        `${errorData}`;
+        `${errorData}`
     },
     onSyncError: (error: Error) => {
-      console.warn('Sync error:', error);
-      Alert.alert('Sync Error', `Failed to sync purchases: ${error.message}`);
+      console.warn('Sync error:', error)
+      Alert.alert('Sync Error', `Failed to sync purchases: ${error.message}`)
     },
-  });
+  })
 
   // Load products when component mounts
   useEffect(() => {
     if (connected) {
-      requestProducts({skus: PRODUCT_IDS, type: 'inapp'});
+      fetchProducts({ skus: PRODUCT_IDS, type: 'inapp' })
     }
-  }, [connected, requestProducts]);
+  }, [connected, fetchProducts])
 
   const handlePurchase = async (itemId: string) => {
     try {
-      isProcessingSignal.value = true;
-      purchaseResultSignal.value = 'Processing purchase...';
+      isProcessingSignal.value = true
+      purchaseResultSignal.value = 'Processing purchase...'
 
       // New platform-specific API (v2.7.0+) - no Platform.OS branching needed
       await requestPurchase({
@@ -130,24 +130,26 @@ export default function PurchaseFlow() {
           },
         },
         type: 'inapp',
-      });
+      })
     } catch (error) {
-      isProcessingSignal.value = false;
+      isProcessingSignal.value = false
       const errorMessage =
-        error instanceof Error ? error.message : 'Purchase failed';
-      const fullError = error instanceof Error ? 
-        { message: error.message, stack: error.stack } : error;
-      const errorData = JSON.stringify(fullError, null, 2);
-      purchaseResultSignal.value = 
+        error instanceof Error ? error.message : 'Purchase failed'
+      const fullError =
+        error instanceof Error
+          ? { message: error.message, stack: error.stack }
+          : error
+      const errorData = JSON.stringify(fullError, null, 2)
+      purchaseResultSignal.value =
         `❌ Purchase failed: ${errorMessage}\n` +
         `\n🔍 Full Error Data:\n` +
-        `${errorData}`;
+        `${errorData}`
     }
-  };
+  }
 
   const retryLoadProducts = () => {
-    requestProducts({skus: PRODUCT_IDS, type: 'inapp'});
-  };
+    fetchProducts({ skus: PRODUCT_IDS, type: 'inapp' })
+  }
 
   const getProductDisplayPrice = (product: Product): string => {
     if (
@@ -157,38 +159,38 @@ export default function PurchaseFlow() {
       return (
         product.oneTimePurchaseOfferDetailsAndroid.formattedPrice ||
         product.displayPrice
-      );
+      )
     }
-    return product.displayPrice;
-  };
+    return product.displayPrice
+  }
 
   const handleProductPress = (product: Product) => {
-    selectedProductSignal.value = product;
-    modalVisibleSignal.value = true;
-  };
+    selectedProductSignal.value = product
+    modalVisibleSignal.value = true
+  }
 
   const renderProductDetails = () => {
-    const product = selectedProduct;
-    if (!product) return null;
+    const product = selectedProduct
+    if (!product) return null
 
-    const jsonString = JSON.stringify(product, null, 2);
+    const jsonString = JSON.stringify(product, null, 2)
 
     const copyToClipboard = async () => {
       try {
-        await Clipboard.setStringAsync(jsonString);
-        Alert.alert('Copied', 'Product JSON copied to clipboard');
+        await Clipboard.setStringAsync(jsonString)
+        Alert.alert('Copied', 'Product JSON copied to clipboard')
       } catch {
-        Alert.alert('Copy Failed', 'Failed to copy to clipboard');
+        Alert.alert('Copy Failed', 'Failed to copy to clipboard')
       }
-    };
+    }
 
     const logToConsole = () => {
-      console.log('=== PRODUCT DATA ===');
-      console.log(product);
-      console.log('=== PRODUCT JSON ===');
-      console.log(jsonString);
-      Alert.alert('Console', 'Product data logged to console');
-    };
+      console.log('=== PRODUCT DATA ===')
+      console.log(product)
+      console.log('=== PRODUCT JSON ===')
+      console.log(jsonString)
+      Alert.alert('Console', 'Product data logged to console')
+    }
 
     return (
       <View style={styles.modalContent}>
@@ -210,8 +212,8 @@ export default function PurchaseFlow() {
           </TouchableOpacity>
         </View>
       </View>
-    );
-  };
+    )
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -235,7 +237,7 @@ export default function PurchaseFlow() {
         {!connected ? (
           <Text style={styles.loadingText}>Connecting to store...</Text>
         ) : products.length > 0 ? (
-          products.map((product) => (
+          products.map((product: Product) => (
             <View key={product.id} style={styles.productCard}>
               <View style={styles.productInfo}>
                 <Text style={styles.productTitle}>{product.title}</Text>
@@ -291,10 +293,10 @@ export default function PurchaseFlow() {
             style={styles.resultCard}
             onLongPress={async () => {
               try {
-                await Clipboard.setStringAsync(purchaseResult);
-                Alert.alert('Copied', 'Result copied to clipboard');
+                await Clipboard.setStringAsync(purchaseResult)
+                Alert.alert('Copied', 'Result copied to clipboard')
               } catch {
-                Alert.alert('Copy Failed', 'Failed to copy to clipboard');
+                Alert.alert('Copy Failed', 'Failed to copy to clipboard')
               }
             }}
             activeOpacity={0.8}
@@ -310,7 +312,7 @@ export default function PurchaseFlow() {
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => {
-          modalVisibleSignal.value = false;
+          modalVisibleSignal.value = false
         }}
       >
         <View style={styles.modalOverlay}>
@@ -346,16 +348,16 @@ export default function PurchaseFlow() {
             style={styles.testButton}
             onPress={async () => {
               try {
-                const appTransaction = await getAppTransactionIOS();
+                const appTransaction = await getAppTransactionIOS()
                 Alert.alert(
                   'Success',
-                  `App Transaction: ${JSON.stringify(appTransaction)}`,
-                );
+                  `App Transaction: ${JSON.stringify(appTransaction)}`
+                )
               } catch (error: any) {
                 Alert.alert(
                   'Error',
-                  error.message || 'Failed to get app transaction',
-                );
+                  error.message || 'Failed to get app transaction'
+                )
               }
             }}
           >
@@ -364,7 +366,7 @@ export default function PurchaseFlow() {
         </View>
       )}
     </ScrollView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -621,4 +623,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-});
+})

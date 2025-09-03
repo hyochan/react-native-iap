@@ -4,7 +4,7 @@
 global.__fbBatchedBridgeConfig = {
   remoteModuleConfig: [],
   localModulesConfig: [],
-}
+};
 
 // Mock react-native-nitro-modules
 jest.mock('react-native-nitro-modules', () => ({
@@ -30,13 +30,15 @@ jest.mock('react-native-nitro-modules', () => ({
       validateReceiptIos: jest.fn(() => Promise.resolve()),
       getReceiptIOS: jest.fn(() => Promise.resolve()),
       getPendingPurchasesIOS: jest.fn(() => Promise.resolve()),
-      flushFailedPurchasesCachedAsPendingAndroid: jest.fn(() => Promise.resolve()),
+      flushFailedPurchasesCachedAsPendingAndroid: jest.fn(() =>
+        Promise.resolve(),
+      ),
       deepLinkingGetPendingPurchases: jest.fn(() => Promise.resolve()),
       presentCodeRedemptionSheetIOS: jest.fn(() => Promise.resolve()),
       openRedeemOfferCodeAndroid: jest.fn(() => Promise.resolve()),
     })),
   },
-}))
+}));
 
 // Mock the actual IAP module functions
 jest.mock('../src/index', () => ({
@@ -45,20 +47,20 @@ jest.mock('../src/index', () => ({
   endConnection: jest.fn(() => Promise.resolve()),
   getProducts: jest.fn(() => Promise.resolve([])),
   getSubscriptions: jest.fn(() => Promise.resolve([])),
-  requestProducts: jest.fn(() => Promise.resolve([])),
+  fetchProducts: jest.fn(() => Promise.resolve([])),
   requestPurchase: jest.fn(() => Promise.resolve()),
   requestSubscription: jest.fn(() => Promise.resolve()),
   finishTransaction: jest.fn(() => Promise.resolve()),
   getAvailablePurchases: jest.fn(() => Promise.resolve([])),
   getPurchaseHistory: jest.fn(() => Promise.resolve([])),
-  
+
   // Android specific
   acknowledgePurchaseAndroid: jest.fn(() => Promise.resolve()),
   consumePurchaseAndroid: jest.fn(() => Promise.resolve()),
   flushFailedPurchasesCachedAsPendingAndroid: jest.fn(() => Promise.resolve()),
   deepLinkingGetPendingPurchases: jest.fn(() => Promise.resolve()),
   validateReceiptAndroid: jest.fn(() => Promise.resolve()),
-  
+
   // iOS specific
   clearTransactionIOS: jest.fn(() => Promise.resolve()),
   clearProductsIOS: jest.fn(() => Promise.resolve()),
@@ -71,11 +73,11 @@ jest.mock('../src/index', () => ({
   getPendingPurchasesIOS: jest.fn(() => Promise.resolve()),
   presentCodeRedemptionSheetIOS: jest.fn(() => Promise.resolve()),
   openRedeemOfferCodeAndroid: jest.fn(() => Promise.resolve()),
-  
+
   // Event listeners
-  purchaseUpdatedListener: jest.fn((callback) => ({ remove: jest.fn() })),
-  purchaseErrorListener: jest.fn((callback) => ({ remove: jest.fn() })),
-  
+  purchaseUpdatedListener: jest.fn((callback) => ({remove: jest.fn()})),
+  purchaseErrorListener: jest.fn((callback) => ({remove: jest.fn()})),
+
   // Hook
   useIAP: jest.fn(() => ({
     isInitialized: false,
@@ -92,22 +94,22 @@ jest.mock('../src/index', () => ({
     requestSubscription: jest.fn(() => Promise.resolve()),
     finishTransaction: jest.fn(() => Promise.resolve()),
   })),
-  
+
   // Utility functions
   parseErrorStringToJsonObj: jest.fn((error) => {
     if (typeof error === 'string') {
       try {
-        return JSON.parse(error)
+        return JSON.parse(error);
       } catch {
-        return { message: error }
+        return {message: error};
       }
     }
-    return error
+    return error;
   }),
   isUserCancelledError: jest.fn((error) => {
-    return error?.code === 'E_USER_CANCELLED'
+    return error?.code === 'E_USER_CANCELLED';
   }),
-  
+
   // Enums and constants
   ErrorCode: {
     E_USER_CANCELLED: 'E_USER_CANCELLED',
@@ -135,7 +137,7 @@ jest.mock('../src/index', () => ({
     PURCHASED: 1,
     PENDING: 2,
   },
-}))
+}));
 
 // Mock @react-native-clipboard/clipboard
 jest.mock('@react-native-clipboard/clipboard', () => ({
@@ -147,11 +149,11 @@ jest.mock('@react-native-clipboard/clipboard', () => ({
     hasNumber: jest.fn(() => Promise.resolve(false)),
     hasWebURL: jest.fn(() => Promise.resolve(false)),
   },
-}))
+}));
 
 // Mock react-navigation
 jest.mock('@react-navigation/native', () => {
-  const actualNav = jest.requireActual('@react-navigation/native')
+  const actualNav = jest.requireActual('@react-navigation/native');
   return {
     ...actualNav,
     useNavigation: () => ({
@@ -171,18 +173,18 @@ jest.mock('@react-navigation/native', () => {
     }),
     useIsFocused: () => true,
     useFocusEffect: jest.fn(),
-  }
-})
+  };
+});
 
 // Mock Alert
 global.Alert = {
   alert: jest.fn(),
   prompt: jest.fn(),
-}
+};
 
 // Mock console methods to reduce test output noise
-const originalConsoleError = console.error
-const originalConsoleWarn = console.warn
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
 
 console.error = (...args) => {
   if (
@@ -190,23 +192,20 @@ console.error = (...args) => {
     args[0]?.includes?.('Warning: An update to') ||
     args[0]?.includes?.('Warning: You called act')
   ) {
-    return
+    return;
   }
-  originalConsoleError(...args)
-}
+  originalConsoleError(...args);
+};
 
 console.warn = (...args) => {
-  if (
-    args[0]?.includes?.('Warning:') ||
-    args[0]?.includes?.('Deprecation')
-  ) {
-    return
+  if (args[0]?.includes?.('Warning:') || args[0]?.includes?.('Deprecation')) {
+    return;
   }
-  originalConsoleWarn(...args)
-}
+  originalConsoleWarn(...args);
+};
 
 // Add global test utilities
-global.flushPromises = () => new Promise(resolve => setImmediate(resolve))
+global.flushPromises = () => new Promise((resolve) => setImmediate(resolve));
 
 // Setup fetch mock
 global.fetch = jest.fn(() =>
@@ -215,11 +214,11 @@ global.fetch = jest.fn(() =>
     json: () => Promise.resolve({}),
     text: () => Promise.resolve(''),
     status: 200,
-  })
-)
+  }),
+);
 
 // Mock timers
-jest.useFakeTimers()
+jest.useFakeTimers();
 
 // Mock Linking
 jest.mock('react-native/Libraries/Linking/Linking', () => ({
@@ -228,4 +227,4 @@ jest.mock('react-native/Libraries/Linking/Linking', () => ({
   getInitialURL: jest.fn(() => Promise.resolve(null)),
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
-}))
+}));

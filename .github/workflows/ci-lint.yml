@@ -41,4 +41,4 @@ jobs:
         run: yarn lint
 
       - name: Typecheck files
-        run: yarn typecheck
+        run: yarn typecheck:lib

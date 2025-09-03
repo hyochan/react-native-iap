@@ -15,7 +15,7 @@ jest.mock('react-native-nitro-modules', () => ({
     createHybridObject: jest.fn().mockReturnValue({
       initConnection: jest.fn().mockResolvedValue(true),
       endConnection: jest.fn().mockResolvedValue(true),
-      requestProducts: jest.fn().mockResolvedValue([]),
+      fetchProducts: jest.fn().mockResolvedValue([]),
       requestPurchase: jest.fn().mockResolvedValue(undefined),
       getAvailablePurchases: jest.fn().mockResolvedValue([]),
       finishTransaction: jest.fn().mockResolvedValue(true),
@@ -71,14 +71,14 @@ describe('RnIap Complete Test Suite', () => {
   });
 
   describe('Product APIs', () => {
-    it('should export requestProducts', () => {
-      expect(RNIap.requestProducts).toBeDefined();
-      expect(typeof RNIap.requestProducts).toBe('function');
+    it('should export fetchProducts', () => {
+      expect(RNIap.fetchProducts).toBeDefined();
+      expect(typeof RNIap.fetchProducts).toBe('function');
     });
 
     it('should request products with SKUs', async () => {
       const skus = ['product1', 'product2'];
-      await expect(RNIap.requestProducts({skus})).resolves.toBeDefined();
+      await expect(RNIap.fetchProducts({skus})).resolves.toBeDefined();
     });
   });
 
@@ -260,5 +260,4 @@ describe('RnIap Complete Test Suite', () => {
       expect(RNIap.PurchaseAndroidState.PENDING).toBeDefined();
     });
   });
-
 });

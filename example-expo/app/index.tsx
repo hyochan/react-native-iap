@@ -1,7 +1,7 @@
-import {useEffect, useState} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
-import {Link} from 'expo-router';
-import {getStorefrontIOS} from 'react-native-iap';
+import { useEffect, useState } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { Link } from 'expo-router'
+import { getStorefrontIOS } from 'react-native-iap'
 
 /**
  * Example App Landing Page
@@ -10,19 +10,19 @@ import {getStorefrontIOS} from 'react-native-iap';
  * This demonstrates TypeScript-first, platform-agnostic approaches to in-app purchases.
  */
 export default function Home() {
-  const [storefront, setStorefront] = useState<string | null>(null);
+  const [storefront, setStorefront] = useState<string | null>(null)
 
   useEffect(() => {
     // getStorefrontIOS already handles platform checks internally
     getStorefrontIOS()
-      .then((storefront) => {
-        setStorefront(storefront);
+      .then((storefront: any) => {
+        setStorefront(storefront)
       })
-      .catch((error) => {
+      .catch((error: any) => {
         // Silently fail on non-iOS platforms
-        console.log('Storefront not available:', error.message);
-      });
-  }, []);
+        console.log('Storefront not available:', error.message)
+      })
+  }, [])
 
   return (
     <View style={styles.container}>
@@ -72,7 +72,7 @@ export default function Home() {
         </Link>
       </View>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -142,4 +142,4 @@ const styles = StyleSheet.create({
     color: 'gray',
     fontSize: 14,
   },
-});
+})
