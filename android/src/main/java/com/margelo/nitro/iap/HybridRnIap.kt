@@ -753,4 +753,95 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             }
         }
     }
+    
+    // iOS-specific methods - Not applicable on Android, return appropriate defaults
+    override fun subscriptionStatusIOS(sku: String): Promise<Array<NitroSubscriptionStatus>?> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "subscriptionStatusIOS is only available on iOS platform"
+            ))
+        }
+    }
+    
+    override fun currentEntitlementIOS(sku: String): Promise<NitroPurchase?> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "currentEntitlementIOS is only available on iOS platform"
+            ))
+        }
+    }
+    
+    override fun latestTransactionIOS(sku: String): Promise<NitroPurchase?> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "latestTransactionIOS is only available on iOS platform"
+            ))
+        }
+    }
+    
+    override fun getPendingTransactionsIOS(): Promise<Array<NitroPurchase>> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "getPendingTransactionsIOS is only available on iOS platform"
+            ))
+        }
+    }
+    
+    override fun syncIOS(): Promise<Boolean> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "syncIOS is only available on iOS platform"
+            ))
+        }
+    }
+    
+    override fun showManageSubscriptionsIOS(): Promise<Boolean> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "showManageSubscriptionsIOS is only available on iOS platform"
+            ))
+        }
+    }
+    
+    override fun isEligibleForIntroOfferIOS(groupID: String): Promise<Boolean> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "isEligibleForIntroOfferIOS is only available on iOS platform"
+            ))
+        }
+    }
+    
+    override fun getReceiptDataIOS(): Promise<String> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "getReceiptDataIOS is only available on iOS platform"
+            ))
+        }
+    }
+    
+    override fun isTransactionVerifiedIOS(sku: String): Promise<Boolean> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "isTransactionVerifiedIOS is only available on iOS platform"
+            ))
+        }
+    }
+    
+    override fun getTransactionJwsIOS(sku: String): Promise<String?> {
+        return Promise.async {
+            throw Exception(BillingUtils.createErrorJson(
+                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
+                "getTransactionJwsIOS is only available on iOS platform"
+            ))
+        }
+    }
 }

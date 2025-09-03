@@ -260,7 +260,7 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func finishTransaction(params: NitroFinishTransactionParams) throws -> Promise<Variant_Boolean_NitroPurchaseResult> {
+    func finishTransaction(params: NitroFinishTransactionParams) throws -> Promise<Variant_Bool_NitroPurchaseResult> {
         return Promise.async {
             // iOS implementation
             guard let iosParams = params.ios else {
@@ -341,7 +341,7 @@ class HybridRnIap: HybridRnIapSpec {
                     jwsRepresentation: jwsRepresentation,
                     latestTransaction: latestTransaction
                 )
-                return Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid(result)
+                return Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid.first(result)
                 
             } catch {
                 let errorJson = ErrorUtils.createErrorJson(
@@ -372,7 +372,7 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func getAppTransactionIOS() throws -> Promise<[String: Any?]?> {
+    func getAppTransactionIOS() throws -> Promise<String?> {
         return Promise.async {
             if #available(iOS 16.0, *) {
                 #if compiler(>=5.7)
@@ -409,7 +409,9 @@ class HybridRnIap: HybridRnIapSpec {
                 }
                 #endif
                 
-                return result
+                // Convert dictionary to JSON string
+                let jsonData = try JSONSerialization.data(withJSONObject: result, options: [])
+                return String(data: jsonData, encoding: .utf8)
                 #else
                 let errorJson = ErrorUtils.createErrorJson(
                     code: IapErrorCode.unknown,
@@ -509,7 +511,7 @@ class HybridRnIap: HybridRnIapSpec {
             guard let products = try? await StoreKit.Product.products(for: [sku]),
                   let product = products.first,
                   let subscription = product.subscription else {
-                return nil
+                return []
             }
             
             // Get subscription status
@@ -650,9 +652,11 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             #if !os(tvOS)
             // Get the active window scene
-            guard let windowScene = await UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene })
-                .first(where: { $0.activationState == .foregroundActive }) else {
+            guard let windowScene = await MainActor.run { 
+                UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene })
+                    .first(where: { $0.activationState == .foregroundActive })
+            } else {
                 let errorJson = ErrorUtils.createErrorJson(
                     code: IapErrorCode.serviceError,
                     message: "Cannot find active window scene"
@@ -746,7 +750,7 @@ class HybridRnIap: HybridRnIapSpec {
     func beginRefundRequestIOS(sku: String) throws -> Promise<String?> {
         return Promise.async {
             #if !os(tvOS)
-            if #available(iOS 15.0, macOS 12.0, *) {
+            if #available(macOS 12.0, *) {
                 // Find the latest transaction for the SKU
                 var latestTransaction: Transaction? = nil
                 
@@ -773,9 +777,11 @@ class HybridRnIap: HybridRnIapSpec {
                 // Begin refund request
                 do {
                     // Get the active window scene
-                    guard let windowScene = await UIApplication.shared.connectedScenes
-                        .compactMap({ $0 as? UIWindowScene })
-                        .first(where: { $0.activationState == .foregroundActive }) else {
+                    guard let windowScene = await MainActor.run {
+                        UIApplication.shared.connectedScenes
+                            .compactMap({ $0 as? UIWindowScene })
+                            .first(where: { $0.activationState == .foregroundActive })
+                    } else {
                         let errorJson = ErrorUtils.createErrorJson(
                             code: IapErrorCode.serviceError,
                             message: "Cannot find active window scene"

@@ -81,4 +81,4 @@ jobs:
 
       - name: Build Android app
         working-directory: example/android
-        run: ./gradlew :app:assembleDebug --build-cache --parallel --configure-on-demand
+        run: ./gradlew :app:assembleDebug --build-cache --parallel --configure-on-demand --stacktrace
