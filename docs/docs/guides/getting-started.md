@@ -243,8 +243,6 @@ useEffect(() => {
 
 7. **Product caching is automatic**: The native modules (StoreKit for iOS and Google Play Billing for Android) automatically cache product information. You don't need to implement manual caching - just fetch products when needed.
 
-8. **Check server-side validation libraries**: Consider using open-source libraries like [node-app-store-receipt-verify](https://github.com/ladeiko/node-app-store-receipt-verify) for iOS or [google-play-billing-validator](https://github.com/macklinu/google-play-billing-validator) for Android to simplify server-side validation.
-
 ## Next Steps
 
 - Review our [Complete Store Implementation](../examples/complete-impl) for a full, production-ready example

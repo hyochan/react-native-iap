@@ -38,7 +38,6 @@
     "!**/.*"
   ],
   "scripts": {
-    "postinstall": "yarn prepare && yarn build:plugin",
     "build:plugin": "tsc --build plugin",
     "setup:expo": "cd example-expo && bun setup",
     "example": "yarn workspace rn-iap-example",
