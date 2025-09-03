@@ -4,18 +4,63 @@
         <title>React Native IAP Blog</title>
         <link>https://react-native-iap.hyo.dev/blog</link>
         <description>React Native IAP Blog</description>
-        <lastBuildDate>Sun, 01 Jun 2025 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 03 Sep 2025 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
         <item>
-            <title><![CDATA[Welcome to React Native IAP Documentation]]></title>
+            <title><![CDATA[v14.0.1 - Expo Plugin Fixes]]></title>
+            <link>https://react-native-iap.hyo.dev/blog/release-14-0-1</link>
+            <guid>https://react-native-iap.hyo.dev/blog/release-14-0-1</guid>
+            <pubDate>Wed, 03 Sep 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[We've just released React Native IAP 14.0.1 with important fixes for Expo plugin and npm publishing. 🛠️]]></description>
+            <content:encoded><![CDATA[<p>We've just released React Native IAP 14.0.1 with important fixes for Expo plugin and npm publishing. 🛠️</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="whats-fixed">What's Fixed<a href="https://react-native-iap.hyo.dev/blog/release-14-0-1#whats-fixed" class="hash-link" aria-label="Direct link to What's Fixed" title="Direct link to What's Fixed">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="npm-publishing">NPM Publishing<a href="https://react-native-iap.hyo.dev/blog/release-14-0-1#npm-publishing" class="hash-link" aria-label="Direct link to NPM Publishing" title="Direct link to NPM Publishing">​</a></h3>
+<p>Fixed the npm package to properly include all required build files. The <code>lib/</code> directory and <code>app.plugin.js</code> are now correctly included when publishing to npm.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="ci-and-testing">CI and Testing<a href="https://react-native-iap.hyo.dev/blog/release-14-0-1#ci-and-testing" class="hash-link" aria-label="Direct link to CI and Testing" title="Direct link to CI and Testing">​</a></h3>
+<p>Improved test stability and added Codecov integration for better code coverage tracking. Tests now run reliably in CI environments.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="example-expo-setup">Example-Expo Setup<a href="https://react-native-iap.hyo.dev/blog/release-14-0-1#example-expo-setup" class="hash-link" aria-label="Direct link to Example-Expo Setup" title="Direct link to Example-Expo Setup">​</a></h3>
+<p>Resolved Nitro module registration issues in the example-expo app, making it easier to test and develop with Expo.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="upgrading">Upgrading<a href="https://react-native-iap.hyo.dev/blog/release-14-0-1#upgrading" class="hash-link" aria-label="Direct link to Upgrading" title="Direct link to Upgrading">​</a></h2>
+<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">npm install react-native-iap@14.0.1</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># or</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">yarn add react-native-iap@14.0.1</span><br></span></code></pre></div></div>
+<p>For the full changelog, see our <a href="https://github.com/hyochan/react-native-iap/releases" target="_blank" rel="noopener noreferrer">GitHub releases</a>.</p>]]></content:encoded>
+            <category>Release</category>
+            <category>React Native IAP</category>
+        </item>
+        <item>
+            <title><![CDATA[React Native IAP Reborn]]></title>
             <link>https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap</link>
             <guid>https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap</guid>
-            <pubDate>Sun, 01 Jun 2025 00:00:00 GMT</pubDate>
-            <description><![CDATA[Welcome to the official documentation site for React Native IAP! 🎉]]></description>
-            <content:encoded><![CDATA[<p>Welcome to the official documentation site for <strong>React Native IAP</strong>! 🎉</p>
+            <pubDate>Wed, 03 Sep 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[React Native IAP has been completely renewed with cutting-edge Nitro Modules architecture! 🚀]]></description>
+            <content:encoded><![CDATA[<p><strong>React Native IAP</strong> has been completely renewed with cutting-edge Nitro Modules architecture! 🚀</p>
 <p>We're excited to share this comprehensive resource for developers looking to implement in-app purchases in their Expo and React Native applications.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="️-new-architecture-support">🏗️ New Architecture Support!<a href="https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap#%EF%B8%8F-new-architecture-support" class="hash-link" aria-label="Direct link to 🏗️ New Architecture Support!" title="Direct link to 🏗️ New Architecture Support!">​</a></h2>
+<p><strong>React Native IAP v14.0.0</strong> brings full support for React Native's New Architecture! 🚀</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="powered-by-nitro-modules">Powered by Nitro Modules<a href="https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap#powered-by-nitro-modules" class="hash-link" aria-label="Direct link to Powered by Nitro Modules" title="Direct link to Powered by Nitro Modules">​</a></h3>
+<p>We've completely rewritten React Native IAP using <a href="https://github.com/mrousavy/nitro" target="_blank" rel="noopener noreferrer">Nitro Modules</a>, bringing you:</p>
+<ul>
+<li><strong>⚡ Lightning-fast Performance</strong> - Direct JSI bindings eliminate bridge overhead</li>
+<li><strong>🔒 Type-safe Native APIs</strong> - Full TypeScript support from JavaScript to native code</li>
+<li><strong>🎯 Synchronous Native Calls</strong> - No more async/await for simple getters</li>
+<li><strong>📦 Smaller Bundle Size</strong> - Optimized code generation reduces app size</li>
+<li><strong>🛠️ Better Developer Experience</strong> - Auto-completion and type checking for all native methods</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="key-improvements">Key Improvements<a href="https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap#key-improvements" class="hash-link" aria-label="Direct link to Key Improvements" title="Direct link to Key Improvements">​</a></h3>
+<ul>
+<li><strong>Zero Bridge Overhead</strong>: Direct C++ to JavaScript communication via JSI</li>
+<li><strong>Fabric &amp; TurboModules Ready</strong>: Full compatibility with React Native's New Architecture</li>
+<li><strong>Backwards Compatible</strong>: Works seamlessly with both old and new architecture apps</li>
+<li><strong>Modern Native Code</strong>: Rewritten with Swift (iOS) and Kotlin (Android) for better maintainability</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="migration-made-easy">Migration Made Easy<a href="https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap#migration-made-easy" class="hash-link" aria-label="Direct link to Migration Made Easy" title="Direct link to Migration Made Easy">​</a></h3>
+<p>Upgrading from v13? Our migration is designed to be smooth:</p>
+<ul>
+<li>Most APIs remain the same with enhanced TypeScript types</li>
+<li>Improved error handling with structured error objects</li>
+<li>Better subscription management with new helper methods</li>
+</ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="whats-new">What's New<a href="https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap#whats-new" class="hash-link" aria-label="Direct link to What's New" title="Direct link to What's New">​</a></h2>
 <p>This documentation site features:</p>
 <ul>
@@ -24,6 +69,7 @@
 <li><strong>🎣 useIAP Hook API</strong> - Complete API reference with examples</li>
 <li><strong>⚠️ Error Handling</strong> - Centralized error code management</li>
 <li><strong>🎨 Beautiful Design</strong> - Clean, modern interface with oatmeal theme</li>
+<li><strong>🏗️ New Architecture Support</strong> - Full compatibility with Fabric and TurboModules</li>
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="getting-started">Getting Started<a href="https://react-native-iap.hyo.dev/blog/welcome-to-react-native-iap#getting-started" class="hash-link" aria-label="Direct link to Getting Started" title="Direct link to Getting Started">​</a></h2>
 <p>Ready to add in-app purchases to your app? Start with our <a href="https://react-native-iap.hyo.dev/docs/installation">installation guide</a> and follow our step-by-step setup process.</p>

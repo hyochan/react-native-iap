@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkreact_native_iap_docs=self.webpackChunkreact_native_iap_docs||[]).push([[7472],{5513:e=>{e.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"Welcome to React Native IAP Documentation","permalink":"/blog/welcome-to-react-native-iap","unlisted":false,"date":"2025-06-01T00:00:00.000Z"}]}')}}]);
