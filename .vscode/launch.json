@@ -9,7 +9,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn install && cd example/ios && pod install && cd ../.. && yarn workspace rn-iap-example ios"
+        "yarn && yarn prepare && cd example/ios && pod install && cd ../.. && yarn example ios"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -24,7 +24,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn install && cd example/ios && pod install && cd ../.. && yarn workspace rn-iap-example ios --device"
+        "yarn && yarn prepare && cd example/ios && pod install && cd ../.. && yarn example ios --device"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -39,7 +39,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn install && yarn workspace rn-iap-example start --reset-cache & sleep 5 && yarn workspace rn-iap-example android"
+        "yarn && yarn prepare && cd example/ios && pod install && cd ../.. && yarn example android"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -54,7 +54,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn prepare && cp ios/*.swift example-expo/node_modules/react-native-iap/nitrogen/generated/ios/ && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun ios"
+        "yarn && yarn prepare && cd example-expo && bun instal && cd .. && cp ios/*.swift example-expo/node_modules/react-native-iap/nitrogen/generated/ios/ && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun ios"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -69,7 +69,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn prepare && cp ios/*.swift example-expo/node_modules/react-native-iap/nitrogen/generated/ios/ && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun ios --device"
+        "yarn && yarn prepare && cd example-expo && bun install && cd .. && cp ios/*.swift example-expo/node_modules/react-native-iap/nitrogen/generated/ios/ && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun ios --device"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -84,7 +84,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn prepare && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun android"
+        "yarn && yarn prepare && cd example-expo && bun instal && cd .. &&  cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun android"
       ],
       "console": "integratedTerminal",
       "env": {
