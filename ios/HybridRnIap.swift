@@ -696,15 +696,7 @@ class HybridRnIap: HybridRnIapSpec {
             }
             
             for sku in subscriptionSkus {
-                var product = await self.productStore?.getProduct(productID: sku)
-                if product == nil {
-                    if let products = try? await StoreKit.Product.products(for: [sku]),
-                       let p = products.first {
-                        await self.productStore?.addProduct(p)
-                        product = p
-                    }
-                }
-                if let product = product,
+                if let product = await self.fetchProductIfNeeded(sku: sku),
                    let status = try? await product.subscription?.status.first {
                     var willAutoRenew = false
                     if case .verified(let info) = status.renewalInfo {
@@ -724,15 +716,7 @@ class HybridRnIap: HybridRnIapSpec {
             var updatedSubscriptions: [NitroPurchase] = []
             
             for sku in subscriptionSkus {
-                var product = await self.productStore?.getProduct(productID: sku)
-                if product == nil {
-                    if let products = try? await StoreKit.Product.products(for: [sku]),
-                       let p = products.first {
-                        await self.productStore?.addProduct(p)
-                        product = p
-                    }
-                }
-                if let product = product,
+                if let product = await self.fetchProductIfNeeded(sku: sku),
                    let status = try? await product.subscription?.status.first,
                    let result = await product.latestTransaction {
                     
@@ -968,6 +952,22 @@ class HybridRnIap: HybridRnIapSpec {
     }
     
     // MARK: - Private Helper Methods
+    
+    private func fetchProductIfNeeded(sku: String) async -> Product? {
+        // Check if product is already cached
+        if let product = await self.productStore?.getProduct(productID: sku) {
+            return product
+        }
+        
+        // Fetch from StoreKit and cache it
+        if let products = try? await StoreKit.Product.products(for: [sku]),
+           let product = products.first {
+            await self.productStore?.addProduct(product)
+            return product
+        }
+        
+        return nil
+    }
     
     private func purchaseProduct(
         _ product: Product,
