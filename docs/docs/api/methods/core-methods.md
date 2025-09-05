@@ -30,7 +30,7 @@ This difference exists because:
 | ------------------- | ------------------ | --------------------- | ----------------------------------- |
 | `requestPurchase()` | Uses `sku: string` | Uses `skus: string[]` | Platform-specific handling required |
 
-**💡 Best Practice:** Use the new platform-specific API (v14.0.0-rc+) to avoid platform checks:
+**💡 Best Practice:** Use the new platform-specific API (v14.0+) to avoid platform checks:
 
 ```tsx
 // New API - no Platform.OS checks needed!
@@ -64,7 +64,7 @@ const initialize = async () => {
 }
 ```
 
-**Returns:** `Promise<boolean>`
+**Returns:** `Promise<Purchase[]>` — Subscriptions whose auto-renewal status changed
 
 **Note:** When using the `useIAP` hook, connection is automatically managed.
 
@@ -150,7 +150,7 @@ Initiates a purchase request for products or subscriptions.
 > - **iOS**: Can only purchase one product at a time (uses `sku: string`)
 > - **Android**: Can purchase multiple products at once (uses `skus: string[]`)
 
-#### Platform-Specific API (v14.0.0-rc+) - Recommended
+#### Platform-Specific API (v14.0+) - Recommended
 
 ```tsx
 import { requestPurchase } from 'react-native-iap'

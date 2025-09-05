@@ -50,8 +50,12 @@ const config: Config = {
           lastVersion: 'current',
           versions: {
             current: {
-              label: '14.0.0-rc (Current)',
+              label: '14.1 (Current)',
               path: '',
+            },
+            '14.0': {
+              label: '14.0',
+              path: '14.0',
             },
           },
         },
