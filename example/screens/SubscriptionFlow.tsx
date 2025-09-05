@@ -17,6 +17,7 @@ import {
   type SubscriptionProduct,
   type PurchaseError,
   type Purchase,
+  type PurchaseIOS,
 } from 'react-native-iap';
 
 /**
@@ -50,65 +51,70 @@ export default function SubscriptionFlow() {
     getActiveSubscriptions,
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
-      console.log('Subscription successful:', purchase);
+      console.log('Subscription successful (event):', purchase);
       setIsProcessing(false);
 
-      // Check if this is a duplicate subscription (already active)
-      const isAlreadySubscribed = activeSubscriptions.some(
-        (sub) => sub.productId === purchase.productId,
-      );
+      // Determine restoration for iOS based on original vs. current transaction ID
+      let isRestoration = false;
+      if (Platform.OS === 'ios' && purchase.platform === 'ios') {
+        const iosPurchase = purchase as PurchaseIOS;
+        const currentId = purchase.transactionId || purchase.id;
+        isRestoration = Boolean(
+          iosPurchase.originalTransactionIdentifierIOS &&
+            iosPurchase.originalTransactionIdentifierIOS !== currentId,
+        );
+      }
 
-      if (isAlreadySubscribed) {
-        // This is likely a duplicate transaction or restoration
+      try {
+        // Always finish subscription transactions (no-op if auto-finished)
+        await finishTransaction({purchase, isConsumable: false});
+      } catch (e) {
+        console.warn('finishTransaction (post-purchase) failed:', e);
+      }
+
+      if (isRestoration) {
+        // Treat as restoration/verification
         setPurchaseResult(
           `ℹ️ Subscription restored/verified (${purchase.platform})\n` +
-            `Product: ${purchase.productId}\n` +
-            `No additional charge - existing subscription confirmed`,
+            `Product: ${purchase.productId}`,
         );
-
-        await finishTransaction({
-          purchase,
-          isConsumable: false,
-        });
-
-        Alert.alert(
-          'Subscription Status',
-          'Your subscription is already active. No additional charge was made.',
-        );
+        // Refresh state
+        try {
+          await getActiveSubscriptions();
+          await getAvailablePurchases();
+        } catch {}
         return;
       }
 
-      // Handle new subscription
-      setPurchaseResult(
-        `✅ Subscription successful (${purchase.platform})\n` +
-          `Product: ${purchase.productId}\n` +
-          `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
-          `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n` +
-          `Receipt: ${purchase.transactionReceipt?.substring(0, 50)}...`,
-      );
-
-      // IMPORTANT: Server-side receipt validation should be performed here
-      // Send the receipt to your backend server for validation
-      // Example:
-      // const isValid = await validateReceiptOnServer(purchase.transactionReceipt);
-      // if (!isValid) {
-      //   Alert.alert('Error', 'Receipt validation failed');
-      //   return;
-      // }
-
-      // After successful server validation, finish the transaction
-      // For subscriptions, isConsumable should be false (subscriptions are non-consumable)
-      await finishTransaction({
-        purchase,
-        isConsumable: false, // Set to false for subscriptions
-      });
-
-      Alert.alert('Success', 'Subscription activated successfully!');
-
-      // Refresh subscription status after successful purchase
-      setTimeout(() => {
-        checkSubscriptionStatus();
-      }, 1000);
+      // New subscription — verify activation before showing success
+      setPurchaseResult('⏳ Processing subscription...');
+      try {
+        const subs = await getActiveSubscriptions([purchase.productId]);
+        const isNowActive = subs.some(
+          (s) => s.productId === purchase.productId,
+        );
+        if (isNowActive) {
+          setPurchaseResult(
+            `✅ Subscription activated (${purchase.platform})\n` +
+              `Product: ${purchase.productId}\n` +
+              `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
+              `Date: ${new Date(
+                purchase.transactionDate,
+              ).toLocaleDateString()}`,
+          );
+          Alert.alert('Success', 'Subscription activated successfully!');
+        } else {
+          setPurchaseResult(
+            '⏳ Subscription is processing. Please refresh status shortly.',
+          );
+        }
+      } finally {
+        // Also refresh history/state shortly after
+        setTimeout(() => {
+          getAvailablePurchases().catch(() => {});
+          getActiveSubscriptions().catch(() => {});
+        }, 1000);
+      }
     },
     onPurchaseError: (error: PurchaseError) => {
       console.error('Subscription failed:', error);
@@ -132,6 +138,10 @@ export default function SubscriptionFlow() {
   const [selectedSubscription, setSelectedSubscription] =
     useState<SubscriptionProduct | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(
+    null,
+  );
+  const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
 
   // Load subscription products when connected
   useEffect(() => {
@@ -541,10 +551,10 @@ export default function SubscriptionFlow() {
                     {isProcessing
                       ? 'Processing...'
                       : activeSubscriptions.some(
-                            (sub) => sub.productId === subscription.id,
-                          )
-                        ? '✅ Subscribed'
-                        : 'Subscribe'}
+                          (sub) => sub.productId === subscription.id,
+                        )
+                      ? '✅ Subscribed'
+                      : 'Subscribe'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -573,10 +583,29 @@ export default function SubscriptionFlow() {
           <Text style={styles.subtitle}>
             Past purchases and subscription transactions
           </Text>
-          {availablePurchases.map((purchase: Purchase, index: number) => (
-            <View key={`${purchase.id}-${index}`} style={styles.purchaseCard}>
+          {(() => {
+            // Deduplicate by productId: keep the most recent transaction
+            const byId = new Map<string, Purchase>()
+            for (const p of availablePurchases) {
+              const existing = byId.get(p.productId)
+              if (!existing || (p.transactionDate || 0) > (existing.transactionDate || 0)) {
+                byId.set(p.productId, p)
+              }
+            }
+            const unique = Array.from(byId.values())
+            return unique
+          })().map((purchase: Purchase, index: number) => (
+            <TouchableOpacity
+              key={`${purchase.id}-${index}`}
+              style={styles.purchaseCard}
+              activeOpacity={0.8}
+              onLongPress={() => {
+                setSelectedPurchase(purchase);
+                setPurchaseModalVisible(true);
+              }}
+            >
               <View style={styles.purchaseInfo}>
-                <Text style={styles.purchaseTitle}>{purchase.id}</Text>
+                <Text style={styles.purchaseTitle}>{purchase.productId}</Text>
                 <Text style={styles.purchaseDate}>
                   {new Date(purchase.transactionDate).toLocaleDateString()}
                 </Text>
@@ -591,7 +620,7 @@ export default function SubscriptionFlow() {
                     </Text>
                   )}
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -625,6 +654,61 @@ export default function SubscriptionFlow() {
               </TouchableOpacity>
             </View>
             {renderSubscriptionDetails()}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Purchase Details Modal (long press) */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={purchaseModalVisible}
+        onRequestClose={() => setPurchaseModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Purchase Details</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setPurchaseModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {selectedPurchase ? (
+              <View style={styles.modalContent}>
+                <ScrollView style={styles.jsonContainer}>
+                  <Text style={styles.jsonText}>
+                    {JSON.stringify(selectedPurchase, null, 2)}
+                  </Text>
+                </ScrollView>
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.copyButton]}
+                    onPress={() =>
+                      Clipboard.setString(
+                        JSON.stringify(selectedPurchase, null, 2),
+                      )
+                    }
+                  >
+                    <Text style={styles.actionButtonText}>📋 Copy</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.consoleButton]}
+                    onPress={() => {
+                      console.log('=== PURCHASE DATA ===');
+                      console.log(selectedPurchase);
+                      console.log('=== PURCHASE JSON ===');
+                      console.log(JSON.stringify(selectedPurchase, null, 2));
+                      Alert.alert('Console', 'Purchase data logged to console');
+                    }}
+                  >
+                    <Text style={styles.actionButtonText}>🖥️ Console</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
           </View>
         </View>
       </Modal>

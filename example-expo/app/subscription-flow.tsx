@@ -2,7 +2,7 @@
 // This file is automatically copied during postinstall
 // Do not edit directly - modify the source file instead
 
-import { useEffect, useCallback, useState } from 'react'
+import {useEffect, useCallback, useState} from 'react';
 import {
   View,
   Text,
@@ -13,15 +13,16 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
-} from 'react-native'
-import Clipboard from '@react-native-clipboard/clipboard'
+} from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {
   useIAP,
   requestPurchase,
   type SubscriptionProduct,
   type PurchaseError,
   type Purchase,
-} from 'react-native-iap'
+  type PurchaseIOS,
+} from 'react-native-iap';
 
 /**
  * Subscription Flow Example - Subscription Products
@@ -40,7 +41,7 @@ import {
  */
 
 // Sample subscription product IDs
-const SUBSCRIPTION_IDS = ['dev.hyo.martie.premium']
+const SUBSCRIPTION_IDS = ['dev.hyo.martie.premium'];
 
 export default function SubscriptionFlow() {
   const {
@@ -54,128 +55,137 @@ export default function SubscriptionFlow() {
     getActiveSubscriptions,
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
-      console.log('Subscription successful:', purchase)
-      setIsProcessing(false)
+      console.log('Subscription successful (event):', purchase);
+      setIsProcessing(false);
 
-      // Check if this is a duplicate subscription (already active)
-      const isAlreadySubscribed = activeSubscriptions.some(
-        (sub) => sub.productId === purchase.productId
-      )
-
-      if (isAlreadySubscribed) {
-        // This is likely a duplicate transaction or restoration
-        setPurchaseResult(
-          `ℹ️ Subscription restored/verified (${purchase.platform})\n` +
-            `Product: ${purchase.productId}\n` +
-            `No additional charge - existing subscription confirmed`
-        )
-
-        await finishTransaction({
-          purchase,
-          isConsumable: false,
-        })
-
-        Alert.alert(
-          'Subscription Status',
-          'Your subscription is already active. No additional charge was made.'
-        )
-        return
+      // Determine restoration for iOS based on original vs. current transaction ID
+      let isRestoration = false;
+      if (Platform.OS === 'ios' && purchase.platform === 'ios') {
+        const iosPurchase = purchase as PurchaseIOS;
+        const currentId = purchase.transactionId || purchase.id;
+        isRestoration = Boolean(
+          iosPurchase.originalTransactionIdentifierIOS &&
+            iosPurchase.originalTransactionIdentifierIOS !== currentId,
+        );
       }
 
-      // Handle new subscription
-      setPurchaseResult(
-        `✅ Subscription successful (${purchase.platform})\n` +
-          `Product: ${purchase.productId}\n` +
-          `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
-          `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n` +
-          `Receipt: ${purchase.transactionReceipt?.substring(0, 50)}...`
-      )
+      try {
+        // Always finish subscription transactions (no-op if auto-finished)
+        await finishTransaction({purchase, isConsumable: false});
+      } catch (e) {
+        console.warn('finishTransaction (post-purchase) failed:', e);
+      }
 
-      // IMPORTANT: Server-side receipt validation should be performed here
-      // Send the receipt to your backend server for validation
-      // Example:
-      // const isValid = await validateReceiptOnServer(purchase.transactionReceipt);
-      // if (!isValid) {
-      //   Alert.alert('Error', 'Receipt validation failed');
-      //   return;
-      // }
+      if (isRestoration) {
+        // Treat as restoration/verification
+        setPurchaseResult(
+          `ℹ️ Subscription restored/verified (${purchase.platform})\n` +
+            `Product: ${purchase.productId}`,
+        );
+        // Refresh state
+        try {
+          await getActiveSubscriptions();
+          await getAvailablePurchases();
+        } catch {}
+        return;
+      }
 
-      // After successful server validation, finish the transaction
-      // For subscriptions, isConsumable should be false (subscriptions are non-consumable)
-      await finishTransaction({
-        purchase,
-        isConsumable: false, // Set to false for subscriptions
-      })
-
-      Alert.alert('Success', 'Subscription activated successfully!')
-
-      // Refresh subscription status after successful purchase
-      setTimeout(() => {
-        checkSubscriptionStatus()
-      }, 1000)
+      // New subscription — verify activation before showing success
+      setPurchaseResult('⏳ Processing subscription...');
+      try {
+        const subs = await getActiveSubscriptions([purchase.productId]);
+        const isNowActive = subs.some(
+          (s) => s.productId === purchase.productId,
+        );
+        if (isNowActive) {
+          setPurchaseResult(
+            `✅ Subscription activated (${purchase.platform})\n` +
+              `Product: ${purchase.productId}\n` +
+              `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
+              `Date: ${new Date(
+                purchase.transactionDate,
+              ).toLocaleDateString()}`,
+          );
+          Alert.alert('Success', 'Subscription activated successfully!');
+        } else {
+          setPurchaseResult(
+            '⏳ Subscription is processing. Please refresh status shortly.',
+          );
+        }
+      } finally {
+        // Also refresh history/state shortly after
+        setTimeout(() => {
+          getAvailablePurchases().catch(() => {});
+          getActiveSubscriptions().catch(() => {});
+        }, 1000);
+      }
     },
     onPurchaseError: (error: PurchaseError) => {
-      console.error('Subscription failed:', error)
-      setIsProcessing(false)
+      console.error('Subscription failed:', error);
+      setIsProcessing(false);
 
       // Handle subscription error
-      setPurchaseResult(`❌ Subscription failed: ${error.message}`)
+      setPurchaseResult(`❌ Subscription failed: ${error.message}`);
     },
     onSyncError: (error: Error) => {
-      console.warn('Sync error:', error)
+      console.warn('Sync error:', error);
       Alert.alert(
         'Sync Error',
-        `Failed to sync subscriptions: ${error.message}`
-      )
+        `Failed to sync subscriptions: ${error.message}`,
+      );
     },
-  })
+  });
 
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false)
-  const [purchaseResult, setPurchaseResult] = useState('')
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [purchaseResult, setPurchaseResult] = useState('');
   const [selectedSubscription, setSelectedSubscription] =
-    useState<SubscriptionProduct | null>(null)
-  const [modalVisible, setModalVisible] = useState(false)
+    useState<SubscriptionProduct | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(
+    null,
+  );
+  const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
 
   // Load subscription products when connected
   useEffect(() => {
     if (connected) {
-      console.log('Connected to store, loading subscription products...')
+      console.log('Connected to store, loading subscription products...');
       // fetchProducts is event-based, not promise-based
       // Results will be available through the useIAP hook's subscriptions state
-      fetchProducts({ skus: SUBSCRIPTION_IDS, type: 'subs' })
-      console.log('Product loading request sent - waiting for results...')
+      fetchProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
+      console.log('Product loading request sent - waiting for results...');
 
       // Load available purchases to check subscription history
-      console.log('Loading available purchases...')
+      console.log('Loading available purchases...');
       getAvailablePurchases().catch((error) => {
-        console.warn('Failed to load available purchases:', error)
-      })
+        console.warn('Failed to load available purchases:', error);
+      });
     }
-  }, [connected, fetchProducts, getAvailablePurchases])
+  }, [connected, fetchProducts, getAvailablePurchases]);
 
   // Check subscription status separately to avoid infinite loop
   useEffect(() => {
     if (connected) {
       // Use a timeout to avoid rapid consecutive calls
       const timer = setTimeout(() => {
-        checkSubscriptionStatus()
-      }, 500)
+        checkSubscriptionStatus();
+      }, 500);
 
-      return () => clearTimeout(timer)
+      return () => clearTimeout(timer);
     }
-    return undefined
+    return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected])
+  }, [connected]);
 
   // Track activeSubscriptions state changes
   useEffect(() => {
     console.log(
       '[STATE CHANGE] activeSubscriptions:',
       activeSubscriptions.length,
-      activeSubscriptions
-    )
-  }, [activeSubscriptions])
+      activeSubscriptions,
+    );
+  }, [activeSubscriptions]);
 
   // Track subscriptions (products) state changes
   useEffect(() => {
@@ -185,36 +195,36 @@ export default function SubscriptionFlow() {
       subscriptions.map((s: SubscriptionProduct) => ({
         id: s.id,
         title: s.title,
-      }))
-    )
-  }, [subscriptions])
+      })),
+    );
+  }, [subscriptions]);
 
   // Removed - handled by onPurchaseSuccess and onPurchaseError callbacks
 
   // Check subscription status
   const checkSubscriptionStatus = useCallback(async () => {
-    if (!connected || isCheckingStatus) return
+    if (!connected || isCheckingStatus) return;
 
-    setIsCheckingStatus(true)
+    setIsCheckingStatus(true);
     try {
       // No need to pass subscriptionIds - it will check all active subscriptions
-      const subs = await getActiveSubscriptions()
-      console.log('Active subscriptions result:', subs)
+      const subs = await getActiveSubscriptions();
+      console.log('Active subscriptions result:', subs);
     } catch (error) {
-      console.error('Error checking subscription status:', error)
+      console.error('Error checking subscription status:', error);
     } finally {
-      setIsCheckingStatus(false)
+      setIsCheckingStatus(false);
     }
-  }, [connected, getActiveSubscriptions, isCheckingStatus])
+  }, [connected, getActiveSubscriptions, isCheckingStatus]);
 
   // Handle subscription purchase
   const handleSubscription = async (itemId: string) => {
     try {
-      setIsProcessing(true)
-      setPurchaseResult('Processing subscription...')
+      setIsProcessing(true);
+      setPurchaseResult('Processing subscription...');
 
       // Find the subscription to get offer details for Android
-      const subscription = subscriptions.find((sub) => sub.id === itemId)
+      const subscription = subscriptions.find((sub) => sub.id === itemId);
 
       // New platform-specific API (v2.7.0+) - no Platform.OS branching needed
       // requestPurchase is event-based - results come through onPurchaseSuccess/onPurchaseError
@@ -234,133 +244,134 @@ export default function SubscriptionFlow() {
                     (offer: any) => ({
                       sku: itemId,
                       offerToken: offer.offerToken,
-                    })
+                    }),
                   )
                 : [],
           },
         },
         type: 'subs',
-      })
+      });
     } catch (error) {
-      setIsProcessing(false)
+      setIsProcessing(false);
       const errorMessage =
-        error instanceof Error ? error.message : 'Subscription failed'
-      setPurchaseResult(`❌ Subscription failed: ${errorMessage}`)
-      Alert.alert('Subscription Failed', errorMessage)
+        error instanceof Error ? error.message : 'Subscription failed';
+      setPurchaseResult(`❌ Subscription failed: ${errorMessage}`);
+      Alert.alert('Subscription Failed', errorMessage);
     }
-  }
+  };
 
   // Retry loading subscriptions
   const retryLoadSubscriptions = () => {
-    fetchProducts({ skus: SUBSCRIPTION_IDS, type: 'subs' })
-  }
+    fetchProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
+  };
 
   // Get subscription display price
   const getSubscriptionDisplayPrice = (
-    subscription: SubscriptionProduct
+    subscription: SubscriptionProduct,
   ): string => {
     if (
       'subscriptionOfferDetailsAndroid' in subscription &&
       subscription.subscriptionOfferDetailsAndroid
     ) {
       // Android subscription pricing structure
-      const offers = subscription.subscriptionOfferDetailsAndroid
+      const offers = subscription.subscriptionOfferDetailsAndroid;
       if (offers && offers.length > 0) {
-        const firstOffer = offers[0]
+        const firstOffer = offers[0];
         if (firstOffer && firstOffer.pricingPhases) {
-          const pricingPhaseList = firstOffer.pricingPhases.pricingPhaseList
+          const pricingPhaseList = firstOffer.pricingPhases.pricingPhaseList;
           if (pricingPhaseList && pricingPhaseList.length > 0) {
-            const firstPhase = pricingPhaseList[0]
+            const firstPhase = pricingPhaseList[0];
             if (firstPhase) {
-              return firstPhase.formattedPrice
+              return firstPhase.formattedPrice;
             }
           }
         }
       }
-      return subscription.displayPrice
+      return subscription.displayPrice;
     } else {
       // iOS subscription pricing
-      return subscription.displayPrice
+      return subscription.displayPrice;
     }
-  }
+  };
 
   // Get subscription period
   const getSubscriptionPeriod = (subscription: SubscriptionProduct): string => {
     if (Platform.OS === 'ios' && 'subscriptionPeriodUnitIOS' in subscription) {
       // iOS subscription period
-      const periodUnit = subscription.subscriptionPeriodUnitIOS
-      const periodNumber = subscription.subscriptionPeriodNumberIOS
+      const periodUnit = subscription.subscriptionPeriodUnitIOS;
+      const periodNumber = subscription.subscriptionPeriodNumberIOS;
       if (periodUnit && periodNumber) {
         const units: Record<string, string> = {
           DAY: 'day',
           WEEK: 'week',
           MONTH: 'month',
           YEAR: 'year',
-        }
-        const periodNum = parseInt(periodNumber, 10)
+        };
+        const periodNum = parseInt(periodNumber, 10);
         return `${periodNumber} ${units[periodUnit] || periodUnit}${
           periodNum > 1 ? 's' : ''
-        }`
+        }`;
       }
     }
     // Default or Android
-    return 'subscription'
-  }
+    return 'subscription';
+  };
 
   // Get introductory offer text
   const getIntroductoryOffer = (
-    subscription: SubscriptionProduct
+    subscription: SubscriptionProduct,
   ): string | null => {
     if (Platform.OS === 'ios' && 'introductoryPriceIOS' in subscription) {
       if (subscription.introductoryPriceIOS) {
-        const paymentMode = subscription.introductoryPricePaymentModeIOS
-        const numberOfPeriods = subscription.introductoryPriceNumberOfPeriodsIOS
+        const paymentMode = subscription.introductoryPricePaymentModeIOS;
+        const numberOfPeriods =
+          subscription.introductoryPriceNumberOfPeriodsIOS;
         const subscriptionPeriod =
-          subscription.introductoryPriceSubscriptionPeriodIOS
+          subscription.introductoryPriceSubscriptionPeriodIOS;
 
         if (paymentMode === 'FREETRIAL') {
-          return `${numberOfPeriods} ${subscriptionPeriod} free trial`
+          return `${numberOfPeriods} ${subscriptionPeriod} free trial`;
         } else if (paymentMode === 'PAYASYOUGO') {
-          return `${subscription.introductoryPriceIOS} for ${numberOfPeriods} ${subscriptionPeriod}`
+          return `${subscription.introductoryPriceIOS} for ${numberOfPeriods} ${subscriptionPeriod}`;
         } else if (paymentMode === 'PAYUPFRONT') {
-          return `${subscription.introductoryPriceIOS} for first ${numberOfPeriods} ${subscriptionPeriod}`
+          return `${subscription.introductoryPriceIOS} for first ${numberOfPeriods} ${subscriptionPeriod}`;
         }
       }
     }
-    return null
-  }
+    return null;
+  };
 
   // Handle subscription info press
   const handleSubscriptionPress = (subscription: SubscriptionProduct) => {
-    setSelectedSubscription(subscription)
-    setModalVisible(true)
-  }
+    setSelectedSubscription(subscription);
+    setModalVisible(true);
+  };
 
   // Copy subscription details to clipboard
   const copyToClipboard = async () => {
-    if (!selectedSubscription) return
+    if (!selectedSubscription) return;
 
-    const jsonString = JSON.stringify(selectedSubscription, null, 2)
-    Clipboard.setString(jsonString)
-    Alert.alert('Copied', 'Subscription JSON copied to clipboard')
-  }
+    const jsonString = JSON.stringify(selectedSubscription, null, 2);
+    Clipboard.setString(jsonString);
+    Alert.alert('Copied', 'Subscription JSON copied to clipboard');
+  };
 
   // Log subscription to console
   const logToConsole = () => {
-    if (!selectedSubscription) return
+    if (!selectedSubscription) return;
 
-    console.log('=== SUBSCRIPTION DATA ===')
-    console.log(selectedSubscription)
-    console.log('=== SUBSCRIPTION JSON ===')
-    console.log(JSON.stringify(selectedSubscription, null, 2))
-    Alert.alert('Console', 'Subscription data logged to console')
-  }
+    console.log('=== SUBSCRIPTION DATA ===');
+    console.log(selectedSubscription);
+    console.log('=== SUBSCRIPTION JSON ===');
+    console.log(JSON.stringify(selectedSubscription, null, 2));
+    Alert.alert('Console', 'Subscription data logged to console');
+  };
 
   // Render subscription details modal
   const renderSubscriptionDetails = () => {
-    if (!selectedSubscription) return null
+    if (!selectedSubscription) return null;
 
-    const jsonString = JSON.stringify(selectedSubscription, null, 2)
+    const jsonString = JSON.stringify(selectedSubscription, null, 2);
 
     return (
       <View style={styles.modalContent}>
@@ -382,8 +393,8 @@ export default function SubscriptionFlow() {
           </TouchableOpacity>
         </View>
       </View>
-    )
-  }
+    );
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -517,11 +528,11 @@ export default function SubscriptionFlow() {
                     styles.subscribeButton,
                     (isProcessing ||
                       activeSubscriptions.some(
-                        (sub) => sub.productId === subscription.id
+                        (sub) => sub.productId === subscription.id,
                       )) &&
                       styles.disabledButton,
                     activeSubscriptions.some(
-                      (sub) => sub.productId === subscription.id
+                      (sub) => sub.productId === subscription.id,
                     ) && styles.subscribedButton,
                   ]}
                   onPress={() => handleSubscription(subscription.id)}
@@ -529,7 +540,7 @@ export default function SubscriptionFlow() {
                     isProcessing ||
                     !connected ||
                     activeSubscriptions.some(
-                      (sub) => sub.productId === subscription.id
+                      (sub) => sub.productId === subscription.id,
                     )
                   }
                 >
@@ -537,14 +548,14 @@ export default function SubscriptionFlow() {
                     style={[
                       styles.subscribeButtonText,
                       activeSubscriptions.some(
-                        (sub) => sub.productId === subscription.id
+                        (sub) => sub.productId === subscription.id,
                       ) && styles.subscribedButtonText,
                     ]}
                   >
                     {isProcessing
                       ? 'Processing...'
                       : activeSubscriptions.some(
-                            (sub) => sub.productId === subscription.id
+                            (sub) => sub.productId === subscription.id,
                           )
                         ? '✅ Subscribed'
                         : 'Subscribe'}
@@ -576,10 +587,32 @@ export default function SubscriptionFlow() {
           <Text style={styles.subtitle}>
             Past purchases and subscription transactions
           </Text>
-          {availablePurchases.map((purchase: Purchase, index: number) => (
-            <View key={`${purchase.id}-${index}`} style={styles.purchaseCard}>
+          {(() => {
+            // Deduplicate by productId: keep the most recent transaction
+            const byId = new Map<string, Purchase>();
+            for (const p of availablePurchases) {
+              const existing = byId.get(p.productId);
+              if (
+                !existing ||
+                (p.transactionDate || 0) > (existing.transactionDate || 0)
+              ) {
+                byId.set(p.productId, p);
+              }
+            }
+            const unique = Array.from(byId.values());
+            return unique;
+          })().map((purchase: Purchase, index: number) => (
+            <TouchableOpacity
+              key={`${purchase.id}-${index}`}
+              style={styles.purchaseCard}
+              activeOpacity={0.8}
+              onLongPress={() => {
+                setSelectedPurchase(purchase);
+                setPurchaseModalVisible(true);
+              }}
+            >
               <View style={styles.purchaseInfo}>
-                <Text style={styles.purchaseTitle}>{purchase.id}</Text>
+                <Text style={styles.purchaseTitle}>{purchase.productId}</Text>
                 <Text style={styles.purchaseDate}>
                   {new Date(purchase.transactionDate).toLocaleDateString()}
                 </Text>
@@ -594,7 +627,7 @@ export default function SubscriptionFlow() {
                     </Text>
                   )}
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -632,6 +665,61 @@ export default function SubscriptionFlow() {
         </View>
       </Modal>
 
+      {/* Purchase Details Modal (long press) */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={purchaseModalVisible}
+        onRequestClose={() => setPurchaseModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Purchase Details</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setPurchaseModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {selectedPurchase ? (
+              <View style={styles.modalContent}>
+                <ScrollView style={styles.jsonContainer}>
+                  <Text style={styles.jsonText}>
+                    {JSON.stringify(selectedPurchase, null, 2)}
+                  </Text>
+                </ScrollView>
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.copyButton]}
+                    onPress={() =>
+                      Clipboard.setString(
+                        JSON.stringify(selectedPurchase, null, 2),
+                      )
+                    }
+                  >
+                    <Text style={styles.actionButtonText}>📋 Copy</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.consoleButton]}
+                    onPress={() => {
+                      console.log('=== PURCHASE DATA ===');
+                      console.log(selectedPurchase);
+                      console.log('=== PURCHASE JSON ===');
+                      console.log(JSON.stringify(selectedPurchase, null, 2));
+                      Alert.alert('Console', 'Purchase data logged to console');
+                    }}
+                  >
+                    <Text style={styles.actionButtonText}>🖥️ Console</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+
       {/* Info Section */}
       <View style={styles.infoSection}>
         <Text style={styles.infoTitle}>🔄 Key Features with useIAP Hook</Text>
@@ -644,7 +732,7 @@ export default function SubscriptionFlow() {
         </Text>
       </View>
     </ScrollView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -1015,4 +1103,4 @@ const styles = StyleSheet.create({
     color: '#0066cc',
     lineHeight: 20,
   },
-})
+});

@@ -81,7 +81,11 @@ const PurchaseFlow: React.FC = () => {
         `Order ID: ${androidPurchase.orderId || 'N/A'}\n` +
         `Package: ${androidPurchase.packageNameAndroid || 'N/A'}\n` +
         `State: ${
-          androidPurchase.purchaseStateAndroid === 1 ? 'Purchased' : 'Pending'
+          purchase.purchaseState === 'purchased'
+            ? 'Purchased'
+            : purchase.purchaseState === 'pending'
+            ? 'Pending'
+            : purchase.purchaseState
         }\n` +
         `Acknowledged: ${
           androidPurchase.isAcknowledgedAndroid ? 'Yes' : 'No'
@@ -164,10 +168,7 @@ const PurchaseFlow: React.FC = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const fetchedProducts = await fetchProducts({
-        skus: PRODUCT_IDS,
-        type: 'inapp',
-      });
+      const fetchedProducts = await fetchProducts({ skus: PRODUCT_IDS, type: 'inapp' });
 
       console.log('Fetched products:', fetchedProducts);
       setProducts(fetchedProducts);

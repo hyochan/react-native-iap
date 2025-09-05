@@ -2,7 +2,7 @@
 // This file is automatically copied during postinstall
 // Do not edit directly - modify the source file instead
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,8 @@ import {
   Alert,
   Platform,
   Modal,
-} from 'react-native'
-import Clipboard from '@react-native-clipboard/clipboard'
+} from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {
   initConnection,
   endConnection,
@@ -26,167 +26,171 @@ import {
   type Product,
   type Purchase,
   type NitroPurchaseResult,
-} from 'react-native-iap'
+} from 'react-native-iap';
 
 // Test product IDs
-const PRODUCT_IDS = ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs']
+const PRODUCT_IDS = ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs'];
 
 const PurchaseFlow: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(false)
-  const [purchasing, setPurchasing] = useState(false)
-  const [connected, setConnected] = useState(false)
-  const [purchaseResult, setPurchaseResult] = useState<string>('')
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [modalVisible, setModalVisible] = useState(false)
-  const subscriptionsRef = useRef<{ updateSub?: any; errorSub?: any }>({})
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [purchaseResult, setPurchaseResult] = useState<string>('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const subscriptionsRef = useRef<{updateSub?: any; errorSub?: any}>({});
 
   const handlePurchaseUpdate = useCallback((purchase: Purchase) => {
-    console.log('✅ Purchase successful:', purchase)
+    console.log('✅ Purchase successful:', purchase);
 
     // Get receipt/token based on platform
     const receipt =
       Platform.OS === 'android'
         ? (purchase as any).dataAndroid
         : purchase.purchaseToken || // Contains JWS representation on iOS
-          purchase.transactionReceipt // Legacy receipt format
+          purchase.transactionReceipt; // Legacy receipt format
 
     // Get transaction ID based on platform
-    const transactionId = purchase.transactionId || purchase.id
+    const transactionId = purchase.transactionId || purchase.id;
 
     // Build platform-specific result message
     let resultMessage =
       `✅ Purchase successful (${purchase.platform || Platform.OS})\n` +
       `Product: ${purchase.productId}\n` +
       `Transaction ID: ${transactionId || 'N/A'}\n` +
-      `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n`
+      `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n`;
 
     if (Platform.OS === 'ios') {
-      const iosPurchase = purchase as any
+      const iosPurchase = purchase as any;
       if (iosPurchase.quantityIOS) {
-        resultMessage += `Quantity: ${iosPurchase.quantityIOS}\n`
+        resultMessage += `Quantity: ${iosPurchase.quantityIOS}\n`;
       }
       if (iosPurchase.originalTransactionIdentifierIOS) {
-        resultMessage += `Original Transaction: ${iosPurchase.originalTransactionIdentifierIOS}\n`
+        resultMessage += `Original Transaction: ${iosPurchase.originalTransactionIdentifierIOS}\n`;
       }
       if (iosPurchase.originalTransactionDateIOS) {
         resultMessage += `Original Date: ${new Date(
-          iosPurchase.originalTransactionDateIOS
-        ).toLocaleDateString()}\n`
+          iosPurchase.originalTransactionDateIOS,
+        ).toLocaleDateString()}\n`;
       }
       if (iosPurchase.appAccountToken) {
-        resultMessage += `App Account Token: ${iosPurchase.appAccountToken}\n`
+        resultMessage += `App Account Token: ${iosPurchase.appAccountToken}\n`;
       }
-      resultMessage += `JWS Token: ${receipt || 'N/A'}\n`
+      resultMessage += `JWS Token: ${receipt || 'N/A'}\n`;
     } else if (Platform.OS === 'android') {
-      const androidPurchase = purchase as any
+      const androidPurchase = purchase as any;
       resultMessage +=
         `Purchase Token: ${androidPurchase.purchaseToken || 'N/A'}\n` +
         `Order ID: ${androidPurchase.orderId || 'N/A'}\n` +
         `Package: ${androidPurchase.packageNameAndroid || 'N/A'}\n` +
         `State: ${
-          androidPurchase.purchaseStateAndroid === 1 ? 'Purchased' : 'Pending'
+          purchase.purchaseState === 'purchased'
+            ? 'Purchased'
+            : purchase.purchaseState === 'pending'
+              ? 'Pending'
+              : purchase.purchaseState
         }\n` +
         `Acknowledged: ${
           androidPurchase.isAcknowledgedAndroid ? 'Yes' : 'No'
-        }\n`
+        }\n`;
       if (androidPurchase.signatureAndroid) {
-        resultMessage += `Signature: ${androidPurchase.signatureAndroid}\n`
+        resultMessage += `Signature: ${androidPurchase.signatureAndroid}\n`;
       }
-      resultMessage += `Receipt JSON: ${receipt || 'N/A'}\n`
+      resultMessage += `Receipt JSON: ${receipt || 'N/A'}\n`;
     }
 
     // Update purchase result display
-    setPurchaseResult(resultMessage)
-    setPurchasing(false)
+    setPurchaseResult(resultMessage);
+    setPurchasing(false);
 
     // Finish the transaction
-    handleFinishTransaction(purchase)
+    handleFinishTransaction(purchase);
 
-    Alert.alert('Success', 'Purchase completed successfully!')
-  }, [])
+    Alert.alert('Success', 'Purchase completed successfully!');
+  }, []);
 
   const initializeIAP = useCallback(async () => {
     try {
-      setLoading(true)
-      const isConnected = await initConnection()
-      setConnected(isConnected)
+      setLoading(true);
+      const isConnected = await initConnection();
+      setConnected(isConnected);
 
       if (isConnected) {
-        await loadProducts()
+        await loadProducts();
       }
     } catch (error) {
-      console.error('Failed to initialize IAP:', error)
-      Alert.alert('Error', 'Failed to initialize IAP connection')
+      console.error('Failed to initialize IAP:', error);
+      Alert.alert('Error', 'Failed to initialize IAP connection');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     // Initialize connection when component mounts
-    initializeIAP()
+    initializeIAP();
 
     const setupPurchaseListeners = () => {
       // Set up purchase success listener
       subscriptionsRef.current.updateSub =
-        purchaseUpdatedListener(handlePurchaseUpdate)
+        purchaseUpdatedListener(handlePurchaseUpdate);
 
       // Set up purchase error listener
       subscriptionsRef.current.errorSub =
-        purchaseErrorListener(handlePurchaseError)
-    }
+        purchaseErrorListener(handlePurchaseError);
+    };
 
-    setupPurchaseListeners()
+    setupPurchaseListeners();
 
     // Capture current subscription references at the time the effect runs
-    const currentSubscriptions = subscriptionsRef.current
+    const currentSubscriptions = subscriptionsRef.current;
 
     // Cleanup when component unmounts
     return () => {
       // Clean up listeners
-      currentSubscriptions.updateSub?.remove()
-      currentSubscriptions.errorSub?.remove()
-      endConnection()
-    }
-  }, [handlePurchaseUpdate, initializeIAP])
+      currentSubscriptions.updateSub?.remove();
+      currentSubscriptions.errorSub?.remove();
+      endConnection();
+    };
+  }, [handlePurchaseUpdate, initializeIAP]);
 
   const handlePurchaseError = (error: NitroPurchaseResult) => {
-    console.error('❌ Purchase failed:', error)
+    console.error('❌ Purchase failed:', error);
 
-    const errorMessage = error.message || 'Purchase failed'
-    setPurchaseResult(`❌ Purchase failed: ${errorMessage}`)
-    setPurchasing(false)
+    const errorMessage = error.message || 'Purchase failed';
+    setPurchaseResult(`❌ Purchase failed: ${errorMessage}`);
+    setPurchasing(false);
 
     if (error.code === 'user_cancelled') {
-      Alert.alert('Purchase Cancelled', 'You cancelled the purchase')
+      Alert.alert('Purchase Cancelled', 'You cancelled the purchase');
     } else {
-      Alert.alert('Purchase Failed', errorMessage)
+      Alert.alert('Purchase Failed', errorMessage);
     }
-  }
+  };
 
   const loadProducts = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const fetchedProducts = await fetchProducts({
         skus: PRODUCT_IDS,
         type: 'inapp',
-      })
+      });
 
-      console.log('Fetched products:', fetchedProducts)
-      setProducts(fetchedProducts)
+      console.log('Fetched products:', fetchedProducts);
+      setProducts(fetchedProducts);
     } catch (error) {
-      console.error('Failed to load products:', error)
-      Alert.alert('Error', 'Failed to load products')
+      console.error('Failed to load products:', error);
+      Alert.alert('Error', 'Failed to load products');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handlePurchase = async (itemId: string) => {
     try {
-      setPurchasing(true)
-      setPurchaseResult('Processing purchase...')
+      setPurchasing(true);
+      setPurchaseResult('Processing purchase...');
 
       // Request purchase - results will be handled by event listeners
       await requestPurchase({
@@ -200,67 +204,67 @@ const PurchaseFlow: React.FC = () => {
           },
         },
         type: 'inapp',
-      })
+      });
 
       console.log(
-        'Purchase request sent - waiting for result via event listener'
-      )
+        'Purchase request sent - waiting for result via event listener',
+      );
     } catch (error: any) {
-      console.error('Purchase request failed:', error)
+      console.error('Purchase request failed:', error);
       const errorMessage =
-        error instanceof Error ? error.message : 'Purchase request failed'
-      setPurchaseResult(`❌ Purchase request failed: ${errorMessage}`)
-      setPurchasing(false)
+        error instanceof Error ? error.message : 'Purchase request failed';
+      setPurchaseResult(`❌ Purchase request failed: ${errorMessage}`);
+      setPurchasing(false);
 
-      Alert.alert('Request Failed', errorMessage)
+      Alert.alert('Request Failed', errorMessage);
     }
-  }
+  };
 
   const handleFinishTransaction = async (purchase: Purchase) => {
     try {
       await finishTransaction({
         purchase,
         isConsumable: true,
-      })
-      console.log('Transaction finished')
+      });
+      console.log('Transaction finished');
     } catch (error) {
-      console.error('Failed to finish transaction:', error)
+      console.error('Failed to finish transaction:', error);
     }
-  }
+  };
 
   const handleProductPress = (product: Product) => {
-    setSelectedProduct(product)
-    setModalVisible(true)
-  }
+    setSelectedProduct(product);
+    setModalVisible(true);
+  };
 
   const getProductDisplayPrice = (product: Product): string => {
     // Use the simplified Android offer price fields (added by type bridge)
-    const androidProduct = product as any
+    const androidProduct = product as any;
     if (
       Platform.OS === 'android' &&
       androidProduct.oneTimePurchaseOfferFormattedPrice
     ) {
-      return androidProduct.oneTimePurchaseOfferFormattedPrice
+      return androidProduct.oneTimePurchaseOfferFormattedPrice;
     }
-    return product.displayPrice
-  }
+    return product.displayPrice;
+  };
 
   const copyToClipboard = async () => {
-    if (!selectedProduct) return
+    if (!selectedProduct) return;
     // React Native doesn't have built-in clipboard, showing as console.log instead
-    const jsonString = JSON.stringify(selectedProduct, null, 2)
-    console.log('=== PRODUCT DATA ===')
-    console.log(selectedProduct)
-    console.log('=== PRODUCT JSON ===')
-    console.log(jsonString)
-    Alert.alert('Console', 'Product data logged to console')
-  }
+    const jsonString = JSON.stringify(selectedProduct, null, 2);
+    console.log('=== PRODUCT DATA ===');
+    console.log(selectedProduct);
+    console.log('=== PRODUCT JSON ===');
+    console.log(jsonString);
+    Alert.alert('Console', 'Product data logged to console');
+  };
 
   const renderProductDetails = () => {
-    const product = selectedProduct
-    if (!product) return null
+    const product = selectedProduct;
+    if (!product) return null;
 
-    const jsonString = JSON.stringify(product, null, 2)
+    const jsonString = JSON.stringify(product, null, 2);
 
     return (
       <View style={styles.modalContent}>
@@ -276,8 +280,8 @@ const PurchaseFlow: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
-    )
-  }
+    );
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -353,8 +357,8 @@ const PurchaseFlow: React.FC = () => {
           <Text style={styles.sectionTitle}>Result</Text>
           <TouchableOpacity
             onLongPress={() => {
-              Clipboard.setString(purchaseResult)
-              Alert.alert('Copied', 'Purchase result copied to clipboard')
+              Clipboard.setString(purchaseResult);
+              Alert.alert('Copied', 'Purchase result copied to clipboard');
             }}
             delayLongPress={500}
           >
@@ -398,8 +402,8 @@ const PurchaseFlow: React.FC = () => {
         <Text style={styles.infoText}>Products: {PRODUCT_IDS.join(', ')}</Text>
       </View>
     </ScrollView>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -643,6 +647,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-})
+});
 
-export default PurchaseFlow
+export default PurchaseFlow;
