@@ -198,6 +198,9 @@ export interface NitroPurchase {
   transactionDate: number
   purchaseToken?: string
   platform: string
+  quantity: number
+  purchaseState: string
+  isAutoRenewing: boolean
 
   // iOS specific fields
   quantityIOS?: number
@@ -233,8 +236,9 @@ export interface NitroProduct {
   platform: string
 
   // iOS specific fields
-  isFamilyShareable?: boolean
-  jsonRepresentation?: string
+  typeIOS?: string
+  isFamilyShareableIOS?: boolean
+  jsonRepresentationIOS?: string
   subscriptionPeriodUnitIOS?: string
   subscriptionPeriodNumberIOS?: number
   introductoryPriceIOS?: string
@@ -244,13 +248,13 @@ export interface NitroProduct {
   introductoryPriceSubscriptionPeriodIOS?: string
 
   // Android specific fields
-  originalPrice?: string
-  originalPriceAmountMicros?: number
-  introductoryPriceValue?: number
-  introductoryPriceCycles?: number
-  introductoryPricePeriod?: string
-  subscriptionPeriod?: string
-  freeTrialPeriod?: string
+  originalPriceAndroid?: string
+  originalPriceAmountMicrosAndroid?: number
+  introductoryPriceValueAndroid?: number
+  introductoryPriceCyclesAndroid?: number
+  introductoryPricePeriodAndroid?: string
+  subscriptionPeriodAndroid?: string
+  freeTrialPeriodAndroid?: string
   subscriptionOfferDetailsAndroid?: string // Android subscription offer details as JSON string
 }
 
@@ -452,10 +456,10 @@ export interface RnIap
 
   /**
    * Show manage subscriptions screen (iOS only)
-   * @returns Promise<boolean> - Success flag
+   * @returns Promise<NitroPurchase[]> - Array of updated subscriptions with renewal info
    * @platform iOS
    */
-  showManageSubscriptionsIOS(): Promise<boolean>
+  showManageSubscriptionsIOS(): Promise<NitroPurchase[]>
 
   /**
    * Check if user is eligible for intro offer (iOS only)
