@@ -4,10 +4,24 @@
         <title>React Native IAP Blog</title>
         <link>https://react-native-iap.hyo.dev/blog</link>
         <description>React Native IAP Blog</description>
-        <lastBuildDate>Sat, 06 Sep 2025 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 08 Sep 2025 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
+        <item>
+            <title><![CDATA[Release 14.1.1]]></title>
+            <link>https://react-native-iap.hyo.dev/blog/release-14.1.1</link>
+            <guid>https://react-native-iap.hyo.dev/blog/release-14.1.1</guid>
+            <pubDate>Mon, 08 Sep 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[14.1.1]]></description>
+            <content:encoded><![CDATA[<h2 class="anchor anchorWithStickyNavbar_LWe7" id="1411">14.1.1<a href="https://react-native-iap.hyo.dev/blog/release-14.1.1#1411" class="hash-link" aria-label="Direct link to 14.1.1" title="Direct link to 14.1.1">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://react-native-iap.hyo.dev/blog/release-14.1.1#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h3>
+<ul>
+<li>iOS: Fetch missing products from StoreKit when not cached</li>
+</ul>]]></content:encoded>
+            <category>Release</category>
+            <category>patch</category>
+        </item>
         <item>
             <title><![CDATA[v14.1.0 - Type System Improvements & API Enhancements]]></title>
             <link>https://react-native-iap.hyo.dev/blog/release-14-1-0</link>
@@ -92,6 +106,33 @@
             <category>React Native IAP</category>
             <category>types</category>
             <category>API</category>
+        </item>
+        <item>
+            <title><![CDATA[v14.1.1 - iOS Product Cache Invalidation]]></title>
+            <link>https://react-native-iap.hyo.dev/blog/release-14-1-1</link>
+            <guid>https://react-native-iap.hyo.dev/blog/release-14-1-1</guid>
+            <pubDate>Sat, 06 Sep 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[We're releasing v14.1.1 with an important fix for iOS subscription management.]]></description>
+            <content:encoded><![CDATA[<p>We're releasing v14.1.1 with an important fix for iOS subscription management.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-bug-fix">🐛 Bug Fix<a href="https://react-native-iap.hyo.dev/blog/release-14-1-1#-bug-fix" class="hash-link" aria-label="Direct link to 🐛 Bug Fix" title="Direct link to 🐛 Bug Fix">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="ios-fixed-product-fetching-in-subscription-management">iOS: Fixed Product Fetching in Subscription Management<a href="https://react-native-iap.hyo.dev/blog/release-14-1-1#ios-fixed-product-fetching-in-subscription-management" class="hash-link" aria-label="Direct link to iOS: Fixed Product Fetching in Subscription Management" title="Direct link to iOS: Fixed Product Fetching in Subscription Management">​</a></h3>
+<p>Fixed an issue where <code>showManageSubscriptionsIOS()</code> would fail to detect subscription changes when products weren't pre-cached in the ProductStore. The method now includes a fallback mechanism that:</p>
+<ul>
+<li>Fetches products directly from StoreKit when not found in cache</li>
+<li>Derives subscription SKUs from <code>Transaction.currentEntitlements</code> when ProductStore is empty</li>
+<li>Ensures subscription status changes are properly detected even without calling <code>fetchProducts()</code> first</li>
+</ul>
+<p>This fix improves the reliability of subscription management UI interactions on iOS.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-installation">📦 Installation<a href="https://react-native-iap.hyo.dev/blog/release-14-1-1#-installation" class="hash-link" aria-label="Direct link to 📦 Installation" title="Direct link to 📦 Installation">​</a></h2>
+<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">npm install react-native-iap@14.1.1</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># or</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">yarn add react-native-iap@14.1.1</span><br></span></code></pre></div></div>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-acknowledgments">🙏 Acknowledgments<a href="https://react-native-iap.hyo.dev/blog/release-14-1-1#-acknowledgments" class="hash-link" aria-label="Direct link to 🙏 Acknowledgments" title="Direct link to 🙏 Acknowledgments">​</a></h2>
+<p>Thanks to the CodeRabbit AI reviewer for identifying this edge case and suggesting the improvement.</p>
+<hr>
+<p>For the complete changelog, see <a href="https://github.com/hyochan/react-native-iap/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md</a></p>]]></content:encoded>
+            <category>Release</category>
+            <category>React Native IAP</category>
+            <category>bugfix</category>
+            <category>iOS</category>
         </item>
         <item>
             <title><![CDATA[v14.0.1 - Expo Plugin Fixes]]></title>
