@@ -64,7 +64,7 @@ const initialize = async () => {
 }
 ```
 
-**Returns:** `Promise<Purchase[]>` — Subscriptions whose auto-renewal status changed
+**Returns:** `Promise<boolean>` — True if connection was successful
 
 **Note:** When using the `useIAP` hook, connection is automatically managed.
 

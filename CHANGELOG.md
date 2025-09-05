@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: Renamed all platform-specific fields to include platform suffix for clarity
   - iOS fields now end with `IOS` (e.g., `isFamilyShareable` → `isFamilyShareableIOS`)
   - Android fields now end with `Android` (e.g., `originalPrice` → `originalPriceAndroid`)
-- `showManageSubscriptionsIOS()` now returns `Promise<NitroPurchase[]>` instead of `Promise<boolean>`
+- **BREAKING**: `showManageSubscriptionsIOS()` now returns `Promise<NitroPurchase[]>` instead of `Promise<boolean>`
+- **BREAKING**: `validateReceipt()` method signature has changed (details to be documented)
 - Added common purchase fields: `quantity`, `purchaseState`, `isAutoRenewing`
 
 ### Added

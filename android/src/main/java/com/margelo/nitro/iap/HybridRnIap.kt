@@ -20,6 +20,7 @@ import kotlin.coroutines.resumeWithException
 class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientStateListener {
     companion object {
         const val TAG = "RnIap"
+        private const val MICROS_PER_UNIT = 1_000_000.0
     }
     
     // Get ReactApplicationContext lazily from NitroModules
@@ -599,7 +600,7 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
                 // Introductory paid phase: price > 0 and finite cycles
                 val introPhase = phases.firstOrNull { it.priceAmountMicros > 0L && it.billingCycleCount > 0 }
                 if (introPhase != null) {
-                    derivedIntroValue = introPhase.priceAmountMicros / 1_000_000.0
+                    derivedIntroValue = introPhase.priceAmountMicros / MICROS_PER_UNIT
                     derivedIntroCycles = introPhase.billingCycleCount.toDouble()
                     derivedIntroPeriod = introPhase.billingPeriod
                 }
