@@ -568,7 +568,15 @@ class HybridRnIap: HybridRnIapSpec {
             
             switch entitlement {
             case .verified(let transaction):
-                return self.convertToNitroPurchase(transaction, product: product, jwsRepresentation: entitlement.jwsRepresentation)
+                // Get renewal info if this is a subscription
+                var renewalInfo: Product.SubscriptionInfo.RenewalInfo? = nil
+                if let subscription = product.subscription,
+                   let status = try? await subscription.status.first {
+                    if case .verified(let info) = status.renewalInfo {
+                        renewalInfo = info
+                    }
+                }
+                return self.convertToNitroPurchase(transaction, product: product, jwsRepresentation: entitlement.jwsRepresentation, renewalInfo: renewalInfo)
             case .unverified:
                 let errorJson = ErrorUtils.createErrorJson(
                     code: IapErrorCode.transactionValidationFailed,
@@ -604,7 +612,15 @@ class HybridRnIap: HybridRnIapSpec {
             
             switch latestTransaction {
             case .verified(let transaction):
-                return self.convertToNitroPurchase(transaction, product: product, jwsRepresentation: latestTransaction.jwsRepresentation)
+                // Get renewal info if this is a subscription
+                var renewalInfo: Product.SubscriptionInfo.RenewalInfo? = nil
+                if let subscription = product.subscription,
+                   let status = try? await subscription.status.first {
+                    if case .verified(let info) = status.renewalInfo {
+                        renewalInfo = info
+                    }
+                }
+                return self.convertToNitroPurchase(transaction, product: product, jwsRepresentation: latestTransaction.jwsRepresentation, renewalInfo: renewalInfo)
             case .unverified:
                 let errorJson = ErrorUtils.createErrorJson(
                     code: IapErrorCode.transactionValidationFailed,
@@ -666,7 +682,18 @@ class HybridRnIap: HybridRnIapSpec {
             
             // Get current subscription statuses before showing UI
             var beforeStatuses: [String: Bool] = [:]
-            let subscriptionSkus = await self.productStore?.getAllSubscriptionProductIds() ?? []
+            var subscriptionSkus = await self.productStore?.getAllSubscriptionProductIds() ?? []
+            
+            // Fallback: If ProductStore is empty, derive SKUs from current entitlements
+            if subscriptionSkus.isEmpty {
+                var ids = Set<String>()
+                for await verification in Transaction.currentEntitlements {
+                    if case .verified(let t) = verification, t.productType == .autoRenewable {
+                        ids.insert(t.productID)
+                    }
+                }
+                subscriptionSkus = Array(ids)
+            }
             
             for sku in subscriptionSkus {
                 if let product = await self.productStore?.getProduct(productID: sku),
@@ -695,8 +722,10 @@ class HybridRnIap: HybridRnIapSpec {
                     
                     // Check current status
                     var currentWillAutoRenew = false
+                    var currentRenewalInfo: Product.SubscriptionInfo.RenewalInfo? = nil
                     if case .verified(let info) = status.renewalInfo {
                         currentWillAutoRenew = info.willAutoRenew
+                        currentRenewalInfo = info
                     }
                     
                     // Check if status changed
@@ -708,7 +737,8 @@ class HybridRnIap: HybridRnIapSpec {
                             let purchase = self.convertToNitroPurchase(
                                 transaction,
                                 product: product,
-                                jwsRepresentation: result.jwsRepresentation
+                                jwsRepresentation: result.jwsRepresentation,
+                                renewalInfo: currentRenewalInfo
                             )
                             
                             // Add renewal info as additional data
