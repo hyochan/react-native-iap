@@ -648,7 +648,7 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func showManageSubscriptionsIOS() throws -> Promise<Bool> {
+    func showManageSubscriptionsIOS() throws -> Promise<[NitroPurchase]> {
         return Promise.async {
             #if !os(tvOS)
             // Get the active window scene
@@ -664,12 +664,69 @@ class HybridRnIap: HybridRnIapSpec {
                 throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
             }
             
-            // Show the subscription management UI
+            // Get current subscription statuses before showing UI
+            var beforeStatuses: [String: Bool] = [:]
+            let subscriptionSkus = await self.productStore?.getAllSubscriptionProductIds() ?? []
+            
+            for sku in subscriptionSkus {
+                if let product = await self.productStore?.getProduct(productID: sku),
+                   let status = try? await product.subscription?.status.first {
+                    var willAutoRenew = false
+                    if case .verified(let info) = status.renewalInfo {
+                        willAutoRenew = info.willAutoRenew
+                    }
+                    beforeStatuses[sku] = willAutoRenew
+                }
+            }
+            
+            // Show the management UI
             try await AppStore.showManageSubscriptions(in: windowScene)
-            return true
+            
+            // Wait a bit for changes to propagate
+            try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+            
+            // Check for changes and return updated subscriptions
+            var updatedSubscriptions: [NitroPurchase] = []
+            
+            for sku in subscriptionSkus {
+                if let product = await self.productStore?.getProduct(productID: sku),
+                   let status = try? await product.subscription?.status.first,
+                   let result = await product.latestTransaction {
+                    
+                    // Check current status
+                    var currentWillAutoRenew = false
+                    if case .verified(let info) = status.renewalInfo {
+                        currentWillAutoRenew = info.willAutoRenew
+                    }
+                    
+                    // Check if status changed
+                    let previousWillAutoRenew = beforeStatuses[sku] ?? false
+                    if previousWillAutoRenew != currentWillAutoRenew {
+                        // Status changed, include in result
+                        do {
+                            let transaction = try self.checkVerified(result)
+                            let purchase = self.convertToNitroPurchase(
+                                transaction,
+                                product: product,
+                                jwsRepresentation: result.jwsRepresentation
+                            )
+                            
+                            // Add renewal info as additional data
+                            // Note: We'll add this info through the purchase token or other field
+                            // since NitroPurchase doesn't have a dedicated renewal info field
+                            
+                            updatedSubscriptions.append(purchase)
+                        } catch {
+                            // Skip if verification fails
+                        }
+                    }
+                }
+            }
+            
+            return updatedSubscriptions
             #else
             let errorJson = ErrorUtils.createErrorJson(
-                code: IapErrorCode.itemUnavailable,
+                code: IapErrorCode.serviceError,
                 message: "This method is not available on tvOS"
             )
             throw NSError(domain: "RnIap", code: -1, userInfo: [NSLocalizedDescriptionKey: errorJson])
@@ -1157,7 +1214,29 @@ class HybridRnIap: HybridRnIapSpec {
         product.id = storeProduct.id
         product.title = storeProduct.displayName
         product.description = storeProduct.description
-        product.type = type
+        // Map StoreKit type to cross-platform compatible string: "inapp" | "subs"
+        // and set detailed iOS product type
+        #if swift(>=5.7)
+            switch storeProduct.type {
+            case .consumable:
+                product.type = "inapp"
+                product.typeIOS = "consumable"
+            case .nonConsumable:
+                product.type = "inapp"
+                product.typeIOS = "nonConsumable"
+            case .autoRenewable:
+                product.type = "subs"
+                product.typeIOS = "autoRenewableSubscription"
+            case .nonRenewable:
+                product.type = "subs"
+                product.typeIOS = "nonRenewingSubscription"
+            default:
+                product.type = type // fallback to requested filter
+                product.typeIOS = nil
+            }
+        #else
+            product.type = type
+        #endif
         product.displayName = storeProduct.displayName
         product.displayPrice = storeProduct.displayPrice
         product.platform = "ios"
@@ -1169,8 +1248,11 @@ class HybridRnIap: HybridRnIapSpec {
         product.price = NSDecimalNumber(decimal: storeProduct.price).doubleValue
         
         // iOS specific fields
-        product.isFamilyShareable = storeProduct.isFamilyShareable
-        product.jsonRepresentation = storeProduct.jsonRepresentation.base64EncodedString()
+        product.isFamilyShareableIOS = storeProduct.isFamilyShareable
+        
+        // Set JSON representation
+        product.jsonRepresentationIOS = String(data: storeProduct.jsonRepresentation, encoding: .utf8)
+            ?? storeProduct.jsonRepresentation.base64EncodedString()
         
         // Subscription information
         if let subscription = storeProduct.subscription {
@@ -1205,6 +1287,24 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
+    private func getPurchaseState(_ transaction: Transaction) -> String {
+        // Map StoreKit 2 transaction states to our unified PurchaseState enum
+        if transaction.revocationDate != nil {
+            return "failed"
+        }
+        
+        // Check if transaction needs finishing (pending)
+        // In StoreKit 2, transactions are automatically finished unless we handle them manually
+        // We consider a transaction as "purchased" once it's verified
+        
+        // Note: StoreKit 2 doesn't have direct equivalents for all states
+        // - "restored" is handled separately through restore purchases flow
+        // - "deferred" happens with parental controls but isn't exposed in Transaction
+        // - "pending" isn't directly available in StoreKit 2
+        
+        return "purchased"
+    }
+    
     private func convertToNitroPurchase(_ transaction: Transaction, product: StoreKit.Product, jwsRepresentation: String? = nil) -> NitroPurchase {
         var purchase = NitroPurchase()
         
@@ -1213,6 +1313,12 @@ class HybridRnIap: HybridRnIapSpec {
         purchase.productId = transaction.productID
         purchase.transactionDate = transaction.purchaseDate.timeIntervalSince1970 * 1000 // Convert to milliseconds
         purchase.platform = "ios"
+        
+        // Common fields
+        purchase.quantity = Double(transaction.purchasedQuantity)
+        purchase.purchaseState = getPurchaseState(transaction)
+        // For iOS, check if it's a subscription and if expiration date is in the future
+        purchase.isAutoRenewing = (product.type == .autoRenewable && transaction.expirationDate != nil && transaction.expirationDate! > Date())
         
         // iOS specific fields
         purchase.quantityIOS = Double(transaction.purchasedQuantity)

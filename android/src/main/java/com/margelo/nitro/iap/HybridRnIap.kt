@@ -197,13 +197,22 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
                         val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
                             .setProductDetails(productDetails)
                         
-                        // Add offer token for subscriptions
+                        // Add offer token for subscriptions (required for SUBS on Play Billing 5+)
+                        // Prefer developer-provided token, otherwise fall back to the first available offer/base-plan.
                         val subscriptionOffers = androidRequest.subscriptionOffers
+                        var appliedOfferToken: String? = null
+
                         if (!subscriptionOffers.isNullOrEmpty()) {
                             val offer = subscriptionOffers.find { it.sku == sku }
-                            offer?.offerToken?.let { productDetailsParams.setOfferToken(it) }
+                            appliedOfferToken = offer?.offerToken
                         }
-                        
+
+                        if (appliedOfferToken == null && productDetails.productType == BillingClient.ProductType.SUBS) {
+                            val firstAvailable = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
+                            appliedOfferToken = firstAvailable
+                        }
+
+                        appliedOfferToken?.let { productDetailsParams.setOfferToken(it) }
                         productDetailsList.add(productDetailsParams.build())
                     }
                     
@@ -566,6 +575,36 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             Log.d(TAG, "Subscription offer details JSON: $jsonString")
             jsonString
         }
+
+        // Derive introductory/trial/base period information from subscription offers (if any)
+        var derivedIntroValue: Double? = null
+        var derivedIntroCycles: Double? = null
+        var derivedIntroPeriod: String? = null
+        var derivedSubPeriod: String? = null
+        var derivedFreeTrialPeriod: String? = null
+
+        productDetails.subscriptionOfferDetails?.let { offers ->
+            // Prefer the first offer; if none, leave as nulls
+            val firstOffer = offers.firstOrNull()
+            val phases = firstOffer?.pricingPhases?.pricingPhaseList ?: emptyList()
+            if (phases.isNotEmpty()) {
+                // Base recurring phase: often the last phase (infinite recurrence)
+                val basePhase = phases.last()
+                derivedSubPeriod = basePhase.billingPeriod
+
+                // Free trial phase: priceAmountMicros == 0
+                val trialPhase = phases.firstOrNull { it.priceAmountMicros == 0L }
+                derivedFreeTrialPeriod = trialPhase?.billingPeriod
+
+                // Introductory paid phase: price > 0 and finite cycles
+                val introPhase = phases.firstOrNull { it.priceAmountMicros > 0L && it.billingCycleCount > 0 }
+                if (introPhase != null) {
+                    derivedIntroValue = introPhase.priceAmountMicros / 1_000_000.0
+                    derivedIntroCycles = introPhase.billingCycleCount.toDouble()
+                    derivedIntroPeriod = introPhase.billingPeriod
+                }
+            }
+        }
         
         val nitroProduct = NitroProduct(
             id = productDetails.productId,
@@ -578,8 +617,9 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             price = priceAmountMicros / 1000000.0,
             platform = "android",
             // iOS fields (null on Android)
-            isFamilyShareable = null,
-            jsonRepresentation = null,
+            typeIOS = null,
+            isFamilyShareableIOS = null,
+            jsonRepresentationIOS = null,
             subscriptionPeriodUnitIOS = null,
             subscriptionPeriodNumberIOS = null,
             introductoryPriceIOS = null,
@@ -588,19 +628,32 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             introductoryPriceNumberOfPeriodsIOS = null,
             introductoryPriceSubscriptionPeriodIOS = null,
             // Android fields
-            originalPrice = productDetails.oneTimePurchaseOfferDetails?.formattedPrice,
-            originalPriceAmountMicros = productDetails.oneTimePurchaseOfferDetails?.priceAmountMicros?.toDouble(),
-            introductoryPriceValue = null, // TODO: Extract from subscription offers
-            introductoryPriceCycles = null,
-            introductoryPricePeriod = null,
-            subscriptionPeriod = null, // TODO: Extract from subscription offers
-            freeTrialPeriod = null,
+            originalPriceAndroid = productDetails.oneTimePurchaseOfferDetails?.formattedPrice,
+            originalPriceAmountMicrosAndroid = productDetails.oneTimePurchaseOfferDetails?.priceAmountMicros?.toDouble(),
+            introductoryPriceValueAndroid = derivedIntroValue,
+            introductoryPriceCyclesAndroid = derivedIntroCycles,
+            introductoryPricePeriodAndroid = derivedIntroPeriod,
+            subscriptionPeriodAndroid = derivedSubPeriod,
+            freeTrialPeriodAndroid = derivedFreeTrialPeriod,
             subscriptionOfferDetailsAndroid = subscriptionOfferDetailsJson
         )
         
         Log.d(TAG, "Created NitroProduct for ${productDetails.productId}: has subscriptionOfferDetailsAndroid=${nitroProduct.subscriptionOfferDetailsAndroid != null}")
         
         return nitroProduct
+    }
+    
+    private fun getPurchaseState(purchaseState: Int): String {
+        return when (purchaseState) {
+            Purchase.PurchaseState.PURCHASED -> "purchased"
+            Purchase.PurchaseState.PENDING -> "pending"
+            Purchase.PurchaseState.UNSPECIFIED_STATE -> "unknown"
+            else -> "unknown"
+        }
+        // Note: Android doesn't have direct equivalents for:
+        // - "restored" (iOS only - handled through restore purchases flow)
+        // - "deferred" (iOS only - parental controls)
+        // - "failed" (handled through error callbacks, not purchase state)
     }
     
     private fun convertToNitroPurchase(purchase: Purchase): NitroPurchase {
@@ -610,6 +663,10 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             transactionDate = purchase.purchaseTime.toDouble(),
             purchaseToken = purchase.purchaseToken,
             platform = "android",
+            // Common fields
+            quantity = purchase.quantity.toDouble(),
+            purchaseState = getPurchaseState(purchase.purchaseState),
+            isAutoRenewing = purchase.isAutoRenewing,
             // iOS fields
             quantityIOS = null,
             originalTransactionDateIOS = null,
@@ -692,6 +749,14 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             // Android doesn't have in-app refund requests like iOS
             // Refunds on Android are handled through Google Play Console
             null
+        }
+    }
+
+    // Updated signature to follow spec: returns updated subscriptions
+    override fun showManageSubscriptionsIOS(): Promise<Array<NitroPurchase>> {
+        return Promise.async {
+            // Not supported on Android. Return empty list for iOS-only API.
+            emptyArray()
         }
     }
 
@@ -796,14 +861,7 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
         }
     }
     
-    override fun showManageSubscriptionsIOS(): Promise<Boolean> {
-        return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "showManageSubscriptionsIOS is only available on iOS platform"
-            ))
-        }
-    }
+    
     
     override fun isEligibleForIntroOfferIOS(groupID: String): Promise<Boolean> {
         return Promise.async {
