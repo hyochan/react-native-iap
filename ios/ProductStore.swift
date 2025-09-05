@@ -23,6 +23,16 @@ actor ProductStore {
         return self.products[productID]
     }
     
+    func getAllSubscriptionProductIds() -> [String] {
+        return products.values.compactMap { product in
+            // Check if the product is a subscription
+            if product.subscription != nil {
+                return product.id
+            }
+            return nil
+        }
+    }
+    
     func removeAll() {
         products.removeAll()
     }

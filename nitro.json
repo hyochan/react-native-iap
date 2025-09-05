@@ -13,5 +13,9 @@
       "kotlin": "HybridRnIap"
     }
   },
-  "ignorePaths": ["node_modules"]
+  "ignorePaths": [
+    "node_modules",
+    "example-expo",
+    "example"
+  ]
 }
