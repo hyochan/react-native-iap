@@ -38,7 +38,7 @@ const PurchaseFlow: React.FC = () => {
   const subscriptionsRef = useRef<{updateSub?: any; errorSub?: any}>({});
 
   const handlePurchaseUpdate = useCallback((purchase: Purchase) => {
-    console.log('✅ Purchase successful:', purchase);
+    // Purchase successful
 
     // Get receipt/token based on platform
     const receipt =
@@ -84,8 +84,8 @@ const PurchaseFlow: React.FC = () => {
           purchase.purchaseState === 'purchased'
             ? 'Purchased'
             : purchase.purchaseState === 'pending'
-            ? 'Pending'
-            : purchase.purchaseState
+              ? 'Pending'
+              : purchase.purchaseState
         }\n` +
         `Acknowledged: ${
           androidPurchase.isAcknowledgedAndroid ? 'Yes' : 'No'
@@ -116,7 +116,7 @@ const PurchaseFlow: React.FC = () => {
         await loadProducts();
       }
     } catch (error) {
-      console.error('Failed to initialize IAP:', error);
+      // Failed to initialize IAP
       Alert.alert('Error', 'Failed to initialize IAP connection');
     } finally {
       setLoading(false);
@@ -152,7 +152,7 @@ const PurchaseFlow: React.FC = () => {
   }, [handlePurchaseUpdate, initializeIAP]);
 
   const handlePurchaseError = (error: NitroPurchaseResult) => {
-    console.error('❌ Purchase failed:', error);
+    // Purchase failed
 
     const errorMessage = error.message || 'Purchase failed';
     setPurchaseResult(`❌ Purchase failed: ${errorMessage}`);
@@ -168,12 +168,15 @@ const PurchaseFlow: React.FC = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const fetchedProducts = await fetchProducts({ skus: PRODUCT_IDS, type: 'inapp' });
+      const fetchedProducts = await fetchProducts({
+        skus: PRODUCT_IDS,
+        type: 'inapp',
+      });
 
-      console.log('Fetched products:', fetchedProducts);
+      // Products fetched successfully
       setProducts(fetchedProducts);
     } catch (error) {
-      console.error('Failed to load products:', error);
+      // Failed to load products
       Alert.alert('Error', 'Failed to load products');
     } finally {
       setLoading(false);
@@ -199,11 +202,9 @@ const PurchaseFlow: React.FC = () => {
         type: 'inapp',
       });
 
-      console.log(
-        'Purchase request sent - waiting for result via event listener',
-      );
+      // Purchase request sent - waiting for result via event listener
     } catch (error: any) {
-      console.error('Purchase request failed:', error);
+      // Purchase request failed
       const errorMessage =
         error instanceof Error ? error.message : 'Purchase request failed';
       setPurchaseResult(`❌ Purchase request failed: ${errorMessage}`);
@@ -219,9 +220,9 @@ const PurchaseFlow: React.FC = () => {
         purchase,
         isConsumable: true,
       });
-      console.log('Transaction finished');
+      // Transaction finished
     } catch (error) {
-      console.error('Failed to finish transaction:', error);
+      // Failed to finish transaction
     }
   };
 
@@ -245,11 +246,8 @@ const PurchaseFlow: React.FC = () => {
   const copyToClipboard = async () => {
     if (!selectedProduct) return;
     // React Native doesn't have built-in clipboard, showing as console.log instead
-    const jsonString = JSON.stringify(selectedProduct, null, 2);
-    console.log('=== PRODUCT DATA ===');
-    console.log(selectedProduct);
-    console.log('=== PRODUCT JSON ===');
-    console.log(jsonString);
+    JSON.stringify(selectedProduct, null, 2);
+    // Product data would be logged here in development
     Alert.alert('Console', 'Product data logged to console');
   };
 

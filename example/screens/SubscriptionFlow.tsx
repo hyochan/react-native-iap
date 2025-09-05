@@ -176,23 +176,12 @@ export default function SubscriptionFlow() {
 
   // Track activeSubscriptions state changes
   useEffect(() => {
-    console.log(
-      '[STATE CHANGE] activeSubscriptions:',
-      activeSubscriptions.length,
-      activeSubscriptions,
-    );
+    // State change: activeSubscriptions
   }, [activeSubscriptions]);
 
   // Track subscriptions (products) state changes
   useEffect(() => {
-    console.log(
-      '[STATE CHANGE] subscriptions (products):',
-      subscriptions.length,
-      subscriptions.map((s: SubscriptionProduct) => ({
-        id: s.id,
-        title: s.title,
-      })),
-    );
+    // State change: subscriptions (products)
   }, [subscriptions]);
 
   // Removed - handled by onPurchaseSuccess and onPurchaseError callbacks
@@ -551,10 +540,10 @@ export default function SubscriptionFlow() {
                     {isProcessing
                       ? 'Processing...'
                       : activeSubscriptions.some(
-                          (sub) => sub.productId === subscription.id,
-                        )
-                      ? '✅ Subscribed'
-                      : 'Subscribe'}
+                            (sub) => sub.productId === subscription.id,
+                          )
+                        ? '✅ Subscribed'
+                        : 'Subscribe'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -585,15 +574,18 @@ export default function SubscriptionFlow() {
           </Text>
           {(() => {
             // Deduplicate by productId: keep the most recent transaction
-            const byId = new Map<string, Purchase>()
+            const byId = new Map<string, Purchase>();
             for (const p of availablePurchases) {
-              const existing = byId.get(p.productId)
-              if (!existing || (p.transactionDate || 0) > (existing.transactionDate || 0)) {
-                byId.set(p.productId, p)
+              const existing = byId.get(p.productId);
+              if (
+                !existing ||
+                (p.transactionDate || 0) > (existing.transactionDate || 0)
+              ) {
+                byId.set(p.productId, p);
               }
             }
-            const unique = Array.from(byId.values())
-            return unique
+            const unique = Array.from(byId.values());
+            return unique;
           })().map((purchase: Purchase, index: number) => (
             <TouchableOpacity
               key={`${purchase.id}-${index}`}
