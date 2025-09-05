@@ -41,7 +41,7 @@ export const getActiveSubscriptions = async (
           expirationDateIOS: iosPurchase.expirationDateIOS
             ? new Date(iosPurchase.expirationDateIOS)
             : undefined,
-          autoRenewingAndroid: androidPurchase.autoRenewingAndroid || androidPurchase.isAutoRenewing, // deprecated - use isAutoRenewing instead
+          autoRenewingAndroid: androidPurchase.autoRenewingAndroid ?? androidPurchase.isAutoRenewing, // deprecated - use isAutoRenewing instead
           environmentIOS: iosPurchase.environmentIOS,
           // Convenience fields
           willExpireSoon: false, // Would need to calculate based on expiration date

@@ -186,7 +186,7 @@ export function convertNitroPurchaseToPurchase(
     androidPurchase.dataAndroid = nitroPurchase.dataAndroid;
     androidPurchase.signatureAndroid = nitroPurchase.signatureAndroid;
     // Support both old and new field names for backward compatibility
-    androidPurchase.autoRenewingAndroid = nitroPurchase.autoRenewingAndroid || nitroPurchase.isAutoRenewing;
+    androidPurchase.autoRenewingAndroid = nitroPurchase.autoRenewingAndroid ?? nitroPurchase.isAutoRenewing;
     // no longer surface purchaseStateAndroid on TS side
     androidPurchase.isAcknowledgedAndroid = nitroPurchase.isAcknowledgedAndroid;
     androidPurchase.packageNameAndroid = nitroPurchase.packageNameAndroid;
