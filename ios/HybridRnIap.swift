@@ -696,7 +696,15 @@ class HybridRnIap: HybridRnIapSpec {
             }
             
             for sku in subscriptionSkus {
-                if let product = await self.productStore?.getProduct(productID: sku),
+                var product = await self.productStore?.getProduct(productID: sku)
+                if product == nil {
+                    if let products = try? await StoreKit.Product.products(for: [sku]),
+                       let p = products.first {
+                        await self.productStore?.addProduct(p)
+                        product = p
+                    }
+                }
+                if let product = product,
                    let status = try? await product.subscription?.status.first {
                     var willAutoRenew = false
                     if case .verified(let info) = status.renewalInfo {
@@ -716,7 +724,15 @@ class HybridRnIap: HybridRnIapSpec {
             var updatedSubscriptions: [NitroPurchase] = []
             
             for sku in subscriptionSkus {
-                if let product = await self.productStore?.getProduct(productID: sku),
+                var product = await self.productStore?.getProduct(productID: sku)
+                if product == nil {
+                    if let products = try? await StoreKit.Product.products(for: [sku]),
+                       let p = products.first {
+                        await self.productStore?.addProduct(p)
+                        product = p
+                    }
+                }
+                if let product = product,
                    let status = try? await product.subscription?.status.first,
                    let result = await product.latestTransaction {
                     
