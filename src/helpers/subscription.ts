@@ -28,15 +28,28 @@ export const getActiveSubscriptions = async (
       })
       .map((purchase): ActiveSubscription => {
         const iosPurchase = purchase as PurchaseIOS;
+        const androidPurchase = purchase as PurchaseAndroid;
         return {
           productId: purchase.productId,
           isActive: true, // If it's in availablePurchases, it's active
-          expirationDateIOS: iosPurchase.expirationDateIOS ? new Date(iosPurchase.expirationDateIOS) : undefined,
-          autoRenewingAndroid: (purchase as PurchaseAndroid).autoRenewingAndroid,
+          // Backend validation fields
+          transactionId: purchase.transactionId || purchase.id,
+          purchaseToken:
+            androidPurchase.purchaseToken || androidPurchase.purchaseTokenAndroid || iosPurchase.purchaseToken,
+          transactionDate: purchase.transactionDate,
+          // Platform-specific fields
+          expirationDateIOS: iosPurchase.expirationDateIOS
+            ? new Date(iosPurchase.expirationDateIOS)
+            : undefined,
+          autoRenewingAndroid: androidPurchase.autoRenewingAndroid || androidPurchase.isAutoRenewing, // deprecated - use isAutoRenewing instead
           environmentIOS: iosPurchase.environmentIOS,
+          // Convenience fields
           willExpireSoon: false, // Would need to calculate based on expiration date
-          daysUntilExpirationIOS: iosPurchase.expirationDateIOS ? 
-            Math.ceil((iosPurchase.expirationDateIOS - Date.now()) / (1000 * 60 * 60 * 24)) : undefined,
+          daysUntilExpirationIOS: iosPurchase.expirationDateIOS
+            ? Math.ceil(
+                (iosPurchase.expirationDateIOS - Date.now()) / (1000 * 60 * 60 * 24),
+              )
+            : undefined,
         };
       });
     
@@ -46,6 +59,7 @@ export const getActiveSubscriptions = async (
     throw error;
   }
 };
+
 
 /**
  * Check if there are any active subscriptions

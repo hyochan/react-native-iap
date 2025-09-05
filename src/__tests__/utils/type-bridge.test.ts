@@ -35,8 +35,8 @@ describe('type-bridge utilities', () => {
         currency: 'USD',
         price: 9.99,
         platform: 'ios',
-        isFamilyShareable: true,
-        jsonRepresentation: '{"test": "data"}',
+        isFamilyShareableIOS: true,
+        jsonRepresentationIOS: '{"test": "data"}',
       } as NitroProduct
 
       const result = convertNitroProductToProduct(nitroProduct)
@@ -156,6 +156,8 @@ describe('type-bridge utilities', () => {
         transactionDate: new Date('2024-01-01').getTime(),
         transactionReceipt: 'receipt-data',
         quantity: 1,
+        purchaseState: 'purchased',
+        isAutoRenewing: false,
         platform: 'ios',
         appAccountToken: 'app-token',
         verificationResultIOS: 'verified',
@@ -181,6 +183,8 @@ describe('type-bridge utilities', () => {
         transactionDate: new Date('2024-01-01').getTime(),
         transactionReceipt: 'receipt-data',
         quantity: 1,
+        purchaseState: 'purchased',
+        isAutoRenewing: false,
         platform: 'android',
         packageNameAndroid: 'com.example.app',
         purchaseStateAndroid: 1,
@@ -192,7 +196,7 @@ describe('type-bridge utilities', () => {
 
       expect(result.platform).toBe('android')
       expect((result as any).packageNameAndroid).toBe('com.example.app')
-      expect((result as any).purchaseStateAndroid).toBe(1)
+      expect(result.purchaseState).toBe('purchased')
       expect((result as any).isAcknowledgedAndroid).toBe(true)
       expect((result as any).purchaseTokenAndroid).toBe('token123')
     })

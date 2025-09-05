@@ -45,24 +45,28 @@ describe('subscription helpers', () => {
       const result = await getActiveSubscriptions()
 
       expect(result).toHaveLength(2)
-      expect(result[0]).toEqual({
-        productId: 'subscription1',
-        isActive: true,
-        expirationDateIOS: expect.any(Date),
-        autoRenewingAndroid: undefined,
-        environmentIOS: 'Production',
-        willExpireSoon: false,
-        daysUntilExpirationIOS: expect.any(Number),
-      })
-      expect(result[1]).toEqual({
-        productId: 'subscription2',
-        isActive: true,
-        expirationDateIOS: undefined,
-        autoRenewingAndroid: true,
-        environmentIOS: undefined,
-        willExpireSoon: false,
-        daysUntilExpirationIOS: undefined,
-      })
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          productId: 'subscription1',
+          isActive: true,
+          expirationDateIOS: expect.any(Date),
+          autoRenewingAndroid: undefined,
+          environmentIOS: 'Production',
+          willExpireSoon: false,
+          daysUntilExpirationIOS: expect.any(Number),
+        }),
+      )
+      expect(result[1]).toEqual(
+        expect.objectContaining({
+          productId: 'subscription2',
+          isActive: true,
+          expirationDateIOS: undefined,
+          autoRenewingAndroid: true,
+          environmentIOS: undefined,
+          willExpireSoon: false,
+          daysUntilExpirationIOS: undefined,
+        }),
+      )
     })
 
     it('should calculate days until expiration correctly for iOS subscriptions', async () => {
