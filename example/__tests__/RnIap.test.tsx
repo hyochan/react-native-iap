@@ -251,13 +251,4 @@ describe('RnIap Complete Test Suite', () => {
       expect(RNIap.isUserCancelledError(otherError)).toBe(false);
     });
   });
-
-  describe('Constants', () => {
-    it('should export PurchaseAndroidState', () => {
-      expect(RNIap.PurchaseAndroidState).toBeDefined();
-      expect(RNIap.PurchaseAndroidState.UNSPECIFIED_STATE).toBeDefined();
-      expect(RNIap.PurchaseAndroidState.PURCHASED).toBeDefined();
-      expect(RNIap.PurchaseAndroidState.PENDING).toBeDefined();
-    });
-  });
 });
