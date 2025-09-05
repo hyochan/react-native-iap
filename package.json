@@ -48,7 +48,7 @@
     "typecheck": "yarn typecheck:lib && yarn typecheck:expo",
     "typecheck:lib": "yarn tsc --noEmit",
     "typecheck:expo": "cd example-expo && bun run typecheck",
-    "clean": "rm -rf android/build node_modules/**/android/build lib nitrogen/generated",
+    "clean": "rm -rf node_modules example/android/build lib nitrogen/generated ios/build example/node_modules",
     "lint": "eslint --ext .ts,.tsx,.js,.jsx src",
     "lint:eslint": "eslint --fix 'src/**/*.{ts,tsx}' 'plugin/src/**/*.{ts,tsx}'",
     "lint:prettier": "prettier --write \"**/*.{md,js,jsx,ts,tsx}\"",
