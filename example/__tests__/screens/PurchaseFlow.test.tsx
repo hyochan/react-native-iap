@@ -59,30 +59,44 @@ describe('PurchaseFlow Screen', () => {
     jest.clearAllMocks();
   });
 
-  it('renders the screen title and subtitle', () => {
-    const {getByText} = render(<PurchaseFlow />);
+  it('renders the screen title and subtitle', async () => {
+    let getByText: any;
+    
+    await act(async () => {
+      const result = render(<PurchaseFlow />);
+      getByText = result.getByText;
+    });
 
     expect(getByText('In-App Purchase Flow')).toBeTruthy();
     expect(getByText('Testing with react-native-iap')).toBeTruthy();
   });
 
   it('initializes IAP connection on mount', async () => {
-    render(<PurchaseFlow />);
+    await act(async () => {
+      render(<PurchaseFlow />);
+    });
 
     await waitFor(() => {
       expect(RNIap.initConnection).toHaveBeenCalled();
     });
   });
 
-  it('sets up purchase listeners on mount', () => {
-    render(<PurchaseFlow />);
+  it('sets up purchase listeners on mount', async () => {
+    await act(async () => {
+      render(<PurchaseFlow />);
+    });
 
     expect(RNIap.purchaseUpdatedListener).toHaveBeenCalled();
     expect(RNIap.purchaseErrorListener).toHaveBeenCalled();
   });
 
   it('shows connection status after successful connection', async () => {
-    const {getByText} = render(<PurchaseFlow />);
+    let getByText: any;
+    
+    await act(async () => {
+      const result = render(<PurchaseFlow />);
+      getByText = result.getByText;
+    });
 
     await waitFor(() => {
       expect(getByText('Store: ✅ Connected')).toBeTruthy();
@@ -94,7 +108,12 @@ describe('PurchaseFlow Screen', () => {
       new Error('Connection failed'),
     );
 
-    const {getByText} = render(<PurchaseFlow />);
+    let getByText: any;
+    
+    await act(async () => {
+      const result = render(<PurchaseFlow />);
+      getByText = result.getByText;
+    });
 
     await waitFor(() => {
       expect(getByText('Store: ❌ Disconnected')).toBeTruthy();
