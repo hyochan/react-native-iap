@@ -37,10 +37,7 @@
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "bash",
-      "runtimeArgs": [
-        "-c",
-        "yarn && yarn prepare && cd example/ios && pod install && cd ../.. && yarn example android"
-      ],
+      "runtimeArgs": ["-c", "yarn && yarn prepare && yarn example android"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"
@@ -54,7 +51,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn && yarn prepare && cd example-expo && bun instal && cd .. && cp ios/*.swift example-expo/node_modules/react-native-iap/nitrogen/generated/ios/ && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun ios"
+        "yarn && yarn prepare && cd example-expo && bun install && cd .. && cp ios/*.swift example-expo/node_modules/react-native-iap/nitrogen/generated/ios/ && cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun ios"
       ],
       "console": "integratedTerminal",
       "env": {
@@ -84,7 +81,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn && yarn prepare && cd example-expo && bun instal && cd .. &&  cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun android"
+        "yarn && yarn prepare && cd example-expo && bun install && cd .. &&  cp -r lib example-expo/node_modules/react-native-iap/ && cp -r nitrogen example-expo/node_modules/react-native-iap/ && cd example-expo && bun android"
       ],
       "console": "integratedTerminal",
       "env": {

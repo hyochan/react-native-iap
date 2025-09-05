@@ -615,7 +615,7 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             displayName = productDetails.name,
             displayPrice = displayPrice,
             currency = currency,
-            price = priceAmountMicros / 1000000.0,
+            price = priceAmountMicros / MICROS_PER_UNIT,
             platform = "android",
             // iOS fields (null on Android)
             typeIOS = null,

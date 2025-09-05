@@ -1305,7 +1305,7 @@ class HybridRnIap: HybridRnIapSpec {
         return "purchased"
     }
     
-    private func convertToNitroPurchase(_ transaction: Transaction, product: StoreKit.Product, jwsRepresentation: String? = nil) -> NitroPurchase {
+    private func convertToNitroPurchase(_ transaction: Transaction, product: StoreKit.Product, jwsRepresentation: String? = nil, renewalInfo: Product.SubscriptionInfo.RenewalInfo? = nil) -> NitroPurchase {
         var purchase = NitroPurchase()
         
         // Basic fields
@@ -1317,8 +1317,12 @@ class HybridRnIap: HybridRnIapSpec {
         // Common fields
         purchase.quantity = Double(transaction.purchasedQuantity)
         purchase.purchaseState = getPurchaseState(transaction)
-        // For iOS, check if it's a subscription and if expiration date is in the future
-        purchase.isAutoRenewing = (product.type == .autoRenewable && transaction.expirationDate != nil && transaction.expirationDate! > Date())
+        // For iOS, check renewal info first if available, otherwise fall back to expiration date check
+        if let renewalInfo = renewalInfo {
+            purchase.isAutoRenewing = renewalInfo.willAutoRenew
+        } else {
+            purchase.isAutoRenewing = (product.type == .autoRenewable && transaction.expirationDate != nil && transaction.expirationDate! > Date())
+        }
         
         // iOS specific fields
         purchase.quantityIOS = Double(transaction.purchasedQuantity)
