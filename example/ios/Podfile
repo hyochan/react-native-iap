@@ -11,11 +11,9 @@ source 'https://cdn.cocoapods.org/'
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
+# IMPORTANT: React Native + New Architecture requires static libraries.
+# Do NOT enable use_frameworks! to avoid non-modular include errors.
+# (If your env sets USE_FRAMEWORKS, it will be ignored here.)
 
 target 'example' do
   config = use_native_modules!
@@ -26,6 +24,10 @@ target 'example' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # Work around CDN/trunk issues by pulling OpenIAP directly from Git.
+  # This satisfies NitroIap.podspec dependency on 'openiap' (~> 1.1.6).
+  pod 'openiap', :git => 'https://github.com/hyodotdev/openiap-apple.git', :tag => '1.1.6'
+
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
     react_native_post_install(
@@ -34,5 +36,16 @@ target 'example' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Force safe static-library settings to avoid non-modular include errors
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Do not build pods as modules/frameworks
+        config.build_settings['DEFINES_MODULE'] = 'NO'
+        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'NO'
+        # Allow non-modular includes within any pods that still ship framework-like headers
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      end
+    end
   end
 end
