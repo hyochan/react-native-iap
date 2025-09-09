@@ -145,24 +145,24 @@ class HybridRnIap: HybridRnIapSpec {
                 }
             }
 
-            // Optimistically mark initialized for bridge-level guard; OpenIAP will verify internally
-            self.isInitialized = true
-            Task {
-                do {
-                    _ = try await OpenIapModule.shared.initConnection()
-                } catch {
-                    // Surface as event and reset flags
-                    let err = self.createPurchaseErrorResult(
-                        code: OpenIapError.E_INIT_CONNECTION,
-                        message: error.localizedDescription,
-                        productId: nil
-                    )
-                    self.sendPurchaseError(err)
-                    self.isInitialized = false
-                }
+            // Perform initialization and only report success when native init succeeds
+            do {
+                let ok = try await OpenIapModule.shared.initConnection()
+                self.isInitialized = ok
                 self.isInitializing = false
+                return ok
+            } catch {
+                // Surface as event and keep flags consistent
+                let err = self.createPurchaseErrorResult(
+                    code: OpenIapError.E_INIT_CONNECTION,
+                    message: error.localizedDescription,
+                    productId: nil
+                )
+                self.sendPurchaseError(err)
+                self.isInitialized = false
+                self.isInitializing = false
+                return false
             }
-            return true
         }
     }
     
