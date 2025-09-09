@@ -28,9 +28,9 @@ const PRODUCT_IDS = ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs'];
 
 const PurchaseFlow: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [purchaseResult, setPurchaseResult] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -38,6 +38,7 @@ const PurchaseFlow: React.FC = () => {
   const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
   const [lastError, setLastError] = useState<NitroPurchaseResult | null>(null);
   const subscriptionsRef = useRef<{updateSub?: any; errorSub?: any}>({});
+  const hasLoadedProductsRef = useRef(false);
 
   const handlePurchaseUpdate = useCallback(async (purchase: Purchase) => {
     console.log('Purchase successful:', purchase);
@@ -75,36 +76,49 @@ const PurchaseFlow: React.FC = () => {
 
   const initializeIAP = useCallback(async () => {
     try {
-      setLoading(true);
       const isConnected = await initConnection();
       setConnected(isConnected);
 
-      if (isConnected) {
+      const handlePurchaseError = (error: NitroPurchaseResult) => {
+        // Purchase failed
+        setLastPurchase(null);
+        setLastError(error);
+        const errorMessage = error.message || 'Purchase failed';
+        setPurchaseResult(`❌ Purchase failed: ${errorMessage}`);
+        setPurchasing(false);
+
+        if (error.code === 'user_cancelled') {
+          Alert.alert('Purchase Cancelled', 'You cancelled the purchase');
+        } else {
+          Alert.alert('Purchase Failed', errorMessage);
+        }
+      };
+
+      const setupPurchaseListeners = () => {
+        // Set up purchase success listener
+        subscriptionsRef.current.updateSub =
+          purchaseUpdatedListener(handlePurchaseUpdate);
+
+        // Set up purchase error listener
+        subscriptionsRef.current.errorSub =
+          purchaseErrorListener(handlePurchaseError);
+      };
+
+      setupPurchaseListeners();
+
+      if (isConnected && !hasLoadedProductsRef.current) {
         await loadProducts();
+        hasLoadedProductsRef.current = true;
       }
     } catch (error) {
       // Failed to initialize IAP
       Alert.alert('Error', 'Failed to initialize IAP connection');
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     // Initialize connection when component mounts
     initializeIAP();
-
-    const setupPurchaseListeners = () => {
-      // Set up purchase success listener
-      subscriptionsRef.current.updateSub =
-        purchaseUpdatedListener(handlePurchaseUpdate);
-
-      // Set up purchase error listener
-      subscriptionsRef.current.errorSub =
-        purchaseErrorListener(handlePurchaseError);
-    };
-
-    setupPurchaseListeners();
 
     // Capture current subscription references at the time the effect runs
     const currentSubscriptions = subscriptionsRef.current;
@@ -116,21 +130,6 @@ const PurchaseFlow: React.FC = () => {
       currentSubscriptions.errorSub?.remove();
     };
   }, [handlePurchaseUpdate, initializeIAP]);
-
-  const handlePurchaseError = (error: NitroPurchaseResult) => {
-    // Purchase failed
-    setLastPurchase(null);
-    setLastError(error);
-    const errorMessage = error.message || 'Purchase failed';
-    setPurchaseResult(`❌ Purchase failed: ${errorMessage}`);
-    setPurchasing(false);
-
-    if (error.code === 'user_cancelled') {
-      Alert.alert('Purchase Cancelled', 'You cancelled the purchase');
-    } else {
-      Alert.alert('Purchase Failed', errorMessage);
-    }
-  };
 
   const loadProducts = async () => {
     try {
