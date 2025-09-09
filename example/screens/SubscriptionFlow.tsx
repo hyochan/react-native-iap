@@ -13,7 +13,6 @@ import {
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
   useIAP,
-  requestPurchase,
   type SubscriptionProduct,
   type PurchaseError,
   type Purchase,
@@ -48,6 +47,7 @@ export default function SubscriptionFlow() {
     finishTransaction,
     getAvailablePurchases,
     getActiveSubscriptions,
+    requestPurchase,
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
       console.log('Purchase successful:', purchase);
@@ -356,6 +356,16 @@ export default function SubscriptionFlow() {
       </View>
     );
   };
+
+  // Render loading while not connected (after all hooks are declared)
+  if (!connected) {
+    return (
+      <View style={styles.loadingScreen}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Connecting to store…</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -751,6 +761,12 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     padding: 20,
+  },
+  loadingScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   statusSection: {
     backgroundColor: '#e8f4f8',

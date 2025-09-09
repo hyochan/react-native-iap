@@ -55,6 +55,25 @@ export interface EventSubscription {
 // Export hooks
 export { useIAP } from './hooks/useIAP'
 
+// iOS promoted product aliases for API parity
+export const getPromotedProductIOS = async (): Promise<Product | null> =>
+  requestPromotedProductIOS()
+export const requestPurchaseOnPromotedProductIOS = async (): Promise<void> =>
+  buyPromotedProductIOS()
+
+// Restore completed transactions (cross-platform)
+export const restorePurchases = async (
+  options: PurchaseOptions = {
+    alsoPublishToEventListenerIOS: false,
+    onlyIncludeActiveItemsIOS: true,
+  }
+): Promise<Purchase[]> => {
+  if (Platform.OS === 'ios') {
+    await syncIOS()
+  }
+  return getAvailablePurchases(options)
+}
+
 // Development utilities removed - use type bridge functions directly if needed
 
 // Create the RnIap HybridObject instance (internal use only)

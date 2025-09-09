@@ -349,7 +349,10 @@ interface UseIAPOptions {
   // Fetch in-app products
   const loadInAppProducts = async () => {
     try {
-      await fetchProducts({ skus: ['com.app.premium', 'com.app.coins_100'], type: 'inapp' })
+      await fetchProducts({
+        skus: ['com.app.premium', 'com.app.coins_100'],
+        type: 'inapp',
+      })
       // Read from state later: products
       console.log('Products count:', products.length)
     } catch (error) {
@@ -360,7 +363,10 @@ interface UseIAPOptions {
   // Fetch subscriptions
   const loadSubscriptions = async () => {
     try {
-      await fetchProducts({ skus: ['com.app.premium_monthly', 'com.app.premium_yearly'], type: 'subs' })
+      await fetchProducts({
+        skus: ['com.app.premium_monthly', 'com.app.premium_yearly'],
+        type: 'subs',
+      })
       // Read from state later: subscriptions
       console.log('Subscriptions count:', subscriptions.length)
     } catch (error) {
@@ -470,7 +476,7 @@ interface UseIAPOptions {
   }
   ```
 
-#### getPromotedProductIOS
+#### requestPromotedProductIOS
 
 - **Type**: `() => Promise<any | null>`
 - **Description**: Get the promoted product details (iOS only)
@@ -478,7 +484,7 @@ interface UseIAPOptions {
 
   ```tsx
   const handlePromotedProduct = async () => {
-    const promotedProduct = await getPromotedProductIOS()
+    const promotedProduct = await requestPromotedProductIOS()
     if (promotedProduct) {
       console.log('Promoted product:', promotedProduct)
       // Show custom purchase UI
@@ -486,17 +492,16 @@ interface UseIAPOptions {
   }
   ```
 
-#### requestPurchaseOnPromotedProductIOS
+#### buyPromotedProductIOS
 
 - **Type**: `() => Promise<void>`
 - **Description**: Complete the purchase of a promoted product (iOS only)
-- **Note**: `buyPromotedProductIOS` is deprecated, use `requestPurchaseOnPromotedProductIOS` instead
 - **Example**:
 
   ```tsx
   const completePurchase = async () => {
     try {
-      await requestPurchaseOnPromotedProductIOS()
+      await buyPromotedProductIOS()
       console.log('Promoted product purchase completed')
     } catch (error) {
       console.error('Failed to purchase promoted product:', error)

@@ -85,7 +85,7 @@ const cleanup = async () => {
 }
 ```
 
-**Returns:** `Promise<boolean>`
+**Returns:** `Promise<Purchase[]>` — Array of subscriptions whose auto-renewal status changed
 
 **Note:** When using the `useIAP` hook, connection cleanup is automatic.
 
@@ -133,7 +133,7 @@ const loadSubscriptions = async () => {
 
 - `params` (object):
   - `skus` (string[]): Array of product or subscription IDs to fetch
-  - `type` ('inapp' | 'subs'): Product type - 'inapp' for products (default), 'subs' for subscriptions
+  - `type` ('inapp' | 'subs' | 'all'): Product type — 'inapp' (default), 'subs', or 'all' to fetch both
 
 **Returns:** `Promise<Product[]>`
 

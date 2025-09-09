@@ -13,7 +13,6 @@ import {
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
   initConnection,
-  endConnection,
   fetchProducts,
   requestPurchase,
   finishTransaction,
@@ -35,11 +34,16 @@ const PurchaseFlow: React.FC = () => {
   const [purchaseResult, setPurchaseResult] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [resultModalVisible, setResultModalVisible] = useState(false);
+  const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
+  const [lastError, setLastError] = useState<NitroPurchaseResult | null>(null);
   const subscriptionsRef = useRef<{updateSub?: any; errorSub?: any}>({});
 
   const handlePurchaseUpdate = useCallback(async (purchase: Purchase) => {
     console.log('Purchase successful:', purchase);
     setPurchasing(false);
+    setLastError(null);
+    setLastPurchase(purchase);
 
     // IMPORTANT: Server-side receipt validation should be performed here
     // Send the receipt to your backend server for validation
@@ -110,13 +114,13 @@ const PurchaseFlow: React.FC = () => {
       // Clean up listeners
       currentSubscriptions.updateSub?.remove();
       currentSubscriptions.errorSub?.remove();
-      endConnection();
     };
   }, [handlePurchaseUpdate, initializeIAP]);
 
   const handlePurchaseError = (error: NitroPurchaseResult) => {
     // Purchase failed
-
+    setLastPurchase(null);
+    setLastError(error);
     const errorMessage = error.message || 'Purchase failed';
     setPurchaseResult(`❌ Purchase failed: ${errorMessage}`);
     setPurchasing(false);
@@ -225,6 +229,30 @@ const PurchaseFlow: React.FC = () => {
     );
   };
 
+  const renderResultDetails = () => {
+    const payload = lastPurchase ?? lastError;
+    if (!payload) return null;
+    const jsonString = JSON.stringify(payload, null, 2);
+    return (
+      <View style={styles.modalContent}>
+        <ScrollView style={styles.jsonContainer}>
+          <Text style={styles.jsonText}>{jsonString}</Text>
+        </ScrollView>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.consoleButton]}
+            onPress={() => {
+              Clipboard.setString(jsonString);
+              Alert.alert('Copied', 'Result JSON copied to clipboard');
+            }}
+          >
+            <Text style={styles.actionButtonText}>📋 Copy JSON</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -297,6 +325,22 @@ const PurchaseFlow: React.FC = () => {
       {purchaseResult ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Result</Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 8,
+            }}
+          >
+            <TouchableOpacity
+              style={[styles.infoButton, {marginRight: 8}]}
+              onPress={() => setResultModalVisible(true)}
+              disabled={!lastPurchase && !lastError}
+            >
+              <Text style={styles.infoButtonText}>🔍</Text>
+            </TouchableOpacity>
+            <Text style={{color: '#666'}}>View details</Text>
+          </View>
           <TouchableOpacity
             onLongPress={() => {
               Clipboard.setString(purchaseResult);
@@ -330,6 +374,29 @@ const PurchaseFlow: React.FC = () => {
               </TouchableOpacity>
             </View>
             {renderProductDetails()}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Result Details Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={resultModalVisible}
+        onRequestClose={() => setResultModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Result Details</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setResultModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {renderResultDetails()}
           </View>
         </View>
       </Modal>

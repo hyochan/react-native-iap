@@ -4,7 +4,6 @@ import { Platform } from 'react-native'
 
 // Internal modules
 import {
-  endConnection,
   initConnection,
   purchaseErrorListener,
   purchaseUpdatedListener,
@@ -16,8 +15,9 @@ import {
   validateReceipt as validateReceiptInternal,
   getActiveSubscriptions,
   hasActiveSubscriptions,
+  restorePurchases as restorePurchasesTopLevel,
 } from '../'
-import { syncIOS, requestPromotedProductIOS, buyPromotedProductIOS } from '../'
+import { getPromotedProductIOS, requestPurchaseOnPromotedProductIOS } from '../'
 
 // Types
 import type {
@@ -56,7 +56,7 @@ type UseIap = {
     purchase: Purchase
     isConsumable?: boolean
   }) => Promise<PurchaseResult | boolean>
-  getAvailablePurchases: () => Promise<void>
+  getAvailablePurchases: (skus?: string[]) => Promise<void>
   fetchProducts: (params: {
     skus: string[]
     type?: 'inapp' | 'subs'
@@ -84,9 +84,9 @@ type UseIap = {
       isSub?: boolean
     }
   ) => Promise<any>
-  restorePurchases: () => Promise<void> // 구매 복원 함수 추가
-  requestPromotedProductIOS: () => Promise<any | null>
-  buyPromotedProductIOS: () => Promise<void>
+  restorePurchases: () => Promise<void>
+  getPromotedProductIOS: () => Promise<Product | null>
+  requestPurchaseOnPromotedProductIOS: () => Promise<void>
   getActiveSubscriptions: (
     subscriptionIds?: string[]
   ) => Promise<ActiveSubscription[]>
@@ -121,6 +121,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
   >([])
 
   const optionsRef = useRef<UseIapOptions | undefined>(options)
+  const connectedRef = useRef<boolean>(false)
 
   // Helper function to merge arrays with duplicate checking
   const mergeWithDuplicateCheck = useCallback(
@@ -146,6 +147,10 @@ export function useIAP(options?: UseIapOptions): UseIap {
   useEffect(() => {
     optionsRef.current = options
   }, [options])
+
+  useEffect(() => {
+    connectedRef.current = connected
+  }, [connected])
 
   const subscriptionsRef = useRef<{
     purchaseUpdate?: EventSubscription
@@ -209,6 +214,12 @@ export function useIAP(options?: UseIapOptions): UseIap {
       skus: string[]
       type?: 'inapp' | 'subs'
     }): Promise<void> => {
+      if (!connectedRef.current) {
+        console.warn(
+          '[useIAP] fetchProducts called before connection; skipping'
+        )
+        return
+      }
       try {
         const result = await fetchProducts(params)
         if (params.type === 'subs') {
@@ -235,14 +246,20 @@ export function useIAP(options?: UseIapOptions): UseIap {
     [mergeWithDuplicateCheck]
   )
 
-  const getAvailablePurchasesInternal = useCallback(async (): Promise<void> => {
-    try {
-      const result = await getAvailablePurchases()
-      setAvailablePurchases(result)
-    } catch (error) {
-      console.error('Error fetching available purchases:', error)
-    }
-  }, [])
+  const getAvailablePurchasesInternal = useCallback(
+    async (_skus?: string[]): Promise<void> => {
+      try {
+        const result = await getAvailablePurchases({
+          alsoPublishToEventListenerIOS: false,
+          onlyIncludeActiveItemsIOS: true,
+        })
+        setAvailablePurchases(result)
+      } catch (error) {
+        console.error('Error fetching available purchases:', error)
+      }
+    },
+    []
+  )
 
   const getActiveSubscriptionsInternal = useCallback(
     async (subscriptionIds?: string[]): Promise<ActiveSubscription[]> => {
@@ -318,22 +335,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
     [clearCurrentPurchase, clearCurrentPurchaseError]
   )
 
-  const restorePurchases = useCallback(async (): Promise<void> => {
-    try {
-      if (Platform.OS === 'ios') {
-        await syncIOS().catch((error) => {
-          if (optionsRef.current?.onSyncError) {
-            optionsRef.current.onSyncError(error)
-          } else {
-            console.warn('Error restoring purchases:', error)
-          }
-        })
-      }
-      await getAvailablePurchasesInternal()
-    } catch (error) {
-      console.warn('Failed to restore purchases:', error)
-    }
-  }, [getAvailablePurchasesInternal])
+  // No local restorePurchases; use the top-level helper via returned API
 
   const validateReceipt = useCallback(
     async (
@@ -351,52 +353,62 @@ export function useIAP(options?: UseIapOptions): UseIap {
   )
 
   const initIapWithSubscriptions = useCallback(async (): Promise<void> => {
+    // Register listeners BEFORE initConnection to avoid race condition
+    subscriptionsRef.current.purchaseUpdate = purchaseUpdatedListener(
+      async (purchase: Purchase) => {
+        setCurrentPurchaseError(undefined)
+        setCurrentPurchase(purchase)
+        // Always refresh subscription state after a purchase event
+        try {
+          await getActiveSubscriptionsInternal()
+          await getAvailablePurchasesInternal()
+        } catch (e) {
+          console.warn('[useIAP] post-purchase refresh failed:', e)
+        }
+        if (optionsRef.current?.onPurchaseSuccess) {
+          optionsRef.current.onPurchaseSuccess(purchase)
+        }
+      }
+    )
+
+    subscriptionsRef.current.purchaseError = purchaseErrorListener(
+      (error: PurchaseError) => {
+        // Ignore init error until connected
+        if (
+          error &&
+          (error as any).code === 'E_INIT_CONNECTION' &&
+          !connectedRef.current
+        ) {
+          return
+        }
+        setCurrentPurchase(undefined)
+        setCurrentPurchaseError(error)
+        if (optionsRef.current?.onPurchaseError) {
+          optionsRef.current.onPurchaseError(error)
+        }
+      }
+    )
+
+    if (Platform.OS === 'ios') {
+      subscriptionsRef.current.promotedProductsIOS = promotedProductListenerIOS(
+        (product: Product) => {
+          setPromotedProductIOS(product)
+          if (optionsRef.current?.onPromotedProductIOS) {
+            optionsRef.current.onPromotedProductIOS(product)
+          }
+        }
+      )
+    }
+
     const result = await initConnection()
     setConnected(result)
-
-    if (result) {
-      subscriptionsRef.current.purchaseUpdate = purchaseUpdatedListener(
-        async (purchase: Purchase) => {
-          setCurrentPurchaseError(undefined)
-          setCurrentPurchase(purchase)
-
-          // Always refresh subscription state after a purchase event
-          try {
-            await getActiveSubscriptionsInternal()
-            await getAvailablePurchasesInternal()
-          } catch (e) {
-            // Non-fatal: UI will still update from event data
-            console.warn('[useIAP] post-purchase refresh failed:', e)
-          }
-
-          if (optionsRef.current?.onPurchaseSuccess) {
-            optionsRef.current.onPurchaseSuccess(purchase)
-          }
-        }
-      )
-
-      subscriptionsRef.current.purchaseError = purchaseErrorListener(
-        (error: PurchaseError) => {
-          setCurrentPurchase(undefined)
-          setCurrentPurchaseError(error)
-
-          if (optionsRef.current?.onPurchaseError) {
-            optionsRef.current.onPurchaseError(error)
-          }
-        }
-      )
-
-      if (Platform.OS === 'ios') {
-        // iOS promoted products listener
-        subscriptionsRef.current.promotedProductsIOS =
-          promotedProductListenerIOS((product: Product) => {
-            setPromotedProductIOS(product)
-
-            if (optionsRef.current?.onPromotedProductIOS) {
-              optionsRef.current.onPromotedProductIOS(product)
-            }
-          })
-      }
+    if (!result) {
+      // Clean up some listeners but leave purchaseError for potential retries
+      subscriptionsRef.current.purchaseUpdate?.remove()
+      subscriptionsRef.current.promotedProductsIOS?.remove()
+      subscriptionsRef.current.purchaseUpdate = undefined
+      subscriptionsRef.current.promotedProductsIOS = undefined
+      return
     }
   }, [getActiveSubscriptionsInternal, getAvailablePurchasesInternal])
 
@@ -409,7 +421,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       currentSubscriptions.purchaseError?.remove()
       currentSubscriptions.promotedProductsIOS?.remove()
       currentSubscriptions.promotedProductIOS?.remove()
-      endConnection()
+      // Keep connection alive across screens to avoid race conditions
       setConnected(false)
     }
   }, [initIapWithSubscriptions])
@@ -432,11 +444,21 @@ export function useIAP(options?: UseIapOptions): UseIap {
     fetchProducts: fetchProductsInternal,
     requestPurchase: requestPurchaseWithReset,
     validateReceipt,
-    restorePurchases,
+    restorePurchases: async () => {
+      try {
+        const purchases = await restorePurchasesTopLevel({
+          alsoPublishToEventListenerIOS: false,
+          onlyIncludeActiveItemsIOS: true,
+        })
+        setAvailablePurchases(purchases)
+      } catch (e) {
+        console.warn('Failed to restore purchases:', e)
+      }
+    },
     getProducts: getProductsInternal,
     getSubscriptions: getSubscriptionsInternal,
-    requestPromotedProductIOS,
-    buyPromotedProductIOS,
+    getPromotedProductIOS,
+    requestPurchaseOnPromotedProductIOS,
     getActiveSubscriptions: getActiveSubscriptionsInternal,
     hasActiveSubscriptions: hasActiveSubscriptionsInternal,
   }

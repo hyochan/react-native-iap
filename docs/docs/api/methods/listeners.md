@@ -129,7 +129,7 @@ Listens for promoted product purchases initiated from the App Store. This fires 
 ```tsx
 import {
   promotedProductListenerIOS,
-  getPromotedProductIOS,
+  requestPromotedProductIOS,
   buyPromotedProductIOS,
 } from 'react-native-iap'
 
@@ -170,7 +170,7 @@ const handlePromotedProduct = async (product) => {
 
 **Related Methods:**
 
-- `getPromotedProductIOS()`: Get the promoted product details
+- `requestPromotedProductIOS()`: Get the promoted product details
 - `buyPromotedProductIOS()`: Complete the promoted product purchase
 
 **Note:** This listener only works on iOS devices and is used for handling App Store promoted products.
