@@ -9,8 +9,9 @@ runs:
       with:
         node-version-file: .nvmrc
 
-    - name: Enable Corepack
-      run: corepack enable
+    # Avoid Corepack online fetch; use vendored Yarn from .yarn/releases
+    - name: Print Yarn version (vendored)
+      run: node .yarn/releases/yarn-3.6.1.cjs -v
       shell: bash
 
     - name: Restore dependencies
@@ -27,9 +28,9 @@ runs:
           ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
           ${{ runner.os }}-yarn-
 
-    - name: Install dependencies
+    - name: Install dependencies (vendored Yarn)
       if: steps.yarn-cache.outputs.cache-hit != 'true'
-      run: yarn install --immutable
+      run: node .yarn/releases/yarn-3.6.1.cjs install --immutable
       shell: bash
 
     - name: Cache dependencies

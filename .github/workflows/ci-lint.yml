@@ -38,7 +38,7 @@ jobs:
 
 
       - name: Lint files
-        run: yarn lint
+        run: node .yarn/releases/yarn-3.6.1.cjs lint
 
       - name: Typecheck files
-        run: yarn typecheck:lib
+        run: node .yarn/releases/yarn-3.6.1.cjs typecheck:lib

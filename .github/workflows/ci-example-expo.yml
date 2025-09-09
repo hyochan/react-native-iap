@@ -32,14 +32,14 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Print Yarn version (vendored)
+        run: node .yarn/releases/yarn-3.6.1.cjs -v
 
       - name: Install root dependencies
-        run: yarn install --immutable
+        run: node .yarn/releases/yarn-3.6.1.cjs install --immutable
 
       - name: Setup example-expo
-        run: yarn setup:expo
+        run: node .yarn/releases/yarn-3.6.1.cjs setup:expo
 
       - name: Cache dependencies
         uses: actions/cache@v4

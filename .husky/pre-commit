@@ -79,6 +79,35 @@ if git diff --cached --name-only | grep -qE "(src/|android/|ios/|nitrogen/)"; th
   }
 fi
 
+# 7. Run tests to prevent regressions (block on failure)
+RUN_LIB_TESTS=false
+RUN_EXAMPLE_TESTS=false
+
+if git diff --cached --name-only | grep -qE "^(src/|plugin/|jest\\.|package\\.json|yarn\\.lock)"; then
+  RUN_LIB_TESTS=true
+fi
+if git diff --cached --name-only | grep -qE "^example/(screens|components|__tests__|package\\.json)"; then
+  RUN_EXAMPLE_TESTS=true
+fi
+
+if [ "$RUN_LIB_TESTS" = "true" ]; then
+  echo "🧪 [TEST] Running library tests with coverage..."
+  yarn test:ci
+  if [ $? -ne 0 ]; then
+    echo "❌ [TEST] Library tests failed. Fix tests before committing."
+    exit 1
+  fi
+fi
+
+if [ "$RUN_EXAMPLE_TESTS" = "true" ]; then
+  echo "🧪 [TEST] Running example app tests with coverage..."
+  yarn test:ci:example
+  if [ $? -ne 0 ]; then
+    echo "❌ [TEST] Example tests failed. Fix tests before committing."
+    exit 1
+  fi
+fi
+
 echo "✅ All pre-commit checks passed! 🎉"
 echo "📋 Checks performed:"
 echo "   ✓ Lint-staged (file formatting)"
@@ -88,5 +117,8 @@ if [ "$EXAMPLE_EXPO_CHANGED" = "true" ]; then
 fi
 echo "   ✓ Nitro code generation (if needed)"
 echo "   ✓ Build validation (if needed)"
+if [ "$RUN_LIB_TESTS" = "true" ] || [ "$RUN_EXAMPLE_TESTS" = "true" ]; then
+  echo "   ✓ Tests (${RUN_LIB_TESTS:+library }${RUN_EXAMPLE_TESTS:+example})"
+fi
 echo ""
 echo "🚀 Ready to commit! This should pass all CI checks."

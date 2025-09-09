@@ -51,7 +51,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Generate nitrogen code
-        run: yarn nitrogen
+        run: node .yarn/releases/yarn-3.6.1.cjs nitrogen
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1

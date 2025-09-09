@@ -48,10 +48,10 @@ jobs:
 
 
       - name: Run library tests with coverage
-        run: yarn test:ci
+        run: node .yarn/releases/yarn-3.6.1.cjs test:ci
       
       - name: Run example tests with coverage  
-        run: yarn test:ci:example
+        run: node .yarn/releases/yarn-3.6.1.cjs test:ci:example
       
       - name: List coverage files
         run: |
