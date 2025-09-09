@@ -16,6 +16,7 @@ import {
   fetchProducts,
   requestPurchase,
   finishTransaction,
+  endConnection,
   purchaseUpdatedListener,
   purchaseErrorListener,
   type Product,
@@ -76,9 +77,7 @@ const PurchaseFlow: React.FC = () => {
 
   const initializeIAP = useCallback(async () => {
     try {
-      const isConnected = await initConnection();
-      setConnected(isConnected);
-
+      // Attach listeners first to avoid race conditions
       const handlePurchaseError = (error: NitroPurchaseResult) => {
         // Purchase failed
         setLastPurchase(null);
@@ -106,6 +105,9 @@ const PurchaseFlow: React.FC = () => {
 
       setupPurchaseListeners();
 
+      const isConnected = await initConnection();
+      setConnected(isConnected);
+
       if (isConnected && !hasLoadedProductsRef.current) {
         await loadProducts();
         hasLoadedProductsRef.current = true;
@@ -128,6 +130,12 @@ const PurchaseFlow: React.FC = () => {
       // Clean up listeners
       currentSubscriptions.updateSub?.remove();
       currentSubscriptions.errorSub?.remove();
+      // For the standalone example screen, end connection on unmount
+      // (Library hook keeps connection across screens, but example manages it locally)
+      // End IAP connection for example app on unmount (no await needed for test expectations)
+      try {
+        endConnection();
+      } catch {}
     };
   }, [handlePurchaseUpdate, initializeIAP]);
 

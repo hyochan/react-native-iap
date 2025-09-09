@@ -367,16 +367,6 @@ export default function SubscriptionFlow() {
     );
   };
 
-  // Render loading while not connected (after all hooks are declared)
-  if (!connected) {
-    return (
-      <View style={styles.loadingScreen}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Connecting to store…</Text>
-      </View>
-    );
-  }
-
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -392,6 +382,19 @@ export default function SubscriptionFlow() {
             Platform: {Platform.OS === 'ios' ? '🍎 iOS' : '🤖 Android'}
           </Text>
         </View>
+        {!connected && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 8,
+            }}
+          >
+            <ActivityIndicator size="small" color="#007AFF" />
+            <Text style={styles.loadingText}>Connecting to store…</Text>
+          </View>
+        )}
       </View>
 
       {/* Subscription Status Section */}
