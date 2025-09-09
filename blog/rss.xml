@@ -4,10 +4,52 @@
         <title>React Native IAP Blog</title>
         <link>https://hyochan.github.io/react-native-iap/blog</link>
         <description>React Native IAP Blog</description>
-        <lastBuildDate>Mon, 08 Sep 2025 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 10 Sep 2025 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
+        <item>
+            <title><![CDATA[Release 14.2.0]]></title>
+            <link>https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.0</link>
+            <guid>https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.0</guid>
+            <pubDate>Wed, 10 Sep 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[React Native IAP 14.2.0 focuses on stability and smoother integration across iOS and Android.]]></description>
+            <content:encoded><![CDATA[<p>React Native IAP 14.2.0 focuses on stability and smoother integration across iOS and Android.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="highlights">Highlights<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.0#highlights" class="hash-link" aria-label="Direct link to Highlights" title="Direct link to Highlights">​</a></h2>
+<ul>
+<li>iOS: Idempotent, non-blocking <code>initConnection()</code> with proper failure propagation. Prevents false-positive connected states under rapid navigation.</li>
+<li>iOS: Upgraded OpenIAP to <code>~&gt; 1.1.8</code> for StoreKit 2 stability.</li>
+<li>Android: Ship consumer R8 keep rules so Nitro <code>HybridObjects</code> aren’t stripped in release builds. Apps no longer need manual keeps.</li>
+<li>CI: Use vendored Yarn binary to avoid Corepack network/503 issues.</li>
+<li>Examples: Stabilized Subscription/Purchase flows and improved tests.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="details">Details<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.0#details" class="hash-link" aria-label="Direct link to Details" title="Direct link to Details">​</a></h2>
+<ul>
+<li><code>ios/HybridRnIap.swift</code>: <code>initConnection()</code> now awaits OpenIAP initialization and returns the actual result. Errors surface through the purchase error channel with <code>E_INIT_CONNECTION</code> and the hook no longer marks as connected prematurely.</li>
+<li><code>NitroIap.podspec</code>: Depends on <code>openiap</code> <code>~&gt; 1.1.8</code>.</li>
+<li><code>android/consumer-rules.pro</code>: Keep rules for Nitro IAP classes; wired via <code>consumerProguardFiles</code> so downstream apps inherit them automatically.</li>
+<li>CI workflows updated to call <code>.yarn/releases/yarn-3.6.1.cjs</code> directly.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="upgrade-notes">Upgrade Notes<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.0#upgrade-notes" class="hash-link" aria-label="Direct link to Upgrade Notes" title="Direct link to Upgrade Notes">​</a></h2>
+<p>No breaking API changes. After upgrading:</p>
+<ol>
+<li>
+<p>Reinstall Pods for the iOS example/app</p>
+<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">cd example/ios &amp;&amp; pod install</span><br></span></code></pre></div></div>
+</li>
+<li>
+<p>Regenerate Nitrogen if you edited specs</p>
+<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">yarn nitrogen</span><br></span></code></pre></div></div>
+</li>
+<li>
+<p>Android consumers can remove any app-local keep rules previously added for Nitro IAP (the library now ships consumer rules).</p>
+</li>
+</ol>]]></content:encoded>
+            <category>Release</category>
+            <category>iOS</category>
+            <category>Android</category>
+            <category>nitro</category>
+        </item>
         <item>
             <title><![CDATA[Release 14.1.1]]></title>
             <link>https://hyochan.github.io/react-native-iap/blog/release-14.1.1</link>
