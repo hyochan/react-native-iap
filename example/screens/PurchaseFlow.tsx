@@ -63,12 +63,18 @@ const PurchaseFlow: React.FC = () => {
       console.log(
         '[PurchaseFlow] Skipping finishTransaction - not connected yet',
       );
-      // Retry once shortly after connection likely established
-      setTimeout(() => {
+      // Retry until connected or timeout (~1s)
+      const started = Date.now();
+      const tryFinish = () => {
         if (connectedRef.current) {
           finishTransaction({purchase, isConsumable: true}).catch(() => {});
+          return;
         }
-      }, 300);
+        if (Date.now() - started < 1000) {
+          setTimeout(tryFinish, 100);
+        }
+      };
+      setTimeout(tryFinish, 100);
     } else {
       // For consumable products (like bulb packs), set isConsumable to true
       await finishTransaction({

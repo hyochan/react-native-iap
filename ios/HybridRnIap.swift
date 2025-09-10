@@ -53,6 +53,9 @@ class HybridRnIap: HybridRnIapSpec {
                     self.purchaseErrorSub = OpenIapModule.shared.purchaseErrorListener { [weak self] error in
                         guard let self else { return }
                         Task { @MainActor in
+                            #if DEBUG
+                            print("[HybridRnIap] purchaseError event: code=\(error.code), productId=\(error.productId ?? "-")")
+                            #endif
                             let nitroError = self.createPurchaseErrorResult(
                                 code: error.code,
                                 message: error.message,
@@ -108,6 +111,9 @@ class HybridRnIap: HybridRnIapSpec {
                 self.purchaseErrorSub = OpenIapModule.shared.purchaseErrorListener { [weak self] error in
                     guard let self else { return }
                     Task { @MainActor in
+                        #if DEBUG
+                        print("[HybridRnIap] purchaseError event: code=\(error.code), productId=\(error.productId ?? "-")")
+                        #endif
                         let nitroError = self.createPurchaseErrorResult(
                             code: error.code,
                             message: error.message,
@@ -201,6 +207,9 @@ class HybridRnIap: HybridRnIapSpec {
             do {
                 // Event-first behavior: don't reject Promise on connection issues
                 guard self.isInitialized else {
+                    #if DEBUG
+                    print("[HybridRnIap] requestPurchase while not initialized; sending E_INIT_CONNECTION")
+                    #endif
                     let err = self.createPurchaseErrorResult(
                         code: OpenIapError.E_INIT_CONNECTION,
                         message: "IAP store connection not initialized",
