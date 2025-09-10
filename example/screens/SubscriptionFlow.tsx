@@ -16,6 +16,7 @@ import {
   type SubscriptionProduct,
   type PurchaseError,
   type Purchase,
+  isUserCancelledError,
 } from 'react-native-iap';
 
 /**
@@ -119,11 +120,7 @@ export default function SubscriptionFlow() {
     onPurchaseError: (error: PurchaseError) => {
       console.error('Subscription failed:', error);
       setIsProcessing(false);
-      const code = (error.code || '').toUpperCase();
-      const isCancel =
-        code === 'E_USER_CANCELLED' ||
-        code === 'E_USER_CANCELED' ||
-        (error as any).code === 'user_cancelled';
+      const isCancel = isUserCancelledError(error as any);
       // Always update UI error text
       setPurchaseResult(`❌ Subscription failed: ${error.message}`);
       // Only alert for non-cancel errors
