@@ -51,6 +51,26 @@
             <category>nitro</category>
         </item>
         <item>
+            <title><![CDATA[Release 14.2.1]]></title>
+            <link>https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.1</link>
+            <guid>https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.1</guid>
+            <pubDate>Wed, 10 Sep 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[Small stability update focused on iOS and example UX.]]></description>
+            <content:encoded><![CDATA[<p>Small stability update focused on iOS and example UX.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="highlights">Highlights<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.1#highlights" class="hash-link" aria-label="Direct link to Highlights" title="Direct link to Highlights">​</a></h2>
+<ul>
+<li>iOS: Upgraded OpenIAP to <code>~&gt; 1.1.9</code> (<a href="https://github.com/hyodotdev/openiap-apple/releases/tag/1.1.9" target="_blank" rel="noopener noreferrer">notes</a>)</li>
+<li>iOS: Event‑only purchase flow with error de‑duplication (no double cancel popups)</li>
+<li>Examples: Guard <code>finishTransaction</code> until connected; short delayed retry for reliability</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="notes">Notes<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.1#notes" class="hash-link" aria-label="Direct link to Notes" title="Direct link to Notes">​</a></h2>
+<p>No breaking changes. If you edited specs, regenerate Nitrogen:</p>
+<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">yarn nitrogen</span><br></span></code></pre></div></div>]]></content:encoded>
+            <category>Release</category>
+            <category>iOS</category>
+            <category>nitro</category>
+        </item>
+        <item>
             <title><![CDATA[Release 14.1.1]]></title>
             <link>https://hyochan.github.io/react-native-iap/blog/release-14.1.1</link>
             <guid>https://hyochan.github.io/react-native-iap/blog/release-14.1.1</guid>
