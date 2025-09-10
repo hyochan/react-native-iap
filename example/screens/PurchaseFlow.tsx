@@ -39,6 +39,7 @@ const PurchaseFlow: React.FC = () => {
   const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
   const [lastError, setLastError] = useState<NitroPurchaseResult | null>(null);
   const subscriptionsRef = useRef<{updateSub?: any; errorSub?: any}>({});
+  const connectedRef = useRef(false);
   const hasLoadedProductsRef = useRef(false);
 
   const handlePurchaseUpdate = useCallback(async (purchase: Purchase) => {
@@ -57,11 +58,24 @@ const PurchaseFlow: React.FC = () => {
     // }
 
     // After successful server validation, finish the transaction
-    // For consumable products (like bulb packs), set isConsumable to true
-    await finishTransaction({
-      purchase,
-      isConsumable: true, // Set to true for consumable products
-    });
+    // Guard: Only attempt when connected to store
+    if (!connectedRef.current) {
+      console.log(
+        '[PurchaseFlow] Skipping finishTransaction - not connected yet',
+      );
+      // Retry once shortly after connection likely established
+      setTimeout(() => {
+        if (connectedRef.current) {
+          finishTransaction({purchase, isConsumable: true}).catch(() => {});
+        }
+      }, 300);
+    } else {
+      // For consumable products (like bulb packs), set isConsumable to true
+      await finishTransaction({
+        purchase,
+        isConsumable: true, // Set to true for consumable products
+      });
+    }
 
     // Handle successful purchase
     setPurchaseResult(
@@ -86,7 +100,12 @@ const PurchaseFlow: React.FC = () => {
         setPurchaseResult(`❌ Purchase failed: ${errorMessage}`);
         setPurchasing(false);
 
-        if (error.code === 'user_cancelled') {
+        const code = error.code?.toUpperCase?.() || '';
+        if (
+          code === 'E_USER_CANCELLED' ||
+          code === 'E_USER_CANCELED' ||
+          error.code === 'user_cancelled'
+        ) {
           Alert.alert('Purchase Cancelled', 'You cancelled the purchase');
         } else {
           Alert.alert('Purchase Failed', errorMessage);
@@ -138,6 +157,11 @@ const PurchaseFlow: React.FC = () => {
       } catch {}
     };
   }, [handlePurchaseUpdate, initializeIAP]);
+
+  // Track latest connection state for guards inside callbacks
+  useEffect(() => {
+    connectedRef.current = connected;
+  }, [connected]);
 
   const loadProducts = async () => {
     try {

@@ -38,6 +38,8 @@ import {
 const SUBSCRIPTION_IDS = ['dev.hyo.martie.premium'];
 
 export default function SubscriptionFlow() {
+  // Track connection to coordinate delayed finish
+  const connectedRef = useRef(false);
   const {
     connected,
     subscriptions,
@@ -63,11 +65,27 @@ export default function SubscriptionFlow() {
       // }
 
       // After successful server validation, finish the transaction
-      // For subscriptions, set isConsumable to false
-      await finishTransaction({
-        purchase,
-        isConsumable: false, // Set to false for subscription products
-      });
+      // Guard: Only attempt when connected to store
+      if (!connected) {
+        console.log(
+          '[SubscriptionFlow] Skipping finishTransaction - not connected yet',
+        );
+        // Retry once shortly after connection likely established
+        setTimeout(() => {
+          if (connectedRef.current) {
+            finishTransaction({
+              purchase,
+              isConsumable: false,
+            }).catch(() => {});
+          }
+        }, 300);
+      } else {
+        // For subscriptions, set isConsumable to false
+        await finishTransaction({
+          purchase,
+          isConsumable: false, // Set to false for subscription products
+        });
+      }
 
       // Refresh subscription status and available purchases after success
       try {
@@ -144,6 +162,11 @@ export default function SubscriptionFlow() {
       }
     }
   }, [connected, fetchProducts, getAvailablePurchases]);
+
+  // Keep ref in sync for delayed finish
+  useEffect(() => {
+    connectedRef.current = connected;
+  }, [connected]);
 
   // Check subscription status separately to avoid infinite loop
   useEffect(() => {

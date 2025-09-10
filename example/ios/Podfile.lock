@@ -8,7 +8,7 @@ PODS:
   - hermes-engine (0.81.1):
     - hermes-engine/Pre-built (= 0.81.1)
   - hermes-engine/Pre-built (0.81.1)
-  - NitroIap (14.1.1):
+  - NitroIap (14.2.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -16,7 +16,7 @@ PODS:
     - glog
     - hermes-engine
     - NitroModules
-    - openiap (~> 1.1.8)
+    - openiap (~> 1.1.9)
     - RCT-Folly
     - RCT-Folly/Fabric
     - RCTRequired
@@ -68,7 +68,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - openiap (1.1.8)
+  - openiap (1.1.9)
   - RCT-Folly (2024.11.18.00):
     - boost
     - DoubleConversion
@@ -2501,7 +2501,7 @@ DEPENDENCIES:
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - NitroIap (from `../..`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
-  - openiap (from `https://github.com/hyodotdev/openiap-apple.git`, tag `1.1.8`)
+  - openiap (from `https://github.com/hyodotdev/openiap-apple.git`, tag `1.1.9`)
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
@@ -2598,7 +2598,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-nitro-modules"
   openiap:
     :git: https://github.com/hyodotdev/openiap-apple.git
-    :tag: 1.1.8
+    :tag: 1.1.9
   RCT-Folly:
     :podspec: "../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec"
   RCTDeprecation:
@@ -2737,7 +2737,7 @@ EXTERNAL SOURCES:
 CHECKOUT OPTIONS:
   openiap:
     :git: https://github.com/hyodotdev/openiap-apple.git
-    :tag: 1.1.8
+    :tag: 1.1.9
 
 SPEC CHECKSUMS:
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
@@ -2747,10 +2747,10 @@ SPEC CHECKSUMS:
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: 4f8246b1f6d79f625e0d99472d1f3a71da4d28ca
-  NitroIap: e315a928b50ecb2dfef30a7b5997a38105378119
+  NitroIap: ea1ace3186b8213bdab73b9592286929b807f2ab
   NitroModules: fb1a99c1009adb251a440be2280587331092317d
-  openiap: ef0efeb0505ffcdb576f3c2bef875c10548461e5
-  RCT-Folly: 59ec0ac1f2f39672a0c6e6cecdd39383b764646f
+  openiap: dcfa2a4dcf31259ec4b73658e7d1441babccce66
+  RCT-Folly: 846fda9475e61ec7bcbf8a3fe81edfcaeb090669
   RCTDeprecation: c4b9e2fd0ab200e3af72b013ed6113187c607077
   RCTRequired: e97dd5dafc1db8094e63bc5031e0371f092ae92a
   RCTTypeSafety: 720403058b7c1380c6a3ae5706981d6362962c89
@@ -2819,6 +2819,6 @@ SPEC CHECKSUMS:
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: fa23995c18b65978347b096d0836f4f5093df545
 
-PODFILE CHECKSUM: ddfc61227e5815b1722d52acd7b720aa5c24aabf
+PODFILE CHECKSUM: cf35f04f73f38d3ba1552cbf18e974f19468fe07
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.15.2

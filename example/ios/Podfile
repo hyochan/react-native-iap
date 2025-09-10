@@ -24,9 +24,9 @@ target 'example' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  # Work around CDN/trunk issues by pulling OpenIAP directly from Git.
-  # This satisfies NitroIap.podspec dependency on 'openiap' (~> 1.1.8).
-  pod 'openiap', :git => 'https://github.com/hyodotdev/openiap-apple.git', :tag => '1.1.8'
+  # Work around CDN/trunk propagation delay by pulling OpenIAP directly from Git.
+  # This satisfies NitroIap.podspec dependency on 'openiap' (~> 1.1.9).
+  pod 'openiap', :git => 'https://github.com/hyodotdev/openiap-apple.git', :tag => '1.1.9'
 
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
