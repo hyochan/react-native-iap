@@ -8,7 +8,7 @@ PODS:
   - hermes-engine (0.81.1):
     - hermes-engine/Pre-built (= 0.81.1)
   - hermes-engine/Pre-built (0.81.1)
-  - NitroIap (14.2.1):
+  - NitroIap (14.2.2):
     - boost
     - DoubleConversion
     - fast_float
