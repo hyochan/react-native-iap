@@ -69,7 +69,12 @@ const PurchaseFlow: React.FC = () => {
       const started = Date.now();
       const tryFinish = () => {
         if (connectedRef.current) {
-          finishTransaction({purchase, isConsumable: true}).catch(() => {});
+          finishTransaction({purchase, isConsumable: true}).catch((err) => {
+            console.warn(
+              '[PurchaseFlow] Delayed finishTransaction failed:',
+              err,
+            );
+          });
           return;
         }
         if (Date.now() - started < 1000) {

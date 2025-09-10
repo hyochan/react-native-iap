@@ -21,6 +21,10 @@ class HybridRnIap: HybridRnIapSpec {
     private var purchaseUpdatedListeners: [(NitroPurchase) -> Void] = []
     private var purchaseErrorListeners: [(NitroPurchaseResult) -> Void] = []
     private var promotedProductListeners: [(NitroProduct) -> Void] = []
+    // Deduplication for purchase error events
+    private var lastPurchaseErrorCode: String? = nil
+    private var lastPurchaseErrorProductId: String? = nil
+    private var lastPurchaseErrorTimestamp: TimeInterval = 0
     
     // MARK: - Initialization
     
@@ -235,8 +239,14 @@ class HybridRnIap: HybridRnIapSpec {
                 )
                 _ = try await OpenIapModule.shared.requestPurchase(props)
             } catch {
-                // Do not reject/emit here: OpenIAP already publishes purchaseError via its listener.
-                // Keep event-only semantics to avoid duplicate error handling in JS.
+                // Ensure an error reaches JS even if OpenIAP threw before emitting.
+                // Use simple de-duplication window to avoid double-emitting.
+                let err = self.createPurchaseErrorResult(
+                    code: OpenIapError.E_SERVICE_ERROR,
+                    message: error.localizedDescription,
+                    productId: iosRequest.sku
+                )
+                self.sendPurchaseErrorDedup(err)
             }
         }
     }
@@ -286,7 +296,7 @@ class HybridRnIap: HybridRnIapSpec {
                 )
                 return .first(mapped)
             } catch {
-                throw OpenIapError.make(code: OpenIapError.E_RECEIPT_FAILED)
+                throw OpenIapError.make(code: OpenIapError.E_RECEIPT_FAILED, message: error.localizedDescription)
             }
         }
     }
@@ -507,7 +517,7 @@ class HybridRnIap: HybridRnIapSpec {
                 }
                 throw OpenIapError.make(code: OpenIapError.E_RECEIPT_FAILED)
             } catch {
-                throw OpenIapError.make(code: OpenIapError.E_RECEIPT_FAILED)
+                throw OpenIapError.make(code: OpenIapError.E_RECEIPT_FAILED, message: error.localizedDescription)
             }
         }
     }
@@ -603,9 +613,24 @@ class HybridRnIap: HybridRnIapSpec {
     }
     
     private func sendPurchaseError(_ error: NitroPurchaseResult) {
+        // Update last error for deduplication
+        lastPurchaseErrorCode = error.code
+        lastPurchaseErrorProductId = error.purchaseToken
+        lastPurchaseErrorTimestamp = Date().timeIntervalSince1970
         for listener in purchaseErrorListeners {
             listener(error)
         }
+    }
+
+    private func sendPurchaseErrorDedup(_ error: NitroPurchaseResult) {
+        let now = Date().timeIntervalSince1970
+        let sameCode = (error.code == lastPurchaseErrorCode)
+        let sameProduct = (error.purchaseToken == lastPurchaseErrorProductId)
+        let withinWindow = (now - lastPurchaseErrorTimestamp) < 0.3
+        if sameCode && sameProduct && withinWindow {
+            return
+        }
+        sendPurchaseError(error)
     }
     
     private func createPurchaseErrorResult(code: String, message: String, productId: String? = nil) -> NitroPurchaseResult {

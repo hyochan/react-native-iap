@@ -67,7 +67,7 @@ export default function SubscriptionFlow() {
 
       // After successful server validation, finish the transaction
       // Guard: Only attempt when connected to store
-      if (!connected) {
+      if (!connectedRef.current) {
         console.log(
           '[SubscriptionFlow] Skipping finishTransaction - not connected yet',
         );
@@ -78,7 +78,12 @@ export default function SubscriptionFlow() {
             finishTransaction({
               purchase,
               isConsumable: false,
-            }).catch(() => {});
+            }).catch((err) => {
+              console.warn(
+                '[SubscriptionFlow] Delayed finishTransaction failed:',
+                err,
+              );
+            });
             return;
           }
           if (Date.now() - started < 1000) {
