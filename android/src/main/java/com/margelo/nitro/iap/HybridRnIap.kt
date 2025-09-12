@@ -554,6 +554,13 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
                         put("basePlanId", offer.basePlanId)
                         offer.offerId?.let { put("offerId", it) }
                         
+                        val offerTagsArray = JSONArray().apply {
+                            offer.offerTags?.forEach { tag ->
+                                put(tag)
+                            }
+                        }
+                        put("offerTags", offerTagsArray)
+                        
                         val pricingPhasesArray = JSONArray().apply {
                             offer.pricingPhases.pricingPhaseList.forEach { phase ->
                                 put(JSONObject().apply {
@@ -566,7 +573,9 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
                                 })
                             }
                         }
-                        put("pricingPhases", pricingPhasesArray)
+                        put("pricingPhases", JSONObject().apply {
+                            put("pricingPhaseList", pricingPhasesArray)
+                        })
                     }
                     put(offerJson)
                 }
