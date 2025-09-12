@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [14.2.3]
+
+### Fixed
+
+- Android: add `offerTags` and fix `pricingPhases` in `subscriptionOfferDetails` (#2998)
+
+### Chore
+
+- iOS: enforce iOS 15+ in podspec
+- Lint: format files to sync with `.vscode` and Prettier
+- ESLint: avoid `.` import in config
+
 ## [14.2.2]
 
 ### Changed

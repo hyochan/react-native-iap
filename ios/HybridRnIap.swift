@@ -707,4 +707,20 @@ class HybridRnIap: HybridRnIapSpec {
         n.appAccountToken = p.appAccountToken
         return n
     }
+
+    // MARK: - Android-only stubs (required for protocol conformance)
+    // These APIs are Android-specific. Expose stubs on iOS to satisfy the
+    // generated Swift protocol. They will never be called from JS on iOS
+    // because the TS spec marks them as Android-only.
+    func getStorefrontAndroid() throws -> Promise<String> {
+        return Promise.async {
+            throw OpenIapError.make(code: OpenIapError.E_FEATURE_NOT_SUPPORTED)
+        }
+    }
+
+    func deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid) throws -> Promise<Void> {
+        return Promise.async {
+            throw OpenIapError.make(code: OpenIapError.E_FEATURE_NOT_SUPPORTED)
+        }
+    }
 }

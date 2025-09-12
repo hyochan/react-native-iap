@@ -1182,6 +1182,54 @@ export const getStorefrontIOS = async (): Promise<string> => {
 };
 
 /**
+ * Gets the storefront country code from the underlying native store.
+ * Returns a two-letter country code such as 'US', 'KR', or empty string on failure.
+ *
+ * Cross-platform alias aligning with expo-iap.
+ */
+export const getStorefront = async (): Promise<string> => {
+  if (Platform.OS === 'android') {
+    try {
+      // Optional since older builds may not have the method
+      const result = await iap.getStorefrontAndroid?.();
+      return result ?? '';
+    } catch {
+      return '';
+    }
+  }
+  return getStorefrontIOS();
+};
+
+/**
+ * Deeplinks to native interface that allows users to manage their subscriptions
+ * Cross-platform alias aligning with expo-iap
+ */
+export const deepLinkToSubscriptions = async (
+  options: {
+    skuAndroid?: string;
+    packageNameAndroid?: string;
+  } = {},
+): Promise<void> => {
+  if (Platform.OS === 'android') {
+    await iap.deepLinkToSubscriptionsAndroid?.({
+      skuAndroid: options.skuAndroid,
+      packageNameAndroid: options.packageNameAndroid,
+    });
+    return;
+  }
+  // iOS: Use manage subscriptions sheet (ignore returned purchases for deeplink parity)
+  if (Platform.OS === 'ios') {
+    try {
+      await iap.showManageSubscriptionsIOS();
+    } catch {
+      // no-op
+    }
+    return;
+  }
+  return;
+};
+
+/**
  * iOS only - Gets the original app transaction ID if the app was purchased from the App Store
  * @platform iOS
  * @description

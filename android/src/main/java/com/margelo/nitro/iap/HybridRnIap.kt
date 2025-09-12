@@ -1,72 +1,112 @@
 package com.margelo.nitro.iap
 
-import android.app.Activity
-import android.content.Context
 import android.util.Log
-import com.android.billingclient.api.*
 import com.facebook.react.bridge.ReactApplicationContext
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
 import com.margelo.nitro.NitroModules
 import com.margelo.nitro.core.Promise
-import org.json.JSONArray
-import org.json.JSONObject
+import dev.hyo.openiap.OpenIapError
+import dev.hyo.openiap.OpenIapModule
+import dev.hyo.openiap.listener.OpenIapPurchaseErrorListener
+import dev.hyo.openiap.listener.OpenIapPurchaseUpdateListener
+import dev.hyo.openiap.models.OpenIapProduct
+import dev.hyo.openiap.models.OpenIapPurchase
+import dev.hyo.openiap.models.DeepLinkOptions
+import dev.hyo.openiap.models.ProductRequest
+import dev.hyo.openiap.models.RequestPurchaseAndroidProps
+import dev.hyo.openiap.models.OpenIapSerialization
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CompletableDeferred
 
-class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientStateListener {
+class HybridRnIap : HybridRnIapSpec() {
     companion object {
         const val TAG = "RnIap"
-        private const val MICROS_PER_UNIT = 1_000_000.0
     }
     
     // Get ReactApplicationContext lazily from NitroModules
     private val context: ReactApplicationContext by lazy {
         NitroModules.applicationContext as ReactApplicationContext
     }
-    
-    private var billingClient: BillingClient? = null
-    private val skuDetailsCache = mutableMapOf<String, ProductDetails>()
-    
+
+    // OpenIAP backend + local cache for product types
+    private val openIap: OpenIapModule by lazy { OpenIapModule(context) }
+    private val productTypeBySku = mutableMapOf<String, String>()
+
     // Event listeners
     private val purchaseUpdatedListeners = mutableListOf<(NitroPurchase) -> Unit>()
     private val purchaseErrorListeners = mutableListOf<(NitroPurchaseResult) -> Unit>()
     private val promotedProductListenersIOS = mutableListOf<(NitroProduct) -> Unit>()
-    
+    private var listenersAttached = false
+    private var isInitialized = false
+    private var initDeferred: CompletableDeferred<Boolean>? = null
     
     // Connection methods
     override fun initConnection(): Promise<Boolean> {
         return Promise.async {
-            if (billingClient?.isReady == true) {
-                return@async true
-            }
-            
-            // Check if Google Play Services is available
-            val googleApiAvailability = GoogleApiAvailability.getInstance()
-            val resultCode = googleApiAvailability.isGooglePlayServicesAvailable(context)
-            if (resultCode != ConnectionResult.SUCCESS) {
-                val errorMsg = BillingUtils.getPlayServicesErrorMessage(resultCode)
-                val errorJson = BillingUtils.createErrorJson(
-                    IapErrorCode.E_NOT_PREPARED, 
-                    errorMsg,
-                    resultCode
-                )
-                throw Exception(errorJson)
-            }
-            
+            // Fast-path: if already initialized, return immediately
+            if (isInitialized) return@async true
+
+            // Set current activity best-effort; don't fail init if missing
             withContext(Dispatchers.Main) {
-                initBillingClient()
+                runCatching { openIap.setActivity(context.currentActivity) }
+            }
+
+            // If an initialization is already in-flight, await it
+            initDeferred?.let { return@async it.await() }
+
+            if (!listenersAttached) {
+                listenersAttached = true
+                openIap.addPurchaseUpdateListener(OpenIapPurchaseUpdateListener { p ->
+                    runCatching { sendPurchaseUpdate(convertToNitroPurchase(p)) }
+                        .onFailure { Log.e(TAG, "Failed to forward purchase update", it) }
+                })
+                openIap.addPurchaseErrorListener(OpenIapPurchaseErrorListener { e ->
+                    val code = OpenIapError.toCode(e)
+                    val message = e.message ?: OpenIapError.defaultMessage(code)
+                    runCatching {
+                        sendPurchaseError(
+                            NitroPurchaseResult(
+                                responseCode = -1.0,
+                                debugMessage = null,
+                                code = code,
+                                message = message,
+                                purchaseToken = null
+                            )
+                        )
+                    }.onFailure { Log.e(TAG, "Failed to forward purchase error", it) }
+                })
+            }
+
+            // Begin a new initialization and share its result with concurrent callers
+            val deferred = CompletableDeferred<Boolean>()
+            initDeferred = deferred
+            try {
+                val ok = runCatching { openIap.initConnection() }.getOrElse { err ->
+                    val error = OpenIapError.InitConnection(err.message ?: "Failed to initialize connection")
+                    throw Exception(toErrorJson(error))
+                }
+                if (!ok) {
+                    val error = OpenIapError.InitConnection("Failed to initialize connection")
+                    throw Exception(toErrorJson(error))
+                }
+                isInitialized = true
+                deferred.complete(true)
+                true
+            } catch (e: Exception) {
+                deferred.complete(false)
+                throw e
+            } finally {
+                initDeferred = null
             }
         }
     }
     
     override fun endConnection(): Promise<Boolean> {
         return Promise.async {
-            billingClient?.endConnection()
-            billingClient = null
+            runCatching { openIap.endConnection() }
+            productTypeBySku.clear()
+            isInitialized = false
+            initDeferred = null
             true
         }
     }
@@ -74,71 +114,20 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     // Product methods
     override fun fetchProducts(skus: Array<String>, type: String): Promise<Array<NitroProduct>> {
         return Promise.async {
-            Log.d(TAG, "fetchProducts called with SKUs: ${skus.joinToString()}, type: $type")
-            
-            // Validate SKU list
+            Log.d(TAG, "fetchProducts (OpenIAP) skus=${skus.joinToString()} type=$type")
+
             if (skus.isEmpty()) {
-                throw Exception(BillingUtils.createErrorJson(
-                    IapErrorCode.E_EMPTY_SKU_LIST,
-                    "SKU list is empty"
-                ))
+                throw Exception(toErrorJson(OpenIapError.EmptySkuList))
             }
-            
-            // Initialize billing client if not already done
-            // Auto-reconnection will handle service disconnections automatically
-            if (billingClient == null) {
-                initConnection().await()
-            }
-            
-            val productType = if (type == "subs") {
-                BillingClient.ProductType.SUBS
-            } else {
-                BillingClient.ProductType.INAPP
-            }
-            
-            val productList = skus.map { sku ->
-                QueryProductDetailsParams.Product.newBuilder()
-                    .setProductId(sku)
-                    .setProductType(productType)
-                    .build()
-            }
-            
-            val params = QueryProductDetailsParams.newBuilder()
-                .setProductList(productList)
-                .build()
-            
-            val result = suspendCancellableCoroutine<List<ProductDetails>> { continuation ->
-                billingClient?.queryProductDetailsAsync(params) { billingResult, productDetailsResult ->
-                    Log.d(TAG, "queryProductDetailsAsync response: code=${billingResult.responseCode}")
-                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        val productDetailsList = productDetailsResult.productDetailsList ?: emptyList()
-                        Log.d(TAG, "Retrieved ${productDetailsList.size} products")
-                        // Cache the product details
-                        if (productDetailsList.isNotEmpty()) {
-                            for (details in productDetailsList) {
-                                Log.d(TAG, "Product: ${details.productId}, has offers: ${details.subscriptionOfferDetails?.size ?: 0}")
-                                skuDetailsCache[details.productId] = details
-                            }
-                            continuation.resume(productDetailsList)
-                        } else {
-                            continuation.resume(emptyList())
-                        }
-                    } else {
-                        continuation.resumeWithException(
-                            Exception(getBillingErrorMessage(billingResult.responseCode))
-                        )
-                    }
-                }
-            }
-            
-            Log.d(TAG, "Converting ${result.size} products to NitroProducts")
-            
-            val nitroProducts = result.map { productDetails ->
-                convertToNitroProduct(productDetails, type)
-            }.toTypedArray()
-            
-            Log.d(TAG, "Returning ${nitroProducts.size} NitroProducts to JS")
-            nitroProducts
+
+            initConnection().await()
+            val reqType = ProductRequest.ProductRequestType.fromString(type)
+            val products = openIap.fetchProducts(ProductRequest(skus.toList(), reqType))
+
+            // populate type cache
+            products.forEach { p -> productTypeBySku[p.id] = p.type.value }
+
+            products.map { convertToNitroProduct(it) }.toTypedArray()
         }
     }
     
@@ -146,112 +135,45 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     // Purchase methods (Unified)
     override fun requestPurchase(request: NitroPurchaseRequest): Promise<Unit> {
         return Promise.async {
-            // Android implementation
             val androidRequest = request.android ?: run {
-                sendPurchaseError(createPurchaseErrorResult(
-                    IapErrorCode.E_USER_ERROR,
-                    "No Android request provided"
-                ))
+                // Programming error: no Android params provided
+                sendPurchaseError(toErrorResult(OpenIapError.DeveloperError))
                 return@async
             }
-            
-            // Validate SKU list
+
             if (androidRequest.skus.isEmpty()) {
-                sendPurchaseError(createPurchaseErrorResult(
-                    IapErrorCode.E_EMPTY_SKU_LIST,
-                    "SKU list is empty"
-                ))
+                sendPurchaseError(toErrorResult(OpenIapError.EmptySkuList))
                 return@async
             }
-            
+
             try {
-                // Initialize billing client if not already done
-                if (billingClient == null) {
-                    initConnection().await()
-                }
-                
-                // Get current activity - this should be done on Main thread
-                val activity = withContext(Dispatchers.Main) {
-                    context.currentActivity
-                } ?: run {
-                    sendPurchaseError(createPurchaseErrorResult(
-                        IapErrorCode.E_ACTIVITY_UNAVAILABLE,
-                        "Current activity is null. Please ensure the app is in foreground."
-                    ))
+                initConnection().await()
+                withContext(Dispatchers.Main) { runCatching { openIap.setActivity(context.currentActivity) } }
+
+                val missing = androidRequest.skus.firstOrNull { !productTypeBySku.containsKey(it) }
+                if (missing != null) {
+                    sendPurchaseError(toErrorResult(OpenIapError.SkuNotFound(missing), missing))
                     return@async
                 }
-                
-                withContext(Dispatchers.Main) {
-                    val productDetailsList = mutableListOf<BillingFlowParams.ProductDetailsParams>()
-                    
-                    // Build product details list
-                    for (sku in androidRequest.skus) {
-                        val productDetails = skuDetailsCache[sku] ?: run {
-                            sendPurchaseError(createPurchaseErrorResult(
-                                IapErrorCode.E_SKU_NOT_FOUND,
-                                "Product not found: $sku. Call requestProducts first.",
-                                sku
-                            ))
-                            return@withContext
-                        }
-                        
-                        val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
-                            .setProductDetails(productDetails)
-                        
-                        // Add offer token for subscriptions (required for SUBS on Play Billing 5+)
-                        // Prefer developer-provided token, otherwise fall back to the first available offer/base-plan.
-                        val subscriptionOffers = androidRequest.subscriptionOffers
-                        var appliedOfferToken: String? = null
+                val typeStr = androidRequest.skus.firstOrNull()?.let { productTypeBySku[it] } ?: "inapp"
+                val typeEnum = ProductRequest.ProductRequestType.fromString(typeStr)
 
-                        if (!subscriptionOffers.isNullOrEmpty()) {
-                            val offer = subscriptionOffers.find { it.sku == sku }
-                            appliedOfferToken = offer?.offerToken
-                        }
+                val result = openIap.requestPurchase(
+                    RequestPurchaseAndroidProps(
+                        skus = androidRequest.skus.toList(),
+                        obfuscatedAccountIdAndroid = androidRequest.obfuscatedAccountIdAndroid,
+                        obfuscatedProfileIdAndroid = androidRequest.obfuscatedProfileIdAndroid,
+                        isOfferPersonalized = androidRequest.isOfferPersonalized
+                    ),
+                    typeEnum
+                )
 
-                        if (appliedOfferToken == null && productDetails.productType == BillingClient.ProductType.SUBS) {
-                            val firstAvailable = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
-                            appliedOfferToken = firstAvailable
-                        }
-
-                        appliedOfferToken?.let { productDetailsParams.setOfferToken(it) }
-                        productDetailsList.add(productDetailsParams.build())
-                    }
-                    
-                    val billingFlowParams = BillingFlowParams.newBuilder()
-                        .setProductDetailsParamsList(productDetailsList)
-                        .setIsOfferPersonalized(androidRequest.isOfferPersonalized ?: false)
-                    
-                    // Set subscription update params if replacing
-                    val purchaseToken = androidRequest.purchaseTokenAndroid
-                    val replacementMode = androidRequest.replacementModeAndroid
-                    if (!purchaseToken.isNullOrEmpty() && replacementMode != null) {
-                        val updateParams = BillingFlowParams.SubscriptionUpdateParams.newBuilder()
-                            .setOldPurchaseToken(purchaseToken)
-                            .setSubscriptionReplacementMode(replacementMode.toInt())
-                            .build()
-                        billingFlowParams.setSubscriptionUpdateParams(updateParams)
-                    }
-                    
-                    // Set obfuscated identifiers
-                    androidRequest.obfuscatedAccountIdAndroid?.let { billingFlowParams.setObfuscatedAccountId(it) }
-                    androidRequest.obfuscatedProfileIdAndroid?.let { billingFlowParams.setObfuscatedProfileId(it) }
-                    
-                    // Launch billing flow - results will be handled by onPurchasesUpdated
-                    val billingResult = billingClient?.launchBillingFlow(activity, billingFlowParams.build())
-                    if (billingResult?.responseCode != BillingClient.BillingResponseCode.OK) {
-                        sendPurchaseError(createPurchaseErrorResult(
-                            getBillingErrorCode(billingResult?.responseCode ?: -1),
-                            getBillingErrorMessage(billingResult?.responseCode ?: -1)
-                        ))
-                    }
-                    
-                    // Purchase results will be handled by onPurchasesUpdated callback
+                result.forEach { p ->
+                    runCatching { sendPurchaseUpdate(convertToNitroPurchase(p)) }
+                        .onFailure { Log.e(TAG, "Failed to forward PURCHASE_UPDATED", it) }
                 }
             } catch (e: Exception) {
-                sendPurchaseError(createPurchaseErrorResult(
-                    IapErrorCode.E_UNKNOWN,
-                    e.message ?: "Unknown error occurred"
-                ))
+                sendPurchaseError(toErrorResult(OpenIapError.PurchaseFailed(e.message ?: "Purchase failed")))
             }
         }
     }
@@ -259,97 +181,65 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     // Purchase history methods (Unified)
     override fun getAvailablePurchases(options: NitroAvailablePurchasesOptions?): Promise<Array<NitroPurchase>> {
         return Promise.async {
-            // Android implementation
             val androidOptions = options?.android
-            val type = androidOptions?.type ?: "inapp"
-            
-            // Initialize billing client if not already done
-            // Auto-reconnection will handle service disconnections automatically
-            if (billingClient == null) {
-                initConnection().await()
-            }
-            
-            val productType = if (type == "subs") {
-                BillingClient.ProductType.SUBS
+            initConnection().await()
+
+            val result: List<OpenIapPurchase> = if (androidOptions?.type != null) {
+                val typeEnum = ProductRequest.ProductRequestType.fromString(androidOptions.type ?: "inapp")
+                openIap.getAvailableItems(typeEnum)
             } else {
-                BillingClient.ProductType.INAPP
+                openIap.getAvailablePurchases()
             }
-            
-            val params = QueryPurchasesParams.newBuilder()
-                .setProductType(productType)
-                .build()
-            
-            val result = suspendCancellableCoroutine<List<Purchase>> { continuation ->
-                billingClient?.queryPurchasesAsync(params) { billingResult, purchases ->
-                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        continuation.resume(purchases)
-                    } else {
-                        continuation.resumeWithException(
-                            Exception(getBillingErrorMessage(billingResult.responseCode))
-                        )
-                    }
-                }
-            }
-            
-            result.map { purchase ->
-                convertToNitroPurchase(purchase)
-            }.toTypedArray()
+            result.map { convertToNitroPurchase(it) }.toTypedArray()
         }
     }
     
     // Transaction management methods (Unified)
     override fun finishTransaction(params: NitroFinishTransactionParams): Promise<Variant_Boolean_NitroPurchaseResult> {
         return Promise.async {
-            // Android implementation
             val androidParams = params.android ?: return@async Variant_Boolean_NitroPurchaseResult.First(true)
             val purchaseToken = androidParams.purchaseToken
             val isConsumable = androidParams.isConsumable ?: false
-            
-            // Initialize billing client if not already done
-            // Auto-reconnection will handle service disconnections automatically
-            if (billingClient == null) {
+
+            // Ensure connection; if it fails, return an error result instead of throwing
+            try {
                 initConnection().await()
-            }
-            
-            if (isConsumable) {
-                // Consume the purchase
-                val consumeParams = ConsumeParams.newBuilder()
-                    .setPurchaseToken(purchaseToken)
-                    .build()
-                
-                val result = suspendCancellableCoroutine<Pair<BillingResult, String>> { continuation ->
-                    billingClient?.consumeAsync(consumeParams) { billingResult, token ->
-                        continuation.resume(Pair(billingResult, token))
-                    }
-                }
-                
-                Variant_Boolean_NitroPurchaseResult.Second(
+            } catch (e: Exception) {
+                val err = OpenIapError.InitConnection(e.message ?: "Failed to initialize connection")
+                return@async Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
-                        responseCode = result.first.responseCode.toDouble(),
-                        debugMessage = result.first.debugMessage,
-                        code = result.first.responseCode.toString(),
-                        message = getBillingErrorMessage(result.first.responseCode),
-                        purchaseToken = result.second
+                        responseCode = -1.0,
+                        debugMessage = e.message,
+                        code = OpenIapError.toCode(err),
+                        message = err.message,
+                        purchaseToken = purchaseToken
                     )
                 )
-            } else {
-                // Acknowledge the purchase
-                val acknowledgeParams = AcknowledgePurchaseParams.newBuilder()
-                    .setPurchaseToken(purchaseToken)
-                    .build()
-                
-                val result = suspendCancellableCoroutine<BillingResult> { continuation ->
-                    billingClient?.acknowledgePurchase(acknowledgeParams) { billingResult ->
-                        continuation.resume(billingResult)
-                    }
+            }
+
+            try {
+                if (isConsumable) {
+                    openIap.consumePurchaseAndroid(purchaseToken)
+                } else {
+                    openIap.acknowledgePurchaseAndroid(purchaseToken)
                 }
-                
                 Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
-                        responseCode = result.responseCode.toDouble(),
-                        debugMessage = result.debugMessage,
-                        code = result.responseCode.toString(),
-                        message = getBillingErrorMessage(result.responseCode),
+                        responseCode = 0.0,
+                        debugMessage = null,
+                        code = "0",
+                        message = "OK",
+                        purchaseToken = purchaseToken
+                    )
+                )
+            } catch (e: Exception) {
+                val err = OpenIapError.BillingError(e.message ?: "Service error")
+                Variant_Boolean_NitroPurchaseResult.Second(
+                    NitroPurchaseResult(
+                        responseCode = -1.0,
+                        debugMessage = e.message,
+                        code = OpenIapError.toCode(err),
+                        message = err.message,
                         purchaseToken = purchaseToken
                     )
                 )
@@ -391,38 +281,7 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
         Log.w(TAG, "removePromotedProductListenerIOS called on Android - promoted products are iOS-only")
     }
     
-    // BillingClientStateListener implementation
-    override fun onBillingSetupFinished(billingResult: BillingResult) {
-        // Handled inline in initConnection
-    }
-    
-    override fun onBillingServiceDisconnected() {
-        // Try to restart the connection on the next request
-        // For now, just log the disconnection
-    }
-    
-    // PurchasesUpdatedListener implementation
-    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
-        Log.d(TAG, "onPurchasesUpdated: responseCode=${billingResult.responseCode}")
-        
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            // Send successful purchases via events
-            for (purchase in purchases) {
-                sendPurchaseUpdate(convertToNitroPurchase(purchase))
-            }
-        } else {
-            // Send error via events
-            val errorCode = getBillingErrorCode(billingResult.responseCode)
-            val errorMessage = getBillingErrorMessage(billingResult.responseCode)
-            sendPurchaseError(createPurchaseErrorResult(
-                errorCode,
-                errorMessage,
-                null,
-                billingResult.responseCode,
-                billingResult.debugMessage
-            ))
-        }
-    }
+    // Billing callbacks handled internally by OpenIAP
     
     // Helper methods
     
@@ -463,163 +322,21 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
         )
     }
     
-    /**
-     * Convert billing response code to IAP error code
-     */
-    private fun getBillingErrorCode(responseCode: Int): String {
-        return when (responseCode) {
-            BillingClient.BillingResponseCode.USER_CANCELED -> IapErrorCode.E_USER_CANCELLED
-            BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE -> IapErrorCode.E_SERVICE_ERROR
-            BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> IapErrorCode.E_NOT_PREPARED
-            BillingClient.BillingResponseCode.ITEM_UNAVAILABLE -> IapErrorCode.E_SKU_NOT_FOUND
-            BillingClient.BillingResponseCode.DEVELOPER_ERROR -> IapErrorCode.E_DEVELOPER_ERROR
-            BillingClient.BillingResponseCode.ERROR -> IapErrorCode.E_UNKNOWN
-            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> IapErrorCode.E_ALREADY_OWNED
-            BillingClient.BillingResponseCode.ITEM_NOT_OWNED -> IapErrorCode.E_ITEM_NOT_OWNED
-            BillingClient.BillingResponseCode.NETWORK_ERROR -> IapErrorCode.E_NETWORK_ERROR
-            else -> IapErrorCode.E_UNKNOWN
-        }
-    }
+    // OpenIAP handles error mapping; no local BillingClient error mapping required
     
-    private suspend fun initBillingClient(): Boolean {
-        return suspendCancellableCoroutine { continuation ->
-            // For Google Play Billing v8.0.0+, use PendingPurchasesParams
-            val pendingPurchasesParams = PendingPurchasesParams.newBuilder()
-                .enableOneTimeProducts()
-                .build()
-            
-            billingClient = BillingClient.newBuilder(context)
-                .setListener(this@HybridRnIap)
-                .enablePendingPurchases(pendingPurchasesParams)
-                .enableAutoServiceReconnection() // Automatically handle service disconnections
-                .build()
-            
-            billingClient?.startConnection(object : BillingClientStateListener {
-                override fun onBillingSetupFinished(billingResult: BillingResult) {
-                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        continuation.resume(true)
-                    } else {
-                        val errorData = BillingUtils.getBillingErrorData(billingResult.responseCode)
-                        val errorJson = BillingUtils.createErrorJson(
-                            errorData.code,
-                            errorData.message,
-                            billingResult.responseCode,
-                            billingResult.debugMessage
-                        )
-                        continuation.resumeWithException(Exception(errorJson))
-                    }
-                }
-                
-                override fun onBillingServiceDisconnected() {
-                    Log.i(TAG, "Billing service disconnected")
-                    // Will try to reconnect on next operation
-                }
-            })
-        }
-    }
+    // Billing client initialization handled by OpenIAP
     
-    private fun convertToNitroProduct(productDetails: ProductDetails, type: String): NitroProduct {
-        // Get price info from either one-time purchase or subscription
-        val (currency, displayPrice, priceAmountMicros) = when {
-            productDetails.oneTimePurchaseOfferDetails != null -> {
-                val offer = productDetails.oneTimePurchaseOfferDetails!!
-                Triple(
-                    offer.priceCurrencyCode,
-                    offer.formattedPrice,
-                    offer.priceAmountMicros
-                )
-            }
-            productDetails.subscriptionOfferDetails?.isNotEmpty() == true -> {
-                val firstOffer = productDetails.subscriptionOfferDetails!![0]
-                val firstPhase = firstOffer.pricingPhases.pricingPhaseList[0]
-                Triple(
-                    firstPhase.priceCurrencyCode,
-                    firstPhase.formattedPrice,
-                    firstPhase.priceAmountMicros
-                )
-            }
-            else -> Triple("", "N/A", 0L)
-        }
-        
-        // Convert subscription offer details to JSON string if available
-        val subscriptionOfferDetailsJson = productDetails.subscriptionOfferDetails?.let { offers ->
-            Log.d(TAG, "Product ${productDetails.productId} has ${offers.size} subscription offers")
-            
-            val jsonArray = JSONArray().apply {
-                offers.forEach { offer ->
-                    Log.d(TAG, "Offer: basePlanId=${offer.basePlanId}, offerId=${offer.offerId}, offerToken=${offer.offerToken}")
-                    
-                    val offerJson = JSONObject().apply {
-                        put("offerToken", offer.offerToken)
-                        put("basePlanId", offer.basePlanId)
-                        offer.offerId?.let { put("offerId", it) }
-
-                        put("offerTags", JSONArray(offer.offerTags))
-                        
-                        val pricingPhasesArray = JSONArray().apply {
-                            offer.pricingPhases.pricingPhaseList.forEach { phase ->
-                                put(JSONObject().apply {
-                                    put("formattedPrice", phase.formattedPrice)
-                                    put("priceCurrencyCode", phase.priceCurrencyCode)
-                                    put("priceAmountMicros", phase.priceAmountMicros)
-                                    put("billingCycleCount", phase.billingCycleCount)
-                                    put("billingPeriod", phase.billingPeriod)
-                                    put("recurrenceMode", phase.recurrenceMode)
-                                })
-                            }
-                        }
-                        put("pricingPhases", JSONObject().apply {
-                            put("pricingPhaseList", pricingPhasesArray)
-                        })
-                    }
-                    put(offerJson)
-                }
-            }
-            
-            val jsonString = jsonArray.toString()
-            Log.d(TAG, "Subscription offer details JSON: $jsonString")
-            jsonString
-        }
-
-        // Derive introductory/trial/base period information from subscription offers (if any)
-        var derivedIntroValue: Double? = null
-        var derivedIntroCycles: Double? = null
-        var derivedIntroPeriod: String? = null
-        var derivedSubPeriod: String? = null
-        var derivedFreeTrialPeriod: String? = null
-
-        productDetails.subscriptionOfferDetails?.let { offers ->
-            // Prefer the first offer; if none, leave as nulls
-            val firstOffer = offers.firstOrNull()
-            val phases = firstOffer?.pricingPhases?.pricingPhaseList ?: emptyList()
-            if (phases.isNotEmpty()) {
-                // Base recurring phase: often the last phase (infinite recurrence)
-                val basePhase = phases.last()
-                derivedSubPeriod = basePhase.billingPeriod
-
-                // Free trial phase: priceAmountMicros == 0
-                val trialPhase = phases.firstOrNull { it.priceAmountMicros == 0L }
-                derivedFreeTrialPeriod = trialPhase?.billingPeriod
-
-                // Introductory paid phase: price > 0 and finite cycles
-                val introPhase = phases.firstOrNull { it.priceAmountMicros > 0L && it.billingCycleCount > 0 }
-                if (introPhase != null) {
-                    derivedIntroValue = introPhase.priceAmountMicros / MICROS_PER_UNIT
-                    derivedIntroCycles = introPhase.billingCycleCount.toDouble()
-                    derivedIntroPeriod = introPhase.billingPeriod
-                }
-            }
-        }
-        
-        val nitroProduct = NitroProduct(
-            id = productDetails.productId,
-            title = productDetails.title,
-            description = productDetails.description,
-            type = type,
-            displayName = productDetails.name,
-            displayPrice = displayPrice,
-            currency = currency,
-            price = priceAmountMicros / MICROS_PER_UNIT,
+    private fun convertToNitroProduct(product: OpenIapProduct): NitroProduct {
+        val subOffersJson = product.subscriptionOfferDetailsAndroid?.let { OpenIapSerialization.toJson(it) }
+        return NitroProduct(
+            id = product.id,
+            title = product.title,
+            description = product.description,
+            type = product.type.value,
+            displayName = product.displayName,
+            displayPrice = product.displayPrice,
+            currency = product.currency,
+            price = product.price,
             platform = "android",
             // iOS fields (null on Android)
             typeIOS = null,
@@ -632,45 +349,30 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             introductoryPricePaymentModeIOS = null,
             introductoryPriceNumberOfPeriodsIOS = null,
             introductoryPriceSubscriptionPeriodIOS = null,
-            // Android fields
-            originalPriceAndroid = productDetails.oneTimePurchaseOfferDetails?.formattedPrice,
-            originalPriceAmountMicrosAndroid = productDetails.oneTimePurchaseOfferDetails?.priceAmountMicros?.toDouble(),
-            introductoryPriceValueAndroid = derivedIntroValue,
-            introductoryPriceCyclesAndroid = derivedIntroCycles,
-            introductoryPricePeriodAndroid = derivedIntroPeriod,
-            subscriptionPeriodAndroid = derivedSubPeriod,
-            freeTrialPeriodAndroid = derivedFreeTrialPeriod,
-            subscriptionOfferDetailsAndroid = subscriptionOfferDetailsJson
+            // Android fields (we only populate offer details JSON)
+            originalPriceAndroid = null,
+            originalPriceAmountMicrosAndroid = null,
+            introductoryPriceValueAndroid = null,
+            introductoryPriceCyclesAndroid = null,
+            introductoryPricePeriodAndroid = null,
+            subscriptionPeriodAndroid = null,
+            freeTrialPeriodAndroid = null,
+            subscriptionOfferDetailsAndroid = subOffersJson
         )
-        
-        Log.d(TAG, "Created NitroProduct for ${productDetails.productId}: has subscriptionOfferDetailsAndroid=${nitroProduct.subscriptionOfferDetailsAndroid != null}")
-        
-        return nitroProduct
     }
     
-    private fun getPurchaseState(purchaseState: Int): String {
-        return when (purchaseState) {
-            Purchase.PurchaseState.PURCHASED -> "purchased"
-            Purchase.PurchaseState.PENDING -> "pending"
-            Purchase.PurchaseState.UNSPECIFIED_STATE -> "unknown"
-            else -> "unknown"
-        }
-        // Note: Android doesn't have direct equivalents for:
-        // - "restored" (iOS only - handled through restore purchases flow)
-        // - "deferred" (iOS only - parental controls)
-        // - "failed" (handled through error callbacks, not purchase state)
-    }
+    // Purchase state is provided as enum value by OpenIAP
     
-    private fun convertToNitroPurchase(purchase: Purchase): NitroPurchase {
+    private fun convertToNitroPurchase(purchase: OpenIapPurchase): NitroPurchase {
         return NitroPurchase(
-            id = purchase.orderId ?: "",
-            productId = purchase.products.firstOrNull() ?: "",
-            transactionDate = purchase.purchaseTime.toDouble(),
+            id = purchase.id,
+            productId = purchase.productId,
+            transactionDate = purchase.transactionDate.toDouble(),
             purchaseToken = purchase.purchaseToken,
             platform = "android",
             // Common fields
             quantity = purchase.quantity.toDouble(),
-            purchaseState = getPurchaseState(purchase.purchaseState),
+            purchaseState = purchase.purchaseState.value,
             isAutoRenewing = purchase.isAutoRenewing,
             // iOS fields
             quantityIOS = null,
@@ -678,43 +380,60 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             originalTransactionIdentifierIOS = null,
             appAccountToken = null,
             // Android fields
-            purchaseTokenAndroid = purchase.purchaseToken,
-            dataAndroid = purchase.originalJson,
-            signatureAndroid = purchase.signature,
-            autoRenewingAndroid = purchase.isAutoRenewing,
-            purchaseStateAndroid = purchase.purchaseState.toDouble(),
-            isAcknowledgedAndroid = purchase.isAcknowledged,
-            packageNameAndroid = purchase.packageName,
-            obfuscatedAccountIdAndroid = purchase.accountIdentifiers?.obfuscatedAccountId,
-            obfuscatedProfileIdAndroid = purchase.accountIdentifiers?.obfuscatedProfileId
+            purchaseTokenAndroid = purchase.purchaseTokenAndroid,
+            dataAndroid = purchase.dataAndroid,
+            signatureAndroid = purchase.signatureAndroid,
+            autoRenewingAndroid = purchase.autoRenewingAndroid,
+            purchaseStateAndroid = null,
+            isAcknowledgedAndroid = purchase.isAcknowledgedAndroid,
+            packageNameAndroid = purchase.packageNameAndroid,
+            obfuscatedAccountIdAndroid = purchase.obfuscatedAccountIdAndroid,
+            obfuscatedProfileIdAndroid = purchase.obfuscatedProfileIdAndroid
         )
     }
     
-    // Helper function for billing error messages
-    private fun getBillingErrorMessage(responseCode: Int): String {
-        val errorData = BillingUtils.getBillingErrorData(responseCode)
-        return errorData.message
-    }
+    // Billing error messages handled by OpenIAP
     
     // iOS-specific method - not supported on Android
     override fun getStorefrontIOS(): Promise<String> {
         return Promise.async {
-            val errorJson = BillingUtils.createErrorJson(
-                IapErrorCode.E_UNKNOWN,
-                "getStorefrontIOS is only available on iOS"
-            )
-            throw Exception(errorJson)
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
     }
 
     // iOS-specific method - not supported on Android
     override fun getAppTransactionIOS(): Promise<String?> {
         return Promise.async {
-            val errorJson = BillingUtils.createErrorJson(
-                IapErrorCode.E_UNKNOWN,
-                "getAppTransactionIOS is only available on iOS"
-            )
-            throw Exception(errorJson)
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
+        }
+    }
+
+    // Android-specific storefront getter
+    override fun getStorefrontAndroid(): Promise<String> {
+        return Promise.async {
+            try {
+                initConnection().await()
+                openIap.getStorefront()
+            } catch (e: Exception) {
+                Log.w(TAG, "getStorefrontAndroid failed", e)
+                ""
+            }
+        }
+    }
+
+    // Android-specific deep link to subscription management
+    override fun deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid): Promise<Unit> {
+        return Promise.async {
+            try {
+                initConnection().await()
+                DeepLinkOptions(
+                    skuAndroid = options.skuAndroid,
+                    packageNameAndroid = options.packageNameAndroid
+                ).let { openIap.deepLinkToSubscriptions(it) }
+            } catch (e: Exception) {
+                Log.e(TAG, "deepLinkToSubscriptionsAndroid failed", e)
+                throw e
+            }
         }
     }
 
@@ -771,10 +490,7 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
             try {
                 // For Android, we need the androidOptions to be provided
                 val androidOptions = params.androidOptions
-                    ?: throw Exception(BillingUtils.createErrorJson(
-                        IapErrorCode.E_DEVELOPER_ERROR,
-                        "Android receipt validation requires androidOptions parameter"
-                    ))
+                    ?: throw Exception(toErrorJson(OpenIapError.DeveloperError))
 
                 // Android receipt validation would typically involve server-side validation
                 // using Google Play Developer API. Here we provide a simplified implementation
@@ -811,11 +527,7 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
                 Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid.Second(result)
                 
             } catch (e: Exception) {
-                val errorJson = BillingUtils.createErrorJson(
-                    IapErrorCode.E_RECEIPT_FAILED,
-                    "Receipt validation failed: ${e.message}"
-                )
-                throw Exception(errorJson)
+                throw Exception(toErrorJson(OpenIapError.InvalidReceipt("Receipt validation failed: ${e.message}")))
             }
         }
     }
@@ -823,46 +535,31 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     // iOS-specific methods - Not applicable on Android, return appropriate defaults
     override fun subscriptionStatusIOS(sku: String): Promise<Array<NitroSubscriptionStatus>?> {
         return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "subscriptionStatusIOS is only available on iOS platform"
-            ))
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
     }
     
     override fun currentEntitlementIOS(sku: String): Promise<NitroPurchase?> {
         return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "currentEntitlementIOS is only available on iOS platform"
-            ))
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
     }
     
     override fun latestTransactionIOS(sku: String): Promise<NitroPurchase?> {
         return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "latestTransactionIOS is only available on iOS platform"
-            ))
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
     }
     
     override fun getPendingTransactionsIOS(): Promise<Array<NitroPurchase>> {
         return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "getPendingTransactionsIOS is only available on iOS platform"
-            ))
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
     }
     
     override fun syncIOS(): Promise<Boolean> {
         return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "syncIOS is only available on iOS platform"
-            ))
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
     }
     
@@ -870,37 +567,46 @@ class HybridRnIap : HybridRnIapSpec(), PurchasesUpdatedListener, BillingClientSt
     
     override fun isEligibleForIntroOfferIOS(groupID: String): Promise<Boolean> {
         return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "isEligibleForIntroOfferIOS is only available on iOS platform"
-            ))
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
     }
     
     override fun getReceiptDataIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "getReceiptDataIOS is only available on iOS platform"
-            ))
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
     }
     
     override fun isTransactionVerifiedIOS(sku: String): Promise<Boolean> {
         return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "isTransactionVerifiedIOS is only available on iOS platform"
-            ))
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
     }
     
     override fun getTransactionJwsIOS(sku: String): Promise<String?> {
         return Promise.async {
-            throw Exception(BillingUtils.createErrorJson(
-                IapErrorCode.E_FEATURE_NOT_SUPPORTED,
-                "getTransactionJwsIOS is only available on iOS platform"
-            ))
+            throw Exception(toErrorJson(OpenIapError.NotSupported))
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // OpenIAP error helpers: unify error codes/messages from library
+    // ---------------------------------------------------------------------
+    private fun toErrorJson(error: OpenIapError, productId: String? = null): String {
+        val code = OpenIapError.toCode(error)
+        val message = error.message.ifEmpty { OpenIapError.defaultMessage(code) }
+        return BillingUtils.createErrorJson(code, message, productId = productId)
+    }
+
+    private fun toErrorResult(error: OpenIapError, productId: String? = null): NitroPurchaseResult {
+        val code = OpenIapError.toCode(error)
+        val message = error.message.ifEmpty { OpenIapError.defaultMessage(code) }
+        return NitroPurchaseResult(
+            responseCode = -1.0,
+            debugMessage = null,
+            code = code,
+            message = message,
+            purchaseToken = null
+        )
     }
 }
