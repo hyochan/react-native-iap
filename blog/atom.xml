@@ -2,11 +2,36 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://hyochan.github.io/react-native-iap/blog</id>
     <title>React Native IAP Blog</title>
-    <updated>2025-09-10T00:00:00.000Z</updated>
+    <updated>2025-09-12T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://hyochan.github.io/react-native-iap/blog"/>
     <subtitle>React Native IAP Blog</subtitle>
     <icon>https://hyochan.github.io/react-native-iap/img/favicon.png</icon>
+    <entry>
+        <title type="html"><![CDATA[Release 14.2.3]]></title>
+        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3</id>
+        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3"/>
+        <updated>2025-09-12T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Focused patch release with a key Android fix and minor chores.]]></summary>
+        <content type="html"><![CDATA[<p>Focused patch release with a key Android fix and minor chores.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h2>
+<ul>
+<li>Android: add <code>offerTags</code> and fix <code>pricingPhases</code> in <code>subscriptionOfferDetails</code> (#2998)</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="chore">Chore<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3#chore" class="hash-link" aria-label="Direct link to Chore" title="Direct link to Chore">​</a></h2>
+<ul>
+<li>iOS: enforce iOS 15+ in podspec</li>
+<li>Lint: format files to sync with <code>.vscode</code> and Prettier</li>
+<li>ESLint: avoid <code>.</code> import in config</li>
+</ul>]]></content>
+        <author>
+            <name>Hyo</name>
+            <uri>https://github.com/hyochan</uri>
+        </author>
+        <category label="Release" term="Release"/>
+        <category label="Android" term="Android"/>
+        <category label="iOS" term="iOS"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Release 14.2.0]]></title>
         <id>https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.0</id>

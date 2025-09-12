@@ -4,10 +4,31 @@
         <title>React Native IAP Blog</title>
         <link>https://hyochan.github.io/react-native-iap/blog</link>
         <description>React Native IAP Blog</description>
-        <lastBuildDate>Wed, 10 Sep 2025 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 12 Sep 2025 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
+        <item>
+            <title><![CDATA[Release 14.2.3]]></title>
+            <link>https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3</link>
+            <guid>https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3</guid>
+            <pubDate>Fri, 12 Sep 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[Focused patch release with a key Android fix and minor chores.]]></description>
+            <content:encoded><![CDATA[<p>Focused patch release with a key Android fix and minor chores.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h2>
+<ul>
+<li>Android: add <code>offerTags</code> and fix <code>pricingPhases</code> in <code>subscriptionOfferDetails</code> (#2998)</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="chore">Chore<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3#chore" class="hash-link" aria-label="Direct link to Chore" title="Direct link to Chore">​</a></h2>
+<ul>
+<li>iOS: enforce iOS 15+ in podspec</li>
+<li>Lint: format files to sync with <code>.vscode</code> and Prettier</li>
+<li>ESLint: avoid <code>.</code> import in config</li>
+</ul>]]></content:encoded>
+            <category>Release</category>
+            <category>Android</category>
+            <category>iOS</category>
+        </item>
         <item>
             <title><![CDATA[Release 14.2.0]]></title>
             <link>https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.0</link>
