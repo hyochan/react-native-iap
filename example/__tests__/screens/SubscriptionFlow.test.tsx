@@ -339,13 +339,15 @@ describe('SubscriptionFlow Screen', () => {
             {
               offerId: 'offer1',
               basePlanId: 'monthly',
-              pricingPhases: [
-                {
-                  formattedPrice: '$4.99',
-                  billingPeriod: 'P1M',
-                  billingCycleCount: 1,
-                },
-              ],
+              pricingPhases: {
+                pricingPhaseList: [
+                  {
+                    formattedPrice: '$4.99',
+                    billingPeriod: 'P1M',
+                    billingCycleCount: 1,
+                  },
+                ],
+              },
             },
           ],
         },
