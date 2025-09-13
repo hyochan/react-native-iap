@@ -93,7 +93,9 @@ class HybridRnIap : HybridRnIapSpec() {
                 deferred.complete(true)
                 true
             } catch (e: Exception) {
-                deferred.complete(false)
+                // Complete exceptionally so all concurrent awaiters receive the same failure
+                if (!deferred.isCompleted) deferred.completeExceptionally(e)
+                isInitialized = false
                 throw e
             } finally {
                 initDeferred = null

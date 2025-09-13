@@ -725,4 +725,42 @@ describe('Public API (src/index.ts)', () => {
       await expect(IAP.getStorefrontIOS()).rejects.toThrow('boom');
     });
   });
+
+  describe('Cross‑platform storefront and deeplink helpers', () => {
+    it('getStorefront returns Android storefront or empty string on failure', async () => {
+      (Platform as any).OS = 'android';
+      mockIap.getStorefrontAndroid = jest.fn(async () => 'US');
+      await expect(IAP.getStorefront()).resolves.toBe('US');
+
+      // Failure path returns empty string
+      mockIap.getStorefrontAndroid = jest.fn(async () => {
+        throw new Error('nope');
+      });
+      await expect(IAP.getStorefront()).resolves.toBe('');
+
+      // Optional method missing also returns empty string
+      delete mockIap.getStorefrontAndroid;
+      await expect(IAP.getStorefront()).resolves.toBe('');
+    });
+
+    it('deepLinkToSubscriptions calls Android native deeplink when on Android', async () => {
+      (Platform as any).OS = 'android';
+      mockIap.deepLinkToSubscriptionsAndroid = jest.fn(async () => undefined);
+      await IAP.deepLinkToSubscriptions({
+        skuAndroid: 'sub1',
+        packageNameAndroid: 'dev.hyo.martie',
+      });
+      expect(mockIap.deepLinkToSubscriptionsAndroid).toHaveBeenCalledWith({
+        skuAndroid: 'sub1',
+        packageNameAndroid: 'dev.hyo.martie',
+      });
+    });
+
+    it('deepLinkToSubscriptions uses iOS manage subscriptions on iOS', async () => {
+      (Platform as any).OS = 'ios';
+      mockIap.showManageSubscriptionsIOS = jest.fn(async () => []);
+      await IAP.deepLinkToSubscriptions();
+      expect(mockIap.showManageSubscriptionsIOS).toHaveBeenCalled();
+    });
+  });
 });
