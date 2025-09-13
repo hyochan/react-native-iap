@@ -39,6 +39,7 @@ class HybridRnIap : HybridRnIapSpec() {
     private var listenersAttached = false
     private var isInitialized = false
     private var initDeferred: CompletableDeferred<Boolean>? = null
+    private val initLock = Any()
     
     // Connection methods
     override fun initConnection(): Promise<Boolean> {
@@ -51,8 +52,14 @@ class HybridRnIap : HybridRnIapSpec() {
                 runCatching { openIap.setActivity(context.currentActivity) }
             }
 
-            // If an initialization is already in-flight, await it
-            initDeferred?.let { return@async it.await() }
+            // Single-flight: capture or create the shared Deferred atomically
+            val wasExisting = synchronized(initLock) {
+                if (initDeferred == null) {
+                    initDeferred = CompletableDeferred()
+                    false
+                } else true
+            }
+            if (wasExisting) return@async initDeferred!!.await()
 
             if (!listenersAttached) {
                 listenersAttached = true
@@ -77,9 +84,8 @@ class HybridRnIap : HybridRnIapSpec() {
                 })
             }
 
-            // Begin a new initialization and share its result with concurrent callers
-            val deferred = CompletableDeferred<Boolean>()
-            initDeferred = deferred
+            // We created it above; reuse the shared instance
+            val deferred = initDeferred!!
             try {
                 val ok = runCatching { openIap.initConnection() }.getOrElse { err ->
                     val error = OpenIapError.InitConnection(err.message ?: "Failed to initialize connection")
@@ -202,6 +208,19 @@ class HybridRnIap : HybridRnIapSpec() {
             val androidParams = params.android ?: return@async Variant_Boolean_NitroPurchaseResult.First(true)
             val purchaseToken = androidParams.purchaseToken
             val isConsumable = androidParams.isConsumable ?: false
+
+            // Validate token early to avoid confusing native errors
+            if (purchaseToken.isNullOrBlank()) {
+                return@async Variant_Boolean_NitroPurchaseResult.Second(
+                    NitroPurchaseResult(
+                        responseCode = -1.0,
+                        debugMessage = "Missing purchaseToken",
+                        code = OpenIapError.toCode(OpenIapError.DeveloperError),
+                        message = "Missing purchaseToken",
+                        purchaseToken = null
+                    )
+                )
+            }
 
             // Ensure connection; if it fails, return an error result instead of throwing
             try {
@@ -644,7 +663,13 @@ class HybridRnIap : HybridRnIapSpec() {
     private fun toErrorJson(error: OpenIapError, productId: String? = null): String {
         val code = OpenIapError.toCode(error)
         val message = error.message.ifEmpty { OpenIapError.defaultMessage(code) }
-        return BillingUtils.createErrorJson(code, message, productId = productId)
+        return BillingUtils.createErrorJson(
+            code = code,
+            message = message,
+            responseCode = -1,
+            debugMessage = error.message,
+            productId = productId
+        )
     }
 
     private fun toErrorResult(error: OpenIapError, productId: String? = null): NitroPurchaseResult {
@@ -652,7 +677,7 @@ class HybridRnIap : HybridRnIapSpec() {
         val message = error.message.ifEmpty { OpenIapError.defaultMessage(code) }
         return NitroPurchaseResult(
             responseCode = -1.0,
-            debugMessage = null,
+            debugMessage = error.message,
             code = code,
             message = message,
             purchaseToken = null

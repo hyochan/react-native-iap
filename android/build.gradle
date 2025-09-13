@@ -124,7 +124,6 @@ android {
   // Configure Kotlin compiler to match Java compatibility
   kotlinOptions {
     jvmTarget = "17"
-    freeCompilerArgs += ["-Xskip-metadata-version-check"]
   }
 
   lintOptions {
@@ -155,7 +154,7 @@ dependencies {
   implementation 'com.google.android.gms:play-services-base:18.5.0'
   
   // Kotlin coroutines
-  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
 
   // OpenIAP Google (v1.1.0)
   implementation 'io.github.hyochan.openiap:openiap-google:1.1.0'

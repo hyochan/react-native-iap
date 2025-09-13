@@ -43,6 +43,9 @@ export const modifyProjectBuildGradle = (gradle: string): string => {
   return gradle;
 };
 
+const OPENIAP_COORD = 'io.github.hyochan.openiap:openiap-google';
+const OPENIAP_VERSION = '1.1.0';
+
 const modifyAppBuildGradle = (gradle: string): string => {
   let modified = gradle;
 
@@ -50,21 +53,27 @@ const modifyAppBuildGradle = (gradle: string): string => {
   // Remove any old billingclient or play-services-base lines we may have added previously
   modified = modified
     .replace(
-      /^[ \t]*implementation[ \t]+["']com\.android\.billingclient:billing-ktx:[^"']+["'][ \t]*$/gim,
+      /^[ \t]*(implementation|api)[ \t]+["']com\.android\.billingclient:billing-ktx:[^"']+["'][ \t]*$/gim,
       '',
     )
     .replace(
-      /^[ \t]*implementation[ \t]+["']com\.google\.android\.gms:play-services-base:[^"']+["'][ \t]*$/gim,
+      /^[ \t]*(implementation|api)[ \t]+["']com\.google\.android\.gms:play-services-base:[^"']+["'][ \t]*$/gim,
       '',
     )
     .replace(/\n{3,}/g, '\n\n');
 
-  const openiapDep = `    implementation "io.github.hyochan.openiap:openiap-google:1.1.0"`;
+  const openiapDep = `    implementation "${OPENIAP_COORD}:${OPENIAP_VERSION}"`;
 
-  if (!modified.includes('io.github.hyochan.openiap:openiap-google')) {
-    modified = addLineToGradle(modified, /dependencies\s*{/, openiapDep);
+  if (!modified.includes(OPENIAP_COORD)) {
+    if (!/dependencies\s*{/.test(modified)) {
+      modified += `\n\ndependencies {\n${openiapDep}\n}\n`;
+    } else {
+      modified = addLineToGradle(modified, /dependencies\s*{/, openiapDep);
+    }
     if (!hasLoggedPluginExecution) {
-      console.log('🛠️ react-native-iap: Added OpenIAP (1.1.0) to build.gradle');
+      console.log(
+        `🛠️ react-native-iap: Added OpenIAP (${OPENIAP_VERSION}) to build.gradle`,
+      );
     }
   }
 
