@@ -2,11 +2,40 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://hyochan.github.io/react-native-iap/blog</id>
     <title>React Native IAP Blog</title>
-    <updated>2025-09-12T00:00:00.000Z</updated>
+    <updated>2025-09-13T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://hyochan.github.io/react-native-iap/blog"/>
     <subtitle>React Native IAP Blog</subtitle>
     <icon>https://hyochan.github.io/react-native-iap/img/favicon.png</icon>
+    <entry>
+        <title type="html"><![CDATA[Release 14.3.0]]></title>
+        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0</id>
+        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0"/>
+        <updated>2025-09-13T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Short, focused release centered on Android init behavior and two new JS helpers.]]></summary>
+        <content type="html"><![CDATA[<p>Short, focused release centered on Android init behavior and two new JS helpers.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="added">Added<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#added" class="hash-link" aria-label="Direct link to Added" title="Direct link to Added">​</a></h2>
+<ul>
+<li><code>getStorefront()</code>: returns the current storefront country code.</li>
+<li><code>deepLinkToSubscriptions()</code>: opens the native subscription management UI (Android/iOS).</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="changed">Changed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#changed" class="hash-link" aria-label="Direct link to Changed" title="Direct link to Changed">​</a></h2>
+<ul>
+<li>Android: migrate to OpenIAP Google 1.1.0; align init and field mapping with spec.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h2>
+<ul>
+<li>Android: address a potential <code>init</code> race and improve error propagation.</li>
+<li>iOS: add temporary stubs to keep Nitro/iOS aligned with the JS spec.</li>
+</ul>]]></content>
+        <author>
+            <name>Hyo</name>
+            <uri>https://github.com/hyochan</uri>
+        </author>
+        <category label="Release" term="Release"/>
+        <category label="Android" term="Android"/>
+        <category label="iOS" term="iOS"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Release 14.2.3]]></title>
         <id>https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3</id>
