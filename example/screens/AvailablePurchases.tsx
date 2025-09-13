@@ -292,17 +292,12 @@ export default function AvailablePurchases() {
                   </Text>
                 </View>
               )}
-              {(() => {
-                const txId =
-                  (purchase as any).id || (purchase as any).transactionId;
-                if (!txId) return null;
-                return (
-                  <View style={styles.purchaseRow}>
-                    <Text style={styles.label}>Transaction ID:</Text>
-                    <Text style={styles.value}>{txId}</Text>
-                  </View>
-                );
-              })()}
+              {purchase.id && (
+                <View style={styles.purchaseRow}>
+                  <Text style={styles.label}>Transaction ID:</Text>
+                  <Text style={styles.value}>{purchase.id}</Text>
+                </View>
+              )}
 
               {/* iOS-specific fields with new IOS naming convention */}
               {Platform.OS === 'ios' &&
