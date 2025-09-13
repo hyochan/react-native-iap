@@ -327,7 +327,52 @@ class HybridRnIap : HybridRnIapSpec() {
     // Billing client initialization handled by OpenIAP
     
     private fun convertToNitroProduct(product: OpenIapProduct): NitroProduct {
-        val subOffersJson = product.subscriptionOfferDetailsAndroid?.let { OpenIapSerialization.toJson(it) }
+        val subOffers = product.subscriptionOfferDetailsAndroid
+        val subOffersJson = subOffers?.let { OpenIapSerialization.toJson(it) }
+
+        // Derive Android-specific fields from OpenIAP models
+        var originalPriceAndroid: String? = null
+        var originalPriceAmountMicrosAndroid: Double? = null
+        var introductoryPriceValueAndroid: Double? = null
+        var introductoryPriceCyclesAndroid: Double? = null
+        var introductoryPricePeriodAndroid: String? = null
+        var subscriptionPeriodAndroid: String? = null
+        var freeTrialPeriodAndroid: String? = null
+
+        if (product.type == OpenIapProduct.ProductType.INAPP) {
+            product.oneTimePurchaseOfferDetailsAndroid?.let { otp ->
+                originalPriceAndroid = otp.formattedPrice
+                // priceAmountMicros is a string; parse to number if possible
+                originalPriceAmountMicrosAndroid = otp.priceAmountMicros.toDoubleOrNull()
+            }
+        } else {
+            // SUBS: inspect pricing phases
+            val phases = subOffers?.firstOrNull()?.pricingPhases?.pricingPhaseList
+            if (!phases.isNullOrEmpty()) {
+                // Base recurring phase: recurrenceMode == 2 (INFINITE), else last non-zero priced phase
+                val basePhase = phases.firstOrNull { it.recurrenceMode == 2 } ?: phases.last()
+                originalPriceAndroid = basePhase.formattedPrice
+                originalPriceAmountMicrosAndroid = basePhase.priceAmountMicros.toDoubleOrNull()
+                subscriptionPeriodAndroid = basePhase.billingPeriod
+
+                // Introductory phase: finite cycles (>0) and priced (>0)
+                val introPhase = phases.firstOrNull {
+                    it.billingCycleCount > 0 && (it.priceAmountMicros.toLongOrNull() ?: 0L) > 0L
+                }
+                if (introPhase != null) {
+                    introductoryPriceValueAndroid = (introPhase.priceAmountMicros.toDoubleOrNull() ?: 0.0) / 1_000_000.0
+                    introductoryPriceCyclesAndroid = introPhase.billingCycleCount.toDouble()
+                    introductoryPricePeriodAndroid = introPhase.billingPeriod
+                }
+
+                // Free trial: zero-priced phase
+                val trialPhase = phases.firstOrNull { (it.priceAmountMicros.toLongOrNull() ?: 0L) == 0L }
+                if (trialPhase != null) {
+                    freeTrialPeriodAndroid = trialPhase.billingPeriod
+                }
+            }
+        }
+
         return NitroProduct(
             id = product.id,
             title = product.title,
@@ -349,14 +394,14 @@ class HybridRnIap : HybridRnIapSpec() {
             introductoryPricePaymentModeIOS = null,
             introductoryPriceNumberOfPeriodsIOS = null,
             introductoryPriceSubscriptionPeriodIOS = null,
-            // Android fields (we only populate offer details JSON)
-            originalPriceAndroid = null,
-            originalPriceAmountMicrosAndroid = null,
-            introductoryPriceValueAndroid = null,
-            introductoryPriceCyclesAndroid = null,
-            introductoryPricePeriodAndroid = null,
-            subscriptionPeriodAndroid = null,
-            freeTrialPeriodAndroid = null,
+            // Android derivations
+            originalPriceAndroid = originalPriceAndroid,
+            originalPriceAmountMicrosAndroid = originalPriceAmountMicrosAndroid,
+            introductoryPriceValueAndroid = introductoryPriceValueAndroid,
+            introductoryPriceCyclesAndroid = introductoryPriceCyclesAndroid,
+            introductoryPricePeriodAndroid = introductoryPricePeriodAndroid,
+            subscriptionPeriodAndroid = subscriptionPeriodAndroid,
+            freeTrialPeriodAndroid = freeTrialPeriodAndroid,
             subscriptionOfferDetailsAndroid = subOffersJson
         )
     }
@@ -364,6 +409,12 @@ class HybridRnIap : HybridRnIapSpec() {
     // Purchase state is provided as enum value by OpenIAP
     
     private fun convertToNitroPurchase(purchase: OpenIapPurchase): NitroPurchase {
+        // Map OpenIAP purchase state back to legacy numeric Android state for compatibility
+        val purchaseStateAndroidNumeric = when (purchase.purchaseState) {
+            OpenIapPurchase.PurchaseState.PURCHASED -> 1.0
+            OpenIapPurchase.PurchaseState.PENDING -> 2.0
+            else -> 0.0 // UNSPECIFIED/UNKNOWN/other
+        }
         return NitroPurchase(
             id = purchase.id,
             productId = purchase.productId,
@@ -384,7 +435,7 @@ class HybridRnIap : HybridRnIapSpec() {
             dataAndroid = purchase.dataAndroid,
             signatureAndroid = purchase.signatureAndroid,
             autoRenewingAndroid = purchase.autoRenewingAndroid,
-            purchaseStateAndroid = null,
+            purchaseStateAndroid = purchaseStateAndroidNumeric,
             isAcknowledgedAndroid = purchase.isAcknowledgedAndroid,
             packageNameAndroid = purchase.packageNameAndroid,
             obfuscatedAccountIdAndroid = purchase.obfuscatedAccountIdAndroid,

@@ -8,13 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-- Android: add `offerTags` and fix `pricingPhases` in `subscriptionOfferDetails` (#2998)
+- Android: eliminate second-purchase freeze by guarding concurrent BillingClient initialization (single-flight) and returning a structured error from `finishTransaction` when init fails instead of throwing.
 
-### Chore
+### Changed
 
-- iOS: enforce iOS 15+ in podspec
-- Lint: format files to sync with `.vscode` and Prettier
-- ESLint: avoid `.` import in config
+- Android: migrate native bridge to `openiap-google` for product/purchase flows and unify error mapping to `OpenIapError` codes.
+- Android: restore/populate Android-specific fields on `NitroProduct` and `NitroPurchase` to avoid regressions:
+  - `originalPriceAndroid`, `originalPriceAmountMicrosAndroid`
+  - `introductoryPriceValueAndroid`, `introductoryPriceCyclesAndroid`, `introductoryPricePeriodAndroid`
+  - `subscriptionPeriodAndroid`, `freeTrialPeriodAndroid`
+  - `purchaseStateAndroid` (numeric; derived from purchase state)
+
+### Added
+
+- Public helpers: `getStorefront()` and `deepLinkToSubscriptions()` aligned with Expo IAP. Documented as additive API.
 
 ## [14.2.2]
 
