@@ -46,26 +46,26 @@ describe('withIAP config plugin (Android)', () => {
     } as any;
   }
 
-  it('adds billing deps to app build.gradle and logs once', () => {
+  it('adds OpenIAP dep to app build.gradle and logs once', () => {
     const initial = `android {\n}\n\ndependencies {\n}`;
     const config = makeConfig(initial, {manifest: {}});
     const result: any = plugin(config as any);
     const out = result.modResults.contents as string;
-    expect(out).toContain('com.android.billingclient:billing-ktx:8.0.0');
-    expect(out).toContain('com.google.android.gms:play-services-base:18.1.0');
+    expect(out).toContain('io.github.hyochan.openiap:openiap-google:1.1.0');
     expect((console.log as jest.Mock).mock.calls.join(' ')).toMatch(
-      /Added billing dependencies/,
+      /Added OpenIAP \(1\.1\.0\) to build\.gradle/,
     );
   });
 
   it('is idempotent and respects hasLoggedPluginExecution', () => {
-    const initial = `dependencies {\n    implementation "com.android.billingclient:billing-ktx:8.0.0"\n    implementation "com.google.android.gms:play-services-base:18.1.0"\n}`;
+    const initial = `dependencies {\n    implementation "io.github.hyochan.openiap:openiap-google:1.1.0"\n}`;
     const config1 = makeConfig(initial, {manifest: {}});
     const res1: any = plugin(config1 as any);
-    expect(res1.modResults.contents.match(/billing-ktx/g)?.length).toBe(1);
-    expect(res1.modResults.contents.match(/play-services-base/g)?.length).toBe(
-      1,
-    );
+    expect(
+      res1.modResults.contents.match(
+        /io\.github\.hyochan\.openiap:openiap-google/g,
+      )?.length,
+    ).toBe(1);
 
     // Run plugin again on a second config; due to hasLoggedPluginExecution, it should not log again
     const config2 = makeConfig(initial, {manifest: {}});

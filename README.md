@@ -90,15 +90,11 @@ Before installing React Native IAP, make sure you have:
 
 #### Android Configuration
 
-Add the following dependencies to your `android/app/build.gradle` file:
+Add the OpenIAP Google library to your `android/app/build.gradle` dependencies:
 
 ```gradle
 dependencies {
-    // Google Play Billing Library
-    implementation "com.android.billingclient:billing-ktx:8.0.0"
-
-    // Google Play Services
-    implementation "com.google.android.gms:play-services-base:18.1.0"
+    implementation "io.github.hyochan.openiap:openiap-google:1.1.0"
 }
 ```
 

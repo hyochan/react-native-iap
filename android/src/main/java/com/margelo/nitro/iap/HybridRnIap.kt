@@ -324,10 +324,6 @@ class HybridRnIap : HybridRnIapSpec() {
         )
     }
     
-    // OpenIAP handles error mapping; no local BillingClient error mapping required
-    
-    // Billing client initialization handled by OpenIAP
-    
     private fun convertToNitroProduct(product: OpenIapProduct): NitroProduct {
         val subOffers = product.subscriptionOfferDetailsAndroid
         val subOffersJson = subOffers?.let { OpenIapSerialization.toJson(it) }
