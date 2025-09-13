@@ -167,7 +167,7 @@ export function convertNitroPurchaseToPurchase(
     id: nitroPurchase.id,
     productId: nitroPurchase.productId,
     transactionDate: nitroPurchase.transactionDate,
-    transactionReceipt: '', // Will be set by native layer
+    // Unified token (iOS JWS, Android purchaseToken)
     purchaseToken: nitroPurchase.purchaseToken,
     platform: nitroPurchase.platform as 'ios' | 'android',
     // Common fields from NitroPurchase

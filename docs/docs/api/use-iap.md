@@ -55,7 +55,8 @@ export default function MyStore() {
       console.log('Purchase successful:', purchase);
 
       // IMPORTANT: Validate receipt on your server here
-      // const isValid = await validateReceiptOnServer(purchase.transactionReceipt);
+      // Prefer the unified token on both platforms
+      // const isValid = await validateReceiptOnServer(purchase.purchaseToken);
       // if (!isValid) {
       //   Alert.alert('Error', 'Receipt validation failed');
       //   return;
@@ -300,7 +301,7 @@ interface UseIAPOptions {
 
   ```tsx
   purchaseHistories.map((purchase) => (
-    <PurchaseHistoryItem key={purchase.transactionId} purchase={purchase} />
+    <PurchaseHistoryItem key={purchase.id} purchase={purchase} />
   ));
   ```
 
@@ -312,7 +313,7 @@ interface UseIAPOptions {
 
   ```tsx
   availablePurchases.map((purchase) => (
-    <RestorableItem key={purchase.transactionId} purchase={purchase} />
+    <RestorableItem key={purchase.id} purchase={purchase} />
   ));
   ```
 

@@ -60,12 +60,12 @@ class HybridRnIap: HybridRnIapSpec {
                             #if DEBUG
                             print("[HybridRnIap] purchaseError event: code=\(error.code), productId=\(error.productId ?? "-")")
                             #endif
-                            let nitroError = self.createPurchaseErrorResult(
-                                code: error.code,
-                                message: error.message,
-                                productId: error.productId
-                            )
-                            self.sendPurchaseError(nitroError)
+                    let nitroError = self.createPurchaseErrorResult(
+                        code: error.code,
+                        message: error.message,
+                        productId: error.productId
+                    )
+                    self.sendPurchaseError(nitroError, productId: error.productId)
                         }
                     }
                 }
@@ -123,7 +123,7 @@ class HybridRnIap: HybridRnIapSpec {
                             message: error.message,
                             productId: error.productId
                         )
-                        self.sendPurchaseError(nitroError)
+                        self.sendPurchaseError(nitroError, productId: error.productId)
                     }
                 }
             }
@@ -168,7 +168,7 @@ class HybridRnIap: HybridRnIapSpec {
                     message: error.localizedDescription,
                     productId: nil
                 )
-                self.sendPurchaseError(err)
+                self.sendPurchaseError(err, productId: nil)
                 self.isInitialized = false
                 self.isInitializing = false
                 return false
@@ -205,7 +205,7 @@ class HybridRnIap: HybridRnIapSpec {
                     code: OpenIapError.E_USER_ERROR,
                     message: "No iOS request provided"
                 )
-                self.sendPurchaseError(error)
+                self.sendPurchaseError(error, productId: nil)
                 return
             }
             do {
@@ -219,7 +219,7 @@ class HybridRnIap: HybridRnIapSpec {
                         message: "IAP store connection not initialized",
                         productId: iosRequest.sku
                     )
-                    self.sendPurchaseError(err)
+                    self.sendPurchaseError(err, productId: iosRequest.sku)
                     return
                 }
                 // Delegate purchase to OpenIAP. It emits success/error events which we bridge above.
@@ -246,7 +246,7 @@ class HybridRnIap: HybridRnIapSpec {
                     message: error.localizedDescription,
                     productId: iosRequest.sku
                 )
-                self.sendPurchaseErrorDedup(err)
+                self.sendPurchaseErrorDedup(err, productId: iosRequest.sku)
             }
         }
     }
@@ -612,25 +612,30 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    private func sendPurchaseError(_ error: NitroPurchaseResult) {
-        // Update last error for deduplication
+    private func sendPurchaseError(_ error: NitroPurchaseResult, productId: String? = nil) {
+        // Update last error for deduplication using the associated product SKU (not token)
         lastPurchaseErrorCode = error.code
-        lastPurchaseErrorProductId = error.purchaseToken
+        lastPurchaseErrorProductId = productId
         lastPurchaseErrorTimestamp = Date().timeIntervalSince1970
+        // Ensure we never leak SKU via purchaseToken
+        var sanitized = error
+        if let pid = productId, sanitized.purchaseToken == pid {
+            sanitized.purchaseToken = nil
+        }
         for listener in purchaseErrorListeners {
-            listener(error)
+            listener(sanitized)
         }
     }
 
-    private func sendPurchaseErrorDedup(_ error: NitroPurchaseResult) {
+    private func sendPurchaseErrorDedup(_ error: NitroPurchaseResult, productId: String? = nil) {
         let now = Date().timeIntervalSince1970
         let sameCode = (error.code == lastPurchaseErrorCode)
-        let sameProduct = (error.purchaseToken == lastPurchaseErrorProductId)
+        let sameProduct = (productId == lastPurchaseErrorProductId)
         let withinWindow = (now - lastPurchaseErrorTimestamp) < 0.3
         if sameCode && sameProduct && withinWindow {
             return
         }
-        sendPurchaseError(error)
+        sendPurchaseError(error, productId: productId)
     }
     
     private func createPurchaseErrorResult(code: String, message: String, productId: String? = nil) -> NitroPurchaseResult {
@@ -638,7 +643,8 @@ class HybridRnIap: HybridRnIapSpec {
         result.responseCode = 0
         result.code = code
         result.message = message
-        result.purchaseToken = productId
+        // Do not overload the token field with productId
+        result.purchaseToken = nil
         return result
     }
     

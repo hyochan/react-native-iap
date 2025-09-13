@@ -54,10 +54,10 @@ const PurchaseFlow: React.FC = () => {
     setLastError(null);
     setLastPurchase(purchase);
 
-    // IMPORTANT: Server-side receipt validation should be performed here
-    // Send the receipt to your backend server for validation
+    // IMPORTANT: Perform server-side validation here
+    // Use the unified purchase token for both platforms
     // Example:
-    // const isValid = await validateReceiptOnServer(purchase.transactionReceipt);
+    // const isValid = await validateReceiptOnServer(purchase.purchaseToken);
     // if (!isValid) {
     //   Alert.alert('Error', 'Receipt validation failed');
     //   return;
@@ -100,9 +100,9 @@ const PurchaseFlow: React.FC = () => {
     setPurchaseResult(
       `✅ Purchase successful (${purchase.platform})\n` +
         `Product: ${purchase.productId}\n` +
-        `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
+        `Transaction ID: ${purchase.id}\n` +
         `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n` +
-        `Receipt: ${purchase.transactionReceipt?.substring(0, 50)}...`,
+        `Token: ${purchase.purchaseToken?.substring(0, 50) || 'N/A'}...`,
     );
 
     Alert.alert('Success', 'Purchase completed successfully!');

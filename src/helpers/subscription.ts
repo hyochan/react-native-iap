@@ -29,11 +29,8 @@ export const getActiveSubscriptions = async (
           productId: purchase.productId,
           isActive: true, // If it's in availablePurchases, it's active
           // Backend validation fields
-          transactionId: purchase.transactionId || purchase.id,
-          purchaseToken:
-            androidPurchase.purchaseToken ||
-            androidPurchase.purchaseTokenAndroid ||
-            iosPurchase.purchaseToken,
+          transactionId: purchase.id,
+          purchaseToken: purchase.purchaseToken,
           transactionDate: purchase.transactionDate,
           // Platform-specific fields
           expirationDateIOS: iosPurchase.expirationDateIOS

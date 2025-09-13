@@ -12,6 +12,8 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
 
 This example shows how to implement a basic in-app purchase store using react-native-iap.
 
+> Note (3.0.0): Use `purchaseToken` for purchase validation on both platforms.
+
 ## Key Features Demonstrated
 
 ### 1. Connection Management
@@ -90,29 +92,20 @@ await requestPurchase({
 
 ### Purchase Object Properties
 
-Purchase objects have different properties on iOS and Android. When accessing platform-specific properties, TypeScript type casting is required:
+Purchase objects differ slightly per platform. Prefer the unified token and only use platform specifics when required by your backend:
 
 ```tsx
-// ✅ New unified approach (recommended)
-const purchaseToken = purchase.purchaseToken; // Works on both iOS and Android
+// Unified token
+const purchaseToken = purchase.purchaseToken; // iOS: JWS, Android: purchaseToken
 
-// ❌ Old platform-specific approach (deprecated)
-// const purchaseToken = (purchase as ProductPurchaseAndroid).purchaseTokenAndroid;
-// const jwsToken = (purchase as ProductPurchaseIos).jwsRepresentationIos;
-
-// Platform-specific fields that are still needed
+// Platform-specific fields that may still be needed
 const packageName = (purchase as ProductPurchaseAndroid).packageNameAndroid;
-const transactionReceipt = purchase.transactionReceipt; // Available on both platforms
 ```
 
 ### Receipt Validation
 
-Receipt validation requires different approaches:
-
-- **iOS**: Send `transactionReceipt` to Apple's validation servers
-- **Android**: Send `purchaseToken` (unified field) and `packageName` to Google Play validation
-
-This is handled in the `validatePurchase` function with platform-specific logic.
+- Use `purchase.purchaseToken` and validate on your server for both platforms.
+- Android additionally requires `packageName`.
 
 ## Usage
 

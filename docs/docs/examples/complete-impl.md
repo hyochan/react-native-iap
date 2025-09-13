@@ -8,7 +8,7 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
 
 <AdFitTopFixed />
 
-This example shows how to properly complete a purchase transaction with receipt validation and finishTransaction.
+This example shows how to properly complete a purchase transaction with validation and finishTransaction.
 
 ## Complete Example
 
@@ -144,10 +144,7 @@ Always validate receipts server-side before granting purchases:
 
 ```tsx
 const validateReceiptOnServer = async (purchase: Purchase) => {
-  const receipt =
-    Platform.OS === 'ios'
-      ? purchase.transactionReceipt
-      : purchase.purchaseToken;
+  const receipt = purchase.purchaseToken;
 
   const response = await fetch('https://your-server.com/validate', {
     method: 'POST',
@@ -155,8 +152,8 @@ const validateReceiptOnServer = async (purchase: Purchase) => {
     body: JSON.stringify({
       platform: Platform.OS,
       productId: purchase.productId,
-      receipt: receipt,
-      transactionId: purchase.transactionId,
+      receipt,
+      transactionId: purchase.id,
     }),
   });
 
@@ -170,10 +167,8 @@ const validateReceiptOnServer = async (purchase: Purchase) => {
 Different platforms provide different receipt formats:
 
 ```tsx
-// iOS Receipt
-const iosReceipt = purchase.transactionReceipt; // Base64 receipt
-const purchaseToken = purchase.purchaseToken; // JWS representation on iOS (StoreKit 2), purchase token on Android
-// Note: jwsRepresentationIOS is deprecated, use purchaseToken instead
+// iOS & Android
+const purchaseToken = purchase.purchaseToken; // iOS: JWS (StoreKit 2), Android: purchaseToken
 
 // Android Receipt
 const androidReceipt = (purchase as any).dataAndroid; // Purchase data JSON

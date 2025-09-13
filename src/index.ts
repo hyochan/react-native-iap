@@ -363,8 +363,7 @@ export const finishTransaction = async ({
       };
     } else if (Platform.OS === 'android') {
       const androidPurchase = purchase as PurchaseAndroid;
-      const token =
-        androidPurchase.purchaseToken || androidPurchase.purchaseTokenAndroid;
+      const token = androidPurchase.purchaseToken;
 
       if (!token) {
         throw new Error('purchaseToken required to finish Android transaction');

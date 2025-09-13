@@ -12,9 +12,11 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Modal,
 } from 'react-native';
-import type {PurchaseError} from 'react-native-iap';
-import {useIAP} from 'react-native-iap';
+import type {Purchase, PurchaseError} from 'react-native-iap';
+import {useIAP, deepLinkToSubscriptions} from 'react-native-iap';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 // Define subscription IDs at component level like in the working example
 const subscriptionIds = [
@@ -24,6 +26,10 @@ const subscriptionIds = [
 export default function AvailablePurchases() {
   const [loading, setLoading] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(
+    null,
+  );
+  const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
 
   // Use the useIAP hook like subscription-flow does
   const {
@@ -161,6 +167,10 @@ export default function AvailablePurchases() {
     );
   }, [subscriptions]);
 
+  const openManageSubscriptions = () => {
+    deepLinkToSubscriptions().catch(() => {});
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.statusContainer}>
@@ -233,6 +243,12 @@ export default function AvailablePurchases() {
               </View>
             </View>
           ))}
+          <TouchableOpacity
+            style={[styles.button, {marginTop: 8}]}
+            onPress={openManageSubscriptions}
+          >
+            <Text style={styles.buttonText}>👤 Manage Subscriptions</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -251,7 +267,19 @@ export default function AvailablePurchases() {
           </Text>
         ) : (
           availablePurchases.map((purchase, index) => (
-            <View key={purchase.productId + index} style={styles.purchaseItem}>
+            <TouchableOpacity
+              key={purchase.productId + index}
+              style={styles.purchaseItem}
+              activeOpacity={0.85}
+              onPress={() => {
+                setSelectedPurchase(purchase as Purchase);
+                setPurchaseModalVisible(true);
+              }}
+              onLongPress={() => {
+                setSelectedPurchase(purchase as Purchase);
+                setPurchaseModalVisible(true);
+              }}
+            >
               <View style={styles.purchaseRow}>
                 <Text style={styles.label}>Product ID:</Text>
                 <Text style={styles.value}>{purchase.productId}</Text>
@@ -268,10 +296,10 @@ export default function AvailablePurchases() {
                   </Text>
                 </View>
               )}
-              {purchase.transactionId && (
+              {purchase.id && (
                 <View style={styles.purchaseRow}>
                   <Text style={styles.label}>Transaction ID:</Text>
-                  <Text style={styles.value}>{purchase.transactionId}</Text>
+                  <Text style={styles.value}>{purchase.id}</Text>
                 </View>
               )}
 
@@ -338,7 +366,7 @@ export default function AvailablePurchases() {
                     </Text>
                   </View>
                 )}
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </View>
@@ -354,6 +382,93 @@ export default function AvailablePurchases() {
           <Text style={styles.buttonText}>🔄 Refresh Purchases</Text>
         )}
       </TouchableOpacity>
+
+      {/* Purchase Details Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={purchaseModalVisible}
+        onRequestClose={() => setPurchaseModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 16,
+              width: '90%',
+              height: '75%',
+              overflow: 'hidden',
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+              }}
+            >
+              <Text style={{fontSize: 18, fontWeight: '600'}}>
+                Purchase Details
+              </Text>
+              <TouchableOpacity onPress={() => setPurchaseModalVisible(false)}>
+                <Text style={{fontSize: 24, color: '#666'}}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{flex: 1, padding: 16}}>
+              <Text
+                style={{
+                  fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+                  fontSize: 12,
+                  color: '#333',
+                  lineHeight: 18,
+                }}
+              >
+                {selectedPurchase
+                  ? JSON.stringify(selectedPurchase, null, 2)
+                  : ''}
+              </Text>
+            </ScrollView>
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: 12,
+                padding: 16,
+                borderTopWidth: 1,
+                borderTopColor: '#eee',
+              }}
+            >
+              <TouchableOpacity
+                style={[styles.button, {flex: 1}]}
+                onPress={() => {
+                  if (!selectedPurchase) return;
+                  Clipboard.setString(
+                    JSON.stringify(selectedPurchase, null, 2),
+                  );
+                  Alert.alert('Copied', 'Purchase JSON copied to clipboard');
+                }}
+              >
+                <Text style={styles.buttonText}>📋 Copy JSON</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, {flex: 1, backgroundColor: '#6c757d'}]}
+                onPress={() => setPurchaseModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

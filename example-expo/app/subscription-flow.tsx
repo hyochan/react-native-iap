@@ -21,6 +21,7 @@ import {
   type PurchaseError,
   type Purchase,
   isUserCancelledError,
+  deepLinkToSubscriptions,
 } from 'react-native-iap';
 
 /**
@@ -45,6 +46,8 @@ const SUBSCRIPTION_IDS = ['dev.hyo.martie.premium'];
 export default function SubscriptionFlow() {
   // Track connection to coordinate delayed finish
   const connectedRef = useRef(false);
+  const lastSuccessAtRef = useRef<number>(0);
+
   const {
     connected,
     subscriptions,
@@ -58,12 +61,13 @@ export default function SubscriptionFlow() {
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
       console.log('Purchase successful:', purchase);
+      lastSuccessAtRef.current = Date.now();
       setIsProcessing(false);
 
-      // IMPORTANT: Server-side receipt validation should be performed here
-      // Send the receipt to your backend server for validation
+      // IMPORTANT: Perform server-side validation here
+      // Use the unified purchase token for both platforms
       // Example:
-      // const isValid = await validateReceiptOnServer(purchase.transactionReceipt);
+      // const isValid = await validateReceiptOnServer(purchase.purchaseToken);
       // if (!isValid) {
       //   Alert.alert('Error', 'Receipt validation failed');
       //   return;
@@ -119,9 +123,9 @@ export default function SubscriptionFlow() {
       setPurchaseResult(
         `✅ Subscription activated\n` +
           `Product: ${purchase.productId}\n` +
-          `Transaction ID: ${purchase.transactionId || 'N/A'}\n` +
+          `Transaction ID: ${purchase.id}\n` +
           `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n` +
-          `Receipt: ${purchase.transactionReceipt?.substring(0, 50)}...`,
+          `Token: ${purchase.purchaseToken?.substring(0, 50) || 'N/A'}...`,
       );
 
       Alert.alert('Success', 'Purchase completed successfully!');
@@ -130,6 +134,14 @@ export default function SubscriptionFlow() {
       console.error('Subscription failed:', error);
       setIsProcessing(false);
       const isCancel = isUserCancelledError(error as any);
+      // iOS may emit a transient error after a success; ignore within a short window
+      if (!isCancel && (error as any)?.code === 'E_SERVICE_ERROR') {
+        const dt = Date.now() - lastSuccessAtRef.current;
+        if (dt >= 0 && dt < 1500) {
+          // Ignore spurious error shortly after a success event
+          return;
+        }
+      }
       // Always update UI error text
       setPurchaseResult(`❌ Subscription failed: ${error.message}`);
       // Only alert for non-cancel errors
@@ -501,6 +513,14 @@ export default function SubscriptionFlow() {
               <Text style={styles.refreshButtonText}>🔄 Refresh Status</Text>
             )}
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.refreshButton, {marginTop: 8}]}
+            onPress={() => deepLinkToSubscriptions().catch(() => {})}
+          >
+            <Text style={styles.refreshButtonText}>
+              👤 Manage Subscriptions
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -633,6 +653,10 @@ export default function SubscriptionFlow() {
               key={`${purchase.id}-${index}`}
               style={styles.purchaseCard}
               activeOpacity={0.8}
+              onPress={() => {
+                setSelectedPurchase(purchase);
+                setPurchaseModalVisible(true);
+              }}
               onLongPress={() => {
                 setSelectedPurchase(purchase);
                 setPurchaseModalVisible(true);
@@ -712,35 +736,41 @@ export default function SubscriptionFlow() {
             </View>
             {selectedPurchase ? (
               <View style={styles.modalContent}>
-                <ScrollView style={styles.jsonContainer}>
-                  <Text style={styles.jsonText}>
-                    {JSON.stringify(selectedPurchase, null, 2)}
-                  </Text>
-                </ScrollView>
-                <View style={styles.buttonContainer}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.copyButton]}
-                    onPress={() =>
-                      Clipboard.setString(
-                        JSON.stringify(selectedPurchase, null, 2),
-                      )
-                    }
-                  >
-                    <Text style={styles.actionButtonText}>📋 Copy</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.consoleButton]}
-                    onPress={() => {
-                      console.log('=== PURCHASE DATA ===');
-                      console.log(selectedPurchase);
-                      console.log('=== PURCHASE JSON ===');
-                      console.log(JSON.stringify(selectedPurchase, null, 2));
-                      Alert.alert('Console', 'Purchase data logged to console');
-                    }}
-                  >
-                    <Text style={styles.actionButtonText}>🖥️ Console</Text>
-                  </TouchableOpacity>
-                </View>
+                {(() => {
+                  const jsonString = JSON.stringify(selectedPurchase, null, 2);
+                  return (
+                    <>
+                      <ScrollView style={styles.jsonContainer}>
+                        <Text style={styles.jsonText}>{jsonString}</Text>
+                      </ScrollView>
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.copyButton]}
+                          onPress={() => Clipboard.setString(jsonString)}
+                        >
+                          <Text style={styles.actionButtonText}>📋 Copy</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.consoleButton]}
+                          onPress={() => {
+                            console.log('=== PURCHASE DATA ===');
+                            console.log(selectedPurchase);
+                            console.log('=== PURCHASE JSON ===');
+                            console.log(jsonString);
+                            Alert.alert(
+                              'Console',
+                              'Purchase data logged to console',
+                            );
+                          }}
+                        >
+                          <Text style={styles.actionButtonText}>
+                            🖥️ Console
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  );
+                })()}
               </View>
             ) : null}
           </View>

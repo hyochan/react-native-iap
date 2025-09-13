@@ -227,7 +227,7 @@ const {finishTransaction} = useIAP({
 
         // Option 2 (RECOMMENDED - Secure):
         const isValid = await validateReceiptOnServer({
-          transactionId: purchase.transactionId,
+          transactionId: purchase.id,
           productId: purchase.id,
         });
         if (!isValid) {

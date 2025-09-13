@@ -304,7 +304,8 @@ describe('type-bridge utilities', () => {
       expect(result.id).toBe('purchase123');
       expect(result.productId).toBe('com.example.product');
       expect(result.transactionDate).toBe(new Date('2024-01-01').getTime());
-      expect(result.transactionReceipt).toBe(''); // Always set to empty string by converter
+      // transactionReceipt is not exposed on the public Purchase object
+      expect((result as any).transactionReceipt).toBeUndefined();
       expect(result.platform).toBe('ios');
       expect((result as any).appAccountToken).toBe('app-token');
       // verificationResultIOS is not mapped by the converter

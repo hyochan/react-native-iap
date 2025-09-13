@@ -85,10 +85,10 @@ class App extends Component {
   }
 
   handlePurchaseUpdate = (purchase: ProductPurchase) => {
-    const receipt = purchase.transactionReceipt;
-    if (receipt) {
+    const token = purchase.purchaseToken;
+    if (token) {
       yourAPI
-        .deliverOrDownloadFancyInAppPurchase(purchase.transactionReceipt)
+        .deliverOrDownloadFancyInAppPurchase(token)
         .then(async (deliveryResult) => {
           if (isSuccess(deliveryResult)) {
             // Tell the store that you have delivered what has been paid for.
@@ -813,7 +813,7 @@ const response = await fetch('https://your-server.com/validate-ios-receipt', {
   method: 'POST',
   headers: {'Content-Type': 'application/json'},
   body: JSON.stringify({
-    transactionId: purchase.transactionId,
+    transactionId: purchase.id,
     productId: purchase.id,
     // Your server will fetch the receipt from Apple
   }),

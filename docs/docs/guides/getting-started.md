@@ -178,6 +178,8 @@ This platform difference exists because iOS can only purchase one product at a t
 
 ### 4. Handle purchase updates
 
+> Note (3.0.0): Use `purchaseToken` (iOS JWS / Android purchase token) when validating purchases on your server.
+
 The `useIAP` hook automatically handles purchase updates. When a purchase is successful, you should validate the receipt on your server and then finish the transaction.
 
 **Important**: Receipt validation also has platform-specific requirements:
@@ -192,9 +194,9 @@ useEffect(() => {
     const validateAndFinish = async () => {
       try {
         if (Platform.OS === 'ios') {
-          // iOS: Simple validation
+          // iOS: Prefer the unified purchaseToken (JWS)
           await validateReceiptOnServer({
-            receiptData: currentPurchase.transactionReceipt,
+            receiptData: currentPurchase.purchaseToken,
             productId: currentPurchase.productId,
           });
         } else if (Platform.OS === 'android') {

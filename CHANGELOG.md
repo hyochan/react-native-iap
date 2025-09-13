@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Android: Bump to OpenIAP Google 1.1.0 and align init behavior/field mapping with the OpenIAP spec.
+- Docs/Examples: Migrate guidance from `transactionReceipt` to the unified `purchaseToken`.
+  - `purchase.purchaseToken` is now the recommended value for server validation on both platforms
+  - iOS: `purchaseToken` contains the JWS (StoreKit 2). The App Receipt (`transactionReceipt`) remains available for legacy flows
+  - Android: `transactionReceipt` is no longer populated; use `purchaseToken`
 
 ### Fixed
 
@@ -109,3 +113,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ---
 
 For older versions, please refer to the releases page on GitHub.
+
+- Remove any references to `purchase.transactionReceipt`, `purchase.transactionReceiptIOS`, and `purchase.purchaseTokenAndroid`

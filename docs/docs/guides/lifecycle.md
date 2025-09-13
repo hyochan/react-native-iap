@@ -334,7 +334,7 @@ const handlePurchase = async (purchase) => {
 ```tsx
 // Correct - validate on secure server
 const handlePurchase = async (purchase) => {
-  const isValid = await yourAPI.validateReceipt(purchase.transactionReceipt);
+  const isValid = await yourAPI.validateReceipt(purchase.purchaseToken);
   if (isValid) {
     grantPremiumFeature();
     await finishTransaction({purchase});

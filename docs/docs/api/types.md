@@ -31,9 +31,9 @@ import type {HybridObject} from 'react-native-nitro-modules';
 - `Purchase` - TypeScript-friendly purchase interface
 - `NitroPurchaseResult` - Purchase operation result
 
-> **Important Migration Note**:
+> **Note (3.0.0)**:
 >
-> - `purchaseToken` is now the unified field for both iOS and Android
+> - `purchaseToken` is the unified field for both iOS and Android
 > - On iOS: Contains the JWS representation (StoreKit 2)
 > - On Android: Contains the purchase token
 > - **Deprecated fields**: `jwsRepresentationIOS` and `purchaseTokenAndroid` are deprecated and will be removed in a future version
