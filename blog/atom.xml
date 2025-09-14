@@ -2,11 +2,44 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://hyochan.github.io/react-native-iap/blog</id>
     <title>React Native IAP Blog</title>
-    <updated>2025-09-13T00:00:00.000Z</updated>
+    <updated>2025-09-14T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://hyochan.github.io/react-native-iap/blog"/>
     <subtitle>React Native IAP Blog</subtitle>
     <icon>https://hyochan.github.io/react-native-iap/img/favicon.png</icon>
+    <entry>
+        <title type="html"><![CDATA[Release 14.3.1]]></title>
+        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1</id>
+        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1"/>
+        <updated>2025-09-14T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Small polish release focusing on examples, documentation, and a minor iOS error‑payload fix.]]></summary>
+        <content type="html"><![CDATA[<p>Small polish release focusing on examples, documentation, and a minor iOS error‑payload fix.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="added">Added<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1#added" class="hash-link" aria-label="Direct link to Added" title="Direct link to Added">​</a></h2>
+<ul>
+<li>Examples: “Manage Subscriptions” buttons in SubscriptionFlow and AvailablePurchases (opens native subscription management cross‑platform)</li>
+<li>Examples: Tap a purchased item to open a details modal</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="changed">Changed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1#changed" class="hash-link" aria-label="Direct link to Changed" title="Direct link to Changed">​</a></h2>
+<ul>
+<li>Docs: Clarify event‑driven purchase model (requests don’t resolve with results); add FAQ about transient iOS success→error timing and simple debounce guidance</li>
+<li>Docs/Examples: Prefer <code>purchase.id</code>; continue using <code>purchaseToken</code> for server validation</li>
+<li>Examples: Redact sensitive fields in logs and modals (no raw <code>transactionReceipt</code> or full <code>purchaseToken</code>)</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h2>
+<ul>
+<li>iOS: Sanitize purchase error payload so product identifiers don’t appear in <code>purchaseToken</code> on error events; keep internal de‑duplication by SKU</li>
+<li>Examples/Tests: Align transaction row with <code>purchase.id</code> and update tests</li>
+</ul>
+<p>No breaking changes. Compatible with 14.3.x line.</p>]]></content>
+        <author>
+            <name>Hyo</name>
+            <uri>https://github.com/hyochan</uri>
+        </author>
+        <category label="Release" term="Release"/>
+        <category label="docs" term="docs"/>
+        <category label="examples" term="examples"/>
+        <category label="iOS" term="iOS"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Release 14.3.0]]></title>
         <id>https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0</id>
