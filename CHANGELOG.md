@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - iOS: Sanitize purchase error payload so `purchaseToken` does not carry product identifiers in error events; keep internal deduplication based on SKU
 - Examples/Tests: Align transaction row with `purchase.id`; update tests accordingly
+- iOS: Fix crash on startup by lazily initializing the IAP module (Nitro HybridObject created on demand)
 
 - Remove any references to `purchase.transactionReceipt`, `purchase.transactionReceiptIOS`, and `purchase.purchaseTokenAndroid`
 

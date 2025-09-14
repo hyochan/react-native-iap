@@ -76,15 +76,37 @@ export const restorePurchases = async (
 
 // Development utilities removed - use type bridge functions directly if needed
 
-// Create the RnIap HybridObject instance (internal use only)
-const iap = NitroModules.createHybridObject<RnIap>('RnIap');
+// Create the RnIap HybridObject instance lazily to avoid early JSI crashes
+let iap: RnIap | null = null;
+const getIap = (): RnIap => {
+  if (iap) return iap;
+
+  // Guard against accessing Nitro before it's installed into the JS runtime
+  const hasNitroDispatcher =
+    typeof globalThis !== 'undefined' &&
+    (globalThis as any)?.__nitro?.dispatcher != null;
+  const isJestEnvironment =
+    typeof (globalThis as any).jest !== 'undefined' ||
+    (typeof process !== 'undefined' &&
+      !!(process as any).env &&
+      (process as any).env.JEST_WORKER_ID != null);
+
+  if (!hasNitroDispatcher && !isJestEnvironment) {
+    throw new Error(
+      'Nitro runtime not installed yet. Ensure react-native-nitro-modules is initialized before calling IAP.',
+    );
+  }
+
+  iap = NitroModules.createHybridObject<RnIap>('RnIap');
+  return iap;
+};
 
 /**
  * Initialize connection to the store
  */
 export const initConnection = async (): Promise<boolean> => {
   try {
-    return await iap.initConnection();
+    return await getIap().initConnection();
   } catch (error) {
     console.error('Failed to initialize IAP connection:', error);
     throw error;
@@ -96,7 +118,9 @@ export const initConnection = async (): Promise<boolean> => {
  */
 export const endConnection = async (): Promise<boolean> => {
   try {
-    return await iap.endConnection();
+    // If never initialized, treat as ended
+    if (!iap) return true;
+    return await getIap().endConnection();
   } catch (error) {
     console.error('Failed to end IAP connection:', error);
     throw error;
@@ -130,8 +154,8 @@ export const fetchProducts = async ({
 
     if (type === 'all') {
       const [inappNitro, subsNitro] = await Promise.all([
-        iap.fetchProducts(skus, 'inapp'),
-        iap.fetchProducts(skus, 'subs'),
+        getIap().fetchProducts(skus, 'inapp'),
+        getIap().fetchProducts(skus, 'subs'),
       ]);
       const allNitro = [...inappNitro, ...subsNitro];
       const validAll = allNitro.filter(validateNitroProduct);
@@ -143,7 +167,7 @@ export const fetchProducts = async ({
       return validAll.map(convertNitroProductToProduct);
     }
 
-    const nitroProducts = await iap.fetchProducts(skus, type);
+    const nitroProducts = await getIap().fetchProducts(skus, type);
 
     // Validate and convert NitroProducts to TypeScript Products
     const validProducts = nitroProducts.filter(validateNitroProduct);
@@ -256,7 +280,7 @@ export const requestPurchase = async ({
     }
 
     // Call unified method - returns void, listen for events instead
-    await iap.requestPurchase(unifiedRequest);
+    await getIap().requestPurchase(unifiedRequest);
   } catch (error) {
     console.error('Failed to request purchase:', error);
     throw error;
@@ -294,10 +318,10 @@ export const getAvailablePurchases = async ({
       };
     } else if (Platform.OS === 'android') {
       // For Android, we need to call twice for inapp and subs
-      const inappNitroPurchases = await iap.getAvailablePurchases({
+      const inappNitroPurchases = await getIap().getAvailablePurchases({
         android: {type: 'inapp'},
       });
-      const subsNitroPurchases = await iap.getAvailablePurchases({
+      const subsNitroPurchases = await getIap().getAvailablePurchases({
         android: {type: 'subs'},
       });
 
@@ -315,7 +339,7 @@ export const getAvailablePurchases = async ({
       throw new Error('Unsupported platform');
     }
 
-    const nitroPurchases = await iap.getAvailablePurchases(options);
+    const nitroPurchases = await getIap().getAvailablePurchases(options);
 
     // Validate and convert NitroPurchases to TypeScript Purchases
     const validPurchases = nitroPurchases.filter(validateNitroPurchase);
@@ -377,7 +401,7 @@ export const finishTransaction = async ({
       throw new Error('Unsupported platform');
     }
 
-    const result = await iap.finishTransaction(params);
+    const result = await getIap().finishTransaction(params);
 
     // Handle variant return type
     if (typeof result === 'boolean') {
@@ -423,7 +447,7 @@ export const acknowledgePurchaseAndroid = async (
       );
     }
 
-    const result = await iap.finishTransaction({
+    const result = await getIap().finishTransaction({
       android: {
         purchaseToken,
         isConsumable: false,
@@ -464,7 +488,7 @@ export const consumePurchaseAndroid = async (
       throw new Error('consumePurchaseAndroid is only available on Android');
     }
 
-    const result = await iap.finishTransaction({
+    const result = await getIap().finishTransaction({
       android: {
         purchaseToken,
         isConsumable: true,
@@ -533,13 +557,30 @@ export const purchaseUpdatedListener = (
 
   // Store the wrapped listener for removal
   listenerMap.set(listener, wrappedListener);
-  iap.addPurchaseUpdatedListener(wrappedListener);
+  let attached = false;
+  try {
+    getIap().addPurchaseUpdatedListener(wrappedListener);
+    attached = true;
+  } catch (e) {
+    const msg = String(e ?? '');
+    if (msg.includes('Nitro runtime not installed')) {
+      console.warn(
+        '[purchaseUpdatedListener] Nitro not ready yet; listener inert until initConnection()',
+      );
+    } else {
+      throw e;
+    }
+  }
 
   return {
     remove: () => {
       const wrapped = listenerMap.get(listener);
       if (wrapped) {
-        iap.removePurchaseUpdatedListener(wrapped as any);
+        if (attached) {
+          try {
+            getIap().removePurchaseUpdatedListener(wrapped as any);
+          } catch {}
+        }
         listenerMap.delete(listener);
       }
     },
@@ -578,11 +619,28 @@ export const purchaseErrorListener = (
 ): EventSubscription => {
   // Store the listener for removal
   listenerMap.set(listener, listener);
-  iap.addPurchaseErrorListener(listener as any);
+  let attached = false;
+  try {
+    getIap().addPurchaseErrorListener(listener as any);
+    attached = true;
+  } catch (e) {
+    const msg = String(e ?? '');
+    if (msg.includes('Nitro runtime not installed')) {
+      console.warn(
+        '[purchaseErrorListener] Nitro not ready yet; listener inert until initConnection()',
+      );
+    } else {
+      throw e;
+    }
+  }
 
   return {
     remove: () => {
-      iap.removePurchaseErrorListener(listener as any);
+      if (attached) {
+        try {
+          getIap().removePurchaseErrorListener(listener as any);
+        } catch {}
+      }
       listenerMap.delete(listener);
     },
   };
@@ -633,13 +691,30 @@ export const promotedProductListenerIOS = (
 
   // Store the wrapped listener for removal
   listenerMap.set(listener, wrappedListener);
-  iap.addPromotedProductListenerIOS(wrappedListener);
+  let attached = false;
+  try {
+    getIap().addPromotedProductListenerIOS(wrappedListener);
+    attached = true;
+  } catch (e) {
+    const msg = String(e ?? '');
+    if (msg.includes('Nitro runtime not installed')) {
+      console.warn(
+        '[promotedProductListenerIOS] Nitro not ready yet; listener inert until initConnection()',
+      );
+    } else {
+      throw e;
+    }
+  }
 
   return {
     remove: () => {
       const wrapped = listenerMap.get(listener);
       if (wrapped) {
-        iap.removePromotedProductListenerIOS(wrapped as any);
+        if (attached) {
+          try {
+            getIap().removePromotedProductListenerIOS(wrapped as any);
+          } catch {}
+        }
         listenerMap.delete(listener);
       }
     },
@@ -665,20 +740,13 @@ export const validateReceipt = async (
     isSub?: boolean;
   },
 ): Promise<import('./types').ReceiptValidationResult> => {
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
     const params: NitroReceiptValidationParams = {
       sku,
       androidOptions,
     };
 
-    const nitroResult = await iap.validateReceipt(params);
+    const nitroResult = await getIap().validateReceipt(params);
 
     // Convert Nitro result to public API result
     if (Platform.OS === 'ios') {
@@ -734,15 +802,8 @@ export const syncIOS = async (): Promise<boolean> => {
     throw new Error('syncIOS is only available on iOS');
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    return await iap.syncIOS();
+    return await getIap().syncIOS();
   } catch (error) {
     console.error('[syncIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -760,15 +821,8 @@ export const requestPromotedProductIOS = async (): Promise<Product | null> => {
     return null;
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    const nitroProduct = await iap.requestPromotedProductIOS();
+    const nitroProduct = await getIap().requestPromotedProductIOS();
     if (nitroProduct) {
       return convertNitroProductToProduct(nitroProduct);
     }
@@ -790,15 +844,8 @@ export const presentCodeRedemptionSheetIOS = async (): Promise<boolean> => {
     return false;
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    return await iap.presentCodeRedemptionSheetIOS();
+    return await getIap().presentCodeRedemptionSheetIOS();
   } catch (error) {
     console.error('[presentCodeRedemptionSheetIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -816,15 +863,8 @@ export const buyPromotedProductIOS = async (): Promise<void> => {
     throw new Error('buyPromotedProductIOS is only available on iOS');
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    await iap.buyPromotedProductIOS();
+    await getIap().buyPromotedProductIOS();
   } catch (error) {
     console.error('[buyPromotedProductIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -842,15 +882,8 @@ export const clearTransactionIOS = async (): Promise<void> => {
     return;
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    await iap.clearTransactionIOS();
+    await getIap().clearTransactionIOS();
   } catch (error) {
     console.error('[clearTransactionIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -871,15 +904,8 @@ export const beginRefundRequestIOS = async (
     return null;
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    return await iap.beginRefundRequestIOS(sku);
+    return await getIap().beginRefundRequestIOS(sku);
   } catch (error) {
     console.error('[beginRefundRequestIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -901,15 +927,8 @@ export const subscriptionStatusIOS = async (
     throw new Error('subscriptionStatusIOS is only available on iOS');
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    const statuses = await iap.subscriptionStatusIOS(sku);
+    const statuses = await getIap().subscriptionStatusIOS(sku);
     if (!statuses || !Array.isArray(statuses)) return [];
     return statuses.map((s) =>
       convertNitroSubscriptionStatusToSubscriptionStatusIOS(s as any),
@@ -934,15 +953,8 @@ export const currentEntitlementIOS = async (
     return null;
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    const nitroPurchase = await iap.currentEntitlementIOS(sku);
+    const nitroPurchase = await getIap().currentEntitlementIOS(sku);
     if (nitroPurchase) {
       return convertNitroPurchaseToPurchase(nitroPurchase);
     }
@@ -967,15 +979,8 @@ export const latestTransactionIOS = async (
     return null;
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    const nitroPurchase = await iap.latestTransactionIOS(sku);
+    const nitroPurchase = await getIap().latestTransactionIOS(sku);
     if (nitroPurchase) {
       return convertNitroPurchaseToPurchase(nitroPurchase);
     }
@@ -997,15 +1002,8 @@ export const getPendingTransactionsIOS = async (): Promise<Purchase[]> => {
     return [];
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    const nitroPurchases = await iap.getPendingTransactionsIOS();
+    const nitroPurchases = await getIap().getPendingTransactionsIOS();
     return nitroPurchases.map(convertNitroPurchaseToPurchase);
   } catch (error) {
     console.error('[getPendingTransactionsIOS] Failed:', error);
@@ -1024,15 +1022,8 @@ export const showManageSubscriptionsIOS = async (): Promise<Purchase[]> => {
     return [];
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    const nitroPurchases = await iap.showManageSubscriptionsIOS();
+    const nitroPurchases = await getIap().showManageSubscriptionsIOS();
     return nitroPurchases.map(convertNitroPurchaseToPurchase);
   } catch (error) {
     console.error('[showManageSubscriptionsIOS] Failed:', error);
@@ -1054,15 +1045,8 @@ export const isEligibleForIntroOfferIOS = async (
     return false;
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    return await iap.isEligibleForIntroOfferIOS(groupID);
+    return await getIap().isEligibleForIntroOfferIOS(groupID);
   } catch (error) {
     console.error('[isEligibleForIntroOfferIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1080,15 +1064,8 @@ export const getReceiptDataIOS = async (): Promise<string> => {
     throw new Error('getReceiptDataIOS is only available on iOS');
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    return await iap.getReceiptDataIOS();
+    return await getIap().getReceiptDataIOS();
   } catch (error) {
     console.error('[getReceiptDataIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1109,15 +1086,8 @@ export const isTransactionVerifiedIOS = async (
     return false;
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    return await iap.isTransactionVerifiedIOS(sku);
+    return await getIap().isTransactionVerifiedIOS(sku);
   } catch (error) {
     console.error('[isTransactionVerifiedIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1138,15 +1108,8 @@ export const getTransactionJwsIOS = async (
     return null;
   }
 
-  if (!iap) {
-    const errorJson = parseErrorStringToJsonObj(
-      'RnIap: Service not initialized. Call initConnection() first.',
-    );
-    throw new Error(errorJson.message);
-  }
-
   try {
-    return await iap.getTransactionJwsIOS(sku);
+    return await getIap().getTransactionJwsIOS(sku);
   } catch (error) {
     console.error('[getTransactionJwsIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1172,7 +1135,7 @@ export const getStorefrontIOS = async (): Promise<string> => {
 
   try {
     // Call the native method to get storefront
-    const storefront = await iap.getStorefrontIOS();
+    const storefront = await getIap().getStorefrontIOS();
     return storefront;
   } catch (error) {
     console.error('Failed to get storefront:', error);
@@ -1190,7 +1153,7 @@ export const getStorefront = async (): Promise<string> => {
   if (Platform.OS === 'android') {
     try {
       // Optional since older builds may not have the method
-      const result = await iap.getStorefrontAndroid?.();
+      const result = await getIap().getStorefrontAndroid?.();
       return result ?? '';
     } catch {
       return '';
@@ -1210,7 +1173,7 @@ export const deepLinkToSubscriptions = async (
   } = {},
 ): Promise<void> => {
   if (Platform.OS === 'android') {
-    await iap.deepLinkToSubscriptionsAndroid?.({
+    await getIap().deepLinkToSubscriptionsAndroid?.({
       skuAndroid: options.skuAndroid,
       packageNameAndroid: options.packageNameAndroid,
     });
@@ -1219,7 +1182,7 @@ export const deepLinkToSubscriptions = async (
   // iOS: Use manage subscriptions sheet (ignore returned purchases for deeplink parity)
   if (Platform.OS === 'ios') {
     try {
-      await iap.showManageSubscriptionsIOS();
+      await getIap().showManageSubscriptionsIOS();
     } catch {
       // no-op
     }
@@ -1254,7 +1217,7 @@ export const getAppTransactionIOS = async (): Promise<string | null> => {
 
   try {
     // Call the native method to get app transaction
-    const appTransaction = await iap.getAppTransactionIOS();
+    const appTransaction = await getIap().getAppTransactionIOS();
     return appTransaction;
   } catch (error) {
     console.error('Failed to get app transaction:', error);
