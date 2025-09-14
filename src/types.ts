@@ -69,8 +69,6 @@ export type PurchaseCommon = {
   transactionId?: string;
   /** Transaction timestamp in milliseconds */
   transactionDate: number;
-  /** Transaction receipt for validation */
-  transactionReceipt: string;
   /** Unified purchase token (jwsRepresentation for iOS, purchaseToken for Android) */
   purchaseToken?: string;
   /** Platform identifier ('ios' or 'android') */
