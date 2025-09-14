@@ -49,7 +49,9 @@ const PurchaseFlow: React.FC = () => {
   const finishRetryTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const handlePurchaseUpdate = useCallback(async (purchase: Purchase) => {
-    console.log('Purchase successful:', purchase);
+    const {purchaseToken, transactionReceipt, ...safe} = (purchase ||
+      {}) as any;
+    console.log('Purchase successful:', safe);
     setPurchasing(false);
     setLastError(null);
     setLastPurchase(purchase);
@@ -280,7 +282,15 @@ const PurchaseFlow: React.FC = () => {
   const renderResultDetails = () => {
     const payload = lastPurchase ?? lastError;
     if (!payload) return null;
-    const jsonString = JSON.stringify(payload, null, 2);
+    const {purchaseToken, transactionReceipt, ...safe} = (payload || {}) as any;
+    const jsonString = JSON.stringify(
+      'purchaseToken' in (payload as any) ||
+        'transactionReceipt' in (payload as any)
+        ? safe
+        : payload,
+      null,
+      2,
+    );
     return (
       <View style={styles.modalContent}>
         <ScrollView style={styles.jsonContainer}>

@@ -433,9 +433,12 @@ export default function AvailablePurchases() {
                   lineHeight: 18,
                 }}
               >
-                {selectedPurchase
-                  ? JSON.stringify(selectedPurchase, null, 2)
-                  : ''}
+                {(() => {
+                  if (!selectedPurchase) return '';
+                  const {purchaseToken, transactionReceipt, ...safe} =
+                    (selectedPurchase || {}) as any;
+                  return JSON.stringify(safe, null, 2);
+                })()}
               </Text>
             </ScrollView>
             <View
@@ -451,9 +454,9 @@ export default function AvailablePurchases() {
                 style={[styles.button, {flex: 1}]}
                 onPress={() => {
                   if (!selectedPurchase) return;
-                  Clipboard.setString(
-                    JSON.stringify(selectedPurchase, null, 2),
-                  );
+                  const {purchaseToken, transactionReceipt, ...safe} =
+                    (selectedPurchase || {}) as any;
+                  Clipboard.setString(JSON.stringify(safe, null, 2));
                   Alert.alert('Copied', 'Purchase JSON copied to clipboard');
                 }}
               >

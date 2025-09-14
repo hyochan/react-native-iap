@@ -737,7 +737,9 @@ export default function SubscriptionFlow() {
             {selectedPurchase ? (
               <View style={styles.modalContent}>
                 {(() => {
-                  const jsonString = JSON.stringify(selectedPurchase, null, 2);
+                  const {purchaseToken, transactionReceipt, ...safe} =
+                    (selectedPurchase || {}) as any;
+                  const jsonString = JSON.stringify(safe, null, 2);
                   return (
                     <>
                       <ScrollView style={styles.jsonContainer}>
@@ -753,9 +755,9 @@ export default function SubscriptionFlow() {
                         <TouchableOpacity
                           style={[styles.actionButton, styles.consoleButton]}
                           onPress={() => {
-                            console.log('=== PURCHASE DATA ===');
-                            console.log(selectedPurchase);
-                            console.log('=== PURCHASE JSON ===');
+                            console.log('=== PURCHASE DATA (redacted) ===');
+                            console.log(safe);
+                            console.log('=== PURCHASE JSON (redacted) ===');
                             console.log(jsonString);
                             Alert.alert(
                               'Console',
