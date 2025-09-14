@@ -60,7 +60,11 @@ export default function SubscriptionFlow() {
     requestPurchase,
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
-      console.log('Purchase successful:', purchase);
+      {
+        const {purchaseToken, transactionReceipt, ...safePurchase} =
+          (purchase as any) || {};
+        console.log('Purchase successful (redacted):', safePurchase);
+      }
       lastSuccessAtRef.current = Date.now();
       setIsProcessing(false);
 
