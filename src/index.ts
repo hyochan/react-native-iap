@@ -77,28 +77,31 @@ export const restorePurchases = async (
 // Development utilities removed - use type bridge functions directly if needed
 
 // Create the RnIap HybridObject instance lazily to avoid early JSI crashes
-let iap: RnIap | null = null;
-const getIap = (): RnIap => {
-  if (iap) return iap;
+let iapRef: RnIap | null = null;
 
-  // Guard against accessing Nitro before it's installed into the JS runtime
-  const hasNitroDispatcher =
-    typeof globalThis !== 'undefined' &&
-    (globalThis as any)?.__nitro?.dispatcher != null;
-  const isJestEnvironment =
-    typeof (globalThis as any).jest !== 'undefined' ||
-    (typeof process !== 'undefined' &&
-      !!(process as any).env &&
-      (process as any).env.JEST_WORKER_ID != null);
+const IAP = {
+  get instance(): RnIap {
+    if (iapRef) return iapRef;
 
-  if (!hasNitroDispatcher && !isJestEnvironment) {
-    throw new Error(
-      'Nitro runtime not installed yet. Ensure react-native-nitro-modules is initialized before calling IAP.',
-    );
-  }
+    // Guard against accessing Nitro before it's installed into the JS runtime
+    const hasNitroDispatcher =
+      typeof globalThis !== 'undefined' &&
+      (globalThis as any)?.__nitro?.dispatcher != null;
+    const isJestEnvironment =
+      typeof (globalThis as any).jest !== 'undefined' ||
+      (typeof process !== 'undefined' &&
+        !!(process as any).env &&
+        (process as any).env.JEST_WORKER_ID != null);
 
-  iap = NitroModules.createHybridObject<RnIap>('RnIap');
-  return iap;
+    if (!hasNitroDispatcher && !isJestEnvironment) {
+      throw new Error(
+        'Nitro runtime not installed yet. Ensure react-native-nitro-modules is initialized before calling IAP.',
+      );
+    }
+
+    iapRef = NitroModules.createHybridObject<RnIap>('RnIap');
+    return iapRef;
+  },
 };
 
 /**
@@ -106,7 +109,7 @@ const getIap = (): RnIap => {
  */
 export const initConnection = async (): Promise<boolean> => {
   try {
-    return await getIap().initConnection();
+    return await IAP.instance.initConnection();
   } catch (error) {
     console.error('Failed to initialize IAP connection:', error);
     throw error;
@@ -119,8 +122,8 @@ export const initConnection = async (): Promise<boolean> => {
 export const endConnection = async (): Promise<boolean> => {
   try {
     // If never initialized, treat as ended
-    if (!iap) return true;
-    return await getIap().endConnection();
+    if (!iapRef) return true;
+    return await IAP.instance.endConnection();
   } catch (error) {
     console.error('Failed to end IAP connection:', error);
     throw error;
@@ -154,8 +157,8 @@ export const fetchProducts = async ({
 
     if (type === 'all') {
       const [inappNitro, subsNitro] = await Promise.all([
-        getIap().fetchProducts(skus, 'inapp'),
-        getIap().fetchProducts(skus, 'subs'),
+        IAP.instance.fetchProducts(skus, 'inapp'),
+        IAP.instance.fetchProducts(skus, 'subs'),
       ]);
       const allNitro = [...inappNitro, ...subsNitro];
       const validAll = allNitro.filter(validateNitroProduct);
@@ -167,7 +170,7 @@ export const fetchProducts = async ({
       return validAll.map(convertNitroProductToProduct);
     }
 
-    const nitroProducts = await getIap().fetchProducts(skus, type);
+    const nitroProducts = await IAP.instance.fetchProducts(skus, type);
 
     // Validate and convert NitroProducts to TypeScript Products
     const validProducts = nitroProducts.filter(validateNitroProduct);
@@ -280,7 +283,7 @@ export const requestPurchase = async ({
     }
 
     // Call unified method - returns void, listen for events instead
-    await getIap().requestPurchase(unifiedRequest);
+    await IAP.instance.requestPurchase(unifiedRequest);
   } catch (error) {
     console.error('Failed to request purchase:', error);
     throw error;
@@ -318,10 +321,10 @@ export const getAvailablePurchases = async ({
       };
     } else if (Platform.OS === 'android') {
       // For Android, we need to call twice for inapp and subs
-      const inappNitroPurchases = await getIap().getAvailablePurchases({
+      const inappNitroPurchases = await IAP.instance.getAvailablePurchases({
         android: {type: 'inapp'},
       });
-      const subsNitroPurchases = await getIap().getAvailablePurchases({
+      const subsNitroPurchases = await IAP.instance.getAvailablePurchases({
         android: {type: 'subs'},
       });
 
@@ -339,7 +342,7 @@ export const getAvailablePurchases = async ({
       throw new Error('Unsupported platform');
     }
 
-    const nitroPurchases = await getIap().getAvailablePurchases(options);
+    const nitroPurchases = await IAP.instance.getAvailablePurchases(options);
 
     // Validate and convert NitroPurchases to TypeScript Purchases
     const validPurchases = nitroPurchases.filter(validateNitroPurchase);
@@ -401,7 +404,7 @@ export const finishTransaction = async ({
       throw new Error('Unsupported platform');
     }
 
-    const result = await getIap().finishTransaction(params);
+    const result = await IAP.instance.finishTransaction(params);
 
     // Handle variant return type
     if (typeof result === 'boolean') {
@@ -447,7 +450,7 @@ export const acknowledgePurchaseAndroid = async (
       );
     }
 
-    const result = await getIap().finishTransaction({
+    const result = await IAP.instance.finishTransaction({
       android: {
         purchaseToken,
         isConsumable: false,
@@ -488,7 +491,7 @@ export const consumePurchaseAndroid = async (
       throw new Error('consumePurchaseAndroid is only available on Android');
     }
 
-    const result = await getIap().finishTransaction({
+    const result = await IAP.instance.finishTransaction({
       android: {
         purchaseToken,
         isConsumable: true,
@@ -559,7 +562,7 @@ export const purchaseUpdatedListener = (
   listenerMap.set(listener, wrappedListener);
   let attached = false;
   try {
-    getIap().addPurchaseUpdatedListener(wrappedListener);
+    IAP.instance.addPurchaseUpdatedListener(wrappedListener);
     attached = true;
   } catch (e) {
     const msg = String(e ?? '');
@@ -578,7 +581,7 @@ export const purchaseUpdatedListener = (
       if (wrapped) {
         if (attached) {
           try {
-            getIap().removePurchaseUpdatedListener(wrapped as any);
+            IAP.instance.removePurchaseUpdatedListener(wrapped as any);
           } catch {}
         }
         listenerMap.delete(listener);
@@ -621,7 +624,7 @@ export const purchaseErrorListener = (
   listenerMap.set(listener, listener);
   let attached = false;
   try {
-    getIap().addPurchaseErrorListener(listener as any);
+    IAP.instance.addPurchaseErrorListener(listener as any);
     attached = true;
   } catch (e) {
     const msg = String(e ?? '');
@@ -638,7 +641,7 @@ export const purchaseErrorListener = (
     remove: () => {
       if (attached) {
         try {
-          getIap().removePurchaseErrorListener(listener as any);
+          IAP.instance.removePurchaseErrorListener(listener as any);
         } catch {}
       }
       listenerMap.delete(listener);
@@ -693,7 +696,7 @@ export const promotedProductListenerIOS = (
   listenerMap.set(listener, wrappedListener);
   let attached = false;
   try {
-    getIap().addPromotedProductListenerIOS(wrappedListener);
+    IAP.instance.addPromotedProductListenerIOS(wrappedListener);
     attached = true;
   } catch (e) {
     const msg = String(e ?? '');
@@ -712,7 +715,7 @@ export const promotedProductListenerIOS = (
       if (wrapped) {
         if (attached) {
           try {
-            getIap().removePromotedProductListenerIOS(wrapped as any);
+            IAP.instance.removePromotedProductListenerIOS(wrapped as any);
           } catch {}
         }
         listenerMap.delete(listener);
@@ -746,7 +749,7 @@ export const validateReceipt = async (
       androidOptions,
     };
 
-    const nitroResult = await getIap().validateReceipt(params);
+    const nitroResult = await IAP.instance.validateReceipt(params);
 
     // Convert Nitro result to public API result
     if (Platform.OS === 'ios') {
@@ -803,7 +806,7 @@ export const syncIOS = async (): Promise<boolean> => {
   }
 
   try {
-    return await getIap().syncIOS();
+    return await IAP.instance.syncIOS();
   } catch (error) {
     console.error('[syncIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -822,7 +825,7 @@ export const requestPromotedProductIOS = async (): Promise<Product | null> => {
   }
 
   try {
-    const nitroProduct = await getIap().requestPromotedProductIOS();
+    const nitroProduct = await IAP.instance.requestPromotedProductIOS();
     if (nitroProduct) {
       return convertNitroProductToProduct(nitroProduct);
     }
@@ -845,7 +848,7 @@ export const presentCodeRedemptionSheetIOS = async (): Promise<boolean> => {
   }
 
   try {
-    return await getIap().presentCodeRedemptionSheetIOS();
+    return await IAP.instance.presentCodeRedemptionSheetIOS();
   } catch (error) {
     console.error('[presentCodeRedemptionSheetIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -864,7 +867,7 @@ export const buyPromotedProductIOS = async (): Promise<void> => {
   }
 
   try {
-    await getIap().buyPromotedProductIOS();
+    await IAP.instance.buyPromotedProductIOS();
   } catch (error) {
     console.error('[buyPromotedProductIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -883,7 +886,7 @@ export const clearTransactionIOS = async (): Promise<void> => {
   }
 
   try {
-    await getIap().clearTransactionIOS();
+    await IAP.instance.clearTransactionIOS();
   } catch (error) {
     console.error('[clearTransactionIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -905,7 +908,7 @@ export const beginRefundRequestIOS = async (
   }
 
   try {
-    return await getIap().beginRefundRequestIOS(sku);
+    return await IAP.instance.beginRefundRequestIOS(sku);
   } catch (error) {
     console.error('[beginRefundRequestIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -928,7 +931,7 @@ export const subscriptionStatusIOS = async (
   }
 
   try {
-    const statuses = await getIap().subscriptionStatusIOS(sku);
+    const statuses = await IAP.instance.subscriptionStatusIOS(sku);
     if (!statuses || !Array.isArray(statuses)) return [];
     return statuses.map((s) =>
       convertNitroSubscriptionStatusToSubscriptionStatusIOS(s as any),
@@ -954,7 +957,7 @@ export const currentEntitlementIOS = async (
   }
 
   try {
-    const nitroPurchase = await getIap().currentEntitlementIOS(sku);
+    const nitroPurchase = await IAP.instance.currentEntitlementIOS(sku);
     if (nitroPurchase) {
       return convertNitroPurchaseToPurchase(nitroPurchase);
     }
@@ -980,7 +983,7 @@ export const latestTransactionIOS = async (
   }
 
   try {
-    const nitroPurchase = await getIap().latestTransactionIOS(sku);
+    const nitroPurchase = await IAP.instance.latestTransactionIOS(sku);
     if (nitroPurchase) {
       return convertNitroPurchaseToPurchase(nitroPurchase);
     }
@@ -1003,7 +1006,7 @@ export const getPendingTransactionsIOS = async (): Promise<Purchase[]> => {
   }
 
   try {
-    const nitroPurchases = await getIap().getPendingTransactionsIOS();
+    const nitroPurchases = await IAP.instance.getPendingTransactionsIOS();
     return nitroPurchases.map(convertNitroPurchaseToPurchase);
   } catch (error) {
     console.error('[getPendingTransactionsIOS] Failed:', error);
@@ -1023,7 +1026,7 @@ export const showManageSubscriptionsIOS = async (): Promise<Purchase[]> => {
   }
 
   try {
-    const nitroPurchases = await getIap().showManageSubscriptionsIOS();
+    const nitroPurchases = await IAP.instance.showManageSubscriptionsIOS();
     return nitroPurchases.map(convertNitroPurchaseToPurchase);
   } catch (error) {
     console.error('[showManageSubscriptionsIOS] Failed:', error);
@@ -1046,7 +1049,7 @@ export const isEligibleForIntroOfferIOS = async (
   }
 
   try {
-    return await getIap().isEligibleForIntroOfferIOS(groupID);
+    return await IAP.instance.isEligibleForIntroOfferIOS(groupID);
   } catch (error) {
     console.error('[isEligibleForIntroOfferIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1065,7 +1068,7 @@ export const getReceiptDataIOS = async (): Promise<string> => {
   }
 
   try {
-    return await getIap().getReceiptDataIOS();
+    return await IAP.instance.getReceiptDataIOS();
   } catch (error) {
     console.error('[getReceiptDataIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1087,7 +1090,7 @@ export const isTransactionVerifiedIOS = async (
   }
 
   try {
-    return await getIap().isTransactionVerifiedIOS(sku);
+    return await IAP.instance.isTransactionVerifiedIOS(sku);
   } catch (error) {
     console.error('[isTransactionVerifiedIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1109,7 +1112,7 @@ export const getTransactionJwsIOS = async (
   }
 
   try {
-    return await getIap().getTransactionJwsIOS(sku);
+    return await IAP.instance.getTransactionJwsIOS(sku);
   } catch (error) {
     console.error('[getTransactionJwsIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1135,7 +1138,7 @@ export const getStorefrontIOS = async (): Promise<string> => {
 
   try {
     // Call the native method to get storefront
-    const storefront = await getIap().getStorefrontIOS();
+    const storefront = await IAP.instance.getStorefrontIOS();
     return storefront;
   } catch (error) {
     console.error('Failed to get storefront:', error);
@@ -1153,7 +1156,7 @@ export const getStorefront = async (): Promise<string> => {
   if (Platform.OS === 'android') {
     try {
       // Optional since older builds may not have the method
-      const result = await getIap().getStorefrontAndroid?.();
+      const result = await IAP.instance.getStorefrontAndroid?.();
       return result ?? '';
     } catch {
       return '';
@@ -1173,7 +1176,7 @@ export const deepLinkToSubscriptions = async (
   } = {},
 ): Promise<void> => {
   if (Platform.OS === 'android') {
-    await getIap().deepLinkToSubscriptionsAndroid?.({
+    await IAP.instance.deepLinkToSubscriptionsAndroid?.({
       skuAndroid: options.skuAndroid,
       packageNameAndroid: options.packageNameAndroid,
     });
@@ -1182,7 +1185,7 @@ export const deepLinkToSubscriptions = async (
   // iOS: Use manage subscriptions sheet (ignore returned purchases for deeplink parity)
   if (Platform.OS === 'ios') {
     try {
-      await getIap().showManageSubscriptionsIOS();
+      await IAP.instance.showManageSubscriptionsIOS();
     } catch {
       // no-op
     }
@@ -1217,7 +1220,7 @@ export const getAppTransactionIOS = async (): Promise<string | null> => {
 
   try {
     // Call the native method to get app transaction
-    const appTransaction = await getIap().getAppTransactionIOS();
+    const appTransaction = await IAP.instance.getAppTransactionIOS();
     return appTransaction;
   } catch (error) {
     console.error('Failed to get app transaction:', error);

@@ -3994,6 +3994,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:^24.4.0":
+  version: 24.4.0
+  resolution: "@types/node@npm:24.4.0"
+  dependencies:
+    undici-types: ~7.11.0
+  checksum: a081561c1bd434f2c82e528aa39d6e24433de521f638a5b0a7c2a1e2013351a556011894bcda7983016bdecb4ae5ee80672b0a96167c9b6be5ab948fcc827d00
+  languageName: node
+  linkType: hard
+
 "@types/react-test-renderer@npm:^19.1.0":
   version: 19.1.0
   resolution: "@types/react-test-renderer@npm:19.1.0"
@@ -12239,6 +12248,7 @@ __metadata:
     "@testing-library/react": ^16.3.0
     "@testing-library/react-hooks": ^8.0.1
     "@types/jest": ^29.5.12
+    "@types/node": ^24.4.0
     "@types/react": ^19.1.12
     babel-jest: ^30.1.1
     eslint: ^8.57.0
@@ -13997,6 +14007,13 @@ __metadata:
   version: 7.10.0
   resolution: "undici-types@npm:7.10.0"
   checksum: 6917fcd8c80963919fe918952f9243a6749af0e3f759a39f8d2c2486144a66c86ae4125aebbce700b636cb1dcd45e85eb8c49c60d60738a97b63f0e89ef9b053
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~7.11.0":
+  version: 7.11.0
+  resolution: "undici-types@npm:7.11.0"
+  checksum: 8f6d0dc0e4d96aff2f2d87163a40643d93d841484b06dbaeef0ec534ddbfeaa8459918ac990467263f71f229f9891dcc36242f51d71dcce293ff86f4c16f66b4
   languageName: node
   linkType: hard
 
