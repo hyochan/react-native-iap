@@ -209,8 +209,10 @@ const _wrapped = createRunOncePlugin(
   withIAP,
   pkg.name,
   pkg.version,
-) as unknown as (config: ExpoConfig, props: IapPluginProps | undefined) =>
-  ExpoConfig;
+) as unknown as (
+  config: ExpoConfig,
+  props: IapPluginProps | undefined,
+) => ExpoConfig;
 
 const pluginExport: IapPluginCallable = ((
   config: ExpoConfig,

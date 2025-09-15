@@ -1,8 +1,8 @@
 // External dependencies
 import {Platform} from 'react-native';
-// Side-effect import ensures Nitro installs its dispatcher before IAP is used
+// Side-effect import ensures Nitro installs its dispatcher before IAP is used (no-op in tests)
 import 'react-native-nitro-modules';
-import {NitroModules, isRuntimeAlive} from 'react-native-nitro-modules';
+import {NitroModules} from 'react-native-nitro-modules';
 
 // Internal modules
 import type {
@@ -85,15 +85,23 @@ const IAP = {
   get instance(): RnIap {
     if (iapRef) return iapRef;
 
-    // Guard against accessing Nitro before it's installed into the JS runtime
-    const hasNitroDispatcher = isRuntimeAlive();
-    if (!hasNitroDispatcher) {
-      throw new Error(
-        'Nitro runtime not installed yet. Ensure react-native-nitro-modules is initialized before calling IAP.',
-      );
+    // Attempt to create the HybridObject and map common Nitro/JSI readiness errors
+    try {
+      iapRef = NitroModules.createHybridObject<RnIap>('RnIap');
+    } catch (e) {
+      const msg = String((e as any)?.message ?? e ?? '');
+      if (
+        msg.includes('Nitro') ||
+        msg.includes('JSI') ||
+        msg.includes('dispatcher') ||
+        msg.includes('HybridObject')
+      ) {
+        throw new Error(
+          'Nitro runtime not installed yet. Ensure react-native-nitro-modules is initialized before calling IAP.',
+        );
+      }
+      throw e;
     }
-
-    iapRef = NitroModules.createHybridObject<RnIap>('RnIap');
     return iapRef;
   },
 };
