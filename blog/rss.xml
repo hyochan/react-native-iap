@@ -4,10 +4,28 @@
         <title>React Native IAP Blog</title>
         <link>https://hyochan.github.io/react-native-iap/blog</link>
         <description>React Native IAP Blog</description>
-        <lastBuildDate>Sun, 14 Sep 2025 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 15 Sep 2025 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
+        <item>
+            <title><![CDATA[Release 14.3.2]]></title>
+            <link>https://hyochan.github.io/react-native-iap/blog/2025/09/15/release-14.3.2</link>
+            <guid>https://hyochan.github.io/react-native-iap/blog/2025/09/15/release-14.3.2</guid>
+            <pubDate>Mon, 15 Sep 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[Small patch focusing on Nitro init robustness and the optional Expo iOS Folly workaround.]]></description>
+            <content:encoded><![CDATA[<p>Small patch focusing on Nitro init robustness and the optional Expo iOS Folly workaround.</p>
+<ul>
+<li>Fix: Guard HybridObject creation and drop <code>isRuntimeAlive</code> usage to prevent CI/Jest issues.</li>
+<li>Plugin: Re‑add opt‑in <code>"with-folly-no-couroutines": true</code> to inject Folly defines in the Podfile.</li>
+<li>Docs: Restore installation note and remove a local Docusaurus type shim to avoid duplicate identifiers.</li>
+</ul>
+<p>No breaking changes.</p>]]></content:encoded>
+            <category>Release</category>
+            <category>plugin</category>
+            <category>iOS</category>
+            <category>docs</category>
+        </item>
         <item>
             <title><![CDATA[Release 14.3.1]]></title>
             <link>https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1</link>

@@ -2,11 +2,33 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://hyochan.github.io/react-native-iap/blog</id>
     <title>React Native IAP Blog</title>
-    <updated>2025-09-14T00:00:00.000Z</updated>
+    <updated>2025-09-15T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://hyochan.github.io/react-native-iap/blog"/>
     <subtitle>React Native IAP Blog</subtitle>
     <icon>https://hyochan.github.io/react-native-iap/img/favicon.png</icon>
+    <entry>
+        <title type="html"><![CDATA[Release 14.3.2]]></title>
+        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/15/release-14.3.2</id>
+        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/15/release-14.3.2"/>
+        <updated>2025-09-15T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Small patch focusing on Nitro init robustness and the optional Expo iOS Folly workaround.]]></summary>
+        <content type="html"><![CDATA[<p>Small patch focusing on Nitro init robustness and the optional Expo iOS Folly workaround.</p>
+<ul>
+<li>Fix: Guard HybridObject creation and drop <code>isRuntimeAlive</code> usage to prevent CI/Jest issues.</li>
+<li>Plugin: Re‑add opt‑in <code>"with-folly-no-couroutines": true</code> to inject Folly defines in the Podfile.</li>
+<li>Docs: Restore installation note and remove a local Docusaurus type shim to avoid duplicate identifiers.</li>
+</ul>
+<p>No breaking changes.</p>]]></content>
+        <author>
+            <name>Hyo</name>
+            <uri>https://github.com/hyochan</uri>
+        </author>
+        <category label="Release" term="Release"/>
+        <category label="plugin" term="plugin"/>
+        <category label="iOS" term="iOS"/>
+        <category label="docs" term="docs"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Release 14.3.1]]></title>
         <id>https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1</id>
