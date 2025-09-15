@@ -12,8 +12,8 @@
         <id>https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1</id>
         <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1"/>
         <updated>2025-09-14T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Small polish release focusing on examples, documentation, and a minor iOS error‑payload fix.]]></summary>
-        <content type="html"><![CDATA[<p>Small polish release focusing on examples, documentation, and a minor iOS error‑payload fix.</p>
+        <summary type="html"><![CDATA[Small polish release focusing on examples, documentation, and a critical fix for an iOS crash on startup.]]></summary>
+        <content type="html"><![CDATA[<p>Small polish release focusing on examples, documentation, and a critical fix for an iOS crash on startup.</p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="added">Added<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1#added" class="hash-link" aria-label="Direct link to Added" title="Direct link to Added">​</a></h2>
 <ul>
 <li>Examples: “Manage Subscriptions” buttons in SubscriptionFlow and AvailablePurchases (opens native subscription management cross‑platform)</li>
