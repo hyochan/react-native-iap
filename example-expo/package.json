@@ -37,7 +37,7 @@
     "react-dom": "19.0.0",
     "react-native": "0.79.6",
     "react-native-gesture-handler": "~2.24.0",
-    "react-native-nitro-modules": "^0.29.2",
+    "react-native-nitro-modules": "^0.29.4",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",

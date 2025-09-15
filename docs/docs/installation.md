@@ -78,6 +78,39 @@ After installing the package, you need to:
 
 3. **Create a development build** (see the Platform Configuration section below for details)
 
+4. Optional: Fix iOS Folly coroutine include error
+
+   If your iOS build fails with errors such as `'folly/coro/Coroutine.h' file not found` from `RCT-Folly/folly/Expected.h`, you can opt‑in to a workaround that disables Folly coroutine support during CocoaPods install.
+
+   Add this flag to the `react-native-iap` plugin options in your Expo config:
+
+   ```json
+   {
+     "expo": {
+       "plugins": [
+         [
+           "react-native-iap",
+           {
+             "ios": {
+               "with-folly-no-couroutines": true
+             }
+           }
+         ]
+       ]
+     }
+   }
+   ```
+
+   What this does:
+   - Injects `FOLLY_NO_CONFIG=1`, `FOLLY_CFG_NO_COROUTINES=1`, and `FOLLY_HAS_COROUTINES=0` into the Podfile `post_install` block for all Pods targets, preventing `RCT-Folly` from including non‑vendored `<folly/coro/*>` headers.
+   - Idempotent: skips if you already set these defines yourself.
+
+   After enabling the flag, re-run prebuild and install pods:
+   - `rm -rf ios`
+   - `npx expo prebuild -p ios`
+   - `cd ios && LANG=en_US.UTF-8 pod install --repo-update`
+   - `npx expo run:ios`
+
 ## Platform Configuration
 
 ### For Expo Managed Workflow

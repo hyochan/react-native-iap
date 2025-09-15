@@ -1,6 +1,8 @@
 // External dependencies
 import {Platform} from 'react-native';
-import {NitroModules} from 'react-native-nitro-modules';
+// Side-effect import ensures Nitro installs its dispatcher before IAP is used
+import 'react-native-nitro-modules';
+import {NitroModules, isRuntimeAlive} from 'react-native-nitro-modules';
 
 // Internal modules
 import type {
@@ -84,16 +86,8 @@ const IAP = {
     if (iapRef) return iapRef;
 
     // Guard against accessing Nitro before it's installed into the JS runtime
-    const hasNitroDispatcher =
-      typeof globalThis !== 'undefined' &&
-      (globalThis as any)?.__nitro?.dispatcher != null;
-    const isJestEnvironment =
-      typeof (globalThis as any).jest !== 'undefined' ||
-      (typeof process !== 'undefined' &&
-        !!(process as any).env &&
-        (process as any).env.JEST_WORKER_ID != null);
-
-    if (!hasNitroDispatcher && !isJestEnvironment) {
+    const hasNitroDispatcher = isRuntimeAlive();
+    if (!hasNitroDispatcher) {
       throw new Error(
         'Nitro runtime not installed yet. Ensure react-native-nitro-modules is initialized before calling IAP.',
       );

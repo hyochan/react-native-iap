@@ -17,7 +17,7 @@
     "@react-navigation/native-stack": "^7.3.25",
     "react": "19.1.0",
     "react-native": "0.81.1",
-    "react-native-nitro-modules": "^0.29.2",
+    "react-native-nitro-modules": "^0.29.4",
     "react-native-safe-area-context": "^5.6.1",
     "react-native-screens": "^4.15.4"
   },

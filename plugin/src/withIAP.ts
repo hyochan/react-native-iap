@@ -3,8 +3,10 @@ import {
   WarningAggregator,
   withAndroidManifest,
   withAppBuildGradle,
+  withPodfile,
 } from 'expo/config-plugins';
 import type {ConfigPlugin} from 'expo/config-plugins';
+import type {ExpoConfig} from '@expo/config-types';
 
 const pkg = require('../../package.json');
 
@@ -122,9 +124,67 @@ const withIapAndroid: ConfigPlugin = (config) => {
   return config;
 };
 
-const withIAP: ConfigPlugin = (config, _props) => {
+type IapPluginProps = {
+  ios?: {
+    // Intentionally following user-provided key spelling
+    // Enable to inject Folly coroutine-disabling macros into Podfile during prebuild
+    'with-folly-no-couroutines'?: boolean;
+  };
+};
+
+const withIapIosFollyWorkaround: ConfigPlugin<IapPluginProps | undefined> = (
+  config,
+  props,
+) => {
+  const enabled = !!props?.ios?.['with-folly-no-couroutines'];
+  if (!enabled) return config;
+
+  return withPodfile(config, (config) => {
+    let contents = config.modResults.contents;
+
+    // Idempotency: if any of the defines already exists, assume it's applied
+    if (
+      contents.includes('FOLLY_CFG_NO_COROUTINES') ||
+      contents.includes('FOLLY_HAS_COROUTINES=0')
+    ) {
+      return config;
+    }
+
+    const anchor = 'post_install do |installer|';
+    const snippet = `
+  # react-native-iap (expo): Disable Folly coroutines to avoid including non-vendored <folly/coro/*> headers
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      defs = (config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)'])
+      defs << 'FOLLY_NO_CONFIG=1' unless defs.any? { |d| d.to_s.include?('FOLLY_NO_CONFIG') }
+      # Portability.h respects FOLLY_CFG_NO_COROUTINES to fully disable coroutine support
+      defs << 'FOLLY_CFG_NO_COROUTINES=1' unless defs.any? { |d| d.to_s.include?('FOLLY_CFG_NO_COROUTINES') }
+      defs << 'FOLLY_HAS_COROUTINES=0' unless defs.any? { |d| d.to_s.include?('FOLLY_HAS_COROUTINES') }
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
+    end
+  end`;
+
+    if (contents.includes(anchor)) {
+      contents = contents.replace(anchor, `${anchor}\n${snippet}`);
+    } else {
+      // As a fallback, append a new post_install block
+      contents += `
+
+${anchor}
+${snippet}
+end
+`;
+    }
+
+    config.modResults.contents = contents;
+    return config;
+  });
+};
+
+const withIAP: ConfigPlugin<IapPluginProps | undefined> = (config, props) => {
   try {
-    const result = withIapAndroid(config);
+    let result = withIapAndroid(config);
+    result = withIapIosFollyWorkaround(result, props);
     // Set flag after first execution to prevent duplicate logs
     hasLoggedPluginExecution = true;
     return result;
@@ -138,4 +198,23 @@ const withIAP: ConfigPlugin = (config, _props) => {
   }
 };
 
-export default createRunOncePlugin(withIAP, pkg.name, pkg.version);
+// Standard Expo config plugin export
+// Export a test-friendly wrapper that accepts 1 or 2 args
+type IapPluginCallable = {
+  (config: ExpoConfig): ExpoConfig;
+  (config: ExpoConfig, props?: IapPluginProps): ExpoConfig;
+};
+
+const _wrapped = createRunOncePlugin(
+  withIAP,
+  pkg.name,
+  pkg.version,
+) as unknown as (config: ExpoConfig, props: IapPluginProps | undefined) =>
+  ExpoConfig;
+
+const pluginExport: IapPluginCallable = ((
+  config: ExpoConfig,
+  props?: IapPluginProps,
+) => _wrapped(config, props)) as unknown as IapPluginCallable;
+
+export {pluginExport as default};
