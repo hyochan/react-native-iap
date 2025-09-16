@@ -42,10 +42,6 @@ import {
 
 // Sample subscription product IDs
 const SUBSCRIPTION_IDS = ['dev.hyo.martie.premium'];
-const PRODUCT_QUERY_TYPE_SUBS = 'subs' as const;
-const PAYMENT_MODE_FREE_TRIAL = 'free-trial' as const;
-const PAYMENT_MODE_PAY_AS_YOU_GO = 'pay-as-you-go' as const;
-const PAYMENT_MODE_PAY_UP_FRONT = 'pay-up-front' as const;
 
 export default function SubscriptionFlow() {
   // Track connection to coordinate delayed finish
@@ -189,7 +185,7 @@ export default function SubscriptionFlow() {
         console.log('Connected to store, loading subscription products...');
         fetchProducts({
           skus: SUBSCRIPTION_IDS,
-          type: PRODUCT_QUERY_TYPE_SUBS,
+          type: 'subs',
         });
         console.log('Product loading request sent - waiting for results...');
         fetchedProductsOnceRef.current = true;
@@ -288,7 +284,7 @@ export default function SubscriptionFlow() {
                 : [],
           },
         },
-        type: PRODUCT_QUERY_TYPE_SUBS,
+        type: 'subs',
       });
     } catch (error) {
       setIsProcessing(false);
@@ -307,7 +303,7 @@ export default function SubscriptionFlow() {
   const retryLoadSubscriptions = () => {
     fetchProducts({
       skus: SUBSCRIPTION_IDS,
-      type: PRODUCT_QUERY_TYPE_SUBS,
+      type: 'subs',
     });
   };
 
@@ -378,11 +374,11 @@ export default function SubscriptionFlow() {
           ? subscriptionPeriod.toLowerCase()
           : 'period';
 
-        if (paymentMode === PAYMENT_MODE_FREE_TRIAL) {
+        if (paymentMode === 'free-trial') {
           return `${numberOfPeriods} ${periodLabel} free trial`;
-        } else if (paymentMode === PAYMENT_MODE_PAY_AS_YOU_GO) {
+        } else if (paymentMode === 'pay-as-you-go') {
           return `${subscription.introductoryPriceIOS} for ${numberOfPeriods} ${periodLabel}`;
-        } else if (paymentMode === PAYMENT_MODE_PAY_UP_FRONT) {
+        } else if (paymentMode === 'pay-up-front') {
           return `${subscription.introductoryPriceIOS} for first ${numberOfPeriods} ${periodLabel}`;
         }
       }

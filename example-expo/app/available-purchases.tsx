@@ -22,7 +22,6 @@ import Clipboard from '@react-native-clipboard/clipboard';
 const subscriptionIds = [
   'dev.hyo.martie.premium', // Same as subscription-flow
 ];
-const PRODUCT_QUERY_TYPE_SUBS = 'subs' as const;
 
 export default function AvailablePurchases() {
   const [loading, setLoading] = useState(false);
@@ -113,7 +112,7 @@ export default function AvailablePurchases() {
         '[AVAILABLE-PURCHASES] Connected to store, loading subscription products...',
       );
       // Request products first - this is event-based, not promise-based
-      fetchProducts({skus: subscriptionIds, type: PRODUCT_QUERY_TYPE_SUBS});
+      fetchProducts({skus: subscriptionIds, type: 'subs'});
       console.log(
         '[AVAILABLE-PURCHASES] Product loading request sent - waiting for results...',
       );
