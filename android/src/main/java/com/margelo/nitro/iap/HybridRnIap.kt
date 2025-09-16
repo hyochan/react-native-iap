@@ -141,17 +141,19 @@ class HybridRnIap : HybridRnIapSpec() {
     
     // Purchase methods
     // Purchase methods (Unified)
-    override fun requestPurchase(request: NitroPurchaseRequest): Promise<Unit> {
+    override fun requestPurchase(request: NitroPurchaseRequest): Promise<RequestPurchaseResult> {
         return Promise.async {
+            val defaultResult = RequestPurchaseResult(null, null)
+
             val androidRequest = request.android ?: run {
                 // Programming error: no Android params provided
                 sendPurchaseError(toErrorResult(OpenIapError.DeveloperError))
-                return@async
+                return@async defaultResult
             }
 
             if (androidRequest.skus.isEmpty()) {
                 sendPurchaseError(toErrorResult(OpenIapError.EmptySkuList))
-                return@async
+                return@async defaultResult
             }
 
             try {
@@ -161,7 +163,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 val missing = androidRequest.skus.firstOrNull { !productTypeBySku.containsKey(it) }
                 if (missing != null) {
                     sendPurchaseError(toErrorResult(OpenIapError.SkuNotFound(missing), missing))
-                    return@async
+                    return@async defaultResult
                 }
                 val typeStr = androidRequest.skus.firstOrNull()?.let { productTypeBySku[it] } ?: "inapp"
                 val typeEnum = ProductRequest.ProductRequestType.fromString(typeStr)
@@ -180,8 +182,11 @@ class HybridRnIap : HybridRnIapSpec() {
                     runCatching { sendPurchaseUpdate(convertToNitroPurchase(p)) }
                         .onFailure { Log.e(TAG, "Failed to forward PURCHASE_UPDATED", it) }
                 }
+
+                defaultResult
             } catch (e: Exception) {
                 sendPurchaseError(toErrorResult(OpenIapError.PurchaseFailed(e.message ?: "Purchase failed")))
+                defaultResult
             }
         }
     }
