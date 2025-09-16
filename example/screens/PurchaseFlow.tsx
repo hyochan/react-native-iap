@@ -221,14 +221,15 @@ const PurchaseFlow: React.FC = () => {
     } catch (error: any) {
       // Purchase request failed
       setPurchasing(false);
+      setLastPurchase(null);
 
       if (isUserCancelledError(error as any)) {
         setLastError(null);
-        setLastPurchase(null);
         setPurchaseResult('🚫 Purchase cancelled by user');
         return;
       }
 
+      setLastError((error as NitroPurchaseResult) ?? null);
       const errorMessage =
         error instanceof Error ? error.message : 'Purchase request failed';
       setPurchaseResult(`❌ Purchase request failed: ${errorMessage}`);
