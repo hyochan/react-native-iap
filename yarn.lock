@@ -11209,7 +11209,7 @@ __metadata:
     zod: ^4.0.5
   bin:
     nitrogen: lib/index.js
-  checksum: ce5aa88d055cf8c54228891aa766122eda3a57d92e18586734953cd86c94f92b096e5875788d6cfac9ac1d59e7a6919a70cf50ee2e573154899b1599700d0f02
+  checksum: ea6a5f1228388d65e334da9ff071b7bfda94a81af1917f0ce95fceb99bfe02104d8ff0a1c82e4a0f433ca3355e20fc16cb367fb6926a1f49e470b771cb6f7431
   languageName: node
   linkType: hard
 
@@ -12294,7 +12294,7 @@ __metadata:
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: c57d9ea6472f7d7ff4dfec0cde10a587aa268f699dfe2862772da377153b33296c02e9764623ea4431a2d402a5c14613ba114d186e99616e7203bc08b023a54b
+  checksum: 3a11d79aca124fb03462b90a6b75056d423fcbcc51312e62196143e71c259c7cb56692bca35b5d22c8a7d7dbb769843698c3b1e0727f58a1daf90114351368b1
   languageName: node
   linkType: hard
 
