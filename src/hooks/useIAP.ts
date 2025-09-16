@@ -21,7 +21,7 @@ import {
 } from '../';
 
 // Types
-import {ProductQueryType} from '../types';
+import {ProductQueryType, ErrorCode} from '../types';
 import type {
   ActiveSubscription,
   Product,
@@ -382,8 +382,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       };
       // Ignore init error until connected
       if (
-        error &&
-        (error as any).code === 'E_INIT_CONNECTION' &&
+        mappedError.code === ErrorCode.InitConnection &&
         !connectedRef.current
       ) {
         return;

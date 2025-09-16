@@ -4,7 +4,17 @@ const LEGACY_CANCELLED_CODE = 'E_USER_CANCELED' as unknown as ErrorCode;
 
 export const normalizeErrorCodeFromNative = (code: unknown): ErrorCode => {
   if (typeof code === 'string') {
-    const trimmed = code.startsWith('E_') ? code.slice(2) : code;
+    const upper = code.toUpperCase();
+    if (
+      upper === 'E_USER_CANCELLED' ||
+      upper === 'USER_CANCELLED' ||
+      upper === 'E_USER_CANCELED' ||
+      upper === 'USER_CANCELED'
+    ) {
+      return ErrorCode.UserCancelled;
+    }
+
+    const trimmed = upper.startsWith('E_') ? upper.slice(2) : upper;
     const camel = trimmed
       .toLowerCase()
       .split('_')

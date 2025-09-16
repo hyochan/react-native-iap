@@ -273,24 +273,43 @@ export const fetchProducts = async ({
  * @param params.type - Type of purchase (defaults to in-app)
  */
 export const requestPurchase = async (
-  params: PurchaseParams & {
-    request?:
-      | RequestPurchasePropsByPlatforms
-      | RequestSubscriptionPropsByPlatforms;
-  },
+  params: PurchaseParams,
 ): Promise<void> => {
   try {
     const {requestPurchase: purchaseRequest, requestSubscription} = params;
-    const legacyRequest = (params as any).request as
+    const normalizedPurchaseRequest = purchaseRequest ?? undefined;
+    const normalizedSubscriptionRequest = requestSubscription ?? undefined;
+
+    const effectiveType = normalizeProductQueryType(params.type);
+    const isSubs = isSubscriptionQuery(effectiveType);
+    let request:
       | RequestPurchasePropsByPlatforms
       | RequestSubscriptionPropsByPlatforms
       | undefined;
 
-    const effectiveType = normalizeProductQueryType(params.type);
-    const isSubs = isSubscriptionQuery(effectiveType);
-    const request = isSubs
-      ? (requestSubscription ?? purchaseRequest ?? legacyRequest)
-      : (purchaseRequest ?? requestSubscription ?? legacyRequest);
+    if (isSubs) {
+      if (
+        __DEV__ &&
+        normalizedPurchaseRequest &&
+        !normalizedSubscriptionRequest
+      ) {
+        console.warn(
+          '[react-native-iap] `requestPurchase` was provided for a subscription request. Did you mean to use `requestSubscription`?',
+        );
+      }
+      request = normalizedSubscriptionRequest ?? normalizedPurchaseRequest;
+    } else {
+      if (
+        __DEV__ &&
+        normalizedSubscriptionRequest &&
+        !normalizedPurchaseRequest
+      ) {
+        console.warn(
+          '[react-native-iap] `requestSubscription` was provided for an in-app purchase request. Did you mean to use `requestPurchase`?',
+        );
+      }
+      request = normalizedPurchaseRequest ?? normalizedSubscriptionRequest;
+    }
 
     if (!request) {
       throw new Error('Missing purchase request configuration');
