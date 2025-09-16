@@ -1,6 +1,6 @@
 // ============================================================================
 // AUTO-GENERATED TYPES — DO NOT EDIT DIRECTLY
-// Run `npm run generate` after updating any *.graphql schema file.
+// Run `bun run generate:types` after updating any *.graphql schema file.
 // ============================================================================
 
 export interface ActiveSubscription {
@@ -621,6 +621,8 @@ export type RequestPurchaseProps =
       request: RequestSubscriptionPropsByPlatforms;
       type: 'subs';
     };
+
+export type PurchaseParams = RequestPurchaseProps;
 
 export interface RequestPurchasePropsByPlatforms {
   /** Android-specific purchase parameters */

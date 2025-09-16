@@ -198,15 +198,16 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<Void> {
+    func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<RequestPurchaseResult> {
         return Promise.async {
+            let defaultResult = RequestPurchaseResult(purchase: nil, purchases: nil)
             guard let iosRequest = request.ios else {
                 let error = self.createPurchaseErrorResult(
                     code: OpenIapError.E_USER_ERROR,
                     message: "No iOS request provided"
                 )
                 self.sendPurchaseError(error, productId: nil)
-                return
+                return defaultResult
             }
             do {
                 // Event-first behavior: don't reject Promise on connection issues
@@ -220,7 +221,7 @@ class HybridRnIap: HybridRnIapSpec {
                         productId: iosRequest.sku
                     )
                     self.sendPurchaseError(err, productId: iosRequest.sku)
-                    return
+                    return defaultResult
                 }
                 // Delegate purchase to OpenIAP. It emits success/error events which we bridge above.
                 let props = OpenIapRequestPurchaseProps(
@@ -238,6 +239,7 @@ class HybridRnIap: HybridRnIapSpec {
                     }
                 )
                 _ = try await OpenIapModule.shared.requestPurchase(props)
+                return defaultResult
             } catch {
                 // Ensure an error reaches JS even if OpenIAP threw before emitting.
                 // Use simple de-duplication window to avoid double-emitting.
@@ -247,6 +249,7 @@ class HybridRnIap: HybridRnIapSpec {
                     productId: iosRequest.sku
                 )
                 self.sendPurchaseErrorDedup(err, productId: iosRequest.sku)
+                return defaultResult
             }
         }
     }

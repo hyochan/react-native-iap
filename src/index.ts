@@ -14,7 +14,7 @@ import type {
 } from './specs/RnIap.nitro';
 import type {
   ProductQueryType,
-  RequestPurchaseProps,
+  PurchaseParams,
   RequestPurchaseResult,
 } from './types';
 import type {
@@ -199,7 +199,7 @@ export const endConnection = async (): Promise<boolean> => {
  * Fetch products from the store
  * @param params - Product request configuration
  * @param params.skus - Array of product SKUs to fetch
- * @param params.type - Optional filter: 'inapp' (default) for products, 'subs' for subscriptions, or 'all' for both.
+ * @param params.type - Optional filter: 'in-app' (default) for products, 'subs' for subscriptions, or 'all' for both.
  * @returns Promise<Product[]> - Array of products from the store
  *
  * @example
@@ -262,7 +262,7 @@ export const fetchProducts = async ({
  * Request a purchase for products or subscriptions
  * @param params - Purchase request configuration
  * @param params.request - Platform-specific purchase parameters
- * @param params.type - Type of purchase: 'inapp' for products (default) or 'subs' for subscriptions
+ * @param params.type - Type of purchase: 'in-app' for products (default) or 'subs' for subscriptions
  *
  * @example
  * ```typescript
@@ -272,7 +272,7 @@ export const fetchProducts = async ({
  *     ios: { sku: productId },
  *     android: { skus: [productId] }
  *   },
- *   type: 'inapp'
+ *   type: 'in-app'
  * });
  *
  * // Subscription purchase
@@ -293,12 +293,11 @@ export const fetchProducts = async ({
  * ⚠️ Important: This is an event-based operation, not promise-based.
  * Listen for events through purchaseUpdatedListener or purchaseErrorListener.
  * @param params - Purchase request configuration
- * @param params.requestPurchase - Platform-specific purchase parameters (in-app)
- * @param params.requestSubscription - Platform-specific subscription parameters (subs)
+ * @param params.request - Platform-specific request parameters
  * @param params.type - Type of purchase (defaults to in-app)
  */
 export const requestPurchase = async (
-  params: RequestPurchaseProps,
+  params: PurchaseParams,
 ): Promise<RequestPurchaseResult> => {
   try {
     const normalizedType = normalizeProductQueryType(params.type);

@@ -66,7 +66,7 @@ type UseIap = {
     type?: ProductQueryType | null;
   }) => Promise<void>;
   /**
-   * @deprecated Use fetchProducts({ skus, type: 'inapp' }) instead. This method will be removed in version 3.0.0.
+   * @deprecated Use fetchProducts({ skus, type: 'in-app' }) instead. This method will be removed in version 3.0.0.
    * Note: This method internally uses fetchProducts, so no deprecation warning is shown.
    */
   getProducts: (skus: string[]) => Promise<void>;

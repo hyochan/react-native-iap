@@ -210,7 +210,7 @@ describe('Public API (src/index.ts)', () => {
       const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
       const products = await IAP.fetchProducts({
         skus: ['a', 'b'],
-        type: 'inapp',
+        type: 'in-app',
       });
       expect(products.map((p: any) => p.id)).toEqual(['a']);
       expect(warn).toHaveBeenCalled();

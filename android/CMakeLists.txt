@@ -13,6 +13,10 @@ add_library(${PACKAGE_NAME} SHARED
         src/main/cpp/cpp-adapter.cpp
 )
 
+# Ensure Android/iOS preprocessor macros from the NDK do not clash with
+# the generated enum values in Nitrogen headers (IapPlatform.hpp).
+target_compile_options(${PACKAGE_NAME} PRIVATE -UANDROID -UIOS)
+
 # Add Nitrogen specs :)
 include(${CMAKE_SOURCE_DIR}/../nitrogen/generated/android/NitroIap+autolinking.cmake)
 
