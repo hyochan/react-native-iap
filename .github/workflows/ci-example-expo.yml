@@ -31,6 +31,8 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.22'
 
       - name: Print Yarn version (vendored)
         run: node .yarn/releases/yarn-3.6.1.cjs -v
@@ -47,7 +49,7 @@ jobs:
           path: |
             example-expo/node_modules
             ~/.bun/install/cache
-          key: ${{ runner.os }}-expo-bun-${{ hashFiles('example-expo/package.json', 'example-expo/bun.lockb') }}
+          key: ${{ runner.os }}-expo-bun-${{ hashFiles('example-expo/package.json', 'example-expo/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-expo-bun-
 
