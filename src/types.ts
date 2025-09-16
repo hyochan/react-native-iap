@@ -317,6 +317,9 @@ export type ProductSubscription =
   | (ProductSubscriptionAndroid & AndroidPlatform)
   | (ProductSubscriptionIOS & IosPlatform);
 
+// Legacy naming retained for compatibility with older code
+export type SubscriptionProduct = ProductSubscription;
+
 // ============================================================================
 // UNION TYPES
 // ============================================================================
@@ -450,6 +453,50 @@ export enum ErrorCode {
   BillingUnavailable = 'E_BILLING_UNAVAILABLE',
   FeatureNotSupported = 'E_FEATURE_NOT_SUPPORTED',
   EmptySkuList = 'E_EMPTY_SKU_LIST',
+}
+
+// Maintain legacy UPPER_SNAKE_CASE accessors for backward compatibility
+export namespace ErrorCode {
+  export const E_UNKNOWN: ErrorCode = ErrorCode.Unknown;
+  export const E_USER_CANCELLED: ErrorCode = ErrorCode.UserCancelled;
+  export const E_USER_ERROR: ErrorCode = ErrorCode.UserError;
+  export const E_ITEM_UNAVAILABLE: ErrorCode = ErrorCode.ItemUnavailable;
+  export const E_REMOTE_ERROR: ErrorCode = ErrorCode.RemoteError;
+  export const E_NETWORK_ERROR: ErrorCode = ErrorCode.NetworkError;
+  export const E_SERVICE_ERROR: ErrorCode = ErrorCode.ServiceError;
+  export const E_RECEIPT_FAILED: ErrorCode = ErrorCode.ReceiptFailed;
+  export const E_RECEIPT_FINISHED: ErrorCode = ErrorCode.ReceiptFinished;
+  export const E_RECEIPT_FINISHED_FAILED: ErrorCode =
+    ErrorCode.ReceiptFinishedFailed;
+  export const E_NOT_PREPARED: ErrorCode = ErrorCode.NotPrepared;
+  export const E_NOT_ENDED: ErrorCode = ErrorCode.NotEnded;
+  export const E_ALREADY_OWNED: ErrorCode = ErrorCode.AlreadyOwned;
+  export const E_DEVELOPER_ERROR: ErrorCode = ErrorCode.DeveloperError;
+  export const E_BILLING_RESPONSE_JSON_PARSE_ERROR: ErrorCode =
+    ErrorCode.BillingResponseJsonParseError;
+  export const E_DEFERRED_PAYMENT: ErrorCode = ErrorCode.DeferredPayment;
+  export const E_INTERRUPTED: ErrorCode = ErrorCode.Interrupted;
+  export const E_IAP_NOT_AVAILABLE: ErrorCode = ErrorCode.IapNotAvailable;
+  export const E_PURCHASE_ERROR: ErrorCode = ErrorCode.PurchaseError;
+  export const E_SYNC_ERROR: ErrorCode = ErrorCode.SyncError;
+  export const E_TRANSACTION_VALIDATION_FAILED: ErrorCode =
+    ErrorCode.TransactionValidationFailed;
+  export const E_ACTIVITY_UNAVAILABLE: ErrorCode =
+    ErrorCode.ActivityUnavailable;
+  export const E_ALREADY_PREPARED: ErrorCode = ErrorCode.AlreadyPrepared;
+  export const E_PENDING: ErrorCode = ErrorCode.Pending;
+  export const E_CONNECTION_CLOSED: ErrorCode = ErrorCode.ConnectionClosed;
+  export const E_INIT_CONNECTION: ErrorCode = ErrorCode.InitConnection;
+  export const E_SERVICE_DISCONNECTED: ErrorCode =
+    ErrorCode.ServiceDisconnected;
+  export const E_QUERY_PRODUCT: ErrorCode = ErrorCode.QueryProduct;
+  export const E_SKU_NOT_FOUND: ErrorCode = ErrorCode.SkuNotFound;
+  export const E_SKU_OFFER_MISMATCH: ErrorCode = ErrorCode.SkuOfferMismatch;
+  export const E_ITEM_NOT_OWNED: ErrorCode = ErrorCode.ItemNotOwned;
+  export const E_BILLING_UNAVAILABLE: ErrorCode = ErrorCode.BillingUnavailable;
+  export const E_FEATURE_NOT_SUPPORTED: ErrorCode =
+    ErrorCode.FeatureNotSupported;
+  export const E_EMPTY_SKU_LIST: ErrorCode = ErrorCode.EmptySkuList;
 }
 
 export type PurchaseResult = {
