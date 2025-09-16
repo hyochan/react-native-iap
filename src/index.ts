@@ -50,13 +50,25 @@ export type {
 export * from './types';
 export * from './utils/error';
 
-// Internal constants/helpers for bridging legacy Nitro expectations
-const NITRO_PRODUCT_TYPE_INAPP = 'inapp';
-const NITRO_PRODUCT_TYPE_SUBS = 'subs';
+export type ProductTypeInput = 'inapp' | 'in-app' | 'subs';
+
+const LEGACY_INAPP_WARNING =
+  "[react-native-iap] `type: 'inapp'` is deprecated and will be removed in v14.4.0. Use 'in-app' instead.";
+
 function toNitroProductType(
-  type?: ProductQueryType | null,
-): typeof NITRO_PRODUCT_TYPE_INAPP | typeof NITRO_PRODUCT_TYPE_SUBS {
-  return type === 'subs' ? NITRO_PRODUCT_TYPE_SUBS : NITRO_PRODUCT_TYPE_INAPP;
+  type?: ProductTypeInput | ProductQueryType | null,
+): 'inapp' | 'subs' {
+  if (type === 'subs') {
+    return 'subs';
+  }
+  if (type === 'inapp') {
+    console.warn(LEGACY_INAPP_WARNING);
+    return 'inapp';
+  }
+  if (type === 'all') {
+    return 'inapp';
+  }
+  return 'inapp';
 }
 
 function isSubscriptionQuery(type?: ProductQueryType | null): boolean {
@@ -79,7 +91,11 @@ function normalizeProductQueryType(
     if (normalized === 'subs') {
       return 'subs';
     }
-    if (normalized === 'in-app' || normalized === 'inapp') {
+    if (normalized === 'inapp') {
+      console.warn(LEGACY_INAPP_WARNING);
+      return 'in-app';
+    }
+    if (normalized === 'in-app') {
       return 'in-app';
     }
   }
@@ -204,8 +220,8 @@ export const fetchProducts = async ({
 
     if (normalizedType === 'all') {
       const [inappNitro, subsNitro] = await Promise.all([
-        IAP.instance.fetchProducts(skus, NITRO_PRODUCT_TYPE_INAPP),
-        IAP.instance.fetchProducts(skus, NITRO_PRODUCT_TYPE_SUBS),
+        IAP.instance.fetchProducts(skus, 'inapp'),
+        IAP.instance.fetchProducts(skus, 'subs'),
       ]);
       const allNitro = [...inappNitro, ...subsNitro];
       const validAll = allNitro.filter(validateNitroProduct);
