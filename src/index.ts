@@ -14,7 +14,7 @@ import type {
 } from './specs/RnIap.nitro';
 import type {
   ProductQueryType,
-  PurchaseParams,
+  RequestPurchaseProps,
   RequestPurchaseResult,
 } from './types';
 import type {
@@ -297,7 +297,7 @@ export const fetchProducts = async ({
  * @param params.type - Type of purchase (defaults to in-app)
  */
 export const requestPurchase = async (
-  params: PurchaseParams,
+  params: RequestPurchaseProps,
 ): Promise<RequestPurchaseResult> => {
   try {
     const normalizedType = normalizeProductQueryType(params.type);
