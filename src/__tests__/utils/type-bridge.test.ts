@@ -1,7 +1,7 @@
 import {Platform} from 'react-native';
 import {
   convertNitroProductToProduct,
-  convertProductToSubscriptionProduct,
+  convertProductToProductSubscription,
   convertNitroPurchaseToPurchase,
   validateNitroProduct,
   validateNitroPurchase,
@@ -238,8 +238,8 @@ describe('type-bridge utilities', () => {
     });
   });
 
-  describe('convertProductToSubscriptionProduct', () => {
-    it('should convert Product to SubscriptionProduct for iOS', () => {
+  describe('convertProductToProductSubscription', () => {
+    it('should convert Product to ProductSubscription for iOS', () => {
       (Platform.OS as any) = 'ios';
 
       const product: Product = {
@@ -254,7 +254,7 @@ describe('type-bridge utilities', () => {
         platform: 'ios',
       } as Product;
 
-      const result = convertProductToSubscriptionProduct(product);
+      const result = convertProductToProductSubscription(product);
 
       expect(result.type).toBe('subs');
       expect(result.id).toBe('com.example.subscription');
@@ -267,10 +267,10 @@ describe('type-bridge utilities', () => {
       } as Product;
 
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-      const result = convertProductToSubscriptionProduct(product);
+      const result = convertProductToProductSubscription(product);
 
       expect(warnSpy).toHaveBeenCalledWith(
-        'Converting non-subscription product to SubscriptionProduct:',
+        'Converting non-subscription product to ProductSubscription:',
         'com.example.product',
       );
       expect(result.type).toBe('subs');

@@ -25,9 +25,8 @@ import type {
   Purchase,
   PurchaseError,
   PurchaseResult,
-  SubscriptionProduct,
-  RequestPurchaseProps,
-  RequestSubscriptionProps,
+  ProductSubscription,
+  RequestPurchaseParams,
   ActiveSubscription,
 } from '../types';
 
@@ -41,7 +40,7 @@ type UseIap = {
   products: Product[];
   promotedProductsIOS: Purchase[];
   promotedProductIdIOS?: string;
-  subscriptions: SubscriptionProduct[];
+  subscriptions: ProductSubscription[];
   availablePurchases: Purchase[];
   currentPurchase?: Purchase;
   currentPurchaseError?: PurchaseError;
@@ -71,10 +70,7 @@ type UseIap = {
    * Note: This method internally uses fetchProducts, so no deprecation warning is shown.
    */
   getSubscriptions: (skus: string[]) => Promise<void>;
-  requestPurchase: (params: {
-    request: RequestPurchaseProps | RequestSubscriptionProps;
-    type?: 'inapp' | 'subs';
-  }) => Promise<any>;
+  requestPurchase: (params: RequestPurchaseParams) => Promise<any>;
   validateReceipt: (
     sku: string,
     androidOptions?: {
@@ -109,7 +105,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
   const [connected, setConnected] = useState<boolean>(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [promotedProductsIOS] = useState<Purchase[]>([]);
-  const [subscriptions, setSubscriptions] = useState<SubscriptionProduct[]>([]);
+  const [subscriptions, setSubscriptions] = useState<ProductSubscription[]>([]);
   const [availablePurchases, setAvailablePurchases] = useState<Purchase[]>([]);
   const [currentPurchase, setCurrentPurchase] = useState<Purchase>();
   const [promotedProductIOS, setPromotedProductIOS] = useState<Product>();
@@ -159,7 +155,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
     promotedProductIOS?: EventSubscription;
   }>({});
 
-  const subscriptionsRefState = useRef<SubscriptionProduct[]>([]);
+  const subscriptionsRefState = useRef<ProductSubscription[]>([]);
 
   useEffect(() => {
     subscriptionsRefState.current = subscriptions;
@@ -195,11 +191,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
     async (skus: string[]): Promise<void> => {
       try {
         const result = await fetchProducts({skus, type: 'subs'});
-        setSubscriptions((prevSubscriptions: SubscriptionProduct[]) =>
+        setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
           mergeWithDuplicateCheck(
             prevSubscriptions,
-            result as SubscriptionProduct[],
-            (subscription: SubscriptionProduct) => subscription.id,
+            result as ProductSubscription[],
+            (subscription: ProductSubscription) => subscription.id,
           ),
         );
       } catch (error) {
@@ -223,11 +219,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
       try {
         const result = await fetchProducts(params);
         if (params.type === 'subs') {
-          setSubscriptions((prevSubscriptions: SubscriptionProduct[]) =>
+          setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
             mergeWithDuplicateCheck(
               prevSubscriptions,
-              result as SubscriptionProduct[],
-              (subscription: SubscriptionProduct) => subscription.id,
+              result as ProductSubscription[],
+              (subscription: ProductSubscription) => subscription.id,
             ),
           );
         } else {
@@ -322,7 +318,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
   );
 
   const requestPurchaseWithReset = useCallback(
-    async (requestObj: {request: any; type?: 'inapp' | 'subs'}) => {
+    async (requestObj: RequestPurchaseParams) => {
       clearCurrentPurchase();
       clearCurrentPurchaseError();
 

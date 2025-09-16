@@ -9,7 +9,7 @@ import type {HybridObject} from 'react-native-nitro-modules';
 /**
  * Android-specific receipt validation options
  */
-export interface NitroAndroidReceiptValidationOptions {
+export interface NitroReceiptValidationAndroidOptions {
   packageName: string;
   productToken: string;
   accessToken: string;
@@ -21,7 +21,7 @@ export interface NitroAndroidReceiptValidationOptions {
  */
 export interface NitroReceiptValidationParams {
   sku: string;
-  androidOptions?: NitroAndroidReceiptValidationOptions;
+  androidOptions?: NitroReceiptValidationAndroidOptions;
 }
 
 // Purchase request parameters

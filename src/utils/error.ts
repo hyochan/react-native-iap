@@ -35,7 +35,7 @@ export function parseErrorStringToJsonObj(
   // Handle non-string inputs
   if (typeof errorString !== 'string') {
     return {
-      code: ErrorCode.E_UNKNOWN,
+      code: ErrorCode.Unknown,
       message: 'Unknown error occurred',
     };
   }
@@ -46,7 +46,7 @@ export function parseErrorStringToJsonObj(
     if (typeof parsed === 'object' && parsed !== null) {
       // Ensure it has at least code and message
       return {
-        code: parsed.code || ErrorCode.E_UNKNOWN,
+        code: parsed.code || ErrorCode.Unknown,
         message: parsed.message || errorString,
         ...parsed,
       };
@@ -71,7 +71,7 @@ export function parseErrorStringToJsonObj(
 
   // Fallback: treat entire string as message
   return {
-    code: ErrorCode.E_UNKNOWN,
+    code: ErrorCode.Unknown,
     message: errorString,
   };
 }
@@ -90,7 +90,7 @@ export function isUserCancelledError(
       : parseErrorStringToJsonObj(error);
 
   return (
-    errorObj.code === ErrorCode.E_USER_CANCELLED ||
+    errorObj.code === ErrorCode.UserCancelled ||
     errorObj.code === 'E_USER_CANCELED' || // Alternative spelling
     errorObj.responseCode === 1
   ); // Android BillingClient.BillingResponseCode.USER_CANCELED

@@ -9,7 +9,7 @@ describe('utils/errorMapping', () => {
   test('isUserCancelledError matches both cancel codes', () => {
     expect(
       isUserCancelledError({
-        code: ErrorCode.E_USER_CANCELLED,
+        code: ErrorCode.UserCancelled,
         message: 'x',
       } as any),
     ).toBe(true);
@@ -18,7 +18,7 @@ describe('utils/errorMapping', () => {
     ).toBe(true);
     expect(
       isUserCancelledError({
-        code: ErrorCode.E_NETWORK_ERROR,
+        code: ErrorCode.NetworkError,
         message: 'x',
       } as any),
     ).toBe(false);
@@ -26,20 +26,20 @@ describe('utils/errorMapping', () => {
 
   test('isRecoverableError covers network/service family', () => {
     const recoverables = [
-      ErrorCode.E_NETWORK_ERROR,
-      ErrorCode.E_SERVICE_ERROR,
-      ErrorCode.E_REMOTE_ERROR,
-      ErrorCode.E_CONNECTION_CLOSED,
-      ErrorCode.E_SERVICE_DISCONNECTED,
-      ErrorCode.E_INIT_CONNECTION,
-      ErrorCode.E_SYNC_ERROR,
+      ErrorCode.NetworkError,
+      ErrorCode.ServiceError,
+      ErrorCode.RemoteError,
+      ErrorCode.ConnectionClosed,
+      ErrorCode.ServiceDisconnected,
+      ErrorCode.InitConnection,
+      ErrorCode.SyncError,
     ];
     for (const code of recoverables) {
       expect(isRecoverableError({code, message: 'x'} as any)).toBe(true);
     }
     expect(
       isRecoverableError({
-        code: ErrorCode.E_USER_CANCELLED,
+        code: ErrorCode.UserCancelled,
         message: 'x',
       } as any),
     ).toBe(false);
@@ -48,19 +48,19 @@ describe('utils/errorMapping', () => {
   test('getUserFriendlyErrorMessage maps known codes and falls back to message', () => {
     expect(
       getUserFriendlyErrorMessage({
-        code: ErrorCode.E_USER_CANCELLED,
+        code: ErrorCode.UserCancelled,
         message: 'ignored',
       } as any),
     ).toBe('Purchase cancelled');
     expect(
       getUserFriendlyErrorMessage({
-        code: ErrorCode.E_NETWORK_ERROR,
+        code: ErrorCode.NetworkError,
         message: 'ignored',
       } as any),
     ).toBe('Network connection error');
     expect(
       getUserFriendlyErrorMessage({
-        code: ErrorCode.E_IAP_NOT_AVAILABLE,
+        code: ErrorCode.IapNotAvailable,
         message: 'ignored',
       } as any),
     ).toBe('In-app purchases are not available on this device');

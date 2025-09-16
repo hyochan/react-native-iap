@@ -116,7 +116,7 @@ const AndroidProductItem = ({product}: {product: Product}) => {
 const AndroidSubscriptionItem = ({
   subscription,
 }: {
-  subscription: SubscriptionProduct;
+  subscription: ProductSubscription;
 }) => {
   const {requestPurchase} = useIAP();
 
@@ -164,19 +164,19 @@ const AndroidSubscriptionItem = ({
 ```tsx
 const handleAndroidError = (error: PurchaseError) => {
   switch (error.code) {
-    case ErrorCode.E_USER_CANCELLED:
+    case ErrorCode.UserCancelled:
       // User cancelled - no action needed
       break;
-    case ErrorCode.E_ITEM_UNAVAILABLE:
+    case ErrorCode.ItemUnavailable:
       Alert.alert(
         'Product Unavailable',
         'This item is not available for purchase',
       );
       break;
-    case ErrorCode.E_SERVICE_ERROR:
+    case ErrorCode.ServiceError:
       Alert.alert('Service Error', 'Google Play services are unavailable');
       break;
-    case ErrorCode.E_DEVELOPER_ERROR:
+    case ErrorCode.DeveloperError:
       Alert.alert('Configuration Error', 'Please contact support');
       break;
     default:

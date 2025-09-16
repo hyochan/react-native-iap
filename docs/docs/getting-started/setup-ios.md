@@ -111,7 +111,7 @@ const validateReceipt = async (productId: string) => {
 ```tsx
 const handlePurchaseError = (error: any) => {
   switch (error.code) {
-    case ErrorCode.E_USER_CANCELLED:
+    case ErrorCode.UserCancelled:
       // User cancelled - don't show error
       break;
     case ErrorCode.E_PAYMENT_NOT_ALLOWED:

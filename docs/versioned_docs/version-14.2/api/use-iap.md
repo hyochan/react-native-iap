@@ -201,7 +201,7 @@ interface UseIAPOptions {
 
   ```tsx
   onPurchaseError: (error) => {
-    if (error.code !== ErrorCode.E_USER_CANCELLED) {
+    if (error.code !== ErrorCode.UserCancelled) {
       Alert.alert('Purchase Failed', error.message);
     }
   };
@@ -254,7 +254,7 @@ interface UseIAPOptions {
 
 #### subscriptions
 
-- **Type**: `SubscriptionProduct[]`
+- **Type**: `ProductSubscription[]`
 - **Description**: Array of available subscription products
 - **Example**:
 
@@ -595,13 +595,13 @@ const {requestPurchase} = useIAP({
   onPurchaseError: (error) => {
     // Error is automatically typed as PurchaseError
     switch (error.code) {
-      case ErrorCode.E_USER_CANCELLED:
+      case ErrorCode.UserCancelled:
         // Don't show error for user cancellation
         break;
-      case ErrorCode.E_NETWORK_ERROR:
+      case ErrorCode.NetworkError:
         Alert.alert('Network Error', 'Please check your connection');
         break;
-      case ErrorCode.E_ITEM_UNAVAILABLE:
+      case ErrorCode.ItemUnavailable:
         Alert.alert(
           'Item Unavailable',
           'This item is not available for purchase',
@@ -654,7 +654,7 @@ const {requestPurchase} = useIAP({
      console.error('IAP Error:', error);
 
      // Show user-friendly message
-     if (error.code !== ErrorCode.E_USER_CANCELLED) {
+     if (error.code !== ErrorCode.UserCancelled) {
        Alert.alert('Purchase Failed', error.message);
      }
    };

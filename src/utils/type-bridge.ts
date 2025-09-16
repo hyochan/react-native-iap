@@ -15,7 +15,7 @@ import type {
 import type {
   Product,
   Purchase,
-  SubscriptionProduct,
+  ProductSubscription,
   SubscriptionStatusIOS,
 } from '../types';
 import {PurchaseState, ProductTypeIOS} from '../types';
@@ -134,22 +134,22 @@ export function convertNitroProductToProduct(
 // Note: Use nitroProducts.map(convertNitroProductToProduct) instead of a separate function
 
 /**
- * Convert Product to SubscriptionProduct (type-safe casting)
+ * Convert Product to ProductSubscription (type-safe casting)
  */
-export function convertProductToSubscriptionProduct(
+export function convertProductToProductSubscription(
   product: Product,
-): SubscriptionProduct {
+): ProductSubscription {
   if (product.type !== 'subs') {
     console.warn(
-      'Converting non-subscription product to SubscriptionProduct:',
+      'Converting non-subscription product to ProductSubscription:',
       product.id,
     );
   }
-  // Since SubscriptionProduct is now an intersection type, we need to cast properly
+  // Since ProductSubscription is now an intersection type, we need to cast properly
   return {
     ...product,
     type: 'subs' as const,
-  } as SubscriptionProduct;
+  } as ProductSubscription;
 }
 
 // ============================================================================

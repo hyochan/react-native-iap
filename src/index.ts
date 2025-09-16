@@ -16,8 +16,7 @@ import type {
   Product,
   Purchase,
   PurchaseAndroid,
-  RequestPurchaseProps,
-  RequestSubscriptionProps,
+  RequestPurchaseParams,
   RequestSubscriptionAndroidProps,
   PurchaseOptions,
   FinishTransactionParams,
@@ -231,10 +230,7 @@ export const fetchProducts = async ({
 export const requestPurchase = async ({
   request,
   type = 'inapp',
-}: {
-  request: RequestPurchaseProps | RequestSubscriptionProps;
-  type?: 'inapp' | 'subs';
-}): Promise<void> => {
+}: RequestPurchaseParams): Promise<void> => {
   try {
     // Validate platform-specific requests
     if (Platform.OS === 'ios') {
@@ -1240,7 +1236,7 @@ export {
 export {
   convertNitroProductToProduct,
   convertNitroPurchaseToPurchase,
-  convertProductToSubscriptionProduct,
+  convertProductToProductSubscription,
   validateNitroProduct,
   validateNitroPurchase,
   checkTypeSynchronization,

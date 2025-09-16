@@ -8,7 +8,7 @@ describe('Error utilities', () => {
   describe('parseErrorStringToJsonObj', () => {
     it('should parse valid JSON error string', () => {
       const errorString = JSON.stringify({
-        code: ErrorCode.E_USER_CANCELLED,
+        code: ErrorCode.UserCancelled,
         message: 'User cancelled',
         responseCode: 1,
       });
@@ -16,7 +16,7 @@ describe('Error utilities', () => {
       const result = parseErrorStringToJsonObj(errorString);
 
       expect(result).toEqual({
-        code: ErrorCode.E_USER_CANCELLED,
+        code: ErrorCode.UserCancelled,
         message: 'User cancelled',
         responseCode: 1,
       });
@@ -24,7 +24,7 @@ describe('Error utilities', () => {
 
     it('should handle Error object with JSON message', () => {
       const errorObj = {
-        code: ErrorCode.E_NETWORK_ERROR,
+        code: ErrorCode.NetworkError,
         message: 'Network error',
       };
       const error = new Error(JSON.stringify(errorObj));
@@ -40,7 +40,7 @@ describe('Error utilities', () => {
       const result = parseErrorStringToJsonObj(error);
 
       expect(result).toEqual({
-        code: ErrorCode.E_UNKNOWN,
+        code: ErrorCode.Unknown,
         message: 'Something went wrong',
       });
     });
@@ -51,7 +51,7 @@ describe('Error utilities', () => {
       const result = parseErrorStringToJsonObj(errorString);
 
       expect(result).toEqual({
-        code: ErrorCode.E_UNKNOWN,
+        code: ErrorCode.Unknown,
         message: 'Not a JSON string',
       });
     });
@@ -60,7 +60,7 @@ describe('Error utilities', () => {
       const result = parseErrorStringToJsonObj(undefined);
 
       expect(result).toEqual({
-        code: ErrorCode.E_UNKNOWN,
+        code: ErrorCode.Unknown,
         message: 'Unknown error occurred',
       });
     });
@@ -69,7 +69,7 @@ describe('Error utilities', () => {
       const result = parseErrorStringToJsonObj(null);
 
       expect(result).toEqual({
-        code: ErrorCode.E_UNKNOWN,
+        code: ErrorCode.Unknown,
         message: 'Unknown error occurred',
       });
     });
@@ -78,21 +78,21 @@ describe('Error utilities', () => {
       const result = parseErrorStringToJsonObj('');
 
       expect(result).toEqual({
-        code: ErrorCode.E_UNKNOWN,
+        code: ErrorCode.Unknown,
         message: '',
       });
     });
 
     it('should handle object input', () => {
       const errorObj = {
-        code: ErrorCode.E_ITEM_UNAVAILABLE,
+        code: ErrorCode.ItemUnavailable,
         message: 'Item not available',
       };
 
       const result = parseErrorStringToJsonObj(errorObj);
 
       expect(result).toEqual({
-        code: ErrorCode.E_UNKNOWN,
+        code: ErrorCode.Unknown,
         message: 'Unknown error occurred',
       });
     });
@@ -112,7 +112,7 @@ describe('Error utilities', () => {
   describe('isUserCancelledError', () => {
     it('should return true for user cancelled error', () => {
       const error = {
-        code: ErrorCode.E_USER_CANCELLED,
+        code: ErrorCode.UserCancelled,
         message: 'User cancelled the purchase',
       };
 
@@ -121,7 +121,7 @@ describe('Error utilities', () => {
 
     it('should return false for other errors', () => {
       const error = {
-        code: ErrorCode.E_NETWORK_ERROR,
+        code: ErrorCode.NetworkError,
         message: 'Network error occurred',
       };
 

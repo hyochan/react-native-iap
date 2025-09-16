@@ -30,19 +30,19 @@ const {requestPurchase} = useIAP({
     });
 
     switch (error.code) {
-      case ErrorCode.E_USER_CANCELLED:
+      case ErrorCode.UserCancelled:
         // Don't show error for user cancellation
         break;
-      case ErrorCode.E_NETWORK_ERROR:
+      case ErrorCode.NetworkError:
         Alert.alert('Network Error', 'Please check your internet connection');
         break;
-      case ErrorCode.E_ITEM_UNAVAILABLE:
+      case ErrorCode.ItemUnavailable:
         Alert.alert('Item Unavailable', 'This item is not available');
         break;
-      case ErrorCode.E_ALREADY_OWNED:
+      case ErrorCode.AlreadyOwned:
         Alert.alert('Already Owned', 'You already own this item');
         break;
-      case ErrorCode.E_DEVELOPER_ERROR:
+      case ErrorCode.DeveloperError:
         Alert.alert('Configuration Error', 'Please contact support');
         break;
       default:
@@ -70,9 +70,9 @@ const handlePurchaseWithRetry = async (productId: string, retryCount = 0) => {
 
     // Determine if we should retry
     const retryableErrors = [
-      ErrorCode.E_NETWORK_ERROR,
-      ErrorCode.E_SERVICE_ERROR,
-      ErrorCode.E_INTERRUPTED,
+      ErrorCode.NetworkError,
+      ErrorCode.ServiceError,
+      ErrorCode.Interrupted,
     ];
 
     const shouldRetry =
@@ -99,22 +99,22 @@ const handlePurchaseWithRetry = async (productId: string, retryCount = 0) => {
 const handlePlatformSpecificError = (error: PurchaseError) => {
   if (Platform.OS === 'ios') {
     switch (error.code) {
-      case ErrorCode.E_DEFERRED_PAYMENT:
+      case ErrorCode.DeferredPayment:
         // iOS-specific: Parental approval required
         Alert.alert('Approval Required', 'This purchase requires approval');
         break;
-      case ErrorCode.E_TRANSACTION_VALIDATION_FAILED:
+      case ErrorCode.TransactionValidationFailed:
         // iOS-specific: StoreKit validation failed
         Alert.alert('Validation Failed', 'Transaction could not be validated');
         break;
     }
   } else if (Platform.OS === 'android') {
     switch (error.code) {
-      case ErrorCode.E_BILLING_RESPONSE_JSON_PARSE_ERROR:
+      case ErrorCode.BillingResponseJsonParseError:
         // Android-specific: Billing response parse error
         Alert.alert('Error', 'Failed to process purchase response');
         break;
-      case ErrorCode.E_PENDING:
+      case ErrorCode.Pending:
         // Android-specific: Purchase is pending
         Alert.alert('Purchase Pending', 'Your purchase is being processed');
         break;
@@ -136,7 +136,7 @@ const logError = (error: PurchaseError) => {
   });
 
   // Log to crash reporting
-  if (error.code !== ErrorCode.E_USER_CANCELLED) {
+  if (error.code !== ErrorCode.UserCancelled) {
     crashlytics.recordError(error);
   }
 };

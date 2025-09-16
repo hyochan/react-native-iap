@@ -215,12 +215,12 @@ describe('RnIap Complete Test Suite', () => {
   describe('Error Handling', () => {
     it('should export ErrorCode enum', () => {
       expect(RNIap.ErrorCode).toBeDefined();
-      expect(RNIap.ErrorCode.E_UNKNOWN).toBeDefined();
-      expect(RNIap.ErrorCode.E_USER_CANCELLED).toBeDefined();
-      expect(RNIap.ErrorCode.E_ITEM_UNAVAILABLE).toBeDefined();
-      expect(RNIap.ErrorCode.E_NETWORK_ERROR).toBeDefined();
-      expect(RNIap.ErrorCode.E_SERVICE_ERROR).toBeDefined();
-      expect(RNIap.ErrorCode.E_DEVELOPER_ERROR).toBeDefined();
+      expect(RNIap.ErrorCode.Unknown).toBeDefined();
+      expect(RNIap.ErrorCode.UserCancelled).toBeDefined();
+      expect(RNIap.ErrorCode.ItemUnavailable).toBeDefined();
+      expect(RNIap.ErrorCode.NetworkError).toBeDefined();
+      expect(RNIap.ErrorCode.ServiceError).toBeDefined();
+      expect(RNIap.ErrorCode.DeveloperError).toBeDefined();
     });
 
     it('should export parseErrorStringToJsonObj', () => {
