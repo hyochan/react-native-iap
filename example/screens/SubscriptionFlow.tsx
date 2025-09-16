@@ -13,7 +13,7 @@ import {
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
   useIAP,
-  type SubscriptionProduct,
+  type ProductSubscription,
   type PurchaseError,
   type Purchase,
   isUserCancelledError,
@@ -143,11 +143,13 @@ export default function SubscriptionFlow() {
         }
       }
       // Always update UI error text
-      setPurchaseResult(`❌ Subscription failed: ${error.message}`);
-      // Only alert for non-cancel errors
-      if (!isCancel) {
-        Alert.alert('Subscription Failed', error.message);
+      if (isCancel) {
+        setPurchaseResult('🚫 Subscription cancelled by user');
+        return;
       }
+
+      setPurchaseResult(`❌ Subscription failed: ${error.message}`);
+      Alert.alert('Subscription Failed', error.message);
     },
     onSyncError: (error: Error) => {
       console.warn('Sync error:', error);
@@ -162,7 +164,7 @@ export default function SubscriptionFlow() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [purchaseResult, setPurchaseResult] = useState('');
   const [selectedSubscription, setSelectedSubscription] =
-    useState<SubscriptionProduct | null>(null);
+    useState<ProductSubscription | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(
     null,
@@ -279,6 +281,10 @@ export default function SubscriptionFlow() {
       });
     } catch (error) {
       setIsProcessing(false);
+      if (isUserCancelledError(error as any)) {
+        setPurchaseResult('🚫 Subscription cancelled by user');
+        return;
+      }
       const errorMessage =
         error instanceof Error ? error.message : 'Subscription failed';
       setPurchaseResult(`❌ Subscription failed: ${errorMessage}`);
@@ -293,7 +299,7 @@ export default function SubscriptionFlow() {
 
   // Get subscription display price
   const getSubscriptionDisplayPrice = (
-    subscription: SubscriptionProduct,
+    subscription: ProductSubscription,
   ): string => {
     if (
       'subscriptionOfferDetailsAndroid' in subscription &&
@@ -321,7 +327,7 @@ export default function SubscriptionFlow() {
   };
 
   // Get subscription period
-  const getSubscriptionPeriod = (subscription: SubscriptionProduct): string => {
+  const getSubscriptionPeriod = (subscription: ProductSubscription): string => {
     if (Platform.OS === 'ios' && 'subscriptionPeriodUnitIOS' in subscription) {
       // iOS subscription period
       const periodUnit = subscription.subscriptionPeriodUnitIOS;
@@ -345,7 +351,7 @@ export default function SubscriptionFlow() {
 
   // Get introductory offer text
   const getIntroductoryOffer = (
-    subscription: SubscriptionProduct,
+    subscription: ProductSubscription,
   ): string | null => {
     if (Platform.OS === 'ios' && 'introductoryPriceIOS' in subscription) {
       if (subscription.introductoryPriceIOS) {
@@ -368,7 +374,7 @@ export default function SubscriptionFlow() {
   };
 
   // Handle subscription info press
-  const handleSubscriptionPress = (subscription: SubscriptionProduct) => {
+  const handleSubscriptionPress = (subscription: ProductSubscription) => {
     setSelectedSubscription(subscription);
     setModalVisible(true);
   };
@@ -538,7 +544,7 @@ export default function SubscriptionFlow() {
         {!connected ? (
           <Text style={styles.loadingText}>Connecting to store...</Text>
         ) : subscriptions.length > 0 ? (
-          subscriptions.map((subscription: SubscriptionProduct) => (
+          subscriptions.map((subscription: ProductSubscription) => (
             <View key={subscription.id} style={styles.subscriptionCard}>
               <View style={styles.subscriptionInfo}>
                 <Text style={styles.subscriptionTitle}>

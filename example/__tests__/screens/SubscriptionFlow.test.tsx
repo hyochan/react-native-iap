@@ -235,7 +235,7 @@ describe('SubscriptionFlow Screen', () => {
     });
 
     // Error is displayed in the UI, not as an Alert
-    expect(getByText(/❌ Subscription failed: User cancelled/)).toBeTruthy();
+    expect(getByText(/🚫 Subscription cancelled by user/)).toBeTruthy();
   });
 
   it('displays platform-specific information', () => {

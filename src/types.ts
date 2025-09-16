@@ -105,7 +105,7 @@ export type AndroidPlatform = {platform: 'android'};
 // IOS TYPES
 // ============================================================================
 
-type SubscriptionIosPeriod = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR' | '';
+type SubscriptionPeriodIOS = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR' | '';
 type PaymentMode = '' | 'FREETRIAL' | 'PAYASYOUGO' | 'PAYUPFRONT';
 
 type SubscriptionOffer = {
@@ -113,7 +113,7 @@ type SubscriptionOffer = {
   id: string;
   paymentMode: PaymentMode;
   period: {
-    unit: SubscriptionIosPeriod;
+    unit: SubscriptionPeriodIOS;
     value: number;
   };
   periodCount: number;
@@ -126,7 +126,7 @@ type SubscriptionInfo = {
   promotionalOffers?: SubscriptionOffer[];
   subscriptionGroupId: string;
   subscriptionPeriod: {
-    unit: SubscriptionIosPeriod;
+    unit: SubscriptionPeriodIOS;
     value: number;
   };
 };
@@ -154,7 +154,7 @@ export type ProductIOS = ProductCommon & {
   jsonRepresentation?: string;
   subscription?: SubscriptionInfo;
   introductoryPriceNumberOfPeriodsIOS?: string;
-  introductoryPriceSubscriptionPeriodIOS?: SubscriptionIosPeriod;
+  introductoryPriceSubscriptionPeriodIOS?: SubscriptionPeriodIOS;
 };
 
 export type ProductSubscriptionIOS = ProductIOS & {
@@ -163,10 +163,10 @@ export type ProductSubscriptionIOS = ProductIOS & {
   introductoryPriceAsAmountIOS?: string;
   introductoryPricePaymentModeIOS?: PaymentMode;
   introductoryPriceNumberOfPeriodsIOS?: string;
-  introductoryPriceSubscriptionPeriodIOS?: SubscriptionIosPeriod;
+  introductoryPriceSubscriptionPeriodIOS?: SubscriptionPeriodIOS;
   platform: 'ios';
   subscriptionPeriodNumberIOS?: string;
-  subscriptionPeriodUnitIOS?: SubscriptionIosPeriod;
+  subscriptionPeriodUnitIOS?: SubscriptionPeriodIOS;
   // deprecated
   discounts?: Discount[];
   introductoryPrice?: string;
@@ -312,8 +312,10 @@ export type ProductPurchaseIOS = PurchaseIOS;
 export type ProductPurchaseAndroid = PurchaseAndroid;
 
 // Legacy naming for backward compatibility
-export type SubscriptionProductIOS = ProductSubscriptionIOS;
-export type SubscriptionProductAndroid = ProductSubscriptionAndroid;
+// Unified subscription product type
+export type ProductSubscription =
+  | (ProductSubscriptionAndroid & AndroidPlatform)
+  | (ProductSubscriptionIOS & IosPlatform);
 
 // ============================================================================
 // UNION TYPES
@@ -323,10 +325,6 @@ export type SubscriptionProductAndroid = ProductSubscriptionAndroid;
 export type Product =
   | (ProductAndroid & AndroidPlatform)
   | (ProductIOS & IosPlatform);
-
-export type SubscriptionProduct =
-  | (ProductSubscriptionAndroid & AndroidPlatform)
-  | (ProductSubscriptionIOS & IosPlatform);
 
 // Purchase Union Types
 /**
@@ -408,44 +406,50 @@ export interface RequestSubscriptionPropsByPlatforms {
 export type RequestPurchaseProps = RequestPurchasePropsByPlatforms;
 export type RequestSubscriptionProps = RequestSubscriptionPropsByPlatforms;
 
+export interface RequestPurchaseParams {
+  request: RequestPurchaseProps | RequestSubscriptionProps;
+  type?: 'inapp' | 'subs';
+}
+
 // ============================================================================
 // ERROR TYPES
 // ============================================================================
 
 export enum ErrorCode {
-  E_UNKNOWN = 'E_UNKNOWN',
-  E_USER_CANCELLED = 'E_USER_CANCELLED',
-  E_USER_ERROR = 'E_USER_ERROR',
-  E_ITEM_UNAVAILABLE = 'E_ITEM_UNAVAILABLE',
-  E_REMOTE_ERROR = 'E_REMOTE_ERROR',
-  E_NETWORK_ERROR = 'E_NETWORK_ERROR',
-  E_SERVICE_ERROR = 'E_SERVICE_ERROR',
-  E_RECEIPT_FAILED = 'E_RECEIPT_FAILED',
-  E_RECEIPT_FINISHED_FAILED = 'E_RECEIPT_FINISHED_FAILED',
-  E_NOT_PREPARED = 'E_NOT_PREPARED',
-  E_NOT_ENDED = 'E_NOT_ENDED',
-  E_ALREADY_OWNED = 'E_ALREADY_OWNED',
-  E_DEVELOPER_ERROR = 'E_DEVELOPER_ERROR',
-  E_BILLING_RESPONSE_JSON_PARSE_ERROR = 'E_BILLING_RESPONSE_JSON_PARSE_ERROR',
-  E_DEFERRED_PAYMENT = 'E_DEFERRED_PAYMENT',
-  E_INTERRUPTED = 'E_INTERRUPTED',
-  E_IAP_NOT_AVAILABLE = 'E_IAP_NOT_AVAILABLE',
-  E_PURCHASE_ERROR = 'E_PURCHASE_ERROR',
-  E_SYNC_ERROR = 'E_SYNC_ERROR',
-  E_TRANSACTION_VALIDATION_FAILED = 'E_TRANSACTION_VALIDATION_FAILED',
-  E_ACTIVITY_UNAVAILABLE = 'E_ACTIVITY_UNAVAILABLE',
-  E_ALREADY_PREPARED = 'E_ALREADY_PREPARED',
-  E_PENDING = 'E_PENDING',
-  E_CONNECTION_CLOSED = 'E_CONNECTION_CLOSED',
-  E_INIT_CONNECTION = 'E_INIT_CONNECTION',
-  E_SERVICE_DISCONNECTED = 'E_SERVICE_DISCONNECTED',
-  E_QUERY_PRODUCT = 'E_QUERY_PRODUCT',
-  E_SKU_NOT_FOUND = 'E_SKU_NOT_FOUND',
-  E_SKU_OFFER_MISMATCH = 'E_SKU_OFFER_MISMATCH',
-  E_ITEM_NOT_OWNED = 'E_ITEM_NOT_OWNED',
-  E_BILLING_UNAVAILABLE = 'E_BILLING_UNAVAILABLE',
-  E_FEATURE_NOT_SUPPORTED = 'E_FEATURE_NOT_SUPPORTED',
-  E_EMPTY_SKU_LIST = 'E_EMPTY_SKU_LIST',
+  Unknown = 'E_UNKNOWN',
+  UserCancelled = 'E_USER_CANCELLED',
+  UserError = 'E_USER_ERROR',
+  ItemUnavailable = 'E_ITEM_UNAVAILABLE',
+  RemoteError = 'E_REMOTE_ERROR',
+  NetworkError = 'E_NETWORK_ERROR',
+  ServiceError = 'E_SERVICE_ERROR',
+  ReceiptFailed = 'E_RECEIPT_FAILED',
+  ReceiptFinished = 'E_RECEIPT_FINISHED',
+  ReceiptFinishedFailed = 'E_RECEIPT_FINISHED_FAILED',
+  NotPrepared = 'E_NOT_PREPARED',
+  NotEnded = 'E_NOT_ENDED',
+  AlreadyOwned = 'E_ALREADY_OWNED',
+  DeveloperError = 'E_DEVELOPER_ERROR',
+  BillingResponseJsonParseError = 'E_BILLING_RESPONSE_JSON_PARSE_ERROR',
+  DeferredPayment = 'E_DEFERRED_PAYMENT',
+  Interrupted = 'E_INTERRUPTED',
+  IapNotAvailable = 'E_IAP_NOT_AVAILABLE',
+  PurchaseError = 'E_PURCHASE_ERROR',
+  SyncError = 'E_SYNC_ERROR',
+  TransactionValidationFailed = 'E_TRANSACTION_VALIDATION_FAILED',
+  ActivityUnavailable = 'E_ACTIVITY_UNAVAILABLE',
+  AlreadyPrepared = 'E_ALREADY_PREPARED',
+  Pending = 'E_PENDING',
+  ConnectionClosed = 'E_CONNECTION_CLOSED',
+  InitConnection = 'E_INIT_CONNECTION',
+  ServiceDisconnected = 'E_SERVICE_DISCONNECTED',
+  QueryProduct = 'E_QUERY_PRODUCT',
+  SkuNotFound = 'E_SKU_NOT_FOUND',
+  SkuOfferMismatch = 'E_SKU_OFFER_MISMATCH',
+  ItemNotOwned = 'E_ITEM_NOT_OWNED',
+  BillingUnavailable = 'E_BILLING_UNAVAILABLE',
+  FeatureNotSupported = 'E_FEATURE_NOT_SUPPORTED',
+  EmptySkuList = 'E_EMPTY_SKU_LIST',
 }
 
 export type PurchaseResult = {
@@ -527,7 +531,7 @@ export interface IapContext {
   /** Current list of available products */
   products: Product[];
   /** Current list of available subscription products */
-  subscriptions: SubscriptionProduct[];
+  subscriptions: ProductSubscription[];
   /**
    * List of available purchases (includes all types):
    * - Consumables: Not yet consumed/finished
@@ -559,7 +563,7 @@ export interface IapContext {
   fetchProducts(params: {
     skus: string[];
     type?: 'inapp' | 'subs' | 'all'; // Defaults to 'inapp'
-  }): Promise<Product[] | SubscriptionProduct[]>;
+  }): Promise<Product[] | ProductSubscription[]>;
 
   // Purchase methods
   /**
@@ -567,10 +571,9 @@ export interface IapContext {
    * @param params.request - Platform-specific purchase parameters
    * @param params.type - Type of purchase: 'inapp' for products or 'subs' for subscriptions
    */
-  requestPurchase(params: {
-    request: RequestPurchaseProps | RequestSubscriptionProps;
-    type?: 'inapp' | 'subs'; // defaults to 'inapp'
-  }): Promise<Purchase | Purchase[] | void>;
+  requestPurchase(
+    params: RequestPurchaseParams,
+  ): Promise<Purchase | Purchase[] | void>;
   /**
    * Finish a transaction and consume if applicable.
    * IMPORTANT: Every purchase must be finished to complete the transaction.

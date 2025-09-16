@@ -28,7 +28,6 @@ jest.mock('react-native-nitro-modules', () => ({
       buyPromotedProductIOS: jest.fn(() => Promise.resolve()),
       requestPromotedProductIOS: jest.fn(() => Promise.resolve()),
       validateReceiptIos: jest.fn(() => Promise.resolve()),
-      getReceiptIOS: jest.fn(() => Promise.resolve()),
       deepLinkingGetPendingPurchases: jest.fn(() => Promise.resolve()),
       presentCodeRedemptionSheetIOS: jest.fn(() => Promise.resolve()),
     })),
@@ -63,7 +62,6 @@ jest.mock('../src/index', () => ({
   requestPromotedProductIOS: jest.fn(() => Promise.resolve(null)),
   beginRefundRequestIOS: jest.fn(() => Promise.resolve(null)),
   validateReceiptIos: jest.fn(() => Promise.resolve()),
-  getReceiptIOS: jest.fn(() => Promise.resolve()),
   presentCodeRedemptionSheetIOS: jest.fn(() => Promise.resolve()),
 
   // Event listeners
@@ -104,6 +102,14 @@ jest.mock('../src/index', () => ({
 
   // Enums and constants
   ErrorCode: {
+    // Modern enum shape
+    Unknown: 'E_UNKNOWN',
+    UserCancelled: 'E_USER_CANCELLED',
+    ItemUnavailable: 'E_ITEM_UNAVAILABLE',
+    NetworkError: 'E_NETWORK_ERROR',
+    ServiceError: 'E_SERVICE_ERROR',
+    DeveloperError: 'E_DEVELOPER_ERROR',
+    // Legacy aliases maintained for backward compatibility in tests
     E_USER_CANCELLED: 'E_USER_CANCELLED',
     E_ITEM_UNAVAILABLE: 'E_ITEM_UNAVAILABLE',
     E_NETWORK_ERROR: 'E_NETWORK_ERROR',
