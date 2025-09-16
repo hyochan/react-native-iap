@@ -53,49 +53,37 @@ export * from './utils/error';
 // Internal constants/helpers for bridging legacy Nitro expectations
 const NITRO_PRODUCT_TYPE_INAPP = 'inapp';
 const NITRO_PRODUCT_TYPE_SUBS = 'subs';
-const PRODUCT_QUERY_TYPE_ALL: ProductQueryType = 'all';
-const PRODUCT_QUERY_TYPE_IN_APP: ProductQueryType = 'in-app';
-const PRODUCT_QUERY_TYPE_SUBS: ProductQueryType = 'subs';
-
 function toNitroProductType(
   type?: ProductQueryType | null,
 ): typeof NITRO_PRODUCT_TYPE_INAPP | typeof NITRO_PRODUCT_TYPE_SUBS {
-  return type === PRODUCT_QUERY_TYPE_SUBS
-    ? NITRO_PRODUCT_TYPE_SUBS
-    : NITRO_PRODUCT_TYPE_INAPP;
+  return type === 'subs' ? NITRO_PRODUCT_TYPE_SUBS : NITRO_PRODUCT_TYPE_INAPP;
 }
 
 function isSubscriptionQuery(type?: ProductQueryType | null): boolean {
-  return type === PRODUCT_QUERY_TYPE_SUBS;
+  return type === 'subs';
 }
 
 function normalizeProductQueryType(
   type?: ProductQueryType | string | null,
 ): ProductQueryType {
-  if (type === PRODUCT_QUERY_TYPE_ALL) {
-    return PRODUCT_QUERY_TYPE_ALL;
-  }
-  if (type === PRODUCT_QUERY_TYPE_SUBS) {
-    return PRODUCT_QUERY_TYPE_SUBS;
-  }
-  if (type === PRODUCT_QUERY_TYPE_IN_APP) {
-    return PRODUCT_QUERY_TYPE_IN_APP;
+  if (type === 'all' || type === 'subs' || type === 'in-app') {
+    return type;
   }
 
   if (typeof type === 'string') {
     const normalized = type.trim().toLowerCase().replace(/_/g, '-');
 
-    if (normalized === PRODUCT_QUERY_TYPE_ALL) {
-      return PRODUCT_QUERY_TYPE_ALL;
+    if (normalized === 'all') {
+      return 'all';
     }
-    if (normalized === PRODUCT_QUERY_TYPE_SUBS) {
-      return PRODUCT_QUERY_TYPE_SUBS;
+    if (normalized === 'subs') {
+      return 'subs';
     }
-    if (normalized === PRODUCT_QUERY_TYPE_IN_APP || normalized === 'inapp') {
-      return PRODUCT_QUERY_TYPE_IN_APP;
+    if (normalized === 'in-app' || normalized === 'inapp') {
+      return 'in-app';
     }
   }
-  return PRODUCT_QUERY_TYPE_IN_APP;
+  return 'in-app';
 }
 
 export interface EventSubscription {
@@ -205,7 +193,7 @@ export const endConnection = async (): Promise<boolean> => {
  */
 export const fetchProducts = async ({
   skus,
-  type = PRODUCT_QUERY_TYPE_IN_APP,
+  type = 'in-app',
 }: ProductRequest): Promise<Product[]> => {
   try {
     if (!skus || skus.length === 0) {
@@ -214,7 +202,7 @@ export const fetchProducts = async ({
 
     const normalizedType = normalizeProductQueryType(type);
 
-    if (normalizedType === PRODUCT_QUERY_TYPE_ALL) {
+    if (normalizedType === 'all') {
       const [inappNitro, subsNitro] = await Promise.all([
         IAP.instance.fetchProducts(skus, NITRO_PRODUCT_TYPE_INAPP),
         IAP.instance.fetchProducts(skus, NITRO_PRODUCT_TYPE_SUBS),

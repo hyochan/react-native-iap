@@ -40,9 +40,6 @@ interface EventSubscription {
   remove(): void;
 }
 
-const PRODUCT_QUERY_TYPE_IN_APP: ProductQueryType = 'in-app';
-const PRODUCT_QUERY_TYPE_SUBS: ProductQueryType = 'subs';
-
 type UseIap = {
   connected: boolean;
   products: Product[];
@@ -179,7 +176,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       try {
         const result = await fetchProducts({
           skus,
-          type: PRODUCT_QUERY_TYPE_IN_APP,
+          type: 'in-app',
         });
         setProducts((prevProducts: Product[]) =>
           mergeWithDuplicateCheck(
@@ -200,7 +197,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       try {
         const result = await fetchProducts({
           skus,
-          type: PRODUCT_QUERY_TYPE_SUBS,
+          type: 'subs',
         });
         setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
           mergeWithDuplicateCheck(
@@ -229,7 +226,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       }
       try {
         const result = await fetchProducts(params);
-        if (params.type === PRODUCT_QUERY_TYPE_SUBS) {
+        if (params.type === 'subs') {
           setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
             mergeWithDuplicateCheck(
               prevSubscriptions,
