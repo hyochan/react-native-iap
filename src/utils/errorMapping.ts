@@ -1,10 +1,21 @@
 import {ErrorCode, type PurchaseError} from '../types';
 
-const LEGACY_CANCELLED_CODE = 'E_USER_CANCELED' as unknown as ErrorCode;
+const ERROR_CODE_ALIASES: Record<string, ErrorCode> = {
+  E_USER_CANCELED: ErrorCode.UserCancelled,
+  USER_CANCELED: ErrorCode.UserCancelled,
+  E_USER_CANCELLED: ErrorCode.UserCancelled,
+  USER_CANCELLED: ErrorCode.UserCancelled,
+};
 
 export const normalizeErrorCodeFromNative = (code: unknown): ErrorCode => {
   if (typeof code === 'string') {
-    const trimmed = code.startsWith('E_') ? code.slice(2) : code;
+    const upper = code.toUpperCase();
+    const alias = ERROR_CODE_ALIASES[upper];
+    if (alias) {
+      return alias;
+    }
+
+    const trimmed = upper.startsWith('E_') ? upper.slice(2) : upper;
     const camel = trimmed
       .toLowerCase()
       .split('_')
@@ -21,10 +32,7 @@ export const normalizeErrorCodeFromNative = (code: unknown): ErrorCode => {
 };
 
 export function isUserCancelledError(error: PurchaseError): boolean {
-  return (
-    error.code === ErrorCode.UserCancelled ||
-    error.code === LEGACY_CANCELLED_CODE
-  );
+  return normalizeErrorCodeFromNative(error.code) === ErrorCode.UserCancelled;
 }
 
 export function isRecoverableError(error: PurchaseError): boolean {

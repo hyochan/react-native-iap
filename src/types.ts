@@ -683,7 +683,7 @@ export interface RequestSubscriptionPropsByPlatforms {
   /** Android-specific subscription parameters */
   android?: RequestSubscriptionAndroidProps | null;
   /** iOS-specific subscription parameters */
-  ios?: RequestPurchaseIosProps | null;
+  ios?: RequestSubscriptionIosProps | null;
 }
 
 export interface Subscription {

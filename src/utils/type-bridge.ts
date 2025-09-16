@@ -64,6 +64,11 @@ function normalizeProductTypeIos(value?: Nullable<string>): ProductTypeIos {
     case 'non_renewing_subscription':
       return ProductTypeIos.NonRenewingSubscription;
     default:
+      if (value) {
+        console.warn(
+          `[react-native-iap] Unknown iOS product type "${value}", defaulting to NonConsumable.`,
+        );
+      }
       return ProductTypeIos.NonConsumable;
   }
 }

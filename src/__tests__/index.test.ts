@@ -262,21 +262,27 @@ describe('Public API (src/index.ts)', () => {
     it('requires ios.sku on iOS', async () => {
       (Platform as any).OS = 'ios';
       await expect(
-        IAP.requestPurchase({request: {ios: {}} as any, type: 'inapp'}),
+        IAP.requestPurchase({
+          requestPurchase: {ios: {}} as any,
+          type: 'inapp',
+        }),
       ).rejects.toThrow(/sku/);
     });
 
     it('requires android.skus on Android', async () => {
       (Platform as any).OS = 'android';
       await expect(
-        IAP.requestPurchase({request: {android: {}} as any, type: 'inapp'}),
+        IAP.requestPurchase({
+          requestPurchase: {android: {}} as any,
+          type: 'inapp',
+        }),
       ).rejects.toThrow(/skus/);
     });
 
     it('passes unified request to native', async () => {
       (Platform as any).OS = 'android';
       await IAP.requestPurchase({
-        request: {android: {skus: ['p1']}},
+        requestPurchase: {android: {skus: ['p1']}},
         type: 'inapp',
       });
       expect(mockIap.requestPurchase).toHaveBeenCalledWith(
@@ -289,7 +295,7 @@ describe('Public API (src/index.ts)', () => {
     it('iOS subs auto-sets andDangerouslyFinishTransactionAutomatically when not provided', async () => {
       (Platform as any).OS = 'ios';
       await IAP.requestPurchase({
-        request: {ios: {sku: 'sub1'}},
+        requestSubscription: {ios: {sku: 'sub1'}},
         type: 'subs',
       });
       const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
@@ -301,7 +307,9 @@ describe('Public API (src/index.ts)', () => {
     it('iOS passes withOffer through to native', async () => {
       (Platform as any).OS = 'ios';
       await IAP.requestPurchase({
-        request: {ios: {sku: 'p1', withOffer: {id: 'offer'} as any}},
+        requestPurchase: {
+          ios: {sku: 'p1', withOffer: {id: 'offer'} as any},
+        },
         type: 'inapp',
       });
       const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
@@ -311,7 +319,7 @@ describe('Public API (src/index.ts)', () => {
     it('Android subs fills empty subscriptionOffers array when missing', async () => {
       (Platform as any).OS = 'android';
       await IAP.requestPurchase({
-        request: {android: {skus: ['sub1']}},
+        requestSubscription: {android: {skus: ['sub1']}},
         type: 'subs',
       });
       const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
