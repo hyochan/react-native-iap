@@ -119,17 +119,17 @@ jest.mock('../src/index', () => ({
     E_UNKNOWN: 'UNKNOWN',
   },
   ProductQueryType: {
-    InApp: 'IN_APP',
-    Subs: 'SUBS',
-    All: 'ALL',
+    InApp: 'in-app',
+    Subs: 'subs',
+    All: 'all',
   },
   ProductType: {
-    InApp: 'IN_APP',
-    Subs: 'SUBS',
+    InApp: 'in-app',
+    Subs: 'subs',
   },
   Platform: {
-    Ios: 'IOS',
-    Android: 'ANDROID',
+    Ios: 'ios',
+    Android: 'android',
   },
   ProrationMode: {
     IMMEDIATE_WITHOUT_PRORATION: 'IMMEDIATE_WITHOUT_PRORATION',

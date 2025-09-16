@@ -180,7 +180,7 @@ export default function PurchaseScreen() {
     const initializeIAP = async () => {
       try {
         // Get both products and subscriptions
-        await fetchProducts({skus: bulbPackSkus, type: 'inapp'});
+        await fetchProducts({skus: bulbPackSkus, type: 'in-app'});
         await fetchProducts({skus: subscriptionSkus, type: 'subs'});
         setIsReady(true);
       } catch (error) {

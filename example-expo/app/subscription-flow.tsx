@@ -16,8 +16,6 @@ import {
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
-  ProductQueryType,
-  PaymentModeIOS,
   useIAP,
   type ProductSubscription,
   type PurchaseError,
@@ -44,6 +42,10 @@ import {
 
 // Sample subscription product IDs
 const SUBSCRIPTION_IDS = ['dev.hyo.martie.premium'];
+const PRODUCT_QUERY_TYPE_SUBS = 'subs' as const;
+const PAYMENT_MODE_FREE_TRIAL = 'free-trial' as const;
+const PAYMENT_MODE_PAY_AS_YOU_GO = 'pay-as-you-go' as const;
+const PAYMENT_MODE_PAY_UP_FRONT = 'pay-up-front' as const;
 
 export default function SubscriptionFlow() {
   // Track connection to coordinate delayed finish
@@ -187,7 +189,7 @@ export default function SubscriptionFlow() {
         console.log('Connected to store, loading subscription products...');
         fetchProducts({
           skus: SUBSCRIPTION_IDS,
-          type: ProductQueryType.Subs,
+          type: PRODUCT_QUERY_TYPE_SUBS,
         });
         console.log('Product loading request sent - waiting for results...');
         fetchedProductsOnceRef.current = true;
@@ -286,7 +288,7 @@ export default function SubscriptionFlow() {
                 : [],
           },
         },
-        type: ProductQueryType.Subs,
+        type: PRODUCT_QUERY_TYPE_SUBS,
       });
     } catch (error) {
       setIsProcessing(false);
@@ -305,7 +307,7 @@ export default function SubscriptionFlow() {
   const retryLoadSubscriptions = () => {
     fetchProducts({
       skus: SUBSCRIPTION_IDS,
-      type: ProductQueryType.Subs,
+      type: PRODUCT_QUERY_TYPE_SUBS,
     });
   };
 
@@ -346,15 +348,14 @@ export default function SubscriptionFlow() {
       const periodNumber = subscription.subscriptionPeriodNumberIOS;
       if (periodUnit && periodNumber) {
         const units: Record<string, string> = {
-          DAY: 'day',
-          WEEK: 'week',
-          MONTH: 'month',
-          YEAR: 'year',
+          day: 'day',
+          week: 'week',
+          month: 'month',
+          year: 'year',
         };
         const periodNum = parseInt(periodNumber, 10);
-        return `${periodNumber} ${units[periodUnit] || periodUnit}${
-          periodNum > 1 ? 's' : ''
-        }`;
+        const normalizedUnit = units[periodUnit] || periodUnit;
+        return `${periodNumber} ${normalizedUnit}${periodNum > 1 ? 's' : ''}`;
       }
     }
     // Default or Android
@@ -377,11 +378,11 @@ export default function SubscriptionFlow() {
           ? subscriptionPeriod.toLowerCase()
           : 'period';
 
-        if (paymentMode === PaymentModeIOS.FreeTrial) {
+        if (paymentMode === PAYMENT_MODE_FREE_TRIAL) {
           return `${numberOfPeriods} ${periodLabel} free trial`;
-        } else if (paymentMode === PaymentModeIOS.PayAsYouGo) {
+        } else if (paymentMode === PAYMENT_MODE_PAY_AS_YOU_GO) {
           return `${subscription.introductoryPriceIOS} for ${numberOfPeriods} ${periodLabel}`;
-        } else if (paymentMode === PaymentModeIOS.PayUpFront) {
+        } else if (paymentMode === PAYMENT_MODE_PAY_UP_FRONT) {
           return `${subscription.introductoryPriceIOS} for first ${numberOfPeriods} ${periodLabel}`;
         }
       }

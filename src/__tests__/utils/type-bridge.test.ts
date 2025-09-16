@@ -7,13 +7,6 @@ import {
   checkTypeSynchronization,
 } from '../../utils/type-bridge';
 import type {NitroProduct, NitroPurchase} from '../../specs/RnIap.nitro';
-import {
-  Platform as IapPlatform,
-  ProductType,
-  ProductTypeIOS,
-  PurchaseState,
-  SubscriptionPeriodIOS,
-} from '../../types';
 
 describe('type-bridge utilities', () => {
   describe('convertNitroProductToProduct', () => {
@@ -35,11 +28,11 @@ describe('type-bridge utilities', () => {
 
       const result = convertNitroProductToProduct(nitroProduct);
 
-      expect(result.type).toBe(ProductType.InApp);
-      expect(result.platform).toBe(IapPlatform.Ios);
+      expect(result.type).toBe('in-app');
+      expect(result.platform).toBe('ios');
       expect((result as any).displayNameIOS).toBe('Display Name');
       expect((result as any).isFamilyShareableIOS).toBe(true);
-      expect((result as any).typeIOS).toBe(ProductTypeIOS.Consumable);
+      expect((result as any).typeIOS).toBe('consumable');
     });
 
     it('converts iOS subscription fields with enums', () => {
@@ -60,12 +53,10 @@ describe('type-bridge utilities', () => {
 
       const result = convertNitroProductToProduct(nitroProduct) as any;
 
-      expect(result.type).toBe(ProductType.Subs);
-      expect(result.typeIOS).toBe(ProductTypeIOS.AutoRenewableSubscription);
-      expect(result.introductoryPriceSubscriptionPeriodIOS).toBe(
-        SubscriptionPeriodIOS.Month,
-      );
-      expect(result.subscriptionPeriodUnitIOS).toBe(SubscriptionPeriodIOS.Year);
+      expect(result.type).toBe('subs');
+      expect(result.typeIOS).toBe('auto-renewable-subscription');
+      expect(result.introductoryPriceSubscriptionPeriodIOS).toBe('month');
+      expect(result.subscriptionPeriodUnitIOS).toBe('year');
     });
 
     it('converts Android subscription and parses offer details', () => {
@@ -103,8 +94,8 @@ describe('type-bridge utilities', () => {
 
       const result = convertNitroProductToProduct(nitroProduct) as any;
 
-      expect(result.type).toBe(ProductType.Subs);
-      expect(result.platform).toBe(IapPlatform.Android);
+      expect(result.type).toBe('subs');
+      expect(result.platform).toBe('android');
       expect(Array.isArray(result.subscriptionOfferDetailsAndroid)).toBe(true);
       expect(result.subscriptionOfferDetailsAndroid[0].offerToken).toBe(
         'token',
@@ -118,15 +109,15 @@ describe('type-bridge utilities', () => {
         id: 'sub',
         title: 'Subscription',
         description: 'Desc',
-        type: ProductType.Subs,
+        type: 'subs',
         displayPrice: '$1.99',
         currency: 'USD',
-        platform: IapPlatform.Android,
+        platform: 'android',
         subscriptionOfferDetailsAndroid: [],
       } as any;
 
       const subscription = convertProductToProductSubscription(product);
-      expect(subscription.type).toBe(ProductType.Subs);
+      expect(subscription.type).toBe('subs');
     });
   });
 
@@ -144,8 +135,8 @@ describe('type-bridge utilities', () => {
       };
 
       const result = convertNitroPurchaseToPurchase(nitroPurchase);
-      expect(result.platform).toBe(IapPlatform.Ios);
-      expect(result.purchaseState).toBe(PurchaseState.Purchased);
+      expect(result.platform).toBe('ios');
+      expect(result.purchaseState).toBe('purchased');
     });
 
     it('converts Android purchases and maps purchase state', () => {
@@ -162,8 +153,8 @@ describe('type-bridge utilities', () => {
       } as NitroPurchase;
 
       const result = convertNitroPurchaseToPurchase(nitroPurchase) as any;
-      expect(result.platform).toBe(IapPlatform.Android);
-      expect(result.purchaseState).toBe(PurchaseState.Purchased);
+      expect(result.platform).toBe('android');
+      expect(result.purchaseState).toBe('purchased');
       expect(result.autoRenewingAndroid).toBe(true);
     });
   });

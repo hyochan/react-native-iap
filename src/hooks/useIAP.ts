@@ -21,7 +21,8 @@ import {
 } from '../';
 
 // Types
-import {ProductQueryType, ErrorCode} from '../types';
+import {ErrorCode} from '../types';
+import type {ProductQueryType} from '../types';
 import type {
   ActiveSubscription,
   Product,
@@ -38,6 +39,9 @@ import {normalizeErrorCodeFromNative} from '../utils/errorMapping';
 interface EventSubscription {
   remove(): void;
 }
+
+const PRODUCT_QUERY_TYPE_IN_APP: ProductQueryType = 'in-app';
+const PRODUCT_QUERY_TYPE_SUBS: ProductQueryType = 'subs';
 
 type UseIap = {
   connected: boolean;
@@ -175,7 +179,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       try {
         const result = await fetchProducts({
           skus,
-          type: ProductQueryType.InApp,
+          type: PRODUCT_QUERY_TYPE_IN_APP,
         });
         setProducts((prevProducts: Product[]) =>
           mergeWithDuplicateCheck(
@@ -196,7 +200,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       try {
         const result = await fetchProducts({
           skus,
-          type: ProductQueryType.Subs,
+          type: PRODUCT_QUERY_TYPE_SUBS,
         });
         setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
           mergeWithDuplicateCheck(
@@ -225,7 +229,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       }
       try {
         const result = await fetchProducts(params);
-        if (params.type === ProductQueryType.Subs) {
+        if (params.type === PRODUCT_QUERY_TYPE_SUBS) {
           setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
             mergeWithDuplicateCheck(
               prevSubscriptions,

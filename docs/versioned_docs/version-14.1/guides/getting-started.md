@@ -147,7 +147,7 @@ const productIds = [
 
 useEffect(() => {
   if (connected) {
-    fetchProducts({skus: productIds, type: 'inapp'});
+    fetchProducts({skus: productIds, type: 'in-app'});
   }
 }, [connected, fetchProducts]);
 ```

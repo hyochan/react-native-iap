@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
-  ProductQueryType,
   initConnection,
   fetchProducts,
   requestPurchase,
@@ -32,6 +31,7 @@ import {isUserCancelledError} from 'react-native-iap';
 
 // Test product IDs
 const PRODUCT_IDS = ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs'];
+const PRODUCT_QUERY_TYPE_IN_APP = 'in-app' as const;
 
 const PurchaseFlow: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -190,7 +190,7 @@ const PurchaseFlow: React.FC = () => {
       setLoading(true);
       const fetchedProducts = await fetchProducts({
         skus: PRODUCT_IDS,
-        type: ProductQueryType.InApp,
+        type: PRODUCT_QUERY_TYPE_IN_APP,
       });
 
       // Products fetched successfully
@@ -219,7 +219,7 @@ const PurchaseFlow: React.FC = () => {
             skus: [itemId],
           },
         },
-        type: ProductQueryType.InApp,
+        type: PRODUCT_QUERY_TYPE_IN_APP,
       });
 
       // Purchase request sent - waiting for result via event listener

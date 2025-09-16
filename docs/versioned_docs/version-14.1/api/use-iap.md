@@ -85,7 +85,7 @@ export default function MyStore() {
     if (connected) {
       // fetchProducts is event-based, not promise-based
       // Results will be available in 'products' and 'subscriptions' states
-      fetchProducts({skus: PRODUCT_IDS, type: 'inapp'});
+      fetchProducts({skus: PRODUCT_IDS, type: 'in-app'});
       fetchProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
 
       // Check for active subscriptions
@@ -110,7 +110,7 @@ export default function MyStore() {
             // For subscriptions, you may need to add subscription offers
           },
         },
-        type: isSubscription ? 'subs' : 'inapp',
+        type: isSubscription ? 'subs' : 'in-app',
       });
       // Note: Result comes through onPurchaseSuccess/onPurchaseError callbacks
     } catch (error) {
@@ -236,7 +236,7 @@ interface UseIAPOptions {
   ```tsx
   if (connected) {
     // Safe to make IAP calls
-    fetchProducts({skus: ['product.id'], type: 'inapp'});
+    fetchProducts({skus: ['product.id'], type: 'in-app'});
   }
   ```
 
@@ -338,7 +338,7 @@ interface UseIAPOptions {
 - **Parameters**:
   - `params`: Object containing:
     - `skus`: Array of product/subscription IDs to fetch
-    - `type`: Product type - either `'inapp'` for products or `'subs'` for subscriptions
+    - `type`: Product type - either `'in-app'` for products or `'subs'` for subscriptions
 - **Returns**: `Promise<void>` - The fetched products are available in the `products` or `subscriptions` state properties
 - **Example**:
 
@@ -348,7 +348,7 @@ interface UseIAPOptions {
     try {
       const products = await fetchProducts({
         skus: ['com.app.premium', 'com.app.coins_100'],
-        type: 'inapp',
+        type: 'in-app',
       });
       console.log('Fetched products:', products);
     } catch (error) {
@@ -608,7 +608,7 @@ const {requestPurchase} = useIAP({
    ```tsx
    useEffect(() => {
      if (connected) {
-       fetchProducts({skus: productIds, type: 'inapp'});
+       fetchProducts({skus: productIds, type: 'in-app'});
      }
    }, [connected]);
    ```

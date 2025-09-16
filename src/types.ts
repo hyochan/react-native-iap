@@ -131,11 +131,12 @@ export interface FetchProductsResult {
   subscriptions?: ProductSubscription[] | null;
 }
 
-export enum IapEvent {
-  PromotedProductIos = 'PROMOTED_PRODUCT_IOS',
-  PurchaseError = 'PURCHASE_ERROR',
-  PurchaseUpdated = 'PURCHASE_UPDATED',
-}
+export type IapEvent =
+  | 'promoted-product-ios'
+  | 'purchase-error'
+  | 'purchase-updated';
+
+export type IapPlatform = 'android' | 'ios';
 
 export interface Mutation {
   /** Acknowledge a non-consumable purchase or subscription */
@@ -199,17 +200,11 @@ export interface MutationValidateReceiptArgs {
   options: ReceiptValidationProps;
 }
 
-export enum PaymentModeIOS {
-  Empty = 'EMPTY',
-  FreeTrial = 'FREE_TRIAL',
-  PayAsYouGo = 'PAY_AS_YOU_GO',
-  PayUpFront = 'PAY_UP_FRONT',
-}
-
-export enum Platform {
-  Android = 'ANDROID',
-  Ios = 'IOS',
-}
+export type PaymentModeIOS =
+  | 'empty'
+  | 'free-trial'
+  | 'pay-as-you-go'
+  | 'pay-up-front';
 
 export interface PricingPhaseAndroid {
   billingCycleCount: number;
@@ -235,7 +230,7 @@ export interface ProductAndroid extends ProductCommon {
   id: string;
   nameAndroid: string;
   oneTimePurchaseOfferDetailsAndroid?: ProductAndroidOneTimePurchaseOfferDetail | null;
-  platform: Platform;
+  platform: IapPlatform;
   price?: number | null;
   subscriptionOfferDetailsAndroid?:
     | ProductSubscriptionAndroidOfferDetails[]
@@ -257,7 +252,7 @@ export interface ProductCommon {
   displayName?: string | null;
   displayPrice: string;
   id: string;
-  platform: Platform;
+  platform: IapPlatform;
   price?: number | null;
   title: string;
   type: ProductType;
@@ -273,7 +268,7 @@ export interface ProductIOS extends ProductCommon {
   id: string;
   isFamilyShareableIOS: boolean;
   jsonRepresentationIOS: string;
-  platform: Platform;
+  platform: IapPlatform;
   price?: number | null;
   subscriptionInfoIOS?: SubscriptionInfoIOS | null;
   title: string;
@@ -281,11 +276,7 @@ export interface ProductIOS extends ProductCommon {
   typeIOS: ProductTypeIOS;
 }
 
-export enum ProductQueryType {
-  All = 'ALL',
-  InApp = 'IN_APP',
-  Subs = 'SUBS',
-}
+export type ProductQueryType = 'all' | 'in-app' | 'subs';
 
 export interface ProductRequest {
   skus: string[];
@@ -305,7 +296,7 @@ export interface ProductSubscriptionAndroid extends ProductCommon {
   id: string;
   nameAndroid: string;
   oneTimePurchaseOfferDetailsAndroid?: ProductAndroidOneTimePurchaseOfferDetail | null;
-  platform: Platform;
+  platform: IapPlatform;
   price?: number | null;
   subscriptionOfferDetailsAndroid: ProductSubscriptionAndroidOfferDetails[];
   title: string;
@@ -336,7 +327,7 @@ export interface ProductSubscriptionIOS extends ProductCommon {
   introductoryPriceSubscriptionPeriodIOS?: SubscriptionPeriodIOS | null;
   isFamilyShareableIOS: boolean;
   jsonRepresentationIOS: string;
-  platform: Platform;
+  platform: IapPlatform;
   price?: number | null;
   subscriptionInfoIOS?: SubscriptionInfoIOS | null;
   subscriptionPeriodNumberIOS?: string | null;
@@ -346,17 +337,13 @@ export interface ProductSubscriptionIOS extends ProductCommon {
   typeIOS: ProductTypeIOS;
 }
 
-export enum ProductType {
-  InApp = 'IN_APP',
-  Subs = 'SUBS',
-}
+export type ProductType = 'in-app' | 'subs';
 
-export enum ProductTypeIOS {
-  AutoRenewableSubscription = 'AUTO_RENEWABLE_SUBSCRIPTION',
-  Consumable = 'CONSUMABLE',
-  NonConsumable = 'NON_CONSUMABLE',
-  NonRenewingSubscription = 'NON_RENEWING_SUBSCRIPTION',
-}
+export type ProductTypeIOS =
+  | 'auto-renewable-subscription'
+  | 'consumable'
+  | 'non-consumable'
+  | 'non-renewing-subscription';
 
 export type Purchase = PurchaseAndroid | PurchaseIOS;
 
@@ -371,7 +358,7 @@ export interface PurchaseAndroid extends PurchaseCommon {
   obfuscatedAccountIdAndroid?: string | null;
   obfuscatedProfileIdAndroid?: string | null;
   packageNameAndroid?: string | null;
-  platform: Platform;
+  platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
   purchaseToken?: string | null;
@@ -384,7 +371,7 @@ export interface PurchaseCommon {
   id: string;
   ids?: string[] | null;
   isAutoRenewing: boolean;
-  platform: Platform;
+  platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
   /** Unified purchase token (iOS JWS, Android purchaseToken) */
@@ -415,7 +402,7 @@ export interface PurchaseIOS extends PurchaseCommon {
   originalTransactionDateIOS?: number | null;
   originalTransactionIdentifierIOS?: string | null;
   ownershipTypeIOS?: string | null;
-  platform: Platform;
+  platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
   purchaseToken?: string | null;
@@ -436,7 +423,7 @@ export interface PurchaseInput {
   id: string;
   ids?: string[] | null;
   isAutoRenewing: boolean;
-  platform: Platform;
+  platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
   purchaseToken?: string | null;
@@ -466,14 +453,13 @@ export interface PurchaseParams {
   type?: ProductQueryType | null;
 }
 
-export enum PurchaseState {
-  Deferred = 'DEFERRED',
-  Failed = 'FAILED',
-  Pending = 'PENDING',
-  Purchased = 'PURCHASED',
-  Restored = 'RESTORED',
-  Unknown = 'UNKNOWN',
-}
+export type PurchaseState =
+  | 'deferred'
+  | 'failed'
+  | 'pending'
+  | 'purchased'
+  | 'restored'
+  | 'unknown';
 
 export interface Query {
   /** Get current StoreKit 2 entitlements (iOS 15+) */
@@ -710,18 +696,9 @@ export interface SubscriptionOfferIOS {
   type: SubscriptionOfferTypeIOS;
 }
 
-export enum SubscriptionOfferTypeIOS {
-  Introductory = 'INTRODUCTORY',
-  Promotional = 'PROMOTIONAL',
-}
+export type SubscriptionOfferTypeIOS = 'introductory' | 'promotional';
 
-export enum SubscriptionPeriodIOS {
-  Day = 'DAY',
-  Empty = 'EMPTY',
-  Month = 'MONTH',
-  Week = 'WEEK',
-  Year = 'YEAR',
-}
+export type SubscriptionPeriodIOS = 'day' | 'empty' | 'month' | 'week' | 'year';
 
 export interface SubscriptionPeriodValueIOS {
   unit: SubscriptionPeriodIOS;

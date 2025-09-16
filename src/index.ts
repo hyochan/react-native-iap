@@ -12,7 +12,7 @@ import type {
   NitroReceiptValidationResultIOS,
   NitroReceiptValidationResultAndroid,
 } from './specs/RnIap.nitro';
-import {ProductQueryType} from './types';
+import type {ProductQueryType} from './types';
 import type {
   Product,
   ProductRequest,
@@ -53,32 +53,35 @@ export * from './utils/error';
 // Internal constants/helpers for bridging legacy Nitro expectations
 const NITRO_PRODUCT_TYPE_INAPP = 'inapp';
 const NITRO_PRODUCT_TYPE_SUBS = 'subs';
+const PRODUCT_QUERY_TYPE_ALL: ProductQueryType = 'all';
+const PRODUCT_QUERY_TYPE_IN_APP: ProductQueryType = 'in-app';
+const PRODUCT_QUERY_TYPE_SUBS: ProductQueryType = 'subs';
 
 function toNitroProductType(
   type?: ProductQueryType | null,
 ): typeof NITRO_PRODUCT_TYPE_INAPP | typeof NITRO_PRODUCT_TYPE_SUBS {
-  return type === ProductQueryType.Subs
+  return type === PRODUCT_QUERY_TYPE_SUBS
     ? NITRO_PRODUCT_TYPE_SUBS
     : NITRO_PRODUCT_TYPE_INAPP;
 }
 
 function isSubscriptionQuery(type?: ProductQueryType | null): boolean {
-  return type === ProductQueryType.Subs;
+  return type === PRODUCT_QUERY_TYPE_SUBS;
 }
 
 function normalizeProductQueryType(
   type?: ProductQueryType | string | null,
 ): ProductQueryType {
-  if (type === ProductQueryType.All || type === 'all') {
-    return ProductQueryType.All;
+  if (type === PRODUCT_QUERY_TYPE_ALL || type === 'all') {
+    return PRODUCT_QUERY_TYPE_ALL;
   }
-  if (type === ProductQueryType.Subs || type === 'subs') {
-    return ProductQueryType.Subs;
+  if (type === PRODUCT_QUERY_TYPE_SUBS || type === 'subs') {
+    return PRODUCT_QUERY_TYPE_SUBS;
   }
-  if (type === ProductQueryType.InApp || type === 'inapp') {
-    return ProductQueryType.InApp;
+  if (type === PRODUCT_QUERY_TYPE_IN_APP || type === 'inapp') {
+    return PRODUCT_QUERY_TYPE_IN_APP;
   }
-  return ProductQueryType.InApp;
+  return PRODUCT_QUERY_TYPE_IN_APP;
 }
 
 export interface EventSubscription {
@@ -188,7 +191,7 @@ export const endConnection = async (): Promise<boolean> => {
  */
 export const fetchProducts = async ({
   skus,
-  type = ProductQueryType.InApp,
+  type = PRODUCT_QUERY_TYPE_IN_APP,
 }: ProductRequest): Promise<Product[]> => {
   try {
     if (!skus || skus.length === 0) {
@@ -197,7 +200,7 @@ export const fetchProducts = async ({
 
     const normalizedType = normalizeProductQueryType(type);
 
-    if (normalizedType === ProductQueryType.All) {
+    if (normalizedType === PRODUCT_QUERY_TYPE_ALL) {
       const [inappNitro, subsNitro] = await Promise.all([
         IAP.instance.fetchProducts(skus, NITRO_PRODUCT_TYPE_INAPP),
         IAP.instance.fetchProducts(skus, NITRO_PRODUCT_TYPE_SUBS),

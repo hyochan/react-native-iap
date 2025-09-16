@@ -54,7 +54,7 @@ function App() {
       // Fetch products and subscriptions
       fetchProducts({
         skus: androidProductIds.filter((id) => !id.includes('subscription')),
-        type: 'inapp',
+        type: 'in-app',
       });
       fetchProducts({
         skus: androidProductIds.filter((id) => id.includes('subscription')),
@@ -92,7 +92,7 @@ const AndroidProductItem = ({product}: {product: Product}) => {
     if (product.platform === 'android') {
       requestPurchase({
         request: {skus: [product.id]},
-        type: 'inapp',
+        type: 'in-app',
       });
     }
   };

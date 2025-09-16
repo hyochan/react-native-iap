@@ -81,7 +81,7 @@ export interface Platform {
 // ✅ Good - Clear parameter and return types
 export const fetchProducts = async (params: {
   skus: string[];
-  type?: 'inapp' | 'subs';
+  type?: 'in-app' | 'subs';
 }): Promise<Product[]> => {
   // implementation
 };
@@ -141,7 +141,7 @@ export const deepLinkToSubscriptionsAndroid = async ({
 // These functions handle platform differences internally
 export const fetchProducts = async (params: {
   skus: string[];
-  type?: 'inapp' | 'subs';
+  type?: 'in-app' | 'subs';
 }): Promise<Product[]> => {
   return (
     Platform.select({
@@ -274,7 +274,7 @@ Always use async/await over promises:
 // ✅ Good
 export const fetchProducts = async (params: {
   skus: string[];
-  type?: 'inapp' | 'subs';
+  type?: 'in-app' | 'subs';
 }): Promise<Product[]> => {
   try {
     const products = await ExpoIapModule.fetchProducts(params);
@@ -312,14 +312,14 @@ All public APIs must have JSDoc comments:
  *
  * @example
  * ```typescript
- * const products = await fetchProducts({ skus: ['com.example.premium'], type: 'inapp' });
+ * const products = await fetchProducts({ skus: ['com.example.premium'], type: 'in-app' });
  * ```
  *
  * @platform iOS
  */
 export const fetchProductsIOS = async (params: {
   skus: string[];
-  type?: 'inapp' | 'subs';
+  type?: 'in-app' | 'subs';
 }): Promise<ProductIOS[]> => {
   // implementation
 };
@@ -357,7 +357,7 @@ describe('PurchaseManager', () => {
     it('should get products on iOS', async () => {
       const products = await fetchProductsIOS({
         skus: ['com.example.product'],
-        type: 'inapp',
+        type: 'in-app',
       });
       expect(products).toHaveLength(1);
     });
@@ -370,7 +370,7 @@ describe('PurchaseManager', () => {
 
     it('should throw error on Android', async () => {
       await expect(
-        fetchProductsIOS({skus: ['com.example.product'], type: 'inapp'}),
+        fetchProductsIOS({skus: ['com.example.product'], type: 'in-app'}),
       ).rejects.toThrow('This method is only available on iOS');
     });
   });
@@ -486,7 +486,7 @@ await requestPurchase({
       obfuscatedAccountIdAndroid: 'user-123',
     },
   },
-  type: 'inapp',
+  type: 'in-app',
 });
 
 // ❌ Bad - Old API with Platform.OS checks

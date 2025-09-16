@@ -39,7 +39,7 @@ await requestPurchase({
     ios: {sku: productId},
     android: {skus: [productId]},
   },
-  type: 'inapp',
+  type: 'in-app',
 });
 ```
 
@@ -103,7 +103,7 @@ const loadProducts = async () => {
   try {
     const products = await fetchProducts({
       skus: ['com.example.product1', 'com.example.product2'],
-      type: 'inapp',
+      type: 'in-app',
     });
 
     console.log('Products:', products);
@@ -133,7 +133,7 @@ const loadSubscriptions = async () => {
 
 - `params` (object):
   - `skus` (string[]): Array of product or subscription IDs to fetch
-  - `type` ('inapp' | 'subs' | 'all'): Product type — 'inapp' (default), 'subs', or 'all' to fetch both
+  - `type` ('in-app' | 'subs' | 'all'): Product type — 'in-app' (default), 'subs', or 'all' to fetch both
 
 **Returns:** `Promise<Product[]>`
 
@@ -168,7 +168,7 @@ const buyProduct = async (productId: string) => {
           skus: [productId],
         },
       },
-      type: 'inapp',
+      type: 'in-app',
     });
   } catch (error) {
     console.error('Purchase failed:', error);
@@ -208,7 +208,7 @@ const buySubscription = async (subscriptionId: string, subscription?: any) => {
     - **iOS**: `sku` (string) - Product ID to purchase
     - **Android**: `skus` (string[]) - Array of product IDs to purchase
     - Additional platform-specific options available
-  - `type?` ('inapp' | 'subs'): Purchase type, defaults to 'inapp'
+  - `type?` ('in-app' | 'subs'): Purchase type, defaults to 'in-app'
 
 **Returns:** `Promise<void>` - Purchase result is delivered through listeners
 

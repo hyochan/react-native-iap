@@ -2,7 +2,6 @@ import {render, fireEvent, waitFor, act} from '@testing-library/react-native';
 import {Alert, Platform} from 'react-native';
 import SubscriptionFlow from '../../screens/SubscriptionFlow';
 import * as RNIap from 'react-native-iap';
-import {ProductQueryType} from 'react-native-iap';
 
 // Spy on Alert
 jest.spyOn(Alert, 'alert');
@@ -13,7 +12,7 @@ const mockUseIAP = {
   products: [],
   subscriptions: [
     {
-      type: 'SUBS',
+      type: 'subs',
       id: 'dev.hyo.martie.premium',
       title: 'Premium Subscription',
       description: 'Access all premium features',
@@ -127,7 +126,7 @@ describe('SubscriptionFlow Screen', () => {
     await waitFor(() => {
       expect(mockFetchProducts).toHaveBeenCalledWith({
         skus: ['dev.hyo.martie.premium'],
-        type: ProductQueryType.Subs,
+        type: 'subs',
       });
       expect(mockGetActiveSubscriptions).toHaveBeenCalled();
     });
