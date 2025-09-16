@@ -37,7 +37,7 @@ import {
   purchaseUpdatedListener,
   purchaseErrorListener,
   type Purchase,
-  type NitroPurchaseResult,
+  type PurchaseError,
 } from 'react-native-iap';
 
 useEffect(() => {
@@ -47,11 +47,9 @@ useEffect(() => {
   });
 
   // Set up purchase error listener
-  const errorSubscription = purchaseErrorListener(
-    (error: NitroPurchaseResult) => {
-      handlePurchaseError(error);
-    },
-  );
+  const errorSubscription = purchaseErrorListener((error: PurchaseError) => {
+    handlePurchaseError(error);
+  });
 
   // Cleanup
   return () => {
@@ -96,7 +94,7 @@ const handlePurchaseUpdate = async (purchase: Purchase) => {
 ### 3. Handle Purchase Errors
 
 ```tsx
-const handlePurchaseError = (error: NitroPurchaseResult) => {
+const handlePurchaseError = (error: PurchaseError) => {
   console.error('❌ Purchase failed:', error);
 
   if (error.code === 'E_USER_CANCELLED') {

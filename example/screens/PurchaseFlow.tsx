@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
+  ProductQueryType,
   initConnection,
   fetchProducts,
   requestPurchase,
@@ -21,7 +22,7 @@ import {
   purchaseErrorListener,
   type Product,
   type Purchase,
-  type NitroPurchaseResult,
+  type PurchaseError,
 } from 'react-native-iap';
 import {isUserCancelledError} from 'react-native-iap';
 
@@ -38,7 +39,7 @@ const PurchaseFlow: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [resultModalVisible, setResultModalVisible] = useState(false);
   const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
-  const [lastError, setLastError] = useState<NitroPurchaseResult | null>(null);
+  const [lastError, setLastError] = useState<PurchaseError | null>(null);
   const subscriptionsRef = useRef<{updateSub?: any; errorSub?: any}>({});
   const connectedRef = useRef(false);
   const hasLoadedProductsRef = useRef(false);
@@ -109,7 +110,7 @@ const PurchaseFlow: React.FC = () => {
   const initializeIAP = useCallback(async () => {
     try {
       // Attach listeners first to avoid race conditions
-      const handlePurchaseError = (error: NitroPurchaseResult) => {
+      const handlePurchaseError = (error: PurchaseError) => {
         // Purchase failed or cancelled
         setLastPurchase(null);
         setPurchasing(false);
@@ -145,11 +146,11 @@ const PurchaseFlow: React.FC = () => {
         await loadProducts();
         hasLoadedProductsRef.current = true;
       }
-    } catch (error) {
+    } catch {
       // Failed to initialize IAP
       Alert.alert('Error', 'Failed to initialize IAP connection');
     }
-  }, []);
+  }, [handlePurchaseUpdate]);
 
   useEffect(() => {
     // Initialize connection when component mounts
@@ -185,12 +186,12 @@ const PurchaseFlow: React.FC = () => {
       setLoading(true);
       const fetchedProducts = await fetchProducts({
         skus: PRODUCT_IDS,
-        type: 'inapp',
+        type: ProductQueryType.InApp,
       });
 
       // Products fetched successfully
       setProducts(fetchedProducts);
-    } catch (error) {
+    } catch {
       // Failed to load products
       Alert.alert('Error', 'Failed to load products');
     } finally {
@@ -205,7 +206,7 @@ const PurchaseFlow: React.FC = () => {
 
       // Request purchase - results will be handled by event listeners
       await requestPurchase({
-        request: {
+        requestPurchase: {
           ios: {
             sku: itemId,
             quantity: 1,
@@ -214,7 +215,7 @@ const PurchaseFlow: React.FC = () => {
             skus: [itemId],
           },
         },
-        type: 'inapp',
+        type: ProductQueryType.InApp,
       });
 
       // Purchase request sent - waiting for result via event listener
@@ -229,7 +230,7 @@ const PurchaseFlow: React.FC = () => {
         return;
       }
 
-      setLastError((error as NitroPurchaseResult) ?? null);
+      setLastError((error as PurchaseError) ?? null);
       const errorMessage =
         error instanceof Error ? error.message : 'Purchase request failed';
       setPurchaseResult(`❌ Purchase request failed: ${errorMessage}`);

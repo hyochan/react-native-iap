@@ -16,19 +16,23 @@ import {
   getActiveSubscriptions,
   hasActiveSubscriptions,
   restorePurchases as restorePurchasesTopLevel,
+  getPromotedProductIOS,
+  requestPurchaseOnPromotedProductIOS,
 } from '../';
-import {getPromotedProductIOS, requestPurchaseOnPromotedProductIOS} from '../';
 
 // Types
+import {ProductQueryType} from '../types';
 import type {
+  ActiveSubscription,
   Product,
   Purchase,
   PurchaseError,
-  PurchaseResult,
   ProductSubscription,
-  RequestPurchaseParams,
-  ActiveSubscription,
+  PurchaseParams,
 } from '../types';
+import type {FinishTransactionParams} from '../';
+import type {NitroPurchaseResult} from '../specs/RnIap.nitro';
+import {normalizeErrorCodeFromNative} from '../utils/errorMapping';
 
 // Types for event subscriptions
 interface EventSubscription {
@@ -51,14 +55,11 @@ type UseIap = {
   finishTransaction: ({
     purchase,
     isConsumable,
-  }: {
-    purchase: Purchase;
-    isConsumable?: boolean;
-  }) => Promise<PurchaseResult | boolean>;
+  }: FinishTransactionParams) => Promise<NitroPurchaseResult | boolean>;
   getAvailablePurchases: (skus?: string[]) => Promise<void>;
   fetchProducts: (params: {
     skus: string[];
-    type?: 'inapp' | 'subs';
+    type?: ProductQueryType | null;
   }) => Promise<void>;
   /**
    * @deprecated Use fetchProducts({ skus, type: 'inapp' }) instead. This method will be removed in version 3.0.0.
@@ -70,7 +71,7 @@ type UseIap = {
    * Note: This method internally uses fetchProducts, so no deprecation warning is shown.
    */
   getSubscriptions: (skus: string[]) => Promise<void>;
-  requestPurchase: (params: RequestPurchaseParams) => Promise<any>;
+  requestPurchase: (params: PurchaseParams) => Promise<any>;
   validateReceipt: (
     sku: string,
     androidOptions?: {
@@ -172,7 +173,10 @@ export function useIAP(options?: UseIapOptions): UseIap {
   const getProductsInternal = useCallback(
     async (skus: string[]): Promise<void> => {
       try {
-        const result = await fetchProducts({skus, type: 'inapp'});
+        const result = await fetchProducts({
+          skus,
+          type: ProductQueryType.InApp,
+        });
         setProducts((prevProducts: Product[]) =>
           mergeWithDuplicateCheck(
             prevProducts,
@@ -190,7 +194,10 @@ export function useIAP(options?: UseIapOptions): UseIap {
   const getSubscriptionsInternal = useCallback(
     async (skus: string[]): Promise<void> => {
       try {
-        const result = await fetchProducts({skus, type: 'subs'});
+        const result = await fetchProducts({
+          skus,
+          type: ProductQueryType.Subs,
+        });
         setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
           mergeWithDuplicateCheck(
             prevSubscriptions,
@@ -208,7 +215,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
   const fetchProductsInternal = useCallback(
     async (params: {
       skus: string[];
-      type?: 'inapp' | 'subs';
+      type?: ProductQueryType | null;
     }): Promise<void> => {
       if (!connectedRef.current) {
         console.warn(
@@ -218,7 +225,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       }
       try {
         const result = await fetchProducts(params);
-        if (params.type === 'subs') {
+        if (params.type === ProductQueryType.Subs) {
           setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
             mergeWithDuplicateCheck(
               prevSubscriptions,
@@ -292,7 +299,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
     }: {
       purchase: Purchase;
       isConsumable?: boolean;
-    }): Promise<PurchaseResult | boolean> => {
+    }): Promise<NitroPurchaseResult | boolean> => {
       try {
         return await finishTransactionInternal({
           purchase,
@@ -318,7 +325,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
   );
 
   const requestPurchaseWithReset = useCallback(
-    async (requestObj: RequestPurchaseParams) => {
+    async (requestObj: PurchaseParams) => {
       clearCurrentPurchase();
       clearCurrentPurchaseError();
 
@@ -367,23 +374,26 @@ export function useIAP(options?: UseIapOptions): UseIap {
       },
     );
 
-    subscriptionsRef.current.purchaseError = purchaseErrorListener(
-      (error: PurchaseError) => {
-        // Ignore init error until connected
-        if (
-          error &&
-          (error as any).code === 'E_INIT_CONNECTION' &&
-          !connectedRef.current
-        ) {
-          return;
-        }
-        setCurrentPurchase(undefined);
-        setCurrentPurchaseError(error);
-        if (optionsRef.current?.onPurchaseError) {
-          optionsRef.current.onPurchaseError(error);
-        }
-      },
-    );
+    subscriptionsRef.current.purchaseError = purchaseErrorListener((error) => {
+      const mappedError: PurchaseError = {
+        code: normalizeErrorCodeFromNative(error.code),
+        message: error.message,
+        productId: undefined,
+      };
+      // Ignore init error until connected
+      if (
+        error &&
+        (error as any).code === 'E_INIT_CONNECTION' &&
+        !connectedRef.current
+      ) {
+        return;
+      }
+      setCurrentPurchase(undefined);
+      setCurrentPurchaseError(mappedError);
+      if (optionsRef.current?.onPurchaseError) {
+        optionsRef.current.onPurchaseError(mappedError);
+      }
+    });
 
     if (Platform.OS === 'ios') {
       subscriptionsRef.current.promotedProductsIOS = promotedProductListenerIOS(

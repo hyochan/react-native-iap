@@ -28,7 +28,8 @@ describe('PurchaseFlow Screen', () => {
         displayPrice: '$0.99',
         price: 0.99,
         currency: 'USD',
-        type: 'inapp',
+        type: 'IN_APP',
+        platform: 'IOS',
       },
       {
         id: 'dev.hyo.martie.30bulbs',
@@ -37,7 +38,8 @@ describe('PurchaseFlow Screen', () => {
         displayPrice: '$2.99',
         price: 2.99,
         currency: 'USD',
-        type: 'inapp',
+        type: 'IN_APP',
+        platform: 'IOS',
       },
     ]);
     (RNIap.purchaseUpdatedListener as jest.Mock).mockReturnValue({
@@ -421,7 +423,7 @@ describe('PurchaseFlow Screen', () => {
       purchaseToken: 'token-123',
       dataAndroid: 'android-data',
       purchaseStateAndroid: 1,
-      purchaseState: 'purchased',
+      purchaseState: 'PURCHASED',
       isAcknowledgedAndroid: false,
       packageNameAndroid: 'dev.hyo.martie',
       transactionDate: Date.now(),
@@ -473,7 +475,7 @@ describe('PurchaseFlow Screen', () => {
     // First return empty, then return products on retry
     (RNIap.fetchProducts as jest.Mock)
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
+      .mockResolvedValue([
         {
           id: 'dev.hyo.martie.10bulbs',
           title: '10 Bulbs',
@@ -481,7 +483,8 @@ describe('PurchaseFlow Screen', () => {
           displayPrice: '$0.99',
           price: 0.99,
           currency: 'USD',
-          type: 'inapp',
+          type: 'IN_APP',
+          platform: 'IOS',
         },
       ]);
 
@@ -495,7 +498,6 @@ describe('PurchaseFlow Screen', () => {
       expect(getByText(/No products found/)).toBeTruthy();
     });
 
-    // Press retry button
     const retryButton = getByText('Retry');
     fireEvent.press(retryButton);
 
@@ -516,7 +518,8 @@ describe('PurchaseFlow Screen', () => {
         oneTimePurchaseOfferFormattedPrice: '$0.89',
         price: 0.99,
         currency: 'USD',
-        type: 'inapp',
+        type: 'IN_APP',
+        platform: 'ANDROID',
       },
     ]);
 
@@ -584,7 +587,7 @@ describe('PurchaseFlow Screen', () => {
       transactionReceipt: 'receipt-123',
       transactionDate: Date.now(),
       platform: 'ios',
-      purchaseState: 'purchased',
+      purchaseState: 'PURCHASED',
     };
 
     act(() => {

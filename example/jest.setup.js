@@ -102,23 +102,34 @@ jest.mock('../src/index', () => ({
 
   // Enums and constants
   ErrorCode: {
-    // Modern enum shape
-    Unknown: 'E_UNKNOWN',
-    UserCancelled: 'E_USER_CANCELLED',
-    ItemUnavailable: 'E_ITEM_UNAVAILABLE',
-    NetworkError: 'E_NETWORK_ERROR',
-    ServiceError: 'E_SERVICE_ERROR',
-    DeveloperError: 'E_DEVELOPER_ERROR',
-    ReceiptFinished: 'E_RECEIPT_FINISHED',
-    // Legacy aliases maintained for backward compatibility in tests
-    E_USER_CANCELLED: 'E_USER_CANCELLED',
-    E_ITEM_UNAVAILABLE: 'E_ITEM_UNAVAILABLE',
-    E_NETWORK_ERROR: 'E_NETWORK_ERROR',
-    E_SERVICE_ERROR: 'E_SERVICE_ERROR',
-    E_DEVELOPER_ERROR: 'E_DEVELOPER_ERROR',
-    E_RECEIPT_FINISHED: 'E_RECEIPT_FINISHED',
-    E_NOT_PREPARED: 'E_NOT_PREPARED',
-    E_UNKNOWN: 'E_UNKNOWN',
+    Unknown: 'UNKNOWN',
+    UserCancelled: 'USER_CANCELLED',
+    ItemUnavailable: 'ITEM_UNAVAILABLE',
+    NetworkError: 'NETWORK_ERROR',
+    ServiceError: 'SERVICE_ERROR',
+    DeveloperError: 'DEVELOPER_ERROR',
+    ReceiptFinished: 'RECEIPT_FINISHED',
+    E_USER_CANCELLED: 'USER_CANCELLED',
+    E_ITEM_UNAVAILABLE: 'ITEM_UNAVAILABLE',
+    E_NETWORK_ERROR: 'NETWORK_ERROR',
+    E_SERVICE_ERROR: 'SERVICE_ERROR',
+    E_DEVELOPER_ERROR: 'DEVELOPER_ERROR',
+    E_RECEIPT_FINISHED: 'RECEIPT_FINISHED',
+    E_NOT_PREPARED: 'NOT_PREPARED',
+    E_UNKNOWN: 'UNKNOWN',
+  },
+  ProductQueryType: {
+    InApp: 'IN_APP',
+    Subs: 'SUBS',
+    All: 'ALL',
+  },
+  ProductType: {
+    InApp: 'IN_APP',
+    Subs: 'SUBS',
+  },
+  Platform: {
+    Ios: 'IOS',
+    Android: 'ANDROID',
   },
   ProrationMode: {
     IMMEDIATE_WITHOUT_PRORATION: 'IMMEDIATE_WITHOUT_PRORATION',

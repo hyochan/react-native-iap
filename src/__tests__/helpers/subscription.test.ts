@@ -49,7 +49,7 @@ describe('subscription helpers', () => {
         expect.objectContaining({
           productId: 'subscription1',
           isActive: true,
-          expirationDateIOS: expect.any(Date),
+          expirationDateIOS: expect.any(Number),
           autoRenewingAndroid: undefined,
           environmentIOS: 'Production',
           willExpireSoon: false,
@@ -60,7 +60,7 @@ describe('subscription helpers', () => {
         expect.objectContaining({
           productId: 'subscription2',
           isActive: true,
-          expirationDateIOS: undefined,
+          expirationDateIOS: null,
           autoRenewingAndroid: true,
           environmentIOS: undefined,
           willExpireSoon: false,
@@ -311,9 +311,9 @@ describe('subscription helpers', () => {
       const result = await getActiveSubscriptions();
 
       expect(result).toHaveLength(2);
-      expect(result[0]?.expirationDateIOS).toBeUndefined();
+      expect(result[0]?.expirationDateIOS).toBeNull();
       expect(result[0]?.daysUntilExpirationIOS).toBeUndefined();
-      expect(result[1]?.expirationDateIOS).toBeUndefined();
+      expect(result[1]?.expirationDateIOS).toBeNull();
       expect(result[1]?.daysUntilExpirationIOS).toBeUndefined();
     });
 

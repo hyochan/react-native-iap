@@ -99,8 +99,10 @@ describe('RnIap Complete Test Suite', () => {
     });
 
     it('should request purchase', async () => {
-      const request = {ios: {sku: 'product1'}};
-      await expect(RNIap.requestPurchase({request})).resolves.not.toThrow();
+      const requestPurchase = {ios: {sku: 'product1'}};
+      await expect(
+        RNIap.requestPurchase({requestPurchase}),
+      ).resolves.not.toThrow();
     });
 
     it('should get available purchases', async () => {

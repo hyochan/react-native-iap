@@ -3,6 +3,7 @@
 // No dynamic imports; mock before importing the module under test.
 
 import {Platform} from 'react-native';
+import {Platform as IapPlatform, ErrorCode, ProductQueryType} from '../types';
 
 // Minimal Nitro IAP mock to exercise wrappers
 const mockIap: any = {
@@ -103,7 +104,10 @@ describe('Public API (src/index.ts)', () => {
       const wrapped = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
       wrapped(nitroPurchase);
       expect(listener).toHaveBeenCalledWith(
-        expect.objectContaining({productId: 'p1', platform: 'ios'}),
+        expect.objectContaining({
+          productId: 'p1',
+          platform: IapPlatform.Ios,
+        }),
       );
 
       // remove
@@ -119,7 +123,12 @@ describe('Public API (src/index.ts)', () => {
       const err = {code: 'E_UNKNOWN', message: 'oops'};
       const passed = mockIap.addPurchaseErrorListener.mock.calls[0][0];
       passed(err);
-      expect(listener).toHaveBeenCalledWith(err);
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: ErrorCode.Unknown,
+          message: 'oops',
+        }),
+      );
 
       sub.remove();
       expect(mockIap.removePurchaseErrorListener).toHaveBeenCalled();
@@ -150,7 +159,7 @@ describe('Public API (src/index.ts)', () => {
       const wrapped = mockIap.addPromotedProductListenerIOS.mock.calls[0][0];
       wrapped(nitroProduct);
       expect(listener).toHaveBeenCalledWith(
-        expect.objectContaining({id: 'sku1', platform: 'ios'}),
+        expect.objectContaining({id: 'sku1', platform: IapPlatform.Ios}),
       );
       sub.remove();
       expect(mockIap.removePromotedProductListenerIOS).toHaveBeenCalled();
@@ -231,7 +240,10 @@ describe('Public API (src/index.ts)', () => {
             currency: 'USD',
           },
         ]);
-      const result = await IAP.fetchProducts({skus: ['x', 'y'], type: 'all'});
+      const result = await IAP.fetchProducts({
+        skus: ['x', 'y'],
+        type: ProductQueryType.All,
+      });
       expect(result.map((p: any) => p.id).sort()).toEqual(['x', 'y']);
       expect(mockIap.fetchProducts).toHaveBeenNthCalledWith(
         1,

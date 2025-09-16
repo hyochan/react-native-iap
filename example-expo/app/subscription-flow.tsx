@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
+  ProductQueryType,
+  PaymentModeIos,
   useIAP,
   type ProductSubscription,
   type PurchaseError,
@@ -147,11 +149,13 @@ export default function SubscriptionFlow() {
         }
       }
       // Always update UI error text
-      setPurchaseResult(`❌ Subscription failed: ${error.message}`);
-      // Only alert for non-cancel errors
-      if (!isCancel) {
-        Alert.alert('Subscription Failed', error.message);
+      if (isCancel) {
+        setPurchaseResult('🚫 Subscription cancelled by user');
+        return;
       }
+
+      setPurchaseResult(`❌ Subscription failed: ${error.message}`);
+      Alert.alert('Subscription Failed', error.message);
     },
     onSyncError: (error: Error) => {
       console.warn('Sync error:', error);
@@ -181,7 +185,10 @@ export default function SubscriptionFlow() {
     if (connected) {
       if (!fetchedProductsOnceRef.current) {
         console.log('Connected to store, loading subscription products...');
-        fetchProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
+        fetchProducts({
+          skus: SUBSCRIPTION_IDS,
+          type: ProductQueryType.Subs,
+        });
         console.log('Product loading request sent - waiting for results...');
         fetchedProductsOnceRef.current = true;
       }
@@ -259,7 +266,7 @@ export default function SubscriptionFlow() {
       // New platform-specific API (v2.7.0+) - no Platform.OS branching needed
       // requestPurchase is event-based - results come through onPurchaseSuccess/onPurchaseError
       await requestPurchase({
-        request: {
+        requestSubscription: {
           ios: {
             sku: itemId,
             appAccountToken: 'user-123',
@@ -279,10 +286,14 @@ export default function SubscriptionFlow() {
                 : [],
           },
         },
-        type: 'subs',
+        type: ProductQueryType.Subs,
       });
     } catch (error) {
       setIsProcessing(false);
+      if (isUserCancelledError(error as any)) {
+        setPurchaseResult('🚫 Subscription cancelled by user');
+        return;
+      }
       const errorMessage =
         error instanceof Error ? error.message : 'Subscription failed';
       setPurchaseResult(`❌ Subscription failed: ${errorMessage}`);
@@ -292,7 +303,10 @@ export default function SubscriptionFlow() {
 
   // Retry loading subscriptions
   const retryLoadSubscriptions = () => {
-    fetchProducts({skus: SUBSCRIPTION_IDS, type: 'subs'});
+    fetchProducts({
+      skus: SUBSCRIPTION_IDS,
+      type: ProductQueryType.Subs,
+    });
   };
 
   // Get subscription display price
@@ -359,12 +373,16 @@ export default function SubscriptionFlow() {
         const subscriptionPeriod =
           subscription.introductoryPriceSubscriptionPeriodIOS;
 
-        if (paymentMode === 'FREETRIAL') {
-          return `${numberOfPeriods} ${subscriptionPeriod} free trial`;
-        } else if (paymentMode === 'PAYASYOUGO') {
-          return `${subscription.introductoryPriceIOS} for ${numberOfPeriods} ${subscriptionPeriod}`;
-        } else if (paymentMode === 'PAYUPFRONT') {
-          return `${subscription.introductoryPriceIOS} for first ${numberOfPeriods} ${subscriptionPeriod}`;
+        const periodLabel = subscriptionPeriod
+          ? subscriptionPeriod.toLowerCase()
+          : 'period';
+
+        if (paymentMode === PaymentModeIos.FreeTrial) {
+          return `${numberOfPeriods} ${periodLabel} free trial`;
+        } else if (paymentMode === PaymentModeIos.PayAsYouGo) {
+          return `${subscription.introductoryPriceIOS} for ${numberOfPeriods} ${periodLabel}`;
+        } else if (paymentMode === PaymentModeIos.PayUpFront) {
+          return `${subscription.introductoryPriceIOS} for first ${numberOfPeriods} ${periodLabel}`;
         }
       }
     }

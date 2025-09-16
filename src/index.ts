@@ -12,21 +12,24 @@ import type {
   NitroReceiptValidationResultIOS,
   NitroReceiptValidationResultAndroid,
 } from './specs/RnIap.nitro';
+import {ProductQueryType} from './types';
 import type {
   Product,
+  ProductRequest,
   Purchase,
   PurchaseAndroid,
-  RequestPurchaseParams,
-  RequestSubscriptionAndroidProps,
   PurchaseOptions,
-  FinishTransactionParams,
-  ReceiptValidationResultIOS,
+  PurchaseParams,
+  PurchaseError,
   ReceiptValidationResultAndroid,
-  RequestPurchaseIosProps,
+  ReceiptValidationResultIos,
   RequestPurchaseAndroidProps,
-  SubscriptionStatusIOS,
+  RequestPurchaseIosProps,
+  RequestPurchasePropsByPlatforms,
+  RequestSubscriptionAndroidProps,
+  RequestSubscriptionPropsByPlatforms,
+  SubscriptionStatusIos,
 } from './types';
-import type {ProductRequest} from './types';
 import {
   convertNitroProductToProduct,
   convertNitroPurchaseToPurchase,
@@ -35,6 +38,7 @@ import {
   convertNitroSubscriptionStatusToSubscriptionStatusIOS,
 } from './utils/type-bridge';
 import {parseErrorStringToJsonObj} from './utils/error';
+import {normalizeErrorCodeFromNative} from './utils/errorMapping';
 
 // Export all types
 export type {
@@ -46,10 +50,45 @@ export type {
 export * from './types';
 export * from './utils/error';
 
-// Types for event listeners
+// Internal constants/helpers for bridging legacy Nitro expectations
+const NITRO_PRODUCT_TYPE_INAPP = 'inapp';
+const NITRO_PRODUCT_TYPE_SUBS = 'subs';
+
+function toNitroProductType(
+  type?: ProductQueryType | null,
+): typeof NITRO_PRODUCT_TYPE_INAPP | typeof NITRO_PRODUCT_TYPE_SUBS {
+  return type === ProductQueryType.Subs
+    ? NITRO_PRODUCT_TYPE_SUBS
+    : NITRO_PRODUCT_TYPE_INAPP;
+}
+
+function isSubscriptionQuery(type?: ProductQueryType | null): boolean {
+  return type === ProductQueryType.Subs;
+}
+
+function normalizeProductQueryType(
+  type?: ProductQueryType | string | null,
+): ProductQueryType {
+  if (type === ProductQueryType.All || type === 'all') {
+    return ProductQueryType.All;
+  }
+  if (type === ProductQueryType.Subs || type === 'subs') {
+    return ProductQueryType.Subs;
+  }
+  if (type === ProductQueryType.InApp || type === 'inapp') {
+    return ProductQueryType.InApp;
+  }
+  return ProductQueryType.InApp;
+}
+
 export interface EventSubscription {
   remove(): void;
 }
+
+export type FinishTransactionParams = {
+  purchase: Purchase;
+  isConsumable?: boolean;
+};
 
 // ActiveSubscription and PurchaseError types are already exported via 'export * from ./types'
 
@@ -149,17 +188,19 @@ export const endConnection = async (): Promise<boolean> => {
  */
 export const fetchProducts = async ({
   skus,
-  type = 'inapp',
+  type = ProductQueryType.InApp,
 }: ProductRequest): Promise<Product[]> => {
   try {
     if (!skus || skus.length === 0) {
       throw new Error('No SKUs provided');
     }
 
-    if (type === 'all') {
+    const normalizedType = normalizeProductQueryType(type);
+
+    if (normalizedType === ProductQueryType.All) {
       const [inappNitro, subsNitro] = await Promise.all([
-        IAP.instance.fetchProducts(skus, 'inapp'),
-        IAP.instance.fetchProducts(skus, 'subs'),
+        IAP.instance.fetchProducts(skus, NITRO_PRODUCT_TYPE_INAPP),
+        IAP.instance.fetchProducts(skus, NITRO_PRODUCT_TYPE_SUBS),
       ]);
       const allNitro = [...inappNitro, ...subsNitro];
       const validAll = allNitro.filter(validateNitroProduct);
@@ -171,7 +212,10 @@ export const fetchProducts = async ({
       return validAll.map(convertNitroProductToProduct);
     }
 
-    const nitroProducts = await IAP.instance.fetchProducts(skus, type);
+    const nitroProducts = await IAP.instance.fetchProducts(
+      skus,
+      toNitroProductType(normalizedType),
+    );
 
     // Validate and convert NitroProducts to TypeScript Products
     const validProducts = nitroProducts.filter(validateNitroProduct);
@@ -224,14 +268,34 @@ export const fetchProducts = async ({
  * ⚠️ Important: This is an event-based operation, not promise-based.
  * Listen for events through purchaseUpdatedListener or purchaseErrorListener.
  * @param params - Purchase request configuration
- * @param params.request - Platform-specific purchase parameters
- * @param params.type - Type of purchase: 'inapp' for products (default) or 'subs' for subscriptions
+ * @param params.requestPurchase - Platform-specific purchase parameters (in-app)
+ * @param params.requestSubscription - Platform-specific subscription parameters (subs)
+ * @param params.type - Type of purchase (defaults to in-app)
  */
-export const requestPurchase = async ({
-  request,
-  type = 'inapp',
-}: RequestPurchaseParams): Promise<void> => {
+export const requestPurchase = async (
+  params: PurchaseParams & {
+    request?:
+      | RequestPurchasePropsByPlatforms
+      | RequestSubscriptionPropsByPlatforms;
+  },
+): Promise<void> => {
   try {
+    const {requestPurchase: purchaseRequest, requestSubscription} = params;
+    const legacyRequest = (params as any).request as
+      | RequestPurchasePropsByPlatforms
+      | RequestSubscriptionPropsByPlatforms
+      | undefined;
+
+    const effectiveType = normalizeProductQueryType(params.type);
+    const isSubs = isSubscriptionQuery(effectiveType);
+    const request = isSubs
+      ? (requestSubscription ?? purchaseRequest ?? legacyRequest)
+      : (purchaseRequest ?? requestSubscription ?? legacyRequest);
+
+    if (!request) {
+      throw new Error('Missing purchase request configuration');
+    }
+
     // Validate platform-specific requests
     if (Platform.OS === 'ios') {
       const iosRequest = request.ios;
@@ -257,8 +321,7 @@ export const requestPurchase = async ({
     if (Platform.OS === 'ios' && request.ios) {
       const iosReq = request.ios as RequestPurchaseIosProps;
       const autoFinishSubs =
-        type === 'subs' &&
-        iosReq.andDangerouslyFinishTransactionAutomatically == null;
+        isSubs && iosReq.andDangerouslyFinishTransactionAutomatically == null;
       unifiedRequest.ios = {
         ...iosReq,
         // Align with native SwiftUI flow: auto-finish subscriptions by default
@@ -269,7 +332,7 @@ export const requestPurchase = async ({
     }
 
     if (Platform.OS === 'android' && request.android) {
-      if (type === 'subs') {
+      if (isSubs) {
         const subsRequest = request.android as RequestSubscriptionAndroidProps;
         unifiedRequest.android = {
           ...subsRequest,
@@ -616,13 +679,20 @@ export const purchaseUpdatedListener = (
  * ```
  */
 export const purchaseErrorListener = (
-  listener: (error: NitroPurchaseResult) => void,
+  listener: (error: PurchaseError) => void,
 ): EventSubscription => {
-  // Store the listener for removal
-  listenerMap.set(listener, listener);
+  const wrapped = (error: NitroPurchaseResult) => {
+    listener({
+      code: normalizeErrorCodeFromNative(error.code),
+      message: error.message,
+      productId: undefined,
+    });
+  };
+
+  listenerMap.set(listener, wrapped);
   let attached = false;
   try {
-    IAP.instance.addPurchaseErrorListener(listener as any);
+    IAP.instance.addPurchaseErrorListener(wrapped as any);
     attached = true;
   } catch (e) {
     const msg = String(e ?? '');
@@ -637,12 +707,15 @@ export const purchaseErrorListener = (
 
   return {
     remove: () => {
-      if (attached) {
-        try {
-          IAP.instance.removePurchaseErrorListener(listener as any);
-        } catch {}
+      const stored = listenerMap.get(listener);
+      if (stored) {
+        if (attached) {
+          try {
+            IAP.instance.removePurchaseErrorListener(stored as any);
+          } catch {}
+        }
+        listenerMap.delete(listener);
       }
-      listenerMap.delete(listener);
     },
   };
 };
@@ -730,7 +803,7 @@ export const promotedProductListenerIOS = (
  * Validate receipt on both iOS and Android platforms
  * @param sku - Product SKU
  * @param androidOptions - Android-specific validation options (required for Android)
- * @returns Promise<ReceiptValidationResultIOS | ReceiptValidationResultAndroid> - Platform-specific receipt validation result
+ * @returns Promise<ReceiptValidationResultIos | ReceiptValidationResultAndroid> - Platform-specific receipt validation result
  */
 export const validateReceipt = async (
   sku: string,
@@ -752,7 +825,7 @@ export const validateReceipt = async (
     // Convert Nitro result to public API result
     if (Platform.OS === 'ios') {
       const iosResult = nitroResult as NitroReceiptValidationResultIOS;
-      const result: ReceiptValidationResultIOS = {
+      const result: ReceiptValidationResultIos = {
         isValid: iosResult.isValid,
         receiptData: iosResult.receiptData,
         jwsRepresentation: iosResult.jwsRepresentation,
@@ -917,13 +990,13 @@ export const beginRefundRequestIOS = async (
 /**
  * Get subscription status for a product (iOS only)
  * @param sku - The product SKU
- * @returns Promise<SubscriptionStatusIOS[]> - Array of subscription status objects
+ * @returns Promise<SubscriptionStatusIos[]> - Array of subscription status objects
  * @throws Error when called on non-iOS platforms or when IAP is not initialized
  * @platform iOS
  */
 export const subscriptionStatusIOS = async (
   sku: string,
-): Promise<SubscriptionStatusIOS[]> => {
+): Promise<SubscriptionStatusIos[]> => {
   if (Platform.OS !== 'ios') {
     throw new Error('subscriptionStatusIOS is only available on iOS');
   }

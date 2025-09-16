@@ -1,5 +1,5 @@
 import {getAvailablePurchases} from '../';
-import type {ActiveSubscription, PurchaseIOS, PurchaseAndroid} from '../types';
+import type {ActiveSubscription, PurchaseIos, PurchaseAndroid} from '../types';
 
 /**
  * Get active subscriptions
@@ -23,7 +23,7 @@ export const getActiveSubscriptions = async (
         return true;
       })
       .map((purchase): ActiveSubscription => {
-        const iosPurchase = purchase as PurchaseIOS;
+        const iosPurchase = purchase as PurchaseIos;
         const androidPurchase = purchase as PurchaseAndroid;
         return {
           productId: purchase.productId,
@@ -33,21 +33,20 @@ export const getActiveSubscriptions = async (
           purchaseToken: purchase.purchaseToken,
           transactionDate: purchase.transactionDate,
           // Platform-specific fields
-          expirationDateIOS: iosPurchase.expirationDateIOS
-            ? new Date(iosPurchase.expirationDateIOS)
-            : undefined,
+          expirationDateIOS: iosPurchase.expirationDateIOS ?? null,
           autoRenewingAndroid:
             androidPurchase.autoRenewingAndroid ??
             androidPurchase.isAutoRenewing, // deprecated - use isAutoRenewing instead
           environmentIOS: iosPurchase.environmentIOS,
           // Convenience fields
           willExpireSoon: false, // Would need to calculate based on expiration date
-          daysUntilExpirationIOS: iosPurchase.expirationDateIOS
-            ? Math.ceil(
-                (iosPurchase.expirationDateIOS - Date.now()) /
-                  (1000 * 60 * 60 * 24),
-              )
-            : undefined,
+          daysUntilExpirationIOS:
+            iosPurchase.expirationDateIOS != null
+              ? Math.ceil(
+                  (iosPurchase.expirationDateIOS - Date.now()) /
+                    (1000 * 60 * 60 * 24),
+                )
+              : undefined,
         };
       });
 

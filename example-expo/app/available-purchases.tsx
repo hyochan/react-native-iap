@@ -15,7 +15,11 @@ import {
   Modal,
 } from 'react-native';
 import type {Purchase, PurchaseError} from 'react-native-iap';
-import {useIAP, deepLinkToSubscriptions} from 'react-native-iap';
+import {
+  ProductQueryType,
+  useIAP,
+  deepLinkToSubscriptions,
+} from 'react-native-iap';
 import Clipboard from '@react-native-clipboard/clipboard';
 
 // Define subscription IDs at component level like in the working example
@@ -112,7 +116,7 @@ export default function AvailablePurchases() {
         '[AVAILABLE-PURCHASES] Connected to store, loading subscription products...',
       );
       // Request products first - this is event-based, not promise-based
-      fetchProducts({skus: subscriptionIds, type: 'subs'});
+      fetchProducts({skus: subscriptionIds, type: ProductQueryType.Subs});
       console.log(
         '[AVAILABLE-PURCHASES] Product loading request sent - waiting for results...',
       );
@@ -226,7 +230,7 @@ export default function AvailablePurchases() {
                   </View>
                 )}
 
-                {subscription.daysUntilExpirationIOS !== undefined && (
+                {subscription.daysUntilExpirationIOS != null && (
                   <View style={styles.purchaseRow}>
                     <Text style={styles.label}>Days Left:</Text>
                     <Text
