@@ -12,14 +12,17 @@ import type {
   NitroReceiptValidationResultIOS,
   NitroReceiptValidationResultAndroid,
 } from './specs/RnIap.nitro';
-import type {ProductQueryType} from './types';
+import type {
+  ProductQueryType,
+  RequestPurchaseProps,
+  RequestPurchaseResult,
+} from './types';
 import type {
   Product,
   ProductRequest,
   Purchase,
   PurchaseAndroid,
   PurchaseOptions,
-  PurchaseParams,
   PurchaseError,
   ReceiptValidationResultAndroid,
   ReceiptValidationResultIOS,
@@ -295,8 +298,8 @@ export const fetchProducts = async ({
  * @param params.type - Type of purchase (defaults to in-app)
  */
 export const requestPurchase = async (
-  params: PurchaseParams,
-): Promise<void> => {
+  params: RequestPurchaseProps,
+): Promise<RequestPurchaseResult> => {
   try {
     const normalizedType = normalizeProductQueryType(params.type);
     const isSubs = isSubscriptionQuery(normalizedType);
@@ -360,7 +363,7 @@ export const requestPurchase = async (
     }
 
     // Call unified method - returns void, listen for events instead
-    await IAP.instance.requestPurchase(unifiedRequest);
+    return await IAP.instance.requestPurchase(unifiedRequest);
   } catch (error) {
     console.error('Failed to request purchase:', error);
     throw error;

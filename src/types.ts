@@ -193,7 +193,7 @@ export interface MutationFinishTransactionArgs {
 }
 
 export interface MutationRequestPurchaseArgs {
-  params: PurchaseParams;
+  params: RequestPurchaseProps;
 }
 
 export interface MutationValidateReceiptArgs {
@@ -444,18 +444,6 @@ export interface PurchaseOptions {
   onlyIncludeActiveItemsIOS?: boolean | null;
 }
 
-export type PurchaseParams =
-  | {
-      /** Per-platform purchase request props */
-      request: RequestPurchasePropsByPlatforms;
-      type: 'in-app';
-    }
-  | {
-      /** Per-platform subscription request props */
-      request: RequestSubscriptionPropsByPlatforms;
-      type: 'subs';
-    };
-
 export type PurchaseState =
   | 'deferred'
   | 'failed'
@@ -622,12 +610,17 @@ export interface RequestPurchaseIosProps {
   withOffer?: DiscountOfferInputIOS | null;
 }
 
-export interface RequestPurchaseProps {
-  /** Android-specific purchase parameters */
-  android?: RequestPurchaseAndroidProps | null;
-  /** iOS-specific purchase parameters */
-  ios?: RequestPurchaseIosProps | null;
-}
+export type RequestPurchaseProps =
+  | {
+      /** Per-platform purchase request props */
+      request: RequestPurchasePropsByPlatforms;
+      type: 'in-app';
+    }
+  | {
+      /** Per-platform subscription request props */
+      request: RequestSubscriptionPropsByPlatforms;
+      type: 'subs';
+    };
 
 export interface RequestPurchasePropsByPlatforms {
   /** Android-specific purchase parameters */

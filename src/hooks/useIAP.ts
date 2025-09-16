@@ -22,14 +22,17 @@ import {
 
 // Types
 import {ErrorCode} from '../types';
-import type {ProductQueryType} from '../types';
+import type {
+  ProductQueryType,
+  RequestPurchaseProps,
+  RequestPurchaseResult,
+} from '../types';
 import type {
   ActiveSubscription,
   Product,
   Purchase,
   PurchaseError,
   ProductSubscription,
-  PurchaseParams,
 } from '../types';
 import type {FinishTransactionParams} from '../';
 import type {NitroPurchaseResult} from '../specs/RnIap.nitro';
@@ -72,7 +75,9 @@ type UseIap = {
    * Note: This method internally uses fetchProducts, so no deprecation warning is shown.
    */
   getSubscriptions: (skus: string[]) => Promise<void>;
-  requestPurchase: (params: PurchaseParams) => Promise<any>;
+  requestPurchase: (
+    params: RequestPurchaseProps,
+  ) => Promise<RequestPurchaseResult>;
   validateReceipt: (
     sku: string,
     androidOptions?: {
@@ -326,7 +331,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
   );
 
   const requestPurchaseWithReset = useCallback(
-    async (requestObj: PurchaseParams) => {
+    async (requestObj: RequestPurchaseProps) => {
       clearCurrentPurchase();
       clearCurrentPurchaseError();
 

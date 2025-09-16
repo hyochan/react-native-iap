@@ -1,4 +1,5 @@
 import type {HybridObject} from 'react-native-nitro-modules';
+import type {RequestPurchaseResult} from '../types';
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║                                  PARAMS                                  ║
@@ -307,7 +308,9 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
    * @param request - Platform-specific purchase request parameters
    * @returns Promise<void> - Always returns void, listen for events instead
    */
-  requestPurchase(request: NitroPurchaseRequest): Promise<void>;
+  requestPurchase(
+    request: NitroPurchaseRequest,
+  ): Promise<RequestPurchaseResult>;
 
   /**
    * Get available purchases (unified method for both platforms)
