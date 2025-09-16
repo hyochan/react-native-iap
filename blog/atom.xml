@@ -2,11 +2,34 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://hyochan.github.io/react-native-iap/blog</id>
     <title>React Native IAP Blog</title>
-    <updated>2025-09-15T00:00:00.000Z</updated>
+    <updated>2025-09-16T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://hyochan.github.io/react-native-iap/blog"/>
     <subtitle>React Native IAP Blog</subtitle>
     <icon>https://hyochan.github.io/react-native-iap/img/favicon.png</icon>
+    <entry>
+        <title type="html"><![CDATA[Release 14.3.3]]></title>
+        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/16/release-14.3.3</id>
+        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/16/release-14.3.3"/>
+        <updated>2025-09-16T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Patch polish for the 14.3 line: better guard rails around purchase requests and cleaner error mapping.]]></summary>
+        <content type="html"><![CDATA[<p>Patch polish for the 14.3 line: better guard rails around purchase requests and cleaner error mapping.</p>
+<ul>
+<li>JS: Treat <code>requestPurchase</code>/<code>requestSubscription</code> separately, warn in development when the wrong payload is supplied, and drop the legacy <code>request</code> fallback.</li>
+<li>JS: Normalize native error codes (including the Android "canceled" spelling) and keep init connection failures suppressed until the store is ready.</li>
+<li>Bridge: Warn when the iOS product type is unrecognized and align Active Subscription expiration fields with the generated schema.</li>
+<li>GraphQL: Bump to <a href="https://github.com/hyodotdev/openiap-gql/releases/tag/1.0.0" target="_blank" rel="noopener noreferrer">openiap-gql 1.0.0</a> so the generated schema stays in sync with the published contract.</li>
+</ul>
+<p><img decoding="async" loading="lazy" src="https://private-user-images.githubusercontent.com/27461460/490032984-d53df582-fbb0-4df8-9fd3-a4411eba5ef6.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NTgwMjgyMjMsIm5iZiI6MTc1ODAyNzkyMywicGF0aCI6Ii8yNzQ2MTQ2MC80OTAwMzI5ODQtZDUzZGY1ODItZmJiMC00ZGY4LTlmZDMtYTQ0MTFlYmE1ZWY2LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTA5MTYlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwOTE2VDEzMDUyM1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWNlZTFmOWM1NTYyOGYwNmU1ODNkNGY1NWZkN2MzOTM4YzlmNjY5ODhkYWQ4ZjY5NmJjOGY4ODlmMWIwZGE5ZjkmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.6dZy_5ODYPDKJFksEhoEXezjs44MIxqoe4DhxWYcpsQ" alt="openiap-gql 1.0.0" class="img_ev3q"></p>
+<p>No breaking changes.</p>]]></content>
+        <author>
+            <name>Hyo</name>
+            <uri>https://github.com/hyochan</uri>
+        </author>
+        <category label="Release" term="Release"/>
+        <category label="iOS" term="iOS"/>
+        <category label="Android" term="Android"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Release 14.3.2]]></title>
         <id>https://hyochan.github.io/react-native-iap/blog/2025/09/15/release-14.3.2</id>
