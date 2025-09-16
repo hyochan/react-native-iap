@@ -72,14 +72,28 @@ function isSubscriptionQuery(type?: ProductQueryType | null): boolean {
 function normalizeProductQueryType(
   type?: ProductQueryType | string | null,
 ): ProductQueryType {
-  if (type === PRODUCT_QUERY_TYPE_ALL || type === 'all') {
+  if (type === PRODUCT_QUERY_TYPE_ALL) {
     return PRODUCT_QUERY_TYPE_ALL;
   }
-  if (type === PRODUCT_QUERY_TYPE_SUBS || type === 'subs') {
+  if (type === PRODUCT_QUERY_TYPE_SUBS) {
     return PRODUCT_QUERY_TYPE_SUBS;
   }
-  if (type === PRODUCT_QUERY_TYPE_IN_APP || type === 'inapp') {
+  if (type === PRODUCT_QUERY_TYPE_IN_APP) {
     return PRODUCT_QUERY_TYPE_IN_APP;
+  }
+
+  if (typeof type === 'string') {
+    const normalized = type.trim().toLowerCase().replace(/_/g, '-');
+
+    if (normalized === PRODUCT_QUERY_TYPE_ALL) {
+      return PRODUCT_QUERY_TYPE_ALL;
+    }
+    if (normalized === PRODUCT_QUERY_TYPE_SUBS) {
+      return PRODUCT_QUERY_TYPE_SUBS;
+    }
+    if (normalized === PRODUCT_QUERY_TYPE_IN_APP || normalized === 'inapp') {
+      return PRODUCT_QUERY_TYPE_IN_APP;
+    }
   }
   return PRODUCT_QUERY_TYPE_IN_APP;
 }
