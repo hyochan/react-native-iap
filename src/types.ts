@@ -444,14 +444,17 @@ export interface PurchaseOptions {
   onlyIncludeActiveItemsIOS?: boolean | null;
 }
 
-export interface PurchaseParams {
-  /** Per-platform purchase request props */
-  requestPurchase?: RequestPurchasePropsByPlatforms | null;
-  /** Per-platform subscription request props */
-  requestSubscription?: RequestSubscriptionPropsByPlatforms | null;
-  /** Explicit purchase type hint (defaults to in-app) */
-  type?: ProductQueryType | null;
-}
+export type PurchaseParams =
+  | {
+      /** Per-platform purchase request props */
+      request: RequestPurchasePropsByPlatforms;
+      type: 'in-app';
+    }
+  | {
+      /** Per-platform subscription request props */
+      request: RequestSubscriptionPropsByPlatforms;
+      type: 'subs';
+    };
 
 export type PurchaseState =
   | 'deferred'

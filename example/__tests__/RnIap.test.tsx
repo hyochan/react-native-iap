@@ -99,9 +99,9 @@ describe('RnIap Complete Test Suite', () => {
     });
 
     it('should request purchase', async () => {
-      const requestPurchase = {ios: {sku: 'product1'}};
+      const request = {ios: {sku: 'product1'}};
       await expect(
-        RNIap.requestPurchase({requestPurchase}),
+        RNIap.requestPurchase({request, type: 'in-app'}),
       ).resolves.not.toThrow();
     });
 

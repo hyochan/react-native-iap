@@ -27,6 +27,7 @@ import type {
   RequestPurchaseIosProps,
   RequestPurchasePropsByPlatforms,
   RequestSubscriptionAndroidProps,
+  RequestSubscriptionIosProps,
   RequestSubscriptionPropsByPlatforms,
   SubscriptionStatusIOS,
 } from './types';
@@ -297,40 +298,12 @@ export const requestPurchase = async (
   params: PurchaseParams,
 ): Promise<void> => {
   try {
-    const {requestPurchase: purchaseRequest, requestSubscription} = params;
-    const normalizedPurchaseRequest = purchaseRequest ?? undefined;
-    const normalizedSubscriptionRequest = requestSubscription ?? undefined;
-
-    const effectiveType = normalizeProductQueryType(params.type);
-    const isSubs = isSubscriptionQuery(effectiveType);
-    let request:
+    const normalizedType = normalizeProductQueryType(params.type);
+    const isSubs = isSubscriptionQuery(normalizedType);
+    const request = params.request as
       | RequestPurchasePropsByPlatforms
       | RequestSubscriptionPropsByPlatforms
       | undefined;
-
-    if (isSubs) {
-      if (
-        __DEV__ &&
-        normalizedPurchaseRequest &&
-        !normalizedSubscriptionRequest
-      ) {
-        console.warn(
-          '[react-native-iap] `requestPurchase` was provided for a subscription request. Did you mean to use `requestSubscription`?',
-        );
-      }
-      request = normalizedSubscriptionRequest ?? normalizedPurchaseRequest;
-    } else {
-      if (
-        __DEV__ &&
-        normalizedSubscriptionRequest &&
-        !normalizedPurchaseRequest
-      ) {
-        console.warn(
-          '[react-native-iap] `requestSubscription` was provided for an in-app purchase request. Did you mean to use `requestPurchase`?',
-        );
-      }
-      request = normalizedPurchaseRequest ?? normalizedSubscriptionRequest;
-    }
 
     if (!request) {
       throw new Error('Missing purchase request configuration');
@@ -359,16 +332,19 @@ export const requestPurchase = async (
     const unifiedRequest: any = {};
 
     if (Platform.OS === 'ios' && request.ios) {
-      const iosReq = request.ios as RequestPurchaseIosProps;
-      const autoFinishSubs =
-        isSubs && iosReq.andDangerouslyFinishTransactionAutomatically == null;
-      unifiedRequest.ios = {
-        ...iosReq,
-        // Align with native SwiftUI flow: auto-finish subscriptions by default
-        ...(autoFinishSubs
-          ? {andDangerouslyFinishTransactionAutomatically: true}
-          : {}),
-      } as RequestPurchaseIosProps;
+      if (isSubs) {
+        const iosReq = request.ios as RequestSubscriptionIosProps;
+        const autoFinishSubs =
+          iosReq.andDangerouslyFinishTransactionAutomatically == null;
+        unifiedRequest.ios = {
+          ...iosReq,
+          ...(autoFinishSubs
+            ? {andDangerouslyFinishTransactionAutomatically: true}
+            : {}),
+        } as RequestSubscriptionIosProps;
+      } else {
+        unifiedRequest.ios = request.ios as RequestPurchaseIosProps;
+      }
     }
 
     if (Platform.OS === 'android' && request.android) {
@@ -377,9 +353,9 @@ export const requestPurchase = async (
         unifiedRequest.android = {
           ...subsRequest,
           subscriptionOffers: subsRequest.subscriptionOffers || [],
-        } as RequestPurchaseAndroidProps;
+        } as RequestSubscriptionAndroidProps;
       } else {
-        unifiedRequest.android = request.android;
+        unifiedRequest.android = request.android as RequestPurchaseAndroidProps;
       }
     }
 

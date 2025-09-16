@@ -206,7 +206,7 @@ const PurchaseFlow: React.FC = () => {
 
       // Request purchase - results will be handled by event listeners
       await requestPurchase({
-        requestPurchase: {
+        request: {
           ios: {
             sku: itemId,
             quantity: 1,

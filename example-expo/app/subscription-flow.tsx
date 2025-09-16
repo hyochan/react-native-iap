@@ -264,7 +264,7 @@ export default function SubscriptionFlow() {
       // New platform-specific API (v2.7.0+) - no Platform.OS branching needed
       // requestPurchase is event-based - results come through onPurchaseSuccess/onPurchaseError
       await requestPurchase({
-        requestSubscription: {
+        request: {
           ios: {
             sku: itemId,
             appAccountToken: 'user-123',
