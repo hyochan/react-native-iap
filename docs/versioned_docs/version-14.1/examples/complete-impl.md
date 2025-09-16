@@ -156,7 +156,7 @@ const validateReceiptOnServer = async (purchase: Purchase) => {
       platform: Platform.OS,
       productId: purchase.productId,
       receipt: receipt,
-      transactionId: purchase.transactionId,
+      transactionId: purchase.id,
     }),
   });
 

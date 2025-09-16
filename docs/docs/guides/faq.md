@@ -470,7 +470,7 @@ Because of this timing model, all request\* APIs (e.g., `requestPurchase`) are e
 
 - First call: Immediate after successful purchase
 - Second call: After `finishTransaction()` is called (or on app restart for products)
-- Both calls have the same `transactionId`
+- Both calls have the same `id`
 
 **Example:**
 

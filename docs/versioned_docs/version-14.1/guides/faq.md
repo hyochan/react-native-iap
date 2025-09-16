@@ -439,14 +439,14 @@ These issues ([#114](https://github.com/hyochan/react-native-iap/issues/114), [r
 
 - First call: Immediate after successful purchase
 - Second call: After `finishTransaction()` is called (or on app restart for products)
-- Both calls have the same `transactionId`
+- Both calls have the same `id`
 
 **Example:**
 
 ```tsx
 // This pattern may cause duplicate calls
 const purchaseListener = purchaseUpdatedListener(async (purchase) => {
-  console.log('Purchase received:', purchase.transactionId);
+  console.log('Purchase received:', purchase.id);
   await validateOnServer(purchase);
   await finishTransaction({purchase, isConsumable: false});
   // ⚠️ Listener may be called again after finishTransaction
@@ -464,7 +464,7 @@ await requestPurchase({
 const processedTransactions = new Set();
 
 const purchaseListener = purchaseUpdatedListener(async (purchase) => {
-  const transactionId = purchase.transactionId;
+  const transactionId = purchase.id;
 
   // Skip if already processed
   if (processedTransactions.has(transactionId)) {

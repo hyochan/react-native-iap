@@ -28,8 +28,8 @@ describe('PurchaseFlow Screen', () => {
         displayPrice: '$0.99',
         price: 0.99,
         currency: 'USD',
-        type: 'IN_APP',
-        platform: 'IOS',
+        type: 'in-app',
+        platform: 'ios',
       },
       {
         id: 'dev.hyo.martie.30bulbs',
@@ -38,8 +38,8 @@ describe('PurchaseFlow Screen', () => {
         displayPrice: '$2.99',
         price: 2.99,
         currency: 'USD',
-        type: 'IN_APP',
-        platform: 'IOS',
+        type: 'in-app',
+        platform: 'ios',
       },
     ]);
     (RNIap.purchaseUpdatedListener as jest.Mock).mockReturnValue({
@@ -49,10 +49,11 @@ describe('PurchaseFlow Screen', () => {
       remove: jest.fn(),
     });
     (RNIap.requestPurchase as jest.Mock).mockResolvedValue({
+      id: 'trans-123',
       productId: 'dev.hyo.martie.10bulbs',
-      transactionId: 'trans-123',
-      transactionReceipt: 'receipt-123',
+      purchaseToken: 'token-123',
       transactionDate: Date.now(),
+      platform: 'ios',
     });
     (RNIap.finishTransaction as jest.Mock).mockResolvedValue(undefined);
   });
@@ -238,9 +239,9 @@ describe('PurchaseFlow Screen', () => {
 
     // Simulate purchase success
     const mockPurchase = {
+      id: 'trans-123',
       productId: 'dev.hyo.martie.10bulbs',
-      transactionId: 'trans-123',
-      transactionReceipt: 'receipt-123',
+      purchaseToken: 'token-123',
       transactionDate: Date.now(),
       platform: 'ios',
     };
@@ -387,9 +388,9 @@ describe('PurchaseFlow Screen', () => {
 
     // Simulate purchase success
     const mockPurchase = {
+      id: 'trans-123',
       productId: 'dev.hyo.martie.10bulbs',
-      transactionId: 'trans-123',
-      transactionReceipt: 'receipt-123',
+      purchaseToken: 'token-123',
       transactionDate: Date.now(),
       platform: 'ios',
     };
@@ -418,12 +419,12 @@ describe('PurchaseFlow Screen', () => {
     render(<PurchaseFlow />);
 
     const mockAndroidPurchase = {
+      id: 'trans-123',
       productId: 'dev.hyo.martie.10bulbs',
-      transactionId: 'trans-123',
       purchaseToken: 'token-123',
       dataAndroid: 'android-data',
       purchaseStateAndroid: 1,
-      purchaseState: 'PURCHASED',
+      purchaseState: 'purchased',
       isAcknowledgedAndroid: false,
       packageNameAndroid: 'dev.hyo.martie',
       transactionDate: Date.now(),
@@ -483,8 +484,8 @@ describe('PurchaseFlow Screen', () => {
           displayPrice: '$0.99',
           price: 0.99,
           currency: 'USD',
-          type: 'IN_APP',
-          platform: 'IOS',
+          type: 'in-app',
+          platform: 'ios',
         },
       ]);
 
@@ -518,8 +519,8 @@ describe('PurchaseFlow Screen', () => {
         oneTimePurchaseOfferFormattedPrice: '$0.89',
         price: 0.99,
         currency: 'USD',
-        type: 'IN_APP',
-        platform: 'ANDROID',
+        type: 'in-app',
+        platform: 'android',
       },
     ]);
 
@@ -582,12 +583,12 @@ describe('PurchaseFlow Screen', () => {
 
     // Simulate purchase to show result
     const mockPurchase = {
+      id: 'trans-123',
       productId: 'dev.hyo.martie.10bulbs',
-      transactionId: 'trans-123',
-      transactionReceipt: 'receipt-123',
+      purchaseToken: 'receipt-123',
       transactionDate: Date.now(),
       platform: 'ios',
-      purchaseState: 'PURCHASED',
+      purchaseState: 'purchased',
     };
 
     act(() => {

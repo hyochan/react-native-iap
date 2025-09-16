@@ -519,7 +519,7 @@ const IOSPurchaseExample = () => {
   const {connected, products, requestPurchase, validateReceipt} = useIAP({
     onPurchaseSuccess: async (purchase) => {
       // Validate receipt on iOS
-      const validation = await validateReceipt(purchase.productId);
+      const validation = await validateReceipt(purchase.id);
       if (validation.isValid) {
         unlockContent(purchase.productId);
       }

@@ -813,8 +813,8 @@ const response = await fetch('https://your-server.com/validate-ios-receipt', {
   method: 'POST',
   headers: {'Content-Type': 'application/json'},
   body: JSON.stringify({
-    transactionId: purchase.transactionId,
-    productId: purchase.id,
+    transactionId: purchase.id,
+    productId: purchase.productId,
     // Your server will fetch the receipt from Apple
   }),
 });

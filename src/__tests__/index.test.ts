@@ -6,7 +6,6 @@ import {Platform} from 'react-native';
 import {ErrorCode} from '../types';
 
 const PLATFORM_IOS = 'ios';
-const PRODUCT_QUERY_TYPE_ALL = 'all';
 
 // Minimal Nitro IAP mock to exercise wrappers
 const mockIap: any = {
@@ -245,7 +244,7 @@ describe('Public API (src/index.ts)', () => {
         ]);
       const result = await IAP.fetchProducts({
         skus: ['x', 'y'],
-        type: PRODUCT_QUERY_TYPE_ALL,
+        type: 'all',
       });
       expect(result.map((p: any) => p.id).sort()).toEqual(['x', 'y']);
       expect(mockIap.fetchProducts).toHaveBeenNthCalledWith(

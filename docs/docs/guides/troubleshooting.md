@@ -228,7 +228,7 @@ const {finishTransaction} = useIAP({
         // Option 2 (RECOMMENDED - Secure):
         const isValid = await validateReceiptOnServer({
           transactionId: purchase.id,
-          productId: purchase.id,
+          productId: purchase.productId,
         });
         if (!isValid) {
           console.error('Invalid receipt');
@@ -244,7 +244,7 @@ const {finishTransaction} = useIAP({
         const isValid = await validateAndroidPurchaseOnServer({
           purchaseToken,
           packageName,
-          productId: purchase.id,
+          productId: purchase.productId,
         });
 
         if (!isValid) {
