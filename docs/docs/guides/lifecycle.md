@@ -289,7 +289,7 @@ const goodPurchaseFlow = async (productId) => {
 
 11. **Monitor purchase flow**: Log important events for debugging, but never log sensitive information like receipts or tokens.
 
-12. **Check server-side validation libraries**: Consider using open-source libraries like [node-app-store-receipt-verify](https://github.com/ladeiko/node-app-store-receipt-verify) for iOS or [google-play-billing-validator](https://github.com/macklinu/google-play-billing-validator) for Android.
+12. **Check server-side validation libraries**: Consider using open-source libraries like [node-apple-receipt-verify](https://github.com/ladeiko/node-apple-receipt-verify) for iOS or [google-play-billing-validator](https://github.com/Deishelon/google-play-billing-validator) for Android.
 
 ## Common Pitfalls and Solutions
 
