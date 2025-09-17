@@ -4,10 +4,28 @@
         <title>React Native IAP Blog</title>
         <link>https://hyochan.github.io/react-native-iap/blog</link>
         <description>React Native IAP Blog</description>
-        <lastBuildDate>Tue, 16 Sep 2025 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 18 Sep 2025 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
+        <item>
+            <title><![CDATA[Release 14.3.5]]></title>
+            <link>https://hyochan.github.io/react-native-iap/blog/2025/09/18/release-14.3.5</link>
+            <guid>https://hyochan.github.io/react-native-iap/blog/2025/09/18/release-14.3.5</guid>
+            <pubDate>Thu, 18 Sep 2025 00:00:00 GMT</pubDate>
+            <description><![CDATA[Small Android-centric polish with dependency bumps to keep the store bridges aligned.]]></description>
+            <content:encoded><![CDATA[<p>Small Android-centric polish with dependency bumps to keep the store bridges aligned.</p>
+<ul>
+<li>Upgrade the fallback/config plugin to <a href="https://github.com/hyodotdev/openiap-google/releases/tag/1.1.10" target="_blank" rel="noopener noreferrer">openiap-google 1.1.10</a> so Android builds pick up the latest Billing configuration fixes.</li>
+<li>Bump the iOS pod to <a href="https://github.com/hyodotdev/openiap-apple/releases/tag/1.1.12" target="_blank" rel="noopener noreferrer">openiap 1.1.12</a> and switch native error codes to PascalCase to match the shared TypeScript surface.</li>
+<li>Restore the explicit <code>Failed to initialize connection</code> message when Play Billing rejects <code>initConnection()</code> so logs stay actionable.</li>
+<li>Keep receipt validation failures tagged with a helpful prefix even when the underlying exception omits a message.</li>
+<li>Drop the purchase token from acknowledge/consume error payloads to avoid leaking identifiers in client logs.</li>
+</ul>
+<p>No breaking changes.</p>]]></content:encoded>
+            <category>Release</category>
+            <category>Android</category>
+        </item>
         <item>
             <title><![CDATA[Release 14.3.3]]></title>
             <link>https://hyochan.github.io/react-native-iap/blog/2025/09/16/release-14.3.3</link>
