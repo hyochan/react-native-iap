@@ -99,7 +99,12 @@ class HybridRnIap : HybridRnIapSpec() {
                 }
                 if (!ok) {
                     val error = OpenIAPError.InitConnection()
-                    throw Exception(toErrorJson(error))
+                    throw Exception(
+                        toErrorJson(
+                            error = error,
+                            messageOverride = "Failed to initialize connection"
+                        )
+                    )
                 }
                 isInitialized = true
                 deferred.complete(true)
@@ -618,7 +623,7 @@ class HybridRnIap : HybridRnIapSpec() {
                     toErrorJson(
                         error = error,
                         debugMessage = debugMessage,
-                        messageOverride = debugMessage?.let { "Receipt validation failed: $it" }
+                        messageOverride = "Receipt validation failed: ${debugMessage ?: "unknown reason"}"
                     )
                 )
             }
