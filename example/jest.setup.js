@@ -74,8 +74,6 @@ jest.mock('../src/index', () => ({
     products: [],
     subscriptions: [],
     availablePurchases: [],
-    currentPurchase: undefined,
-    currentPurchaseError: undefined,
     initConnectionAndListen: jest.fn(() => Promise.resolve(true)),
     getProducts: jest.fn(() => Promise.resolve([])),
     getSubscriptions: jest.fn(() => Promise.resolve([])),

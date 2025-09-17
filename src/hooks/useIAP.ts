@@ -50,12 +50,8 @@ type UseIap = {
   promotedProductIdIOS?: string;
   subscriptions: ProductSubscription[];
   availablePurchases: Purchase[];
-  currentPurchase?: Purchase;
-  currentPurchaseError?: PurchaseError;
   promotedProductIOS?: Product;
   activeSubscriptions: ActiveSubscription[];
-  clearCurrentPurchase: () => void;
-  clearCurrentPurchaseError: () => void;
   finishTransaction: ({
     purchase,
     isConsumable,
@@ -114,10 +110,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
   const [promotedProductsIOS] = useState<Purchase[]>([]);
   const [subscriptions, setSubscriptions] = useState<ProductSubscription[]>([]);
   const [availablePurchases, setAvailablePurchases] = useState<Purchase[]>([]);
-  const [currentPurchase, setCurrentPurchase] = useState<Purchase>();
   const [promotedProductIOS, setPromotedProductIOS] = useState<Product>();
-  const [currentPurchaseError, setCurrentPurchaseError] =
-    useState<PurchaseError>();
   const [promotedProductIdIOS] = useState<string>();
   const [activeSubscriptions, setActiveSubscriptions] = useState<
     ActiveSubscription[]
@@ -167,14 +160,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
   useEffect(() => {
     subscriptionsRefState.current = subscriptions;
   }, [subscriptions]);
-
-  const clearCurrentPurchase = useCallback(() => {
-    setCurrentPurchase(undefined);
-  }, []);
-
-  const clearCurrentPurchaseError = useCallback(() => {
-    setCurrentPurchaseError(undefined);
-  }, []);
 
   const getProductsInternal = useCallback(
     async (skus: string[]): Promise<void> => {
@@ -313,35 +298,14 @@ export function useIAP(options?: UseIapOptions): UseIap {
         });
       } catch (err) {
         throw err;
-      } finally {
-        if (purchase.id === currentPurchase?.id) {
-          clearCurrentPurchase();
-        }
-        if (purchase.id === currentPurchaseError?.productId) {
-          clearCurrentPurchaseError();
-        }
       }
     },
-    [
-      currentPurchase?.id,
-      currentPurchaseError?.productId,
-      clearCurrentPurchase,
-      clearCurrentPurchaseError,
-    ],
+    [],
   );
 
-  const requestPurchaseWithReset = useCallback(
-    async (requestObj: RequestPurchaseProps) => {
-      clearCurrentPurchase();
-      clearCurrentPurchaseError();
-
-      try {
-        return await requestPurchaseInternal(requestObj);
-      } catch (error) {
-        throw error;
-      }
-    },
-    [clearCurrentPurchase, clearCurrentPurchaseError],
+  const requestPurchase = useCallback(
+    (requestObj: RequestPurchaseProps) => requestPurchaseInternal(requestObj),
+    [],
   );
 
   // No local restorePurchases; use the top-level helper via returned API
@@ -365,8 +329,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
     // Register listeners BEFORE initConnection to avoid race condition
     subscriptionsRef.current.purchaseUpdate = purchaseUpdatedListener(
       async (purchase: Purchase) => {
-        setCurrentPurchaseError(undefined);
-        setCurrentPurchase(purchase);
         // Always refresh subscription state after a purchase event
         try {
           await getActiveSubscriptionsInternal();
@@ -393,8 +355,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
       ) {
         return;
       }
-      setCurrentPurchase(undefined);
-      setCurrentPurchaseError(mappedError);
       if (optionsRef.current?.onPurchaseError) {
         optionsRef.current.onPurchaseError(mappedError);
       }
@@ -445,15 +405,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
     subscriptions,
     finishTransaction,
     availablePurchases,
-    currentPurchase,
-    currentPurchaseError,
     promotedProductIOS,
     activeSubscriptions,
-    clearCurrentPurchase,
-    clearCurrentPurchaseError,
     getAvailablePurchases: getAvailablePurchasesInternal,
     fetchProducts: fetchProductsInternal,
-    requestPurchase: requestPurchaseWithReset,
+    requestPurchase,
     validateReceipt,
     restorePurchases: async () => {
       try {

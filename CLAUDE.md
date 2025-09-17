@@ -168,9 +168,17 @@ Access these from the Run and Debug panel (⌘⇧D) in VSCode.
 
 ### Commit Message Convention
 
-- **With tag**: Use lowercase after tag (e.g., `feat: add new feature`, `fix: resolve bug`)
-- **Without tag**: Start with uppercase (e.g., `Add new feature`, `Fix critical bug`)
-- Common tags: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
+This repository follows the **Angular Conventional Commits** format:
+
+```
+<type>(<scope>): <subject>
+```
+
+- `type` is one of: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`.
+- `scope` is optional but encouraged (e.g., `hooks`, `android`).
+- `subject` is imperative, lowercase, ≤ ~50 chars, and has no trailing period.
+- Wrap commit bodies at ~72 columns; include `BREAKING CHANGE:` / `Closes #123` footers when needed.
+- Examples: `feat(auth): add refresh token support`, `chore(ci): bump workflows`.
 
 ### Code Style
 

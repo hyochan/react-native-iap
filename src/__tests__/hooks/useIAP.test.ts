@@ -64,8 +64,9 @@ describe('hooks/useIAP (renderer)', () => {
 
   it('connects on mount and updates state on purchase events', async () => {
     let api: any;
+    const onPurchaseSuccess = jest.fn();
     const Harness = () => {
-      api = useIAP();
+      api = useIAP({onPurchaseSuccess});
       return null;
     };
 
@@ -92,7 +93,7 @@ describe('hooks/useIAP (renderer)', () => {
       capturedPurchaseListener?.(purchase);
     });
     await act(async () => {});
-    expect(api.currentPurchase?.productId).toBe('p1');
+    expect(onPurchaseSuccess).toHaveBeenCalledWith(purchase);
 
     // Ensure finishTransaction wrapper works
     await act(async () => {
