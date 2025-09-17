@@ -51,14 +51,14 @@ describe('withIAP config plugin (Android)', () => {
     const config = makeConfig(initial, {manifest: {}});
     const result: any = plugin(config as any);
     const out = result.modResults.contents as string;
-    expect(out).toContain('io.github.hyochan.openiap:openiap-google:1.1.0');
+    expect(out).toContain('io.github.hyochan.openiap:openiap-google:1.1.10');
     expect((console.log as jest.Mock).mock.calls.join(' ')).toMatch(
-      /Added OpenIAP \(1\.1\.0\) to build\.gradle/,
+      /Added OpenIAP \(1\.1\.10\) to build\.gradle/,
     );
   });
 
   it('is idempotent and respects hasLoggedPluginExecution', () => {
-    const initial = `dependencies {\n    implementation "io.github.hyochan.openiap:openiap-google:1.1.0"\n}`;
+    const initial = `dependencies {\n    implementation "io.github.hyochan.openiap:openiap-google:1.1.10"\n}`;
     const config1 = makeConfig(initial, {manifest: {}});
     const res1: any = plugin(config1 as any);
     expect(

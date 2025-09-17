@@ -4,15 +4,15 @@ import android.util.Log
 import com.facebook.react.bridge.ReactApplicationContext
 import com.margelo.nitro.NitroModules
 import com.margelo.nitro.core.Promise
-import dev.hyo.openiap.OpenIapError
+import dev.hyo.openiap.OpenIapError as OpenIAPError
 import dev.hyo.openiap.OpenIapModule
 import dev.hyo.openiap.listener.OpenIapPurchaseErrorListener
 import dev.hyo.openiap.listener.OpenIapPurchaseUpdateListener
+import dev.hyo.openiap.models.DeepLinkOptions
 import dev.hyo.openiap.models.OpenIapProduct
 import dev.hyo.openiap.models.OpenIapPurchase
-import dev.hyo.openiap.models.DeepLinkOptions
 import dev.hyo.openiap.models.ProductRequest
-import dev.hyo.openiap.models.RequestPurchaseAndroidProps
+import dev.hyo.openiap.models.OpenIapRequestPurchaseProps
 import dev.hyo.openiap.models.OpenIapSerialization
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -68,8 +68,8 @@ class HybridRnIap : HybridRnIapSpec() {
                         .onFailure { Log.e(TAG, "Failed to forward purchase update", it) }
                 })
                 openIap.addPurchaseErrorListener(OpenIapPurchaseErrorListener { e ->
-                    val code = OpenIapError.toCode(e)
-                    val message = e.message ?: OpenIapError.defaultMessage(code)
+                    val code = OpenIAPError.toCode(e)
+                    val message = e.message ?: OpenIAPError.defaultMessage(code)
                     runCatching {
                         sendPurchaseError(
                             NitroPurchaseResult(
@@ -88,11 +88,17 @@ class HybridRnIap : HybridRnIapSpec() {
             val deferred = initDeferred!!
             try {
                 val ok = runCatching { openIap.initConnection() }.getOrElse { err ->
-                    val error = OpenIapError.InitConnection(err.message ?: "Failed to initialize connection")
-                    throw Exception(toErrorJson(error))
+                    val error = OpenIAPError.InitConnection()
+                    throw Exception(
+                        toErrorJson(
+                            error = error,
+                            debugMessage = err.message,
+                            messageOverride = err.message
+                        )
+                    )
                 }
                 if (!ok) {
-                    val error = OpenIapError.InitConnection("Failed to initialize connection")
+                    val error = OpenIAPError.InitConnection()
                     throw Exception(toErrorJson(error))
                 }
                 isInitialized = true
@@ -125,7 +131,7 @@ class HybridRnIap : HybridRnIapSpec() {
             Log.d(TAG, "fetchProducts (OpenIAP) skus=${skus.joinToString()} type=$type")
 
             if (skus.isEmpty()) {
-                throw Exception(toErrorJson(OpenIapError.EmptySkuList))
+                throw Exception(toErrorJson(OpenIAPError.EmptySkuList))
             }
 
             initConnection().await()
@@ -147,12 +153,12 @@ class HybridRnIap : HybridRnIapSpec() {
 
             val androidRequest = request.android ?: run {
                 // Programming error: no Android params provided
-                sendPurchaseError(toErrorResult(OpenIapError.DeveloperError))
+                sendPurchaseError(toErrorResult(OpenIAPError.DeveloperError))
                 return@async defaultResult
             }
 
             if (androidRequest.skus.isEmpty()) {
-                sendPurchaseError(toErrorResult(OpenIapError.EmptySkuList))
+                sendPurchaseError(toErrorResult(OpenIAPError.EmptySkuList))
                 return@async defaultResult
             }
 
@@ -162,14 +168,14 @@ class HybridRnIap : HybridRnIapSpec() {
 
                 val missing = androidRequest.skus.firstOrNull { !productTypeBySku.containsKey(it) }
                 if (missing != null) {
-                    sendPurchaseError(toErrorResult(OpenIapError.SkuNotFound(missing), missing))
+                    sendPurchaseError(toErrorResult(OpenIAPError.SkuNotFound(missing), missing))
                     return@async defaultResult
                 }
                 val typeStr = androidRequest.skus.firstOrNull()?.let { productTypeBySku[it] } ?: "inapp"
                 val typeEnum = ProductRequest.ProductRequestType.fromString(typeStr)
 
                 val result = openIap.requestPurchase(
-                    RequestPurchaseAndroidProps(
+                    OpenIapRequestPurchaseProps(
                         skus = androidRequest.skus.toList(),
                         obfuscatedAccountIdAndroid = androidRequest.obfuscatedAccountIdAndroid,
                         obfuscatedProfileIdAndroid = androidRequest.obfuscatedProfileIdAndroid,
@@ -185,7 +191,13 @@ class HybridRnIap : HybridRnIapSpec() {
 
                 defaultResult
             } catch (e: Exception) {
-                sendPurchaseError(toErrorResult(OpenIapError.PurchaseFailed(e.message ?: "Purchase failed")))
+                sendPurchaseError(
+                    toErrorResult(
+                        error = OpenIAPError.PurchaseFailed(),
+                        debugMessage = e.message,
+                        messageOverride = e.message
+                    )
+                )
                 defaultResult
             }
         }
@@ -220,7 +232,7 @@ class HybridRnIap : HybridRnIapSpec() {
                     NitroPurchaseResult(
                         responseCode = -1.0,
                         debugMessage = "Missing purchaseToken",
-                        code = OpenIapError.toCode(OpenIapError.DeveloperError),
+                        code = OpenIAPError.toCode(OpenIAPError.DeveloperError),
                         message = "Missing purchaseToken",
                         purchaseToken = null
                     )
@@ -231,13 +243,13 @@ class HybridRnIap : HybridRnIapSpec() {
             try {
                 initConnection().await()
             } catch (e: Exception) {
-                val err = OpenIapError.InitConnection(e.message ?: "Failed to initialize connection")
+                val err = OpenIAPError.InitConnection()
                 return@async Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
                         responseCode = -1.0,
                         debugMessage = e.message,
-                        code = OpenIapError.toCode(err),
-                        message = err.message,
+                        code = OpenIAPError.toCode(err),
+                        message = e.message?.takeIf { it.isNotBlank() } ?: err.message,
                         purchaseToken = purchaseToken
                     )
                 )
@@ -259,13 +271,13 @@ class HybridRnIap : HybridRnIapSpec() {
                     )
                 )
             } catch (e: Exception) {
-                val err = OpenIapError.BillingError(e.message ?: "Service error")
+                val err = OpenIAPError.BillingError()
                 Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
                         responseCode = -1.0,
                         debugMessage = e.message,
-                        code = OpenIapError.toCode(err),
-                        message = err.message,
+                        code = OpenIAPError.toCode(err),
+                        message = e.message?.takeIf { it.isNotBlank() } ?: err.message,
                         purchaseToken = purchaseToken
                     )
                 )
@@ -361,7 +373,7 @@ class HybridRnIap : HybridRnIapSpec() {
         var subscriptionPeriodAndroid: String? = null
         var freeTrialPeriodAndroid: String? = null
 
-        if (product.type == OpenIapProduct.ProductType.INAPP) {
+        if (product.type == OpenIapProduct.ProductType.InApp) {
             product.oneTimePurchaseOfferDetailsAndroid?.let { otp ->
                 originalPriceAndroid = otp.formattedPrice
                 // priceAmountMicros is a string; parse to number if possible
@@ -433,8 +445,8 @@ class HybridRnIap : HybridRnIapSpec() {
     private fun convertToNitroPurchase(purchase: OpenIapPurchase): NitroPurchase {
         // Map OpenIAP purchase state back to legacy numeric Android state for compatibility
         val purchaseStateAndroidNumeric = when (purchase.purchaseState) {
-            OpenIapPurchase.PurchaseState.PURCHASED -> 1.0
-            OpenIapPurchase.PurchaseState.PENDING -> 2.0
+            OpenIapPurchase.PurchaseState.Purchased -> 1.0
+            OpenIapPurchase.PurchaseState.Pending -> 2.0
             else -> 0.0 // UNSPECIFIED/UNKNOWN/other
         }
         return NitroPurchase(
@@ -470,14 +482,14 @@ class HybridRnIap : HybridRnIapSpec() {
     // iOS-specific method - not supported on Android
     override fun getStorefrontIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
 
     // iOS-specific method - not supported on Android
     override fun getAppTransactionIOS(): Promise<String?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
 
@@ -563,7 +575,7 @@ class HybridRnIap : HybridRnIapSpec() {
             try {
                 // For Android, we need the androidOptions to be provided
                 val androidOptions = params.androidOptions
-                    ?: throw Exception(toErrorJson(OpenIapError.DeveloperError))
+                    ?: throw Exception(toErrorJson(OpenIAPError.DeveloperError))
 
                 // Android receipt validation would typically involve server-side validation
                 // using Google Play Developer API. Here we provide a simplified implementation
@@ -600,7 +612,15 @@ class HybridRnIap : HybridRnIapSpec() {
                 Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid.Second(result)
                 
             } catch (e: Exception) {
-                throw Exception(toErrorJson(OpenIapError.InvalidReceipt("Receipt validation failed: ${e.message}")))
+                val debugMessage = e.message
+                val error = OpenIAPError.InvalidReceipt()
+                throw Exception(
+                    toErrorJson(
+                        error = error,
+                        debugMessage = debugMessage,
+                        messageOverride = debugMessage?.let { "Receipt validation failed: $it" }
+                    )
+                )
             }
         }
     }
@@ -608,31 +628,31 @@ class HybridRnIap : HybridRnIapSpec() {
     // iOS-specific methods - Not applicable on Android, return appropriate defaults
     override fun subscriptionStatusIOS(sku: String): Promise<Array<NitroSubscriptionStatus>?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
     
     override fun currentEntitlementIOS(sku: String): Promise<NitroPurchase?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
     
     override fun latestTransactionIOS(sku: String): Promise<NitroPurchase?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
     
     override fun getPendingTransactionsIOS(): Promise<Array<NitroPurchase>> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
     
     override fun syncIOS(): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
     
@@ -640,49 +660,61 @@ class HybridRnIap : HybridRnIapSpec() {
     
     override fun isEligibleForIntroOfferIOS(groupID: String): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
     
     override fun getReceiptDataIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
     
     override fun isTransactionVerifiedIOS(sku: String): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
     
     override fun getTransactionJwsIOS(sku: String): Promise<String?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIapError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
 
     // ---------------------------------------------------------------------
     // OpenIAP error helpers: unify error codes/messages from library
     // ---------------------------------------------------------------------
-    private fun toErrorJson(error: OpenIapError, productId: String? = null): String {
-        val code = OpenIapError.toCode(error)
-        val message = error.message.ifEmpty { OpenIapError.defaultMessage(code) }
+    private fun toErrorJson(
+        error: OpenIAPError,
+        productId: String? = null,
+        debugMessage: String? = null,
+        messageOverride: String? = null
+    ): String {
+        val code = OpenIAPError.toCode(error)
+        val message = messageOverride?.takeIf { it.isNotBlank() }
+            ?: error.message.ifEmpty { OpenIAPError.defaultMessage(code) }
         return BillingUtils.createErrorJson(
             code = code,
             message = message,
             responseCode = -1,
-            debugMessage = error.message,
+            debugMessage = debugMessage ?: error.message,
             productId = productId
         )
     }
 
-    private fun toErrorResult(error: OpenIapError, productId: String? = null): NitroPurchaseResult {
-        val code = OpenIapError.toCode(error)
-        val message = error.message.ifEmpty { OpenIapError.defaultMessage(code) }
+    private fun toErrorResult(
+        error: OpenIAPError,
+        productId: String? = null,
+        debugMessage: String? = null,
+        messageOverride: String? = null
+    ): NitroPurchaseResult {
+        val code = OpenIAPError.toCode(error)
+        val message = messageOverride?.takeIf { it.isNotBlank() }
+            ?: error.message.ifEmpty { OpenIAPError.defaultMessage(code) }
         return NitroPurchaseResult(
             responseCode = -1.0,
-            debugMessage = error.message,
+            debugMessage = debugMessage ?: error.message,
             code = code,
             message = message,
             purchaseToken = null

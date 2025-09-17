@@ -94,7 +94,7 @@ Add the OpenIAP Google library to your `android/app/build.gradle` dependencies:
 
 ```gradle
 dependencies {
-    implementation "io.github.hyochan.openiap:openiap-google:1.1.0"
+    implementation "io.github.hyochan.openiap:openiap-google:1.1.10"
 }
 ```
 

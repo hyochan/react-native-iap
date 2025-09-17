@@ -46,7 +46,7 @@ export const modifyProjectBuildGradle = (gradle: string): string => {
 };
 
 const OPENIAP_COORD = 'io.github.hyochan.openiap:openiap-google';
-const OPENIAP_VERSION = '1.1.0';
+const OPENIAP_VERSION = '1.1.10';
 
 const modifyAppBuildGradle = (gradle: string): string => {
   let modified = gradle;
