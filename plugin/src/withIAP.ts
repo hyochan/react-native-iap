@@ -128,7 +128,7 @@ type IapPluginProps = {
   ios?: {
     // Intentionally following user-provided key spelling
     // Enable to inject Folly coroutine-disabling macros into Podfile during prebuild
-    'with-folly-no-couroutines'?: boolean;
+    'with-folly-no-coroutines'?: boolean;
   };
 };
 
@@ -136,7 +136,7 @@ const withIapIosFollyWorkaround: ConfigPlugin<IapPluginProps | undefined> = (
   config,
   props,
 ) => {
-  const enabled = !!props?.ios?.['with-folly-no-couroutines'];
+  const enabled = !!props?.ios?.['with-folly-no-coroutines'];
   if (!enabled) return config;
 
   return withPodfile(config, (config) => {

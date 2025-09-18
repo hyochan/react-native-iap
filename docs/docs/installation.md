@@ -92,7 +92,7 @@ After installing the package, you need to:
            "react-native-iap",
            {
              "ios": {
-               "with-folly-no-couroutines": true
+               "with-folly-no-coroutines": true
              }
            }
          ]
