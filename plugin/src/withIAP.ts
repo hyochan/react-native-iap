@@ -140,12 +140,13 @@ const withIapIosFollyWorkaround: ConfigPlugin<IapPluginProps | undefined> = (
   const newKey = props?.ios?.['with-folly-no-coroutines'];
   const oldKey = props?.ios?.['with-folly-no-couroutines'];
   if (oldKey && !hasLoggedPluginExecution) {
-    // Temporary deprecation notice; remove when old key is dropped  
-    console.warn(
+    // Temporary deprecation notice; remove when old key is dropped
+    WarningAggregator.addWarningIOS(
+      'react-native-iap',
       "react-native-iap: 'ios.with-folly-no-couroutines' is deprecated; use 'ios.with-folly-no-coroutines'."
     );
   }
-  const enabled = !!(newKey ?? oldKey);  
+  const enabled = !!(newKey ?? oldKey);
   if (!enabled) return config;
 
   return withPodfile(config, (config) => {
