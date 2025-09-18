@@ -356,8 +356,8 @@ describe('Public API (src/index.ts)', () => {
         },
         type: 'subs',
       });
-      const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
-      expect(passed.android.subscriptionOffers).toEqual([
+      const [lastCallArgs] = mockIap.requestPurchase.mock.lastCall;
+      expect(lastCallArgs.android.subscriptionOffers).toEqual([
         {sku: 'sub1', offerToken: 'offer-1'},
         {sku: 'sub1', offerToken: 'offer-2'},
       ]);
