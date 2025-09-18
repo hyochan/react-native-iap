@@ -100,6 +100,8 @@ After installing the package, you need to:
      }
    }
    ```
+   Note migration:
+   - This option key was renamed from `with-folly-no-couroutines` to `with-folly-no-coroutines`. Update your Expo config accordingly. For compatibility, the plugin temporarily accepts the old key and logs a deprecation warning.
 
    What this does:
    - Injects `FOLLY_NO_CONFIG=1`, `FOLLY_CFG_NO_COROUTINES=1`, and `FOLLY_HAS_COROUTINES=0` into the Podfile `post_install` block for all Pods targets, preventing `RCT-Folly` from including non‑vendored `<folly/coro/*>` headers.
