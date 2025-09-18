@@ -213,50 +213,50 @@ describe('Public API (src/index.ts)', () => {
         skus: ['a', 'b'],
         type: 'in-app',
       });
-      expect(products.map((p: any) => p.id)).toEqual(['a']);
+      expect((products ?? []).map((p: any) => p.id)).toEqual(['a']);
       expect(warn).toHaveBeenCalled();
       warn.mockRestore();
     });
 
     it('fetches both inapp and subs when type = all', async () => {
       (Platform as any).OS = 'android';
-      mockIap.fetchProducts
-        .mockResolvedValueOnce([
-          {
-            id: 'x',
-            title: 'X',
-            description: 'dx',
-            type: 'inapp',
-            platform: 'android',
-            displayPrice: '$1.00',
-            currency: 'USD',
-          },
-        ])
-        .mockResolvedValueOnce([
-          {
-            id: 'y',
-            title: 'Y',
-            description: 'dy',
-            type: 'subs',
-            platform: 'android',
-            displayPrice: '$2.00',
-            currency: 'USD',
-          },
-        ]);
+      mockIap.fetchProducts.mockResolvedValueOnce([
+        {
+          id: 'x',
+          title: 'X',
+          description: 'dx',
+          type: 'inapp',
+          platform: 'android',
+          displayPrice: '$1.00',
+          currency: 'USD',
+        },
+        {
+          id: 'y',
+          title: 'Y',
+          description: 'dy',
+          type: 'subs',
+          platform: 'android',
+          displayPrice: '$2.00',
+          currency: 'USD',
+        },
+      ]);
       const result = await IAP.fetchProducts({
         skus: ['x', 'y'],
         type: 'all',
       });
-      expect(result.map((p: any) => p.id).sort()).toEqual(['x', 'y']);
+      const items = result ?? [];
+      const productIds = items
+        .filter((item: any) => item.type === 'in-app')
+        .map((item: any) => item.id);
+      const subscriptionIds = items
+        .filter((item: any) => item.type === 'subs')
+        .map((item: any) => item.id);
+      expect(productIds).toEqual(['x']);
+      expect(subscriptionIds).toEqual(['y']);
       expect(mockIap.fetchProducts).toHaveBeenNthCalledWith(
         1,
         ['x', 'y'],
-        'inapp',
-      );
-      expect(mockIap.fetchProducts).toHaveBeenNthCalledWith(
-        2,
-        ['x', 'y'],
-        'subs',
+        'all',
       );
     });
   });
@@ -396,7 +396,7 @@ describe('Public API (src/index.ts)', () => {
   });
 
   describe('finishTransaction', () => {
-    it('iOS requires purchase.id and returns boolean', async () => {
+    it('iOS requires purchase.id and returns success state', async () => {
       (Platform as any).OS = 'ios';
       await expect(
         IAP.finishTransaction({purchase: {id: ''} as any}),
@@ -405,7 +405,7 @@ describe('Public API (src/index.ts)', () => {
       mockIap.finishTransaction.mockResolvedValueOnce(true);
       await expect(
         IAP.finishTransaction({purchase: {id: 'tid'} as any}),
-      ).resolves.toBe(true);
+      ).resolves.toBeUndefined();
     });
 
     it('Android requires token; maps consume flag', async () => {
@@ -436,7 +436,7 @@ describe('Public API (src/index.ts)', () => {
       );
       await expect(
         IAP.finishTransaction({purchase: {id: 'tid'} as any}),
-      ).resolves.toBe(true);
+      ).resolves.toBeUndefined();
     });
   });
 
@@ -525,18 +525,28 @@ describe('Public API (src/index.ts)', () => {
       expect(p2?.id).toBe('sku2');
     });
 
-    it('buyPromotedProductIOS and alias requestPurchaseOnPromotedProductIOS call native', async () => {
+    it('requestPurchaseOnPromotedProductIOS triggers native purchase', async () => {
       (Platform as any).OS = 'ios';
       mockIap.buyPromotedProductIOS = jest.fn(async () => undefined);
-      await IAP.buyPromotedProductIOS();
-      await IAP.requestPurchaseOnPromotedProductIOS();
-      expect(mockIap.buyPromotedProductIOS).toHaveBeenCalledTimes(2);
+      const pending = {
+        id: 'tid',
+        productId: 'sku2',
+        transactionDate: Date.now(),
+        platform: 'ios',
+        quantity: 1,
+        purchaseState: 'purchased',
+        isAutoRenewing: false,
+      } as any;
+      mockIap.getPendingTransactionsIOS = jest.fn(async () => [pending]);
+      const result = await IAP.requestPurchaseOnPromotedProductIOS();
+      expect(result.productId).toBe('sku2');
+      expect(mockIap.buyPromotedProductIOS).toHaveBeenCalledTimes(1);
     });
 
     it('clearTransactionIOS resolves without throwing', async () => {
       (Platform as any).OS = 'ios';
       mockIap.clearTransactionIOS = jest.fn(async () => undefined);
-      await expect(IAP.clearTransactionIOS()).resolves.toBeUndefined();
+      await expect(IAP.clearTransactionIOS()).resolves.toBe(true);
     });
 
     it('beginRefundRequestIOS returns status string', async () => {
@@ -612,10 +622,7 @@ describe('Public API (src/index.ts)', () => {
     it('restorePurchases on iOS calls syncIOS first', async () => {
       (Platform as any).OS = 'ios';
       mockIap.syncIOS = jest.fn(async () => true);
-      await IAP.restorePurchases({
-        alsoPublishToEventListenerIOS: false,
-        onlyIncludeActiveItemsIOS: true,
-      });
+      await IAP.restorePurchases();
       expect(mockIap.syncIOS).toHaveBeenCalled();
     });
   });
@@ -630,7 +637,7 @@ describe('Public API (src/index.ts)', () => {
         purchaseToken: 'tok',
       });
       const res = await IAP.acknowledgePurchaseAndroid('tok');
-      expect(res.responseCode).toBe(0);
+      expect(res).toBe(true);
       expect(mockIap.finishTransaction).toHaveBeenCalledWith({
         android: {purchaseToken: 'tok', isConsumable: false},
       });
@@ -645,7 +652,7 @@ describe('Public API (src/index.ts)', () => {
         purchaseToken: 'tok',
       });
       const res = await IAP.consumePurchaseAndroid('tok');
-      expect(res.responseCode).toBe(0);
+      expect(res).toBe(true);
       expect(mockIap.finishTransaction).toHaveBeenCalledWith({
         android: {purchaseToken: 'tok', isConsumable: true},
       });
@@ -661,7 +668,9 @@ describe('Public API (src/index.ts)', () => {
         jwsRepresentation: 'jws',
         latestTransaction: null,
       });
-      const res = await IAP.validateReceipt('sku');
+      const res = await IAP.validateReceipt({
+        sku: 'sku',
+      });
       expect(res).toEqual(
         expect.objectContaining({
           isValid: true,
@@ -693,10 +702,13 @@ describe('Public API (src/index.ts)', () => {
         termSku: 'termSku',
         testTransaction: false,
       });
-      const res = await IAP.validateReceipt('sku', {
-        packageName: 'com.app',
-        productToken: 'tok',
-        accessToken: 'acc',
+      const res = await IAP.validateReceipt({
+        sku: 'sku',
+        androidOptions: {
+          packageName: 'com.app',
+          productToken: 'tok',
+          accessToken: 'acc',
+        },
       });
       expect(res).toEqual(
         expect.objectContaining({productId: 'sku', productType: 'inapp'}),
@@ -747,7 +759,7 @@ describe('Public API (src/index.ts)', () => {
     it('restorePurchases on Android does not call syncIOS', async () => {
       (Platform as any).OS = 'android';
       mockIap.syncIOS = jest.fn(async () => true);
-      await expect(IAP.restorePurchases()).resolves.toEqual(expect.any(Array));
+      await expect(IAP.restorePurchases()).resolves.toBeUndefined();
       expect(mockIap.syncIOS).not.toHaveBeenCalled();
     });
   });
@@ -762,30 +774,16 @@ describe('Public API (src/index.ts)', () => {
     });
   });
 
-  describe('Cross‑platform storefront and deeplink helpers', () => {
-    it('getStorefront returns Android storefront or empty string on failure', async () => {
-      (Platform as any).OS = 'android';
-      mockIap.getStorefrontAndroid = jest.fn(async () => 'US');
-      await expect(IAP.getStorefront()).resolves.toBe('US');
-
-      // Failure path returns empty string
-      mockIap.getStorefrontAndroid = jest.fn(async () => {
-        throw new Error('nope');
-      });
-      await expect(IAP.getStorefront()).resolves.toBe('');
-
-      // Optional method missing also returns empty string
-      delete mockIap.getStorefrontAndroid;
-      await expect(IAP.getStorefront()).resolves.toBe('');
-    });
-
+  describe('Cross‑platform helpers', () => {
     it('deepLinkToSubscriptions calls Android native deeplink when on Android', async () => {
       (Platform as any).OS = 'android';
       mockIap.deepLinkToSubscriptionsAndroid = jest.fn(async () => undefined);
-      await IAP.deepLinkToSubscriptions({
-        skuAndroid: 'sub1',
-        packageNameAndroid: 'dev.hyo.martie',
-      });
+      await expect(
+        IAP.deepLinkToSubscriptions({
+          skuAndroid: 'sub1',
+          packageNameAndroid: 'dev.hyo.martie',
+        }),
+      ).resolves.toBeUndefined();
       expect(mockIap.deepLinkToSubscriptionsAndroid).toHaveBeenCalledWith({
         skuAndroid: 'sub1',
         packageNameAndroid: 'dev.hyo.martie',
@@ -795,7 +793,7 @@ describe('Public API (src/index.ts)', () => {
     it('deepLinkToSubscriptions uses iOS manage subscriptions on iOS', async () => {
       (Platform as any).OS = 'ios';
       mockIap.showManageSubscriptionsIOS = jest.fn(async () => []);
-      await IAP.deepLinkToSubscriptions();
+      await expect(IAP.deepLinkToSubscriptions()).resolves.toBeUndefined();
       expect(mockIap.showManageSubscriptionsIOS).toHaveBeenCalled();
     });
   });

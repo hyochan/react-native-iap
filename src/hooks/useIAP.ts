@@ -33,9 +33,9 @@ import type {
   Purchase,
   PurchaseError,
   ProductSubscription,
+  PurchaseIOS,
 } from '../types';
-import type {FinishTransactionParams} from '../';
-import type {NitroPurchaseResult} from '../specs/RnIap.nitro';
+import type {MutationFinishTransactionArgs} from '../types';
 import {normalizeErrorCodeFromNative} from '../utils/errorMapping';
 
 // Types for event subscriptions
@@ -52,10 +52,7 @@ type UseIap = {
   availablePurchases: Purchase[];
   promotedProductIOS?: Product;
   activeSubscriptions: ActiveSubscription[];
-  finishTransaction: ({
-    purchase,
-    isConsumable,
-  }: FinishTransactionParams) => Promise<NitroPurchaseResult | boolean>;
+  finishTransaction: (args: MutationFinishTransactionArgs) => Promise<void>;
   getAvailablePurchases: (skus?: string[]) => Promise<void>;
   fetchProducts: (params: {
     skus: string[];
@@ -73,7 +70,7 @@ type UseIap = {
   getSubscriptions: (skus: string[]) => Promise<void>;
   requestPurchase: (
     params: RequestPurchaseProps,
-  ) => Promise<RequestPurchaseResult>;
+  ) => Promise<RequestPurchaseResult | null>;
   validateReceipt: (
     sku: string,
     androidOptions?: {
@@ -85,7 +82,7 @@ type UseIap = {
   ) => Promise<any>;
   restorePurchases: () => Promise<void>;
   getPromotedProductIOS: () => Promise<Product | null>;
-  requestPurchaseOnPromotedProductIOS: () => Promise<void>;
+  requestPurchaseOnPromotedProductIOS: () => Promise<PurchaseIOS>;
   getActiveSubscriptions: (
     subscriptionIds?: string[],
   ) => Promise<ActiveSubscription[]>;
@@ -168,10 +165,13 @@ export function useIAP(options?: UseIapOptions): UseIap {
           skus,
           type: 'in-app',
         });
+        const newProducts = (result ?? []).filter(
+          (item): item is Product => item.type === 'in-app',
+        );
         setProducts((prevProducts: Product[]) =>
           mergeWithDuplicateCheck(
             prevProducts,
-            result as Product[],
+            newProducts,
             (product: Product) => product.id,
           ),
         );
@@ -189,10 +189,13 @@ export function useIAP(options?: UseIapOptions): UseIap {
           skus,
           type: 'subs',
         });
+        const newSubscriptions = (result ?? []).filter(
+          (item): item is ProductSubscription => item.type === 'subs',
+        );
         setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
           mergeWithDuplicateCheck(
             prevSubscriptions,
-            result as ProductSubscription[],
+            newSubscriptions,
             (subscription: ProductSubscription) => subscription.id,
           ),
         );
@@ -215,24 +218,62 @@ export function useIAP(options?: UseIapOptions): UseIap {
         return;
       }
       try {
-        const result = await fetchProducts(params);
-        if (params.type === 'subs') {
+        const requestType = params.type ?? 'in-app';
+        const result = await fetchProducts({
+          skus: params.skus,
+          type: requestType,
+        });
+        const items = (result ?? []) as (Product | ProductSubscription)[];
+
+        if (requestType === 'subs') {
+          const newSubscriptions = items.filter(
+            (item): item is ProductSubscription => item.type === 'subs',
+          );
           setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
             mergeWithDuplicateCheck(
               prevSubscriptions,
-              result as ProductSubscription[],
+              newSubscriptions,
               (subscription: ProductSubscription) => subscription.id,
             ),
           );
-        } else {
+          return;
+        }
+
+        if (requestType === 'all') {
+          const newProducts = items.filter(
+            (item): item is Product => item.type === 'in-app',
+          );
+          const newSubscriptions = items.filter(
+            (item): item is ProductSubscription => item.type === 'subs',
+          );
+
           setProducts((prevProducts: Product[]) =>
             mergeWithDuplicateCheck(
               prevProducts,
-              result as Product[],
+              newProducts,
               (product: Product) => product.id,
             ),
           );
+          setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
+            mergeWithDuplicateCheck(
+              prevSubscriptions,
+              newSubscriptions,
+              (subscription: ProductSubscription) => subscription.id,
+            ),
+          );
+          return;
         }
+
+        const newProducts = items.filter(
+          (item): item is Product => item.type === 'in-app',
+        );
+        setProducts((prevProducts: Product[]) =>
+          mergeWithDuplicateCheck(
+            prevProducts,
+            newProducts,
+            (product: Product) => product.id,
+          ),
+        );
       } catch (error) {
         console.error('Error fetching products:', error);
       }
@@ -284,18 +325,9 @@ export function useIAP(options?: UseIapOptions): UseIap {
   );
 
   const finishTransaction = useCallback(
-    async ({
-      purchase,
-      isConsumable,
-    }: {
-      purchase: Purchase;
-      isConsumable?: boolean;
-    }): Promise<NitroPurchaseResult | boolean> => {
+    async (args: MutationFinishTransactionArgs): Promise<void> => {
       try {
-        return await finishTransactionInternal({
-          purchase,
-          isConsumable,
-        });
+        await finishTransactionInternal(args);
       } catch (err) {
         throw err;
       }
@@ -320,7 +352,10 @@ export function useIAP(options?: UseIapOptions): UseIap {
         isSub?: boolean;
       },
     ) => {
-      return validateReceiptInternal(sku, androidOptions);
+      return validateReceiptInternal({
+        sku,
+        androidOptions,
+      });
     },
     [],
   );
@@ -413,11 +448,8 @@ export function useIAP(options?: UseIapOptions): UseIap {
     validateReceipt,
     restorePurchases: async () => {
       try {
-        const purchases = await restorePurchasesTopLevel({
-          alsoPublishToEventListenerIOS: false,
-          onlyIncludeActiveItemsIOS: true,
-        });
-        setAvailablePurchases(purchases);
+        await restorePurchasesTopLevel();
+        await getAvailablePurchasesInternal();
       } catch (e) {
         console.warn('Failed to restore purchases:', e);
       }

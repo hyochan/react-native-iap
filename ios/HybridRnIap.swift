@@ -89,7 +89,7 @@ class HybridRnIap: HybridRnIapSpec {
                                     minimal.id = id
                                     minimal.title = id
                                     minimal.type = "inapp"
-                                    minimal.platform = "ios"
+                                    minimal.platform = .ios
                                     for listener in self.promotedProductListeners { listener(minimal) }
                                     }
                                 }
@@ -147,7 +147,7 @@ class HybridRnIap: HybridRnIapSpec {
                                 minimal.id = id
                                 minimal.title = id
                                 minimal.type = "inapp"
-                                minimal.platform = "ios"
+                                minimal.platform = .ios
                                 for listener in self.promotedProductListeners { listener(minimal) }
                             }
                         }
@@ -200,7 +200,7 @@ class HybridRnIap: HybridRnIapSpec {
     
     func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<RequestPurchaseResult> {
         return Promise.async {
-            let defaultResult = RequestPurchaseResult(purchase: nil, purchases: nil)
+            let defaultResult: RequestPurchaseResult = .third([])
             guard let iosRequest = request.ios else {
                 let error = self.createPurchaseErrorResult(
                     code: OpenIapError.UserError,
@@ -358,7 +358,7 @@ class HybridRnIap: HybridRnIapSpec {
                     n.title = p.localizedTitle
                     n.description = p.localizedDescription
                     n.type = "inapp"
-                    n.platform = "ios"
+                    n.platform = .ios
                     n.price = p.price
                     n.currency = p.priceLocale.currencyCode
                     return n
@@ -569,7 +569,7 @@ class HybridRnIap: HybridRnIapSpec {
                     n.title = title
                     n.description = desc
                     n.type = "inapp"
-                    n.platform = "ios"
+                    n.platform = .ios
                     n.price = price
                     n.currency = currency
                     listener(n)
@@ -689,7 +689,9 @@ class HybridRnIap: HybridRnIapSpec {
         n.displayPrice = p.displayPrice
         n.currency = p.currency
         n.price = p.price
-        n.platform = p.platform
+        if let platform = IapPlatform(fromString: p.platform) {
+            n.platform = platform
+        }
         // iOS specifics
         n.typeIOS = p.typeIOS.rawValue
         n.isFamilyShareableIOS = p.isFamilyShareableIOS
@@ -710,9 +712,13 @@ class HybridRnIap: HybridRnIapSpec {
         n.productId = p.productId
         n.transactionDate = p.transactionDate
         n.purchaseToken = p.purchaseToken
-        n.platform = p.platform
+        if let platform = IapPlatform(fromString: p.platform) {
+            n.platform = platform
+        }
         n.quantity = Double(p.quantity)
-        n.purchaseState = p.purchaseState.rawValue
+        if let state = PurchaseState(fromString: p.purchaseState.rawValue) {
+            n.purchaseState = state
+        }
         n.isAutoRenewing = p.isAutoRenewing
         // iOS specifics
         if let q = p.quantityIOS { n.quantityIOS = Double(q) }

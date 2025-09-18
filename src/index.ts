@@ -6,7 +6,6 @@ import {NitroModules} from 'react-native-nitro-modules';
 
 // Internal modules
 import type {
-  NitroPurchaseResult,
   NitroReceiptValidationParams,
   NitroReceiptValidationResultIOS,
   NitroReceiptValidationResultAndroid,
@@ -14,19 +13,17 @@ import type {
   RnIap,
 } from './specs/RnIap.nitro';
 import type {
-  ProductQueryType,
-  RequestPurchaseProps,
-  RequestPurchaseResult,
-} from './types';
-import type {
   AndroidSubscriptionOfferInput,
   DiscountOfferInputIOS,
+  FetchProductsResult,
+  MutationField,
   Product,
-  ProductRequest,
+  ProductIOS,
+  ProductQueryType,
   Purchase,
-  PurchaseAndroid,
-  PurchaseOptions,
   PurchaseError,
+  PurchaseIOS,
+  QueryField,
   ReceiptValidationResultAndroid,
   ReceiptValidationResultIOS,
   RequestPurchaseAndroidProps,
@@ -35,17 +32,18 @@ import type {
   RequestSubscriptionAndroidProps,
   RequestSubscriptionIosProps,
   RequestSubscriptionPropsByPlatforms,
-  SubscriptionStatusIOS,
 } from './types';
 import {
   convertNitroProductToProduct,
   convertNitroPurchaseToPurchase,
+  convertProductToProductSubscription,
   validateNitroProduct,
   validateNitroPurchase,
   convertNitroSubscriptionStatusToSubscriptionStatusIOS,
 } from './utils/type-bridge';
 import {parseErrorStringToJsonObj} from './utils/error';
 import {normalizeErrorCodeFromNative} from './utils/errorMapping';
+import {getSuccessFromPurchaseVariant} from './utils/purchase';
 
 // Export all types
 export type {
@@ -89,105 +87,16 @@ const toErrorMessage = (error: unknown): string => {
   return String(error ?? '');
 };
 
-type NitroDiscountOfferRecord = NonNullable<
-  NonNullable<NitroPurchaseRequest['ios']>['withOffer']
->;
-
-const toDiscountOfferRecordIOS = (
-  offer: DiscountOfferInputIOS | null | undefined,
-): NitroDiscountOfferRecord | undefined => {
-  if (!offer) {
-    return undefined;
-  }
-  return {
-    identifier: offer.identifier,
-    keyIdentifier: offer.keyIdentifier,
-    nonce: offer.nonce,
-    signature: offer.signature,
-    timestamp: String(offer.timestamp),
-  };
-};
-
-function toNitroProductType(
-  type?: ProductTypeInput | ProductQueryType | null,
-): 'inapp' | 'subs' {
-  if (type === 'subs') {
-    return 'subs';
-  }
-  if (type === 'inapp') {
-    console.warn(LEGACY_INAPP_WARNING);
-    return 'inapp';
-  }
-  if (type === 'all') {
-    return 'inapp';
-  }
-  return 'inapp';
-}
-
-function isSubscriptionQuery(type?: ProductQueryType | null): boolean {
-  return type === 'subs';
-}
-
-function normalizeProductQueryType(
-  type?: ProductQueryType | string | null,
-): ProductQueryType {
-  if (type === 'all' || type === 'subs' || type === 'in-app') {
-    return type;
-  }
-
-  if (typeof type === 'string') {
-    const normalized = type.trim().toLowerCase().replace(/_/g, '-');
-
-    if (normalized === 'all') {
-      return 'all';
-    }
-    if (normalized === 'subs') {
-      return 'subs';
-    }
-    if (normalized === 'inapp') {
-      console.warn(LEGACY_INAPP_WARNING);
-      return 'in-app';
-    }
-    if (normalized === 'in-app') {
-      return 'in-app';
-    }
-  }
-  return 'in-app';
-}
-
 export interface EventSubscription {
   remove(): void;
 }
-
-export type FinishTransactionParams = {
-  purchase: Purchase;
-  isConsumable?: boolean;
-};
 
 // ActiveSubscription and PurchaseError types are already exported via 'export * from ./types'
 
 // Export hooks
 export {useIAP} from './hooks/useIAP';
 
-// iOS promoted product aliases for API parity
-export const getPromotedProductIOS = async (): Promise<Product | null> =>
-  requestPromotedProductIOS();
-export const requestPurchaseOnPromotedProductIOS = async (): Promise<void> =>
-  buyPromotedProductIOS();
-
 // Restore completed transactions (cross-platform)
-export const restorePurchases = async (
-  options: PurchaseOptions = {
-    alsoPublishToEventListenerIOS: false,
-    onlyIncludeActiveItemsIOS: true,
-  },
-): Promise<Purchase[]> => {
-  if (Platform.OS === 'ios') {
-    await syncIOS();
-  }
-  return getAvailablePurchases(options);
-};
-
 // Development utilities removed - use type bridge functions directly if needed
 
 // Create the RnIap HybridObject instance lazily to avoid early JSI crashes
@@ -218,31 +127,167 @@ const IAP = {
   },
 };
 
-/**
- * Initialize connection to the store
- */
-export const initConnection = async (): Promise<boolean> => {
+// ============================================================================
+// EVENT LISTENERS
+// ============================================================================
+
+const purchaseUpdatedListenerMap = new WeakMap<
+  (purchase: Purchase) => void,
+  NitroPurchaseListener
+>();
+const purchaseErrorListenerMap = new WeakMap<
+  (error: PurchaseError) => void,
+  NitroPurchaseErrorListener
+>();
+const promotedProductListenerMap = new WeakMap<
+  (product: Product) => void,
+  NitroPromotedProductListener
+>();
+
+export const purchaseUpdatedListener = (
+  listener: (purchase: Purchase) => void,
+): EventSubscription => {
+  const wrappedListener: NitroPurchaseListener = (nitroPurchase) => {
+    if (validateNitroPurchase(nitroPurchase)) {
+      const convertedPurchase = convertNitroPurchaseToPurchase(nitroPurchase);
+      listener(convertedPurchase);
+    } else {
+      console.error(
+        'Invalid purchase data received from native:',
+        nitroPurchase,
+      );
+    }
+  };
+
+  purchaseUpdatedListenerMap.set(listener, wrappedListener);
+  let attached = false;
   try {
-    return await IAP.instance.initConnection();
-  } catch (error) {
-    console.error('Failed to initialize IAP connection:', error);
-    throw error;
+    IAP.instance.addPurchaseUpdatedListener(wrappedListener);
+    attached = true;
+  } catch (e) {
+    const msg = toErrorMessage(e);
+    if (msg.includes('Nitro runtime not installed')) {
+      console.warn(
+        '[purchaseUpdatedListener] Nitro not ready yet; listener inert until initConnection()',
+      );
+    } else {
+      throw e;
+    }
   }
+
+  return {
+    remove: () => {
+      const wrapped = purchaseUpdatedListenerMap.get(listener);
+      if (wrapped) {
+        if (attached) {
+          try {
+            IAP.instance.removePurchaseUpdatedListener(wrapped);
+          } catch {}
+        }
+        purchaseUpdatedListenerMap.delete(listener);
+      }
+    },
+  };
 };
 
-/**
- * End connection to the store
- */
-export const endConnection = async (): Promise<boolean> => {
+export const purchaseErrorListener = (
+  listener: (error: PurchaseError) => void,
+): EventSubscription => {
+  const wrapped: NitroPurchaseErrorListener = (error) => {
+    listener({
+      code: normalizeErrorCodeFromNative(error.code),
+      message: error.message,
+      productId: undefined,
+    });
+  };
+
+  purchaseErrorListenerMap.set(listener, wrapped);
+  let attached = false;
   try {
-    // If never initialized, treat as ended
-    if (!iapRef) return true;
-    return await IAP.instance.endConnection();
-  } catch (error) {
-    console.error('Failed to end IAP connection:', error);
-    throw error;
+    IAP.instance.addPurchaseErrorListener(wrapped);
+    attached = true;
+  } catch (e) {
+    const msg = toErrorMessage(e);
+    if (msg.includes('Nitro runtime not installed')) {
+      console.warn(
+        '[purchaseErrorListener] Nitro not ready yet; listener inert until initConnection()',
+      );
+    } else {
+      throw e;
+    }
   }
+
+  return {
+    remove: () => {
+      const stored = purchaseErrorListenerMap.get(listener);
+      if (stored) {
+        if (attached) {
+          try {
+            IAP.instance.removePurchaseErrorListener(stored);
+          } catch {}
+        }
+        purchaseErrorListenerMap.delete(listener);
+      }
+    },
+  };
 };
+
+export const promotedProductListenerIOS = (
+  listener: (product: Product) => void,
+): EventSubscription => {
+  if (Platform.OS !== 'ios') {
+    console.warn(
+      'promotedProductListenerIOS: This listener is only available on iOS',
+    );
+    return {remove: () => {}};
+  }
+
+  const wrappedListener: NitroPromotedProductListener = (nitroProduct) => {
+    if (validateNitroProduct(nitroProduct)) {
+      const convertedProduct = convertNitroProductToProduct(nitroProduct);
+      listener(convertedProduct);
+    } else {
+      console.error(
+        'Invalid promoted product data received from native:',
+        nitroProduct,
+      );
+    }
+  };
+
+  promotedProductListenerMap.set(listener, wrappedListener);
+  let attached = false;
+  try {
+    IAP.instance.addPromotedProductListenerIOS(wrappedListener);
+    attached = true;
+  } catch (e) {
+    const msg = toErrorMessage(e);
+    if (msg.includes('Nitro runtime not installed')) {
+      console.warn(
+        '[promotedProductListenerIOS] Nitro not ready yet; listener inert until initConnection()',
+      );
+    } else {
+      throw e;
+    }
+  }
+
+  return {
+    remove: () => {
+      const wrapped = promotedProductListenerMap.get(listener);
+      if (wrapped) {
+        if (attached) {
+          try {
+            IAP.instance.removePromotedProductListenerIOS(wrapped);
+          } catch {}
+        }
+        promotedProductListenerMap.delete(listener);
+      }
+    },
+  };
+};
+
+// ------------------------------
+// Query API
+// ------------------------------
 
 /**
  * Fetch products from the store
@@ -260,47 +305,52 @@ export const endConnection = async (): Promise<boolean> => {
  * const subscriptions = await fetchProducts({ skus: ['sub1', 'sub2'], type: 'subs' });
  * ```
  */
-export const fetchProducts = async ({
-  skus,
-  type = 'in-app',
-}: ProductRequest): Promise<Product[]> => {
+export const fetchProducts: QueryField<'fetchProducts'> = async (request) => {
+  const {skus, type} = request;
+
   try {
-    if (!skus || skus.length === 0) {
+    if (!skus?.length) {
       throw new Error('No SKUs provided');
     }
 
     const normalizedType = normalizeProductQueryType(type);
 
-    if (normalizedType === 'all') {
-      const [inappNitro, subsNitro] = await Promise.all([
-        IAP.instance.fetchProducts(skus, 'inapp'),
-        IAP.instance.fetchProducts(skus, 'subs'),
-      ]);
-      const allNitro = [...inappNitro, ...subsNitro];
-      const validAll = allNitro.filter(validateNitroProduct);
-      if (validAll.length !== allNitro.length) {
+    const fetchAndConvert = async (
+      nitroType: ReturnType<typeof toNitroProductType> | 'all',
+    ) => {
+      const nitroProducts = await IAP.instance.fetchProducts(skus, nitroType);
+      const validProducts = nitroProducts.filter(validateNitroProduct);
+      if (validProducts.length !== nitroProducts.length) {
         console.warn(
-          `[fetchProducts] Some products failed validation: ${allNitro.length - validAll.length} invalid`,
+          `[fetchProducts] Some products failed validation: ${nitroProducts.length - validProducts.length} invalid`,
         );
       }
-      return validAll.map(convertNitroProductToProduct);
+      return validProducts.map(convertNitroProductToProduct);
+    };
+
+    if (normalizedType === 'all') {
+      const converted = await fetchAndConvert('all');
+      const productItems = converted.filter(
+        (item): item is Product => item.type === 'in-app',
+      );
+      const subscriptionItems = converted
+        .filter((item) => item.type === 'subs')
+        .map(convertProductToProductSubscription);
+
+      return [...productItems, ...subscriptionItems] as FetchProductsResult;
     }
 
-    const nitroProducts = await IAP.instance.fetchProducts(
-      skus,
+    const convertedProducts = await fetchAndConvert(
       toNitroProductType(normalizedType),
     );
 
-    // Validate and convert NitroProducts to TypeScript Products
-    const validProducts = nitroProducts.filter(validateNitroProduct);
-    if (validProducts.length !== nitroProducts.length) {
-      console.warn(
-        `[fetchProducts] Some products failed validation: ${nitroProducts.length - validProducts.length} invalid`,
-      );
+    if (normalizedType === 'subs') {
+      return convertedProducts.map(
+        convertProductToProductSubscription,
+      ) as FetchProductsResult;
     }
 
-    const typedProducts = validProducts.map(convertNitroProductToProduct);
-    return typedProducts;
+    return convertedProducts as FetchProductsResult;
   } catch (error) {
     console.error('[fetchProducts] Failed:', error);
     throw error;
@@ -308,68 +358,375 @@ export const fetchProducts = async ({
 };
 
 /**
- * Request a purchase for products or subscriptions
- * @param params - Purchase request configuration
- * @param params.request - Platform-specific purchase parameters
- * @param params.type - Type of purchase: 'in-app' for products (default) or 'subs' for subscriptions
+ * Get available purchases (purchased items not yet consumed/finished)
+ * @param params - Options for getting available purchases
+ * @param params.alsoPublishToEventListener - Whether to also publish to event listener
+ * @param params.onlyIncludeActiveItems - Whether to only include active items
  *
  * @example
  * ```typescript
- * // Product purchase
- * await requestPurchase({
- *   request: {
- *     ios: { sku: productId },
- *     android: { skus: [productId] }
- *   },
- *   type: 'in-app'
- * });
- *
- * // Subscription purchase
- * await requestPurchase({
- *   request: {
- *     ios: { sku: subscriptionId },
- *     android: {
- *       skus: [subscriptionId],
- *       subscriptionOffers: [{ sku: subscriptionId, offerToken: 'token' }]
- *     }
- *   },
- *   type: 'subs'
+ * const purchases = await getAvailablePurchases({
+ *   onlyIncludeActiveItemsIOS: true
  * });
  * ```
  */
+export const getAvailablePurchases: QueryField<
+  'getAvailablePurchases'
+> = async (options) => {
+  const alsoPublishToEventListenerIOS = Boolean(
+    options?.alsoPublishToEventListenerIOS ?? false,
+  );
+  const onlyIncludeActiveItemsIOS = Boolean(
+    options?.onlyIncludeActiveItemsIOS ?? true,
+  );
+  try {
+    if (Platform.OS === 'ios') {
+      const nitroOptions: NitroAvailablePurchasesOptions = {
+        ios: {
+          alsoPublishToEventListenerIOS,
+          onlyIncludeActiveItemsIOS,
+          alsoPublishToEventListener: alsoPublishToEventListenerIOS,
+          onlyIncludeActiveItems: onlyIncludeActiveItemsIOS,
+        },
+      };
+      const nitroPurchases =
+        await IAP.instance.getAvailablePurchases(nitroOptions);
+
+      const validPurchases = nitroPurchases.filter(validateNitroPurchase);
+      if (validPurchases.length !== nitroPurchases.length) {
+        console.warn(
+          `[getAvailablePurchases] Some purchases failed validation: ${nitroPurchases.length - validPurchases.length} invalid`,
+        );
+      }
+
+      return validPurchases.map(convertNitroPurchaseToPurchase);
+    } else if (Platform.OS === 'android') {
+      // For Android, we need to call twice for inapp and subs
+      const inappNitroPurchases = await IAP.instance.getAvailablePurchases({
+        android: {type: 'inapp'},
+      });
+      const subsNitroPurchases = await IAP.instance.getAvailablePurchases({
+        android: {type: 'subs'},
+      });
+
+      // Validate and convert both sets of purchases
+      const allNitroPurchases = [...inappNitroPurchases, ...subsNitroPurchases];
+      const validPurchases = allNitroPurchases.filter(validateNitroPurchase);
+      if (validPurchases.length !== allNitroPurchases.length) {
+        console.warn(
+          `[getAvailablePurchases] Some Android purchases failed validation: ${allNitroPurchases.length - validPurchases.length} invalid`,
+        );
+      }
+
+      return validPurchases.map(convertNitroPurchaseToPurchase);
+    } else {
+      throw new Error('Unsupported platform');
+    }
+  } catch (error) {
+    console.error('Failed to get available purchases:', error);
+    throw error;
+  }
+};
+
+/**
+ * Request the promoted product from the App Store (iOS only)
+ * @returns Promise<Product | null> - The promoted product or null if none available
+ * @platform iOS
+ */
+export const getPromotedProductIOS: QueryField<
+  'getPromotedProductIOS'
+> = async () => {
+  if (Platform.OS !== 'ios') {
+    return null;
+  }
+
+  try {
+    const nitroProduct = await IAP.instance.requestPromotedProductIOS();
+    if (!nitroProduct) {
+      return null;
+    }
+    const converted = convertNitroProductToProduct(nitroProduct);
+    return converted.platform === 'ios' ? (converted as ProductIOS) : null;
+  } catch (error) {
+    console.error('[getPromotedProductIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const requestPromotedProductIOS = getPromotedProductIOS;
+
+export const getStorefrontIOS: QueryField<'getStorefrontIOS'> = async () => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('getStorefrontIOS is only available on iOS');
+  }
+
+  try {
+    const storefront = await IAP.instance.getStorefrontIOS();
+    return storefront;
+  } catch (error) {
+    console.error('Failed to get storefront:', error);
+    throw error;
+  }
+};
+
+export const getAppTransactionIOS: QueryField<
+  'getAppTransactionIOS'
+> = async () => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('getAppTransactionIOS is only available on iOS');
+  }
+
+  try {
+    const appTransaction = await IAP.instance.getAppTransactionIOS();
+    return appTransaction;
+  } catch (error) {
+    console.error('Failed to get app transaction:', error);
+    throw error;
+  }
+};
+
+export const subscriptionStatusIOS: QueryField<
+  'subscriptionStatusIOS'
+> = async (sku) => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('subscriptionStatusIOS is only available on iOS');
+  }
+
+  try {
+    const statuses = await IAP.instance.subscriptionStatusIOS(sku);
+    if (!Array.isArray(statuses)) return [];
+    return statuses
+      .filter((status): status is NitroSubscriptionStatus => status != null)
+      .map(convertNitroSubscriptionStatusToSubscriptionStatusIOS);
+  } catch (error) {
+    console.error('[subscriptionStatusIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const currentEntitlementIOS: QueryField<
+  'currentEntitlementIOS'
+> = async (sku) => {
+  if (Platform.OS !== 'ios') {
+    return null;
+  }
+
+  try {
+    const nitroPurchase = await IAP.instance.currentEntitlementIOS(sku);
+    if (nitroPurchase) {
+      const converted = convertNitroPurchaseToPurchase(nitroPurchase);
+      return converted.platform === 'ios' ? (converted as PurchaseIOS) : null;
+    }
+    return null;
+  } catch (error) {
+    console.error('[currentEntitlementIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const latestTransactionIOS: QueryField<'latestTransactionIOS'> = async (
+  sku,
+) => {
+  if (Platform.OS !== 'ios') {
+    return null;
+  }
+
+  try {
+    const nitroPurchase = await IAP.instance.latestTransactionIOS(sku);
+    if (nitroPurchase) {
+      const converted = convertNitroPurchaseToPurchase(nitroPurchase);
+      return converted.platform === 'ios' ? (converted as PurchaseIOS) : null;
+    }
+    return null;
+  } catch (error) {
+    console.error('[latestTransactionIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const getPendingTransactionsIOS: QueryField<
+  'getPendingTransactionsIOS'
+> = async () => {
+  if (Platform.OS !== 'ios') {
+    return [];
+  }
+
+  try {
+    const nitroPurchases = await IAP.instance.getPendingTransactionsIOS();
+    return nitroPurchases
+      .map(convertNitroPurchaseToPurchase)
+      .filter(
+        (purchase): purchase is PurchaseIOS => purchase.platform === 'ios',
+      );
+  } catch (error) {
+    console.error('[getPendingTransactionsIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const showManageSubscriptionsIOS: MutationField<
+  'showManageSubscriptionsIOS'
+> = async () => {
+  if (Platform.OS !== 'ios') {
+    return [];
+  }
+
+  try {
+    const nitroPurchases = await IAP.instance.showManageSubscriptionsIOS();
+    return nitroPurchases
+      .map(convertNitroPurchaseToPurchase)
+      .filter(
+        (purchase): purchase is PurchaseIOS => purchase.platform === 'ios',
+      );
+  } catch (error) {
+    console.error('[showManageSubscriptionsIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const isEligibleForIntroOfferIOS: QueryField<
+  'isEligibleForIntroOfferIOS'
+> = async (groupID) => {
+  if (Platform.OS !== 'ios') {
+    return false;
+  }
+
+  try {
+    return await IAP.instance.isEligibleForIntroOfferIOS(groupID);
+  } catch (error) {
+    console.error('[isEligibleForIntroOfferIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const getReceiptDataIOS: QueryField<'getReceiptDataIOS'> = async () => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('getReceiptDataIOS is only available on iOS');
+  }
+
+  try {
+    return await IAP.instance.getReceiptDataIOS();
+  } catch (error) {
+    console.error('[getReceiptDataIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const isTransactionVerifiedIOS: QueryField<
+  'isTransactionVerifiedIOS'
+> = async (sku) => {
+  if (Platform.OS !== 'ios') {
+    return false;
+  }
+
+  try {
+    return await IAP.instance.isTransactionVerifiedIOS(sku);
+  } catch (error) {
+    console.error('[isTransactionVerifiedIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const getTransactionJwsIOS: QueryField<'getTransactionJwsIOS'> = async (
+  sku,
+) => {
+  if (Platform.OS !== 'ios') {
+    return null;
+  }
+
+  try {
+    return await IAP.instance.getTransactionJwsIOS(sku);
+  } catch (error) {
+    console.error('[getTransactionJwsIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+// ------------------------------
+// Mutation API
+// ------------------------------
+
+/**
+ * Initialize connection to the store
+ */
+export const initConnection: MutationField<'initConnection'> = async () => {
+  try {
+    return await IAP.instance.initConnection();
+  } catch (error) {
+    console.error('Failed to initialize IAP connection:', error);
+    throw error;
+  }
+};
+
+/**
+ * End connection to the store
+ */
+export const endConnection: MutationField<'endConnection'> = async () => {
+  try {
+    if (!iapRef) return true;
+    return await IAP.instance.endConnection();
+  } catch (error) {
+    console.error('Failed to end IAP connection:', error);
+    throw error;
+  }
+};
+
+export const restorePurchases: MutationField<'restorePurchases'> = async () => {
+  try {
+    if (Platform.OS === 'ios') {
+      await syncIOS();
+    }
+
+    await getAvailablePurchases({
+      alsoPublishToEventListenerIOS: false,
+      onlyIncludeActiveItemsIOS: true,
+    });
+  } catch (error) {
+    console.error('Failed to restore purchases:', error);
+    throw error;
+  }
+};
+
 /**
  * Request a purchase for products or subscriptions
  * ⚠️ Important: This is an event-based operation, not promise-based.
  * Listen for events through purchaseUpdatedListener or purchaseErrorListener.
- * @param params - Purchase request configuration
- * @param params.request - Platform-specific request parameters
- * @param params.type - Type of purchase (defaults to in-app)
  */
-export const requestPurchase = async (
-  params: RequestPurchaseProps,
-): Promise<RequestPurchaseResult> => {
+export const requestPurchase: MutationField<'requestPurchase'> = async (
+  request,
+) => {
   try {
-    const normalizedType = normalizeProductQueryType(params.type);
+    const {request: platformRequest, type} = request;
+    const normalizedType = normalizeProductQueryType(type ?? 'in-app');
     const isSubs = isSubscriptionQuery(normalizedType);
-    const request = params.request as
+    const perPlatformRequest = platformRequest as
       | RequestPurchasePropsByPlatforms
       | RequestSubscriptionPropsByPlatforms
       | undefined;
 
-    if (!request) {
+    if (!perPlatformRequest) {
       throw new Error('Missing purchase request configuration');
     }
 
-    // Validate platform-specific requests
     if (Platform.OS === 'ios') {
-      const iosRequest = request.ios;
+      const iosRequest = perPlatformRequest.ios;
       if (!iosRequest?.sku) {
         throw new Error(
           'Invalid request for iOS. The `sku` property is required.',
         );
       }
     } else if (Platform.OS === 'android') {
-      const androidRequest = request.android;
+      const androidRequest = perPlatformRequest.android;
       if (!androidRequest?.skus?.length) {
         throw new Error(
           'Invalid request for Android. The `skus` property is required and must be a non-empty array.',
@@ -381,10 +738,10 @@ export const requestPurchase = async (
 
     const unifiedRequest: NitroPurchaseRequest = {};
 
-    if (Platform.OS === 'ios' && request.ios) {
+    if (Platform.OS === 'ios' && perPlatformRequest.ios) {
       const iosRequest = isSubs
-        ? (request.ios as RequestSubscriptionIosProps)
-        : (request.ios as RequestPurchaseIosProps);
+        ? (perPlatformRequest.ios as RequestSubscriptionIosProps)
+        : (perPlatformRequest.ios as RequestPurchaseIosProps);
 
       const iosPayload: NonNullable<NitroPurchaseRequest['ios']> = {
         sku: iosRequest.sku,
@@ -415,10 +772,10 @@ export const requestPurchase = async (
       unifiedRequest.ios = iosPayload;
     }
 
-    if (Platform.OS === 'android' && request.android) {
+    if (Platform.OS === 'android' && perPlatformRequest.android) {
       const androidRequest = isSubs
-        ? (request.android as RequestSubscriptionAndroidProps)
-        : (request.android as RequestPurchaseAndroidProps);
+        ? (perPlatformRequest.android as RequestSubscriptionAndroidProps)
+        : (perPlatformRequest.android as RequestPurchaseAndroidProps);
 
       const androidPayload: NonNullable<NitroPurchaseRequest['android']> = {
         skus: androidRequest.skus,
@@ -469,77 +826,11 @@ export const requestPurchase = async (
 };
 
 /**
- * Get available purchases (purchased items not yet consumed/finished)
- * @param params - Options for getting available purchases
- * @param params.alsoPublishToEventListener - Whether to also publish to event listener
- * @param params.onlyIncludeActiveItems - Whether to only include active items
- *
- * @example
- * ```typescript
- * const purchases = await getAvailablePurchases({
- *   onlyIncludeActiveItemsIOS: true
- * });
- * ```
- */
-export const getAvailablePurchases = async ({
-  alsoPublishToEventListenerIOS = false,
-  onlyIncludeActiveItemsIOS = true,
-}: PurchaseOptions = {}): Promise<Purchase[]> => {
-  try {
-    if (Platform.OS === 'ios') {
-      const iosAlsoPublish = Boolean(alsoPublishToEventListenerIOS);
-      const iosOnlyActive = Boolean(onlyIncludeActiveItemsIOS);
-      const options: NitroAvailablePurchasesOptions = {
-        ios: {
-          alsoPublishToEventListenerIOS: iosAlsoPublish,
-          onlyIncludeActiveItemsIOS: iosOnlyActive,
-          alsoPublishToEventListener: iosAlsoPublish,
-          onlyIncludeActiveItems: iosOnlyActive,
-        },
-      };
-      const nitroPurchases = await IAP.instance.getAvailablePurchases(options);
-
-      const validPurchases = nitroPurchases.filter(validateNitroPurchase);
-      if (validPurchases.length !== nitroPurchases.length) {
-        console.warn(
-          `[getAvailablePurchases] Some purchases failed validation: ${nitroPurchases.length - validPurchases.length} invalid`,
-        );
-      }
-
-      return validPurchases.map(convertNitroPurchaseToPurchase);
-    } else if (Platform.OS === 'android') {
-      // For Android, we need to call twice for inapp and subs
-      const inappNitroPurchases = await IAP.instance.getAvailablePurchases({
-        android: {type: 'inapp'},
-      });
-      const subsNitroPurchases = await IAP.instance.getAvailablePurchases({
-        android: {type: 'subs'},
-      });
-
-      // Validate and convert both sets of purchases
-      const allNitroPurchases = [...inappNitroPurchases, ...subsNitroPurchases];
-      const validPurchases = allNitroPurchases.filter(validateNitroPurchase);
-      if (validPurchases.length !== allNitroPurchases.length) {
-        console.warn(
-          `[getAvailablePurchases] Some Android purchases failed validation: ${allNitroPurchases.length - validPurchases.length} invalid`,
-        );
-      }
-
-      return validPurchases.map(convertNitroPurchaseToPurchase);
-    } else {
-      throw new Error('Unsupported platform');
-    }
-  } catch (error) {
-    console.error('Failed to get available purchases:', error);
-    throw error;
-  }
-};
-
-/**
  * Finish a transaction (consume or acknowledge)
  * @param params - Transaction finish parameters
  * @param params.purchase - The purchase to finish
  * @param params.isConsumable - Whether this is a consumable product (Android only)
+ * @returns Promise<void> - Resolves when the transaction is successfully finished
  *
  * @example
  * ```typescript
@@ -549,10 +840,10 @@ export const getAvailablePurchases = async ({
  * });
  * ```
  */
-export const finishTransaction = async ({
-  purchase,
-  isConsumable = false,
-}: FinishTransactionParams): Promise<NitroPurchaseResult | boolean> => {
+export const finishTransaction: MutationField<'finishTransaction'> = async (
+  args,
+) => {
+  const {purchase, isConsumable} = args;
   try {
     let params: NitroFinishTransactionParamsInternal;
     if (Platform.OS === 'ios') {
@@ -565,8 +856,7 @@ export const finishTransaction = async ({
         },
       };
     } else if (Platform.OS === 'android') {
-      const androidPurchase = purchase as PurchaseAndroid;
-      const token = androidPurchase.purchaseToken;
+      const token = purchase.purchaseToken ?? undefined;
 
       if (!token) {
         throw new Error('purchaseToken required to finish Android transaction');
@@ -575,7 +865,7 @@ export const finishTransaction = async ({
       params = {
         android: {
           purchaseToken: token,
-          isConsumable,
+          isConsumable: isConsumable ?? false,
         },
       };
     } else {
@@ -583,13 +873,11 @@ export const finishTransaction = async ({
     }
 
     const result = await IAP.instance.finishTransaction(params);
-
-    // Handle variant return type
-    if (typeof result === 'boolean') {
-      return result;
+    const success = getSuccessFromPurchaseVariant(result, 'finishTransaction');
+    if (!success) {
+      throw new Error('Failed to finish transaction');
     }
-    // It's a PurchaseResult
-    return result as NitroPurchaseResult;
+    return;
   } catch (error) {
     // If iOS transaction has already been auto-finished natively, treat as success
     if (Platform.OS === 'ios') {
@@ -601,7 +889,7 @@ export const finishTransaction = async ({
         code === 'E_ITEM_UNAVAILABLE'
       ) {
         // Consider already finished
-        return true;
+        return;
       }
     }
     console.error('Failed to finish transaction:', error);
@@ -612,15 +900,16 @@ export const finishTransaction = async ({
 /**
  * Acknowledge a purchase (Android only)
  * @param purchaseToken - The purchase token to acknowledge
+ * @returns Promise<boolean> - Indicates whether the acknowledgement succeeded
  *
  * @example
  * ```typescript
  * await acknowledgePurchaseAndroid('purchase_token_here');
  * ```
  */
-export const acknowledgePurchaseAndroid = async (
-  purchaseToken: string,
-): Promise<NitroPurchaseResult> => {
+export const acknowledgePurchaseAndroid: MutationField<
+  'acknowledgePurchaseAndroid'
+> = async (purchaseToken) => {
   try {
     if (Platform.OS !== 'android') {
       throw new Error(
@@ -634,18 +923,7 @@ export const acknowledgePurchaseAndroid = async (
         isConsumable: false,
       },
     });
-
-    // Result is a variant, extract PurchaseResult
-    if (typeof result === 'boolean') {
-      // This shouldn't happen for Android, but handle it
-      return {
-        responseCode: 0,
-        code: '0',
-        message: 'Success',
-        purchaseToken,
-      };
-    }
-    return result as NitroPurchaseResult;
+    return getSuccessFromPurchaseVariant(result, 'acknowledgePurchaseAndroid');
   } catch (error) {
     console.error('Failed to acknowledge purchase Android:', error);
     throw error;
@@ -655,15 +933,16 @@ export const acknowledgePurchaseAndroid = async (
 /**
  * Consume a purchase (Android only)
  * @param purchaseToken - The purchase token to consume
+ * @returns Promise<boolean> - Indicates whether the consumption succeeded
  *
  * @example
  * ```typescript
  * await consumePurchaseAndroid('purchase_token_here');
  * ```
  */
-export const consumePurchaseAndroid = async (
-  purchaseToken: string,
-): Promise<NitroPurchaseResult> => {
+export const consumePurchaseAndroid: MutationField<
+  'consumePurchaseAndroid'
+> = async (purchaseToken) => {
   try {
     if (Platform.OS !== 'android') {
       throw new Error('consumePurchaseAndroid is only available on Android');
@@ -675,252 +954,11 @@ export const consumePurchaseAndroid = async (
         isConsumable: true,
       },
     });
-
-    // Result is a variant, extract PurchaseResult
-    if (typeof result === 'boolean') {
-      // This shouldn't happen for Android, but handle it
-      return {
-        responseCode: 0,
-        code: '0',
-        message: 'Success',
-        purchaseToken,
-      };
-    }
-    return result as NitroPurchaseResult;
+    return getSuccessFromPurchaseVariant(result, 'consumePurchaseAndroid');
   } catch (error) {
     console.error('Failed to consume purchase Android:', error);
     throw error;
   }
-};
-
-// ============================================================================
-// EVENT LISTENERS
-// ============================================================================
-
-// Store wrapped listeners for proper removal
-const purchaseUpdatedListenerMap = new WeakMap<
-  (purchase: Purchase) => void,
-  NitroPurchaseListener
->();
-const purchaseErrorListenerMap = new WeakMap<
-  (error: PurchaseError) => void,
-  NitroPurchaseErrorListener
->();
-const promotedProductListenerMap = new WeakMap<
-  (product: Product) => void,
-  NitroPromotedProductListener
->();
-
-/**
- * Purchase updated event listener
- * Fired when a purchase is successful or when a pending purchase is completed.
- *
- * @param listener - Function to call when a purchase is updated
- * @returns EventSubscription object with remove method
- *
- * @example
- * ```typescript
- * const subscription = purchaseUpdatedListener((purchase) => {
- *   console.log('Purchase successful:', purchase);
- *   // 1. Validate receipt with backend
- *   // 2. Deliver content to user
- *   // 3. Call finishTransaction to acknowledge
- * });
- *
- * // Later, clean up
- * subscription.remove();
- * ```
- */
-export const purchaseUpdatedListener = (
-  listener: (purchase: Purchase) => void,
-): EventSubscription => {
-  // Wrap the listener to convert NitroPurchase to Purchase
-  const wrappedListener: NitroPurchaseListener = (nitroPurchase) => {
-    if (validateNitroPurchase(nitroPurchase)) {
-      const convertedPurchase = convertNitroPurchaseToPurchase(nitroPurchase);
-      listener(convertedPurchase);
-    } else {
-      console.error(
-        'Invalid purchase data received from native:',
-        nitroPurchase,
-      );
-    }
-  };
-
-  // Store the wrapped listener for removal
-  purchaseUpdatedListenerMap.set(listener, wrappedListener);
-  let attached = false;
-  try {
-    IAP.instance.addPurchaseUpdatedListener(wrappedListener);
-    attached = true;
-  } catch (e) {
-    const msg = toErrorMessage(e);
-    if (msg.includes('Nitro runtime not installed')) {
-      console.warn(
-        '[purchaseUpdatedListener] Nitro not ready yet; listener inert until initConnection()',
-      );
-    } else {
-      throw e;
-    }
-  }
-
-  return {
-    remove: () => {
-      const wrapped = purchaseUpdatedListenerMap.get(listener);
-      if (wrapped) {
-        if (attached) {
-          try {
-            IAP.instance.removePurchaseUpdatedListener(wrapped);
-          } catch {}
-        }
-        purchaseUpdatedListenerMap.delete(listener);
-      }
-    },
-  };
-};
-
-/**
- * Purchase error event listener
- * Fired when a purchase fails or is cancelled by the user.
- *
- * @param listener - Function to call when a purchase error occurs
- * @returns EventSubscription object with remove method
- *
- * @example
- * ```typescript
- * const subscription = purchaseErrorListener((error) => {
- *   switch (error.code) {
- *     case 'E_USER_CANCELLED':
- *       // User cancelled - no action needed
- *       break;
- *     case 'E_ITEM_UNAVAILABLE':
- *       // Product not available
- *       break;
- *     case 'E_NETWORK_ERROR':
- *       // Retry with backoff
- *       break;
- *   }
- * });
- *
- * // Later, clean up
- * subscription.remove();
- * ```
- */
-export const purchaseErrorListener = (
-  listener: (error: PurchaseError) => void,
-): EventSubscription => {
-  const wrapped: NitroPurchaseErrorListener = (error) => {
-    listener({
-      code: normalizeErrorCodeFromNative(error.code),
-      message: error.message,
-      productId: undefined,
-    });
-  };
-
-  purchaseErrorListenerMap.set(listener, wrapped);
-  let attached = false;
-  try {
-    IAP.instance.addPurchaseErrorListener(wrapped);
-    attached = true;
-  } catch (e) {
-    const msg = toErrorMessage(e);
-    if (msg.includes('Nitro runtime not installed')) {
-      console.warn(
-        '[purchaseErrorListener] Nitro not ready yet; listener inert until initConnection()',
-      );
-    } else {
-      throw e;
-    }
-  }
-
-  return {
-    remove: () => {
-      const stored = purchaseErrorListenerMap.get(listener);
-      if (stored) {
-        if (attached) {
-          try {
-            IAP.instance.removePurchaseErrorListener(stored);
-          } catch {}
-        }
-        purchaseErrorListenerMap.delete(listener);
-      }
-    },
-  };
-};
-
-/**
- * iOS-only listener for App Store promoted product events.
- * Fired when a user clicks on a promoted in-app purchase in the App Store.
- *
- * @param listener - Callback function that receives the promoted product
- * @returns EventSubscription object with remove method
- *
- * @example
- * ```typescript
- * const subscription = promotedProductListenerIOS((product) => {
- *   console.log('Promoted product:', product);
- *   // Trigger purchase flow for the promoted product
- * });
- *
- * // Later, clean up
- * subscription.remove();
- * ```
- *
- * @platform iOS
- */
-export const promotedProductListenerIOS = (
-  listener: (product: Product) => void,
-): EventSubscription => {
-  if (Platform.OS !== 'ios') {
-    console.warn(
-      'promotedProductListenerIOS: This listener is only available on iOS',
-    );
-    return {remove: () => {}};
-  }
-
-  // Wrap the listener to convert NitroProduct to Product
-  const wrappedListener: NitroPromotedProductListener = (nitroProduct) => {
-    if (validateNitroProduct(nitroProduct)) {
-      const convertedProduct = convertNitroProductToProduct(nitroProduct);
-      listener(convertedProduct);
-    } else {
-      console.error(
-        'Invalid promoted product data received from native:',
-        nitroProduct,
-      );
-    }
-  };
-
-  // Store the wrapped listener for removal
-  promotedProductListenerMap.set(listener, wrappedListener);
-  let attached = false;
-  try {
-    IAP.instance.addPromotedProductListenerIOS(wrappedListener);
-    attached = true;
-  } catch (e) {
-    const msg = toErrorMessage(e);
-    if (msg.includes('Nitro runtime not installed')) {
-      console.warn(
-        '[promotedProductListenerIOS] Nitro not ready yet; listener inert until initConnection()',
-      );
-    } else {
-      throw e;
-    }
-  }
-
-  return {
-    remove: () => {
-      const wrapped = promotedProductListenerMap.get(listener);
-      if (wrapped) {
-        if (attached) {
-          try {
-            IAP.instance.removePromotedProductListenerIOS(wrapped);
-          } catch {}
-        }
-        promotedProductListenerMap.delete(listener);
-      }
-    },
-  };
 };
 
 // ============================================================================
@@ -933,19 +971,25 @@ export const promotedProductListenerIOS = (
  * @param androidOptions - Android-specific validation options (required for Android)
  * @returns Promise<ReceiptValidationResultIOS | ReceiptValidationResultAndroid> - Platform-specific receipt validation result
  */
-export const validateReceipt = async (
-  sku: string,
-  androidOptions?: {
-    packageName: string;
-    productToken: string;
-    accessToken: string;
-    isSub?: boolean;
-  },
-): Promise<import('./types').ReceiptValidationResult> => {
+export const validateReceipt: MutationField<'validateReceipt'> = async (
+  options,
+) => {
+  const {sku, androidOptions} = options;
   try {
+    const normalizedAndroidOptions =
+      androidOptions != null
+        ? {
+            ...androidOptions,
+            isSub:
+              androidOptions.isSub == null
+                ? undefined
+                : Boolean(androidOptions.isSub),
+          }
+        : undefined;
+
     const params: NitroReceiptValidationParams = {
       sku,
-      androidOptions,
+      androidOptions: normalizedAndroidOptions,
     };
 
     const nitroResult = await IAP.instance.validateReceipt(params);
@@ -999,13 +1043,14 @@ export const validateReceipt = async (
  * @returns Promise<boolean>
  * @platform iOS
  */
-export const syncIOS = async (): Promise<boolean> => {
+export const syncIOS: MutationField<'syncIOS'> = async () => {
   if (Platform.OS !== 'ios') {
     throw new Error('syncIOS is only available on iOS');
   }
 
   try {
-    return await IAP.instance.syncIOS();
+    const result = await IAP.instance.syncIOS();
+    return Boolean(result);
   } catch (error) {
     console.error('[syncIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1014,40 +1059,20 @@ export const syncIOS = async (): Promise<boolean> => {
 };
 
 /**
- * Request the promoted product from the App Store (iOS only)
- * @returns Promise<Product | null> - The promoted product or null if none available
- * @platform iOS
- */
-export const requestPromotedProductIOS = async (): Promise<Product | null> => {
-  if (Platform.OS !== 'ios') {
-    return null;
-  }
-
-  try {
-    const nitroProduct = await IAP.instance.requestPromotedProductIOS();
-    if (nitroProduct) {
-      return convertNitroProductToProduct(nitroProduct);
-    }
-    return null;
-  } catch (error) {
-    console.error('[getPromotedProductIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
-/**
  * Present the code redemption sheet for offer codes (iOS only)
- * @returns Promise<boolean> - True if the sheet was presented successfully
+ * @returns Promise<boolean> - Indicates whether the redemption sheet was presented
  * @platform iOS
  */
-export const presentCodeRedemptionSheetIOS = async (): Promise<boolean> => {
+export const presentCodeRedemptionSheetIOS: MutationField<
+  'presentCodeRedemptionSheetIOS'
+> = async () => {
   if (Platform.OS !== 'ios') {
     return false;
   }
 
   try {
-    return await IAP.instance.presentCodeRedemptionSheetIOS();
+    const result = await IAP.instance.presentCodeRedemptionSheetIOS();
+    return Boolean(result);
   } catch (error) {
     console.error('[presentCodeRedemptionSheetIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1060,32 +1085,50 @@ export const presentCodeRedemptionSheetIOS = async (): Promise<boolean> => {
  * @returns Promise<void>
  * @platform iOS
  */
-export const buyPromotedProductIOS = async (): Promise<void> => {
+export const requestPurchaseOnPromotedProductIOS: MutationField<
+  'requestPurchaseOnPromotedProductIOS'
+> = async () => {
   if (Platform.OS !== 'ios') {
-    throw new Error('buyPromotedProductIOS is only available on iOS');
+    throw new Error(
+      'requestPurchaseOnPromotedProductIOS is only available on iOS',
+    );
   }
 
   try {
     await IAP.instance.buyPromotedProductIOS();
+    const pending = await IAP.instance.getPendingTransactionsIOS();
+    const latest = pending.find((purchase) => purchase != null);
+    if (!latest) {
+      throw new Error('No promoted purchase available after request');
+    }
+
+    const converted = convertNitroPurchaseToPurchase(latest);
+    if (converted.platform !== 'ios') {
+      throw new Error('Promoted purchase result not available for iOS');
+    }
+
+    return converted as PurchaseIOS;
   } catch (error) {
-    console.error('[buyPromotedProductIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    console.error('[requestPurchaseOnPromotedProductIOS] Failed:', error);
+    throw error;
   }
 };
 
 /**
  * Clear unfinished transactions on iOS
- * @returns Promise<void>
+ * @returns Promise<boolean>
  * @platform iOS
  */
-export const clearTransactionIOS = async (): Promise<void> => {
+export const clearTransactionIOS: MutationField<
+  'clearTransactionIOS'
+> = async () => {
   if (Platform.OS !== 'ios') {
-    return;
+    return false;
   }
 
   try {
     await IAP.instance.clearTransactionIOS();
+    return true;
   } catch (error) {
     console.error('[clearTransactionIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1099,15 +1142,16 @@ export const clearTransactionIOS = async (): Promise<void> => {
  * @returns Promise<string | null> - The refund status or null if not available
  * @platform iOS
  */
-export const beginRefundRequestIOS = async (
-  sku: string,
-): Promise<string | null> => {
+export const beginRefundRequestIOS: MutationField<
+  'beginRefundRequestIOS'
+> = async (sku) => {
   if (Platform.OS !== 'ios') {
-    return null;
+    throw new Error('beginRefundRequestIOS is only available on iOS');
   }
 
   try {
-    return await IAP.instance.beginRefundRequestIOS(sku);
+    const status = await IAP.instance.beginRefundRequestIOS(sku);
+    return status ?? null;
   } catch (error) {
     console.error('[beginRefundRequestIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
@@ -1122,203 +1166,51 @@ export const beginRefundRequestIOS = async (
  * @throws Error when called on non-iOS platforms or when IAP is not initialized
  * @platform iOS
  */
-export const subscriptionStatusIOS = async (
-  sku: string,
-): Promise<SubscriptionStatusIOS[]> => {
-  if (Platform.OS !== 'ios') {
-    throw new Error('subscriptionStatusIOS is only available on iOS');
-  }
-
-  try {
-    const statuses = await IAP.instance.subscriptionStatusIOS(sku);
-    if (!Array.isArray(statuses)) return [];
-    return statuses
-      .filter((status): status is NitroSubscriptionStatus => status != null)
-      .map(convertNitroSubscriptionStatusToSubscriptionStatusIOS);
-  } catch (error) {
-    console.error('[subscriptionStatusIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
 /**
  * Get current entitlement for a product (iOS only)
  * @param sku - The product SKU
  * @returns Promise<Purchase | null> - Current entitlement or null
  * @platform iOS
  */
-export const currentEntitlementIOS = async (
-  sku: string,
-): Promise<Purchase | null> => {
-  if (Platform.OS !== 'ios') {
-    return null;
-  }
-
-  try {
-    const nitroPurchase = await IAP.instance.currentEntitlementIOS(sku);
-    if (nitroPurchase) {
-      return convertNitroPurchaseToPurchase(nitroPurchase);
-    }
-    return null;
-  } catch (error) {
-    console.error('[currentEntitlementIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
 /**
  * Get latest transaction for a product (iOS only)
  * @param sku - The product SKU
  * @returns Promise<Purchase | null> - Latest transaction or null
  * @platform iOS
  */
-export const latestTransactionIOS = async (
-  sku: string,
-): Promise<Purchase | null> => {
-  if (Platform.OS !== 'ios') {
-    return null;
-  }
-
-  try {
-    const nitroPurchase = await IAP.instance.latestTransactionIOS(sku);
-    if (nitroPurchase) {
-      return convertNitroPurchaseToPurchase(nitroPurchase);
-    }
-    return null;
-  } catch (error) {
-    console.error('[latestTransactionIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
 /**
  * Get pending transactions (iOS only)
  * @returns Promise<Purchase[]> - Array of pending transactions
  * @platform iOS
  */
-export const getPendingTransactionsIOS = async (): Promise<Purchase[]> => {
-  if (Platform.OS !== 'ios') {
-    return [];
-  }
-
-  try {
-    const nitroPurchases = await IAP.instance.getPendingTransactionsIOS();
-    return nitroPurchases.map(convertNitroPurchaseToPurchase);
-  } catch (error) {
-    console.error('[getPendingTransactionsIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
 /**
  * Show manage subscriptions screen (iOS only)
  * @returns Promise<Purchase[]> - Subscriptions where auto-renewal status changed
  * @platform iOS
  */
-export const showManageSubscriptionsIOS = async (): Promise<Purchase[]> => {
-  if (Platform.OS !== 'ios') {
-    return [];
-  }
-
-  try {
-    const nitroPurchases = await IAP.instance.showManageSubscriptionsIOS();
-    return nitroPurchases.map(convertNitroPurchaseToPurchase);
-  } catch (error) {
-    console.error('[showManageSubscriptionsIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
 /**
  * Check if user is eligible for intro offer (iOS only)
  * @param groupID - The subscription group ID
  * @returns Promise<boolean> - Eligibility status
  * @platform iOS
  */
-export const isEligibleForIntroOfferIOS = async (
-  groupID: string,
-): Promise<boolean> => {
-  if (Platform.OS !== 'ios') {
-    return false;
-  }
-
-  try {
-    return await IAP.instance.isEligibleForIntroOfferIOS(groupID);
-  } catch (error) {
-    console.error('[isEligibleForIntroOfferIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
 /**
  * Get receipt data (iOS only)
  * @returns Promise<string> - Base64 encoded receipt data
  * @platform iOS
  */
-export const getReceiptDataIOS = async (): Promise<string> => {
-  if (Platform.OS !== 'ios') {
-    throw new Error('getReceiptDataIOS is only available on iOS');
-  }
-
-  try {
-    return await IAP.instance.getReceiptDataIOS();
-  } catch (error) {
-    console.error('[getReceiptDataIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
 /**
  * Check if transaction is verified (iOS only)
  * @param sku - The product SKU
  * @returns Promise<boolean> - Verification status
  * @platform iOS
  */
-export const isTransactionVerifiedIOS = async (
-  sku: string,
-): Promise<boolean> => {
-  if (Platform.OS !== 'ios') {
-    return false;
-  }
-
-  try {
-    return await IAP.instance.isTransactionVerifiedIOS(sku);
-  } catch (error) {
-    console.error('[isTransactionVerifiedIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
 /**
  * Get transaction JWS representation (iOS only)
  * @param sku - The product SKU
  * @returns Promise<string | null> - JWS representation or null
  * @platform iOS
  */
-export const getTransactionJwsIOS = async (
-  sku: string,
-): Promise<string | null> => {
-  if (Platform.OS !== 'ios') {
-    return null;
-  }
-
-  try {
-    return await IAP.instance.getTransactionJwsIOS(sku);
-  } catch (error) {
-    console.error('[getTransactionJwsIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
-  }
-};
-
 /**
  * Get the storefront identifier for the user's App Store account (iOS only)
  * @returns Promise<string> - The storefront identifier (e.g., 'USA' for United States)
@@ -1330,67 +1222,29 @@ export const getTransactionJwsIOS = async (
  * console.log('User storefront:', storefront); // e.g., 'USA', 'GBR', 'KOR'
  * ```
  */
-export const getStorefrontIOS = async (): Promise<string> => {
-  if (Platform.OS !== 'ios') {
-    throw new Error('getStorefrontIOS is only available on iOS');
-  }
-
-  try {
-    // Call the native method to get storefront
-    const storefront = await IAP.instance.getStorefrontIOS();
-    return storefront;
-  } catch (error) {
-    console.error('Failed to get storefront:', error);
-    throw error;
-  }
-};
-
-/**
- * Gets the storefront country code from the underlying native store.
- * Returns a two-letter country code such as 'US', 'KR', or empty string on failure.
- *
- * Cross-platform alias aligning with expo-iap.
- */
-export const getStorefront = async (): Promise<string> => {
-  if (Platform.OS === 'android') {
-    try {
-      // Optional since older builds may not have the method
-      const result = await IAP.instance.getStorefrontAndroid?.();
-      return result ?? '';
-    } catch {
-      return '';
-    }
-  }
-  return getStorefrontIOS();
-};
-
 /**
  * Deeplinks to native interface that allows users to manage their subscriptions
  * Cross-platform alias aligning with expo-iap
  */
-export const deepLinkToSubscriptions = async (
-  options: {
-    skuAndroid?: string;
-    packageNameAndroid?: string;
-  } = {},
-): Promise<void> => {
+export const deepLinkToSubscriptions: MutationField<
+  'deepLinkToSubscriptions'
+> = async (options) => {
+  const resolvedOptions = options ?? undefined;
+
   if (Platform.OS === 'android') {
     await IAP.instance.deepLinkToSubscriptionsAndroid?.({
-      skuAndroid: options.skuAndroid,
-      packageNameAndroid: options.packageNameAndroid,
+      skuAndroid: resolvedOptions?.skuAndroid ?? undefined,
+      packageNameAndroid: resolvedOptions?.packageNameAndroid ?? undefined,
     });
     return;
   }
-  // iOS: Use manage subscriptions sheet (ignore returned purchases for deeplink parity)
   if (Platform.OS === 'ios') {
     try {
       await IAP.instance.showManageSubscriptionsIOS();
-    } catch {
-      // no-op
+    } catch (error) {
+      console.warn('[deepLinkToSubscriptions] Failed on iOS:', error);
     }
-    return;
   }
-  return;
 };
 
 /**
@@ -1412,21 +1266,6 @@ export const deepLinkToSubscriptions = async (
  * }
  * ```
  */
-export const getAppTransactionIOS = async (): Promise<string | null> => {
-  if (Platform.OS !== 'ios') {
-    throw new Error('getAppTransactionIOS is only available on iOS');
-  }
-
-  try {
-    // Call the native method to get app transaction
-    const appTransaction = await IAP.instance.getAppTransactionIOS();
-    return appTransaction;
-  } catch (error) {
-    console.error('Failed to get app transaction:', error);
-    throw error;
-  }
-};
-
 // Export subscription helpers
 export {
   getActiveSubscriptions,
@@ -1453,3 +1292,72 @@ export const acknowledgePurchase = acknowledgePurchaseAndroid;
  * @deprecated Use consumePurchaseAndroid instead
  */
 export const consumePurchase = consumePurchaseAndroid;
+
+// ============================================================================
+// Internal Helpers
+// ============================================================================
+
+type NitroDiscountOfferRecord = NonNullable<
+  NonNullable<NitroPurchaseRequest['ios']>['withOffer']
+>;
+
+const toDiscountOfferRecordIOS = (
+  offer: DiscountOfferInputIOS | null | undefined,
+): NitroDiscountOfferRecord | undefined => {
+  if (!offer) {
+    return undefined;
+  }
+  return {
+    identifier: offer.identifier,
+    keyIdentifier: offer.keyIdentifier,
+    nonce: offer.nonce,
+    signature: offer.signature,
+    timestamp: String(offer.timestamp),
+  };
+};
+
+const toNitroProductType = (
+  type?: ProductTypeInput | ProductQueryType | null,
+): 'inapp' | 'subs' | 'all' => {
+  if (type === 'subs') {
+    return 'subs';
+  }
+  if (type === 'all') {
+    return 'all';
+  }
+  if (type === 'inapp') {
+    console.warn(LEGACY_INAPP_WARNING);
+    return 'inapp';
+  }
+  return 'inapp';
+};
+
+const isSubscriptionQuery = (type?: ProductQueryType | null): boolean =>
+  type === 'subs';
+
+const normalizeProductQueryType = (
+  type?: ProductQueryType | string | null,
+): ProductQueryType => {
+  if (type === 'all' || type === 'subs' || type === 'in-app') {
+    return type;
+  }
+
+  if (typeof type === 'string') {
+    const normalized = type.trim().toLowerCase().replace(/_/g, '-');
+
+    if (normalized === 'all') {
+      return 'all';
+    }
+    if (normalized === 'subs') {
+      return 'subs';
+    }
+    if (normalized === 'inapp') {
+      console.warn(LEGACY_INAPP_WARNING);
+      return 'in-app';
+    }
+    if (normalized === 'in-app') {
+      return 'in-app';
+    }
+  }
+  return 'in-app';
+};

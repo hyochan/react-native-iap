@@ -60,6 +60,7 @@ example-expo/          # Independent Expo example app (NOT in workspace)
 ### Auto-generated Files
 
 - `src/types.ts` is generated; never edit manually. Update the underlying schema/spec and rerun the generators instead.
+- When declaring API params/results in JS/TS modules, import the canonical types from `src/types.ts` rather than creating ad-hoc interfaces.
 
 ## Development Commands
 

@@ -116,7 +116,8 @@ describe('PurchaseFlow Screen', () => {
 
     await waitFor(() => {
       expect(RNIap.fetchProducts).toHaveBeenCalledWith({
-        products: ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs'],
+        skus: ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs'],
+        type: 'in-app',
       });
     });
   });
@@ -216,8 +217,15 @@ describe('PurchaseFlow Screen', () => {
 
     await waitFor(() => {
       expect(RNIap.requestPurchase).toHaveBeenCalledWith({
-        sku: 'dev.hyo.martie.10bulbs',
-        andDangerouslyFinishTransactionAutomatically: false,
+        request: expect.objectContaining({
+          ios: expect.objectContaining({
+            sku: 'dev.hyo.martie.10bulbs',
+          }),
+          android: expect.objectContaining({
+            skus: ['dev.hyo.martie.10bulbs'],
+          }),
+        }),
+        type: 'in-app',
       });
     });
   });

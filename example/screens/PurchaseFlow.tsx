@@ -184,13 +184,15 @@ const PurchaseFlow: React.FC = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const fetchedProducts = await fetchProducts({
+      const fetchedProductsResult = await fetchProducts({
         skus: PRODUCT_IDS,
         type: PRODUCT_QUERY_TYPE_IN_APP,
       });
 
-      // Products fetched successfully
-      setProducts(fetchedProducts);
+      const purchasedProducts = (fetchedProductsResult ?? []).filter(
+        (item) => item.type === 'in-app',
+      );
+      setProducts(purchasedProducts as Product[]);
     } catch {
       // Failed to load products
       Alert.alert('Error', 'Failed to load products');

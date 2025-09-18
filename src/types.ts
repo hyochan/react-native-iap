@@ -126,10 +126,7 @@ export enum ErrorCode {
   UserError = 'USER_ERROR'
 }
 
-export interface FetchProductsResult {
-  products?: (Product[] | null);
-  subscriptions?: (ProductSubscription[] | null);
-}
+export type FetchProductsResult = Product[] | ProductSubscription[] | null;
 
 export type IapEvent = 'promoted-product-ios' | 'purchase-error' | 'purchase-updated';
 
@@ -137,57 +134,46 @@ export type IapPlatform = 'android' | 'ios';
 
 export interface Mutation {
   /** Acknowledge a non-consumable purchase or subscription */
-  acknowledgePurchaseAndroid: Promise<VoidResult>;
+  acknowledgePurchaseAndroid: Promise<boolean>;
   /** Initiate a refund request for a product (iOS 15+) */
-  beginRefundRequestIOS: Promise<RefundResultIOS>;
+  beginRefundRequestIOS?: Promise<(string | null)>;
   /** Clear pending transactions from the StoreKit payment queue */
-  clearTransactionIOS: Promise<VoidResult>;
+  clearTransactionIOS: Promise<boolean>;
   /** Consume a purchase token so it can be repurchased */
-  consumePurchaseAndroid: Promise<VoidResult>;
+  consumePurchaseAndroid: Promise<boolean>;
   /** Open the native subscription management surface */
-  deepLinkToSubscriptions: Promise<VoidResult>;
+  deepLinkToSubscriptions: Promise<void>;
   /** Close the platform billing connection */
   endConnection: Promise<boolean>;
   /** Finish a transaction after validating receipts */
-  finishTransaction: Promise<VoidResult>;
+  finishTransaction: Promise<void>;
   /** Establish the platform billing connection */
   initConnection: Promise<boolean>;
   /** Present the App Store code redemption sheet */
-  presentCodeRedemptionSheetIOS: Promise<VoidResult>;
+  presentCodeRedemptionSheetIOS: Promise<boolean>;
   /** Initiate a purchase flow; rely on events for final state */
-  requestPurchase?: Promise<(RequestPurchaseResult | null)>;
+  requestPurchase?: Promise<(Purchase | Purchase[] | null)>;
   /** Purchase the promoted product surfaced by the App Store */
   requestPurchaseOnPromotedProductIOS: Promise<PurchaseIOS>;
   /** Restore completed purchases across platforms */
-  restorePurchases: Promise<VoidResult>;
+  restorePurchases: Promise<void>;
   /** Open subscription management UI and return changed purchases (iOS 15+) */
   showManageSubscriptionsIOS: Promise<PurchaseIOS[]>;
   /** Force a StoreKit sync for transactions (iOS 15+) */
-  syncIOS: Promise<VoidResult>;
+  syncIOS: Promise<boolean>;
   /** Validate purchase receipts with the configured providers */
   validateReceipt: Promise<ReceiptValidationResult>;
 }
 
 
-export interface MutationAcknowledgePurchaseAndroidArgs {
-  purchaseToken: string;
-}
 
+export type MutationAcknowledgePurchaseAndroidArgs = string;
 
-export interface MutationBeginRefundRequestIosArgs {
-  sku: string;
-}
+export type MutationBeginRefundRequestIosArgs = string;
 
+export type MutationConsumePurchaseAndroidArgs = string;
 
-export interface MutationConsumePurchaseAndroidArgs {
-  purchaseToken: string;
-}
-
-
-export interface MutationDeepLinkToSubscriptionsArgs {
-  options?: (DeepLinkOptions | null);
-}
-
+export type MutationDeepLinkToSubscriptionsArgs = (DeepLinkOptions | null) | undefined;
 
 export interface MutationFinishTransactionArgs {
   isConsumable?: (boolean | null);
@@ -195,14 +181,20 @@ export interface MutationFinishTransactionArgs {
 }
 
 
-export interface MutationRequestPurchaseArgs {
-  params: RequestPurchaseProps;
-}
+export type MutationRequestPurchaseArgs =
+  | {
+      /** Per-platform purchase request props */
+      request: RequestPurchasePropsByPlatforms;
+      type: 'in-app';
+    }
+  | {
+      /** Per-platform subscription request props */
+      request: RequestSubscriptionPropsByPlatforms;
+      type: 'subs';
+    };
 
 
-export interface MutationValidateReceiptArgs {
-  options: ReceiptValidationProps;
-}
+export type MutationValidateReceiptArgs = ReceiptValidationProps;
 
 export type PaymentModeIOS = 'empty' | 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
 
@@ -440,13 +432,13 @@ export type PurchaseState = 'deferred' | 'failed' | 'pending' | 'purchased' | 'r
 
 export interface Query {
   /** Get current StoreKit 2 entitlements (iOS 15+) */
-  currentEntitlementIOS: Promise<EntitlementIOS[]>;
+  currentEntitlementIOS?: Promise<(PurchaseIOS | null)>;
   /** Retrieve products or subscriptions from the store */
-  fetchProducts: Promise<FetchProductsResult>;
+  fetchProducts: Promise<(Product[] | ProductSubscription[] | null)>;
   /** Get active subscriptions (filters by subscriptionIds when provided) */
   getActiveSubscriptions: Promise<ActiveSubscription[]>;
   /** Fetch the current app transaction (iOS 16+) */
-  getAppTransactionIOS?: Promise<(AppTransaction | null)>;
+  getAppTransactionIOS?: Promise<(string | null)>;
   /** Get all available purchases for the current user */
   getAvailablePurchases: Promise<Purchase[]>;
   /** Retrieve all pending transactions in the StoreKit queue */
@@ -454,14 +446,14 @@ export interface Query {
   /** Get the currently promoted product (iOS 11+) */
   getPromotedProductIOS?: Promise<(ProductIOS | null)>;
   /** Get base64-encoded receipt data for validation */
-  getReceiptDataIOS: Promise<string>;
+  getReceiptDataIOS?: Promise<(string | null)>;
   /** Get the current App Store storefront country code */
   getStorefrontIOS: Promise<string>;
   /** Get the transaction JWS (StoreKit 2) */
-  getTransactionJwsIOS: Promise<string>;
+  getTransactionJwsIOS?: Promise<(string | null)>;
   /** Check whether the user has active subscriptions */
   hasActiveSubscriptions: Promise<boolean>;
-  /** Check introductory offer eligibility for specific products */
+  /** Check introductory offer eligibility for a subscription group */
   isEligibleForIntroOfferIOS: Promise<boolean>;
   /** Verify a StoreKit 2 transaction signature */
   isTransactionVerifiedIOS: Promise<boolean>;
@@ -469,57 +461,33 @@ export interface Query {
   latestTransactionIOS?: Promise<(PurchaseIOS | null)>;
   /** Get StoreKit 2 subscription status details (iOS 15+) */
   subscriptionStatusIOS: Promise<SubscriptionStatusIOS[]>;
+  /** Validate a receipt for a specific product */
+  validateReceiptIOS: Promise<ReceiptValidationResultIOS>;
 }
 
 
-export interface QueryCurrentEntitlementIosArgs {
-  skus?: (string[] | null);
-}
 
+export type QueryCurrentEntitlementIosArgs = string;
 
-export interface QueryFetchProductsArgs {
-  params: ProductRequest;
-}
+export type QueryFetchProductsArgs = ProductRequest;
 
+export type QueryGetActiveSubscriptionsArgs = (string[] | null) | undefined;
 
-export interface QueryGetActiveSubscriptionsArgs {
-  subscriptionIds?: (string[] | null);
-}
+export type QueryGetAvailablePurchasesArgs = (PurchaseOptions | null) | undefined;
 
+export type QueryGetTransactionJwsIosArgs = string;
 
-export interface QueryGetAvailablePurchasesArgs {
-  options?: (PurchaseOptions | null);
-}
+export type QueryHasActiveSubscriptionsArgs = (string[] | null) | undefined;
 
+export type QueryIsEligibleForIntroOfferIosArgs = string;
 
-export interface QueryGetTransactionJwsIosArgs {
-  transactionId: string;
-}
+export type QueryIsTransactionVerifiedIosArgs = string;
 
+export type QueryLatestTransactionIosArgs = string;
 
-export interface QueryHasActiveSubscriptionsArgs {
-  subscriptionIds?: (string[] | null);
-}
+export type QuerySubscriptionStatusIosArgs = string;
 
-
-export interface QueryIsEligibleForIntroOfferIosArgs {
-  productIds: string[];
-}
-
-
-export interface QueryIsTransactionVerifiedIosArgs {
-  transactionId: string;
-}
-
-
-export interface QueryLatestTransactionIosArgs {
-  sku: string;
-}
-
-
-export interface QuerySubscriptionStatusIosArgs {
-  skus?: (string[] | null);
-}
+export type QueryValidateReceiptIosArgs = ReceiptValidationProps;
 
 export interface ReceiptValidationAndroidOptions {
   accessToken: string;
@@ -623,10 +591,7 @@ export interface RequestPurchasePropsByPlatforms {
   ios?: (RequestPurchaseIosProps | null);
 }
 
-export interface RequestPurchaseResult {
-  purchase?: (Purchase | null);
-  purchases?: (Purchase[] | null);
-}
+export type RequestPurchaseResult = Purchase | Purchase[] | null;
 
 export interface RequestSubscriptionAndroidProps {
   /** Personalized offer flag */
@@ -669,6 +634,7 @@ export interface Subscription {
   purchaseUpdated: Purchase;
 }
 
+
 export interface SubscriptionInfoIOS {
   introductoryOffer?: (SubscriptionOfferIOS | null);
   promotionalOffers?: (SubscriptionOfferIOS[] | null);
@@ -700,9 +666,8 @@ export interface SubscriptionStatusIOS {
   state: string;
 }
 
-export interface VoidResult {
-  success: boolean;
-}
+export type VoidResult = void;
+
 // -- Query helper types (auto-generated)
 export type QueryArgsMap = {
   currentEntitlementIOS: QueryCurrentEntitlementIosArgs;
@@ -720,12 +685,15 @@ export type QueryArgsMap = {
   isTransactionVerifiedIOS: QueryIsTransactionVerifiedIosArgs;
   latestTransactionIOS: QueryLatestTransactionIosArgs;
   subscriptionStatusIOS: QuerySubscriptionStatusIosArgs;
+  validateReceiptIOS: QueryValidateReceiptIosArgs;
 };
 
 export type QueryField<K extends keyof Query> =
   QueryArgsMap[K] extends never
     ? () => NonNullable<Query[K]>
-    : (args: QueryArgsMap[K]) => NonNullable<Query[K]>;
+    : undefined extends QueryArgsMap[K]
+      ? (args?: QueryArgsMap[K]) => NonNullable<Query[K]>
+      : (args: QueryArgsMap[K]) => NonNullable<Query[K]>;
 
 export type QueryFieldMap = {
   [K in keyof Query]?: QueryField<K>;
@@ -754,7 +722,9 @@ export type MutationArgsMap = {
 export type MutationField<K extends keyof Mutation> =
   MutationArgsMap[K] extends never
     ? () => NonNullable<Mutation[K]>
-    : (args: MutationArgsMap[K]) => NonNullable<Mutation[K]>;
+    : undefined extends MutationArgsMap[K]
+      ? (args?: MutationArgsMap[K]) => NonNullable<Mutation[K]>
+      : (args: MutationArgsMap[K]) => NonNullable<Mutation[K]>;
 
 export type MutationFieldMap = {
   [K in keyof Mutation]?: MutationField<K>;
@@ -771,7 +741,9 @@ export type SubscriptionArgsMap = {
 export type SubscriptionField<K extends keyof Subscription> =
   SubscriptionArgsMap[K] extends never
     ? () => NonNullable<Subscription[K]>
-    : (args: SubscriptionArgsMap[K]) => NonNullable<Subscription[K]>;
+    : undefined extends SubscriptionArgsMap[K]
+      ? (args?: SubscriptionArgsMap[K]) => NonNullable<Subscription[K]>
+      : (args: SubscriptionArgsMap[K]) => NonNullable<Subscription[K]>;
 
 export type SubscriptionFieldMap = {
   [K in keyof Subscription]?: SubscriptionField<K>;

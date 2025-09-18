@@ -48,7 +48,7 @@ describe('hooks/useIAP (renderer)', () => {
   beforeEach(() => {
     jest.spyOn(IAP, 'initConnection').mockResolvedValue(true as any);
     jest.spyOn(IAP, 'getAvailablePurchases').mockResolvedValue([] as any);
-    jest.spyOn(IAP, 'finishTransaction').mockResolvedValue(true as any);
+    jest.spyOn(IAP, 'finishTransaction').mockResolvedValue(undefined as any);
     jest.spyOn(IAP, 'purchaseUpdatedListener').mockImplementation((cb: any) => {
       capturedPurchaseListener = cb;
       return {remove: jest.fn()};

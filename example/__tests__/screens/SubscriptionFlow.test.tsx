@@ -27,7 +27,6 @@ const mockUseIAP = {
   getAvailablePurchases: jest.fn().mockResolvedValue([]),
   getActiveSubscriptions: jest.fn().mockResolvedValue([]),
   requestPurchase: jest.fn(),
-  requestSubscription: jest.fn(),
   finishTransaction: jest.fn(),
   fetchProducts: jest.fn(),
 };

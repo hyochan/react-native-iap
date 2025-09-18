@@ -28,9 +28,8 @@ jest.mock('react-native-nitro-modules', () => ({
       getStorefrontIOS: jest.fn().mockResolvedValue('USA'),
       getAppTransactionIOS: jest.fn().mockResolvedValue(null),
       requestPromotedProductIOS: jest.fn().mockResolvedValue(null),
-      buyPromotedProductIOS: jest.fn().mockResolvedValue(undefined),
       presentCodeRedemptionSheetIOS: jest.fn().mockResolvedValue(true),
-      clearTransactionIOS: jest.fn().mockResolvedValue(undefined),
+      clearTransactionIOS: jest.fn().mockResolvedValue(true),
       beginRefundRequestIOS: jest.fn().mockResolvedValue(null),
       acknowledgePurchaseAndroid: jest.fn().mockResolvedValue(true),
       consumePurchaseAndroid: jest.fn().mockResolvedValue(true),
@@ -101,7 +100,10 @@ describe('RnIap Complete Test Suite', () => {
     it('should request purchase', async () => {
       const request = {ios: {sku: 'product1'}};
       await expect(
-        RNIap.requestPurchase({request, type: 'in-app'}),
+        RNIap.requestPurchase({
+          request,
+          type: 'in-app',
+        }),
       ).resolves.not.toThrow();
     });
 
@@ -142,11 +144,6 @@ describe('RnIap Complete Test Suite', () => {
       expect(typeof RNIap.requestPromotedProductIOS).toBe('function');
     });
 
-    it('should export buyPromotedProductIOS', () => {
-      expect(RNIap.buyPromotedProductIOS).toBeDefined();
-      expect(typeof RNIap.buyPromotedProductIOS).toBe('function');
-    });
-
     it('should export presentCodeRedemptionSheetIOS', () => {
       expect(RNIap.presentCodeRedemptionSheetIOS).toBeDefined();
       expect(typeof RNIap.presentCodeRedemptionSheetIOS).toBe('function');
@@ -163,22 +160,16 @@ describe('RnIap Complete Test Suite', () => {
     });
 
     it('should present code redemption sheet on iOS', async () => {
-      await expect(
-        RNIap.presentCodeRedemptionSheetIOS(),
-      ).resolves.not.toThrow();
+      await expect(RNIap.presentCodeRedemptionSheetIOS()).resolves.toBe(true);
     });
 
     it('should clear transactions on iOS', async () => {
-      await expect(RNIap.clearTransactionIOS()).resolves.not.toThrow();
+      await expect(RNIap.clearTransactionIOS()).resolves.toBe(true);
     });
 
     it('should request promoted product on iOS', async () => {
       const result = await RNIap.requestPromotedProductIOS();
       expect(result).toBeNull();
-    });
-
-    it('should buy promoted product on iOS', async () => {
-      await expect(RNIap.buyPromotedProductIOS()).resolves.not.toThrow();
     });
 
     it('should begin refund request on iOS', async () => {

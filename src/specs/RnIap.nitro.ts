@@ -1,5 +1,22 @@
 import type {HybridObject} from 'react-native-nitro-modules';
-import type {RequestPurchaseResult} from '../types';
+// NOTE: This Nitro spec re-exports types from the generated schema (src/types.ts)
+// via type aliases to avoid duplicating structure. Nitro's codegen expects the
+// canonical `Nitro*` names defined here, so we keep the aliases rather than
+// removing the types entirely.
+import type {
+  AndroidSubscriptionOfferInput,
+  DeepLinkOptions,
+  MutationFinishTransactionArgs,
+  ProductCommon,
+  PurchaseCommon,
+  PurchaseOptions,
+  ReceiptValidationAndroidOptions,
+  ReceiptValidationProps,
+  ReceiptValidationResultAndroid,
+  RequestPurchaseIosProps,
+  RequestPurchaseResult,
+  RequestSubscriptionAndroidProps,
+} from '../types';
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║                                  PARAMS                                  ║
@@ -7,22 +24,16 @@ import type {RequestPurchaseResult} from '../types';
 
 // Receipt validation parameters
 
-/**
- * Android-specific receipt validation options
- */
 export interface NitroReceiptValidationAndroidOptions {
-  packageName: string;
-  productToken: string;
-  accessToken: string;
-  isSub?: boolean;
+  accessToken: ReceiptValidationAndroidOptions['accessToken'];
+  isSub?: ReceiptValidationAndroidOptions['isSub'];
+  packageName: ReceiptValidationAndroidOptions['packageName'];
+  productToken: ReceiptValidationAndroidOptions['productToken'];
 }
 
-/**
- * Receipt validation parameters
- */
 export interface NitroReceiptValidationParams {
-  sku: string;
-  androidOptions?: NitroReceiptValidationAndroidOptions;
+  sku: ReceiptValidationProps['sku'];
+  androidOptions?: NitroReceiptValidationAndroidOptions | null;
 }
 
 // Purchase request parameters
@@ -30,41 +41,27 @@ export interface NitroReceiptValidationParams {
 /**
  * iOS-specific purchase request parameters
  */
-interface NitroRequestPurchaseIos {
-  sku: string;
-  andDangerouslyFinishTransactionAutomatically?: boolean;
-  appAccountToken?: string;
-  quantity?: number;
-  withOffer?: Record<string, string>;
+export interface NitroRequestPurchaseIos {
+  sku: RequestPurchaseIosProps['sku'];
+  andDangerouslyFinishTransactionAutomatically?: RequestPurchaseIosProps['andDangerouslyFinishTransactionAutomatically'];
+  appAccountToken?: RequestPurchaseIosProps['appAccountToken'];
+  quantity?: RequestPurchaseIosProps['quantity'];
+  withOffer?: Record<string, string> | null;
 }
 
-/**
- * Android subscription offer structure
- */
-interface NitroSubscriptionOffer {
-  sku: string;
-  offerToken: string;
+export interface NitroRequestPurchaseAndroid {
+  skus: RequestSubscriptionAndroidProps['skus'];
+  obfuscatedAccountIdAndroid?: RequestSubscriptionAndroidProps['obfuscatedAccountIdAndroid'];
+  obfuscatedProfileIdAndroid?: RequestSubscriptionAndroidProps['obfuscatedProfileIdAndroid'];
+  isOfferPersonalized?: RequestSubscriptionAndroidProps['isOfferPersonalized'];
+  subscriptionOffers?: AndroidSubscriptionOfferInput[] | null;
+  replacementModeAndroid?: RequestSubscriptionAndroidProps['replacementModeAndroid'];
+  purchaseTokenAndroid?: RequestSubscriptionAndroidProps['purchaseTokenAndroid'];
 }
 
-/**
- * Android-specific purchase request parameters
- */
-interface NitroRequestPurchaseAndroid {
-  skus: string[];
-  obfuscatedAccountIdAndroid?: string;
-  obfuscatedProfileIdAndroid?: string;
-  isOfferPersonalized?: boolean;
-  subscriptionOffers?: NitroSubscriptionOffer[];
-  replacementModeAndroid?: number;
-  purchaseTokenAndroid?: string;
-}
-
-/**
- * Unified purchase request with platform-specific options
- */
-interface NitroPurchaseRequest {
-  ios?: NitroRequestPurchaseIos;
-  android?: NitroRequestPurchaseAndroid;
+export interface NitroPurchaseRequest {
+  ios?: NitroRequestPurchaseIos | null;
+  android?: NitroRequestPurchaseAndroid | null;
 }
 
 // Available purchases parameters
@@ -72,26 +69,20 @@ interface NitroPurchaseRequest {
 /**
  * iOS-specific options for getting available purchases
  */
-interface NitroAvailablePurchasesIosOptions {
-  alsoPublishToEventListener?: boolean; // @deprecated Use alsoPublishToEventListenerIOS
-  onlyIncludeActiveItems?: boolean; // @deprecated Use onlyIncludeActiveItemsIOS
-  alsoPublishToEventListenerIOS?: boolean;
-  onlyIncludeActiveItemsIOS?: boolean;
+export interface NitroAvailablePurchasesIosOptions extends PurchaseOptions {
+  alsoPublishToEventListener?: boolean | null;
+  onlyIncludeActiveItems?: boolean | null;
 }
 
-/**
- * Android-specific options for getting available purchases
- */
-interface NitroAvailablePurchasesAndroidOptions {
-  type?: string; // 'inapp' or 'subs'
+type NitroAvailablePurchasesAndroidType = 'inapp' | 'subs';
+
+export interface NitroAvailablePurchasesAndroidOptions {
+  type?: NitroAvailablePurchasesAndroidType;
 }
 
-/**
- * Unified available purchases options with platform-specific parameters
- */
-interface NitroAvailablePurchasesOptions {
-  ios?: NitroAvailablePurchasesIosOptions;
-  android?: NitroAvailablePurchasesAndroidOptions;
+export interface NitroAvailablePurchasesOptions {
+  ios?: NitroAvailablePurchasesIosOptions | null;
+  android?: NitroAvailablePurchasesAndroidOptions | null;
 }
 
 // Transaction finish parameters
@@ -99,32 +90,29 @@ interface NitroAvailablePurchasesOptions {
 /**
  * iOS-specific parameters for finishing a transaction
  */
-interface NitroFinishTransactionIosParams {
+export interface NitroFinishTransactionIosParams {
   transactionId: string;
 }
 
 /**
  * Android-specific parameters for finishing a transaction
  */
-interface NitroFinishTransactionAndroidParams {
+export interface NitroFinishTransactionAndroidParams {
   purchaseToken: string;
-  isConsumable?: boolean;
+  isConsumable?: MutationFinishTransactionArgs['isConsumable'];
 }
 
 /**
  * Unified finish transaction parameters with platform-specific options
  */
-interface NitroFinishTransactionParams {
-  ios?: NitroFinishTransactionIosParams;
-  android?: NitroFinishTransactionAndroidParams;
+export interface NitroFinishTransactionParams {
+  ios?: NitroFinishTransactionIosParams | null;
+  android?: NitroFinishTransactionAndroidParams | null;
 }
 
-/**
- * Android deep link options for subscription management
- */
-interface NitroDeepLinkOptionsAndroid {
-  skuAndroid?: string;
-  packageNameAndroid?: string;
+export interface NitroDeepLinkOptionsAndroid {
+  skuAndroid?: DeepLinkOptions['skuAndroid'];
+  packageNameAndroid?: DeepLinkOptions['packageNameAndroid'];
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
@@ -136,10 +124,10 @@ interface NitroDeepLinkOptionsAndroid {
  */
 export interface NitroSubscriptionRenewalInfo {
   autoRenewStatus: boolean;
-  autoRenewPreference?: string;
-  expirationReason?: number;
-  gracePeriodExpirationDate?: number;
-  currentProductID?: string;
+  autoRenewPreference?: string | null;
+  expirationReason?: number | null;
+  gracePeriodExpirationDate?: number | null;
+  currentProductID?: string | null;
   platform: string;
 }
 
@@ -149,7 +137,7 @@ export interface NitroSubscriptionRenewalInfo {
 export interface NitroSubscriptionStatus {
   state: number;
   platform: string;
-  renewalInfo?: NitroSubscriptionRenewalInfo;
+  renewalInfo?: NitroSubscriptionRenewalInfo | null;
 }
 
 /**
@@ -163,108 +151,88 @@ export interface NitroPurchaseResult {
   purchaseToken?: string;
 }
 
-/**
- * iOS receipt validation result
- */
 export interface NitroReceiptValidationResultIOS {
   isValid: boolean;
   receiptData: string;
   jwsRepresentation: string;
-  latestTransaction?: NitroPurchase;
+  latestTransaction?: NitroPurchase | null;
 }
 
-/**
- * Android receipt validation result
- */
 export interface NitroReceiptValidationResultAndroid {
-  autoRenewing: boolean;
-  betaProduct: boolean;
-  cancelDate: number | null;
-  cancelReason: string;
-  deferredDate: number | null;
-  deferredSku: number | null;
-  freeTrialEndDate: number;
-  gracePeriodEndDate: number;
-  parentProductId: string;
-  productId: string;
-  productType: string;
-  purchaseDate: number;
-  quantity: number;
-  receiptId: string;
-  renewalDate: number;
-  term: string;
-  termSku: string;
-  testTransaction: boolean;
+  autoRenewing: ReceiptValidationResultAndroid['autoRenewing'];
+  betaProduct: ReceiptValidationResultAndroid['betaProduct'];
+  cancelDate: ReceiptValidationResultAndroid['cancelDate'];
+  cancelReason: ReceiptValidationResultAndroid['cancelReason'];
+  deferredDate: ReceiptValidationResultAndroid['deferredDate'];
+  deferredSku: ReceiptValidationResultAndroid['deferredSku'];
+  freeTrialEndDate: ReceiptValidationResultAndroid['freeTrialEndDate'];
+  gracePeriodEndDate: ReceiptValidationResultAndroid['gracePeriodEndDate'];
+  parentProductId: ReceiptValidationResultAndroid['parentProductId'];
+  productId: ReceiptValidationResultAndroid['productId'];
+  productType: ReceiptValidationResultAndroid['productType'];
+  purchaseDate: ReceiptValidationResultAndroid['purchaseDate'];
+  quantity: ReceiptValidationResultAndroid['quantity'];
+  receiptId: ReceiptValidationResultAndroid['receiptId'];
+  renewalDate: ReceiptValidationResultAndroid['renewalDate'];
+  term: ReceiptValidationResultAndroid['term'];
+  termSku: ReceiptValidationResultAndroid['termSku'];
+  testTransaction: ReceiptValidationResultAndroid['testTransaction'];
 }
 
-/**
- * Purchase data structure returned from native
- */
 export interface NitroPurchase {
-  // Common fields
-  id: string;
-  productId: string;
-  transactionDate: number;
-  purchaseToken?: string;
-  platform: string;
-  quantity: number;
-  purchaseState: string;
-  isAutoRenewing: boolean;
-
-  // iOS specific fields
-  quantityIOS?: number;
-  originalTransactionDateIOS?: number;
-  originalTransactionIdentifierIOS?: string;
-  appAccountToken?: string;
-
-  // Android specific fields
-  purchaseTokenAndroid?: string;
-  dataAndroid?: string;
-  signatureAndroid?: string;
-  autoRenewingAndroid?: boolean;
-  purchaseStateAndroid?: number;
-  isAcknowledgedAndroid?: boolean;
-  packageNameAndroid?: string;
-  obfuscatedAccountIdAndroid?: string;
-  obfuscatedProfileIdAndroid?: string;
+  id: PurchaseCommon['id'];
+  productId: PurchaseCommon['productId'];
+  transactionDate: PurchaseCommon['transactionDate'];
+  purchaseToken?: PurchaseCommon['purchaseToken'];
+  platform: PurchaseCommon['platform'];
+  quantity: PurchaseCommon['quantity'];
+  purchaseState: PurchaseCommon['purchaseState'];
+  isAutoRenewing: PurchaseCommon['isAutoRenewing'];
+  quantityIOS?: number | null;
+  originalTransactionDateIOS?: number | null;
+  originalTransactionIdentifierIOS?: string | null;
+  appAccountToken?: string | null;
+  purchaseTokenAndroid?: string | null;
+  dataAndroid?: string | null;
+  signatureAndroid?: string | null;
+  autoRenewingAndroid?: boolean | null;
+  purchaseStateAndroid?: number | null;
+  isAcknowledgedAndroid?: boolean | null;
+  packageNameAndroid?: string | null;
+  obfuscatedAccountIdAndroid?: string | null;
+  obfuscatedProfileIdAndroid?: string | null;
 }
 
-/**
- * Product data structure returned from native
- */
 export interface NitroProduct {
-  // Common fields
-  id: string;
-  title: string;
-  description: string;
+  id: ProductCommon['id'];
+  title: ProductCommon['title'];
+  description: ProductCommon['description'];
   type: string;
-  displayName?: string;
-  displayPrice?: string;
-  currency?: string;
-  price?: number;
-  platform: string;
-
+  displayName?: ProductCommon['displayName'];
+  displayPrice?: ProductCommon['displayPrice'];
+  currency?: ProductCommon['currency'];
+  price?: ProductCommon['price'];
+  platform: ProductCommon['platform'];
   // iOS specific fields
-  typeIOS?: string;
-  isFamilyShareableIOS?: boolean;
-  jsonRepresentationIOS?: string;
-  subscriptionPeriodUnitIOS?: string;
-  subscriptionPeriodNumberIOS?: number;
-  introductoryPriceIOS?: string;
-  introductoryPriceAsAmountIOS?: number;
-  introductoryPricePaymentModeIOS?: string;
-  introductoryPriceNumberOfPeriodsIOS?: number;
-  introductoryPriceSubscriptionPeriodIOS?: string;
-
+  typeIOS?: string | null;
+  isFamilyShareableIOS?: boolean | null;
+  jsonRepresentationIOS?: string | null;
+  introductoryPriceIOS?: string | null;
+  introductoryPriceAsAmountIOS?: number | null;
+  introductoryPriceNumberOfPeriodsIOS?: number | null;
+  introductoryPricePaymentModeIOS?: string | null;
+  introductoryPriceSubscriptionPeriodIOS?: string | null;
+  subscriptionPeriodNumberIOS?: number | null;
+  subscriptionPeriodUnitIOS?: string | null;
   // Android specific fields
-  originalPriceAndroid?: string;
-  originalPriceAmountMicrosAndroid?: number;
-  introductoryPriceValueAndroid?: number;
-  introductoryPriceCyclesAndroid?: number;
-  introductoryPricePeriodAndroid?: string;
-  subscriptionPeriodAndroid?: string;
-  freeTrialPeriodAndroid?: string;
-  subscriptionOfferDetailsAndroid?: string; // Android subscription offer details as JSON string
+  originalPriceAndroid?: string | null;
+  originalPriceAmountMicrosAndroid?: number | null;
+  introductoryPriceCyclesAndroid?: number | null;
+  introductoryPricePeriodAndroid?: string | null;
+  introductoryPriceValueAndroid?: number | null;
+  subscriptionPeriodAndroid?: string | null;
+  freeTrialPeriodAndroid?: string | null;
+  subscriptionOfferDetailsAndroid?: string | null;
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════╗

@@ -92,6 +92,34 @@ export const fetchProducts = async (params) => {
 };
 ```
 
+### Generated API Helpers
+
+- When an API surface lives in the shared schema (`src/types.ts`), prefer the generated helpers (`QueryField`, `MutationField`, etc.) instead of hand-written parameter/return types. This keeps JavaScript, TypeScript, and the Nitro bridge in sync.
+
+```typescript
+// ✅ Good – signature driven by generated helpers
+export const fetchProducts: QueryField<'fetchProducts'> = async (request) => {
+  // request typed from src/types.ts
+};
+
+export const finishTransaction: MutationField<'finishTransaction'> = async (
+  args,
+) => {
+  const {purchase} = args;
+  // ...
+};
+
+// ❌ Bad – manual types drift from the schema over time
+export const fetchProducts = async (request: {
+  skus: string[];
+  type?: 'in-app' | 'subs';
+}): Promise<{products: Product[]; subscriptions: ProductSubscription[]}> => {
+  // ...
+};
+```
+
+- `src/index.ts` must only expose APIs that are declared in the canonical schema (`src/types.ts`). If the schema changes, update it first, regenerate as needed, and then adjust `index.ts` to match.
+
 ## Platform-Specific Naming
 
 ### Naming Rules
@@ -174,11 +202,6 @@ export const requestPurchase = async (productId: string): Promise<Purchase> => {
 
 ```typescript
 // BAD: iOS-only function without suffix
-export const getStorefront = (): Promise<string> => {
-  return ExpoIapModule.getStorefront(); // Only works on iOS!
-};
-
-// GOOD: Should be
 export const getStorefrontIOS = (): Promise<string> => {
   // Platform check and implementation
 };
@@ -460,10 +483,6 @@ export const getStorefrontIOS = async (): Promise<string> => {
 /**
  * @deprecated Use getStorefrontIOS instead
  */
-export const getStorefront = async (): Promise<string> => {
-  console.warn('getStorefront is deprecated. Use getStorefrontIOS instead.');
-  return getStorefrontIOS();
-};
 ```
 
 ## New v2.7.0 API Guidelines

@@ -36,5 +36,10 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
+      - name: Ensure generated types are up to date
+        run: |
+          yarn generate:types
+          git diff --exit-code -- src/types.ts
+
       - name: Build package
         run: node .yarn/releases/yarn-3.6.1.cjs prepare

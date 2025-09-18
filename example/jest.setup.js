@@ -16,7 +16,6 @@ jest.mock('react-native-nitro-modules', () => ({
       getProducts: jest.fn(() => Promise.resolve([])),
       getSubscriptions: jest.fn(() => Promise.resolve([])),
       requestPurchase: jest.fn(() => Promise.resolve()),
-      requestSubscription: jest.fn(() => Promise.resolve()),
       finishTransaction: jest.fn(() => Promise.resolve()),
       getAvailablePurchases: jest.fn(() => Promise.resolve([])),
       getPurchaseHistory: jest.fn(() => Promise.resolve([])),
@@ -25,7 +24,6 @@ jest.mock('react-native-nitro-modules', () => ({
       clearTransactionIOS: jest.fn(() => Promise.resolve()),
       clearProductsIOS: jest.fn(() => Promise.resolve()),
       promotedProductIOS: jest.fn(() => Promise.resolve()),
-      buyPromotedProductIOS: jest.fn(() => Promise.resolve()),
       requestPromotedProductIOS: jest.fn(() => Promise.resolve()),
       validateReceiptIos: jest.fn(() => Promise.resolve()),
       deepLinkingGetPendingPurchases: jest.fn(() => Promise.resolve()),
@@ -43,26 +41,24 @@ jest.mock('../src/index', () => ({
   getSubscriptions: jest.fn(() => Promise.resolve([])),
   fetchProducts: jest.fn(() => Promise.resolve([])),
   requestPurchase: jest.fn(() => Promise.resolve()),
-  requestSubscription: jest.fn(() => Promise.resolve()),
   finishTransaction: jest.fn(() => Promise.resolve()),
   getAvailablePurchases: jest.fn(() => Promise.resolve([])),
   getPurchaseHistory: jest.fn(() => Promise.resolve([])),
 
   // Android specific
-  acknowledgePurchaseAndroid: jest.fn(() => Promise.resolve()),
-  consumePurchaseAndroid: jest.fn(() => Promise.resolve()),
+  acknowledgePurchaseAndroid: jest.fn(() => Promise.resolve(true)),
+  consumePurchaseAndroid: jest.fn(() => Promise.resolve(true)),
   deepLinkingGetPendingPurchases: jest.fn(() => Promise.resolve()),
   validateReceiptAndroid: jest.fn(() => Promise.resolve()),
 
   // iOS specific
-  clearTransactionIOS: jest.fn(() => Promise.resolve()),
+  clearTransactionIOS: jest.fn(() => Promise.resolve(true)),
   clearProductsIOS: jest.fn(() => Promise.resolve()),
   promotedProductIOS: jest.fn(() => Promise.resolve()),
-  buyPromotedProductIOS: jest.fn(() => Promise.resolve()),
   requestPromotedProductIOS: jest.fn(() => Promise.resolve(null)),
   beginRefundRequestIOS: jest.fn(() => Promise.resolve(null)),
   validateReceiptIos: jest.fn(() => Promise.resolve()),
-  presentCodeRedemptionSheetIOS: jest.fn(() => Promise.resolve()),
+  presentCodeRedemptionSheetIOS: jest.fn(() => Promise.resolve(true)),
 
   // Event listeners
   purchaseUpdatedListener: jest.fn((callback) => ({remove: jest.fn()})),
@@ -79,7 +75,6 @@ jest.mock('../src/index', () => ({
     getSubscriptions: jest.fn(() => Promise.resolve([])),
     getAvailablePurchases: jest.fn(() => Promise.resolve([])),
     requestPurchase: jest.fn(() => Promise.resolve()),
-    requestSubscription: jest.fn(() => Promise.resolve()),
     finishTransaction: jest.fn(() => Promise.resolve()),
   })),
 

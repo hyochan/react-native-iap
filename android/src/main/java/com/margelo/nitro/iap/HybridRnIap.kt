@@ -8,7 +8,7 @@ import dev.hyo.openiap.OpenIapError as OpenIAPError
 import dev.hyo.openiap.OpenIapModule
 import dev.hyo.openiap.listener.OpenIapPurchaseErrorListener
 import dev.hyo.openiap.listener.OpenIapPurchaseUpdateListener
-import dev.hyo.openiap.models.DeepLinkOptions
+import dev.hyo.openiap.models.DeepLinkOptions as OpenIapDeepLinkOptions
 import dev.hyo.openiap.models.OpenIapProduct
 import dev.hyo.openiap.models.OpenIapPurchase
 import dev.hyo.openiap.models.ProductRequest
@@ -152,9 +152,9 @@ class HybridRnIap : HybridRnIapSpec() {
     
     // Purchase methods
     // Purchase methods (Unified)
-    override fun requestPurchase(request: NitroPurchaseRequest): Promise<RequestPurchaseResult> {
+    override fun requestPurchase(request: NitroPurchaseRequest): Promise<RequestPurchaseResult?> {
         return Promise.async {
-            val defaultResult = RequestPurchaseResult(null, null)
+            val defaultResult = RequestPurchaseResult.create(emptyArray())
 
             val androidRequest = request.android ?: run {
                 // Programming error: no Android params provided
@@ -214,11 +214,16 @@ class HybridRnIap : HybridRnIapSpec() {
             val androidOptions = options?.android
             initConnection().await()
 
-            val result: List<OpenIapPurchase> = if (androidOptions?.type != null) {
-                val typeEnum = ProductRequest.ProductRequestType.fromString(androidOptions.type ?: "inapp")
-                openIap.getAvailableItems(typeEnum)
-            } else {
-                openIap.getAvailablePurchases()
+            val result: List<OpenIapPurchase> = when (androidOptions?.type?.name) {
+                "INAPP" -> {
+                    val typeEnum = ProductRequest.ProductRequestType.fromString("inapp")
+                    openIap.getAvailableItems(typeEnum)
+                }
+                "SUBS" -> {
+                    val typeEnum = ProductRequest.ProductRequestType.fromString("subs")
+                    openIap.getAvailableItems(typeEnum)
+                }
+                else -> openIap.getAvailablePurchases()
             }
             result.map { convertToNitroPurchase(it) }.toTypedArray()
         }
@@ -512,11 +517,11 @@ class HybridRnIap : HybridRnIapSpec() {
     }
 
     // Android-specific deep link to subscription management
-    override fun deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid): Promise<Unit> {
+    override fun deepLinkToSubscriptionsAndroid(options: DeepLinkOptions): Promise<Unit> {
         return Promise.async {
             try {
                 initConnection().await()
-                DeepLinkOptions(
+                OpenIapDeepLinkOptions(
                     skuAndroid = options.skuAndroid,
                     packageNameAndroid = options.packageNameAndroid
                 ).let { openIap.deepLinkToSubscriptions(it) }
@@ -575,7 +580,7 @@ class HybridRnIap : HybridRnIapSpec() {
     }
 
     // Receipt validation
-    override fun validateReceipt(params: NitroReceiptValidationParams): Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
+    override fun validateReceipt(params: ReceiptValidationProps): Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
         return Promise.async {
             try {
                 // For Android, we need the androidOptions to be provided
