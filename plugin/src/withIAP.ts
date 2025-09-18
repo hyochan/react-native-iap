@@ -126,7 +126,6 @@ const withIapAndroid: ConfigPlugin = (config) => {
 
 type IapPluginProps = {
   ios?: {
-    // Intentionally following user-provided key spelling
     // Enable to inject Folly coroutine-disabling macros into Podfile during prebuild
     'with-folly-no-coroutines'?: boolean;
   };
