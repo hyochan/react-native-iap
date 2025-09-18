@@ -703,3 +703,77 @@ export interface SubscriptionStatusIOS {
 export interface VoidResult {
   success: boolean;
 }
+// -- Query helper types (auto-generated)
+export type QueryArgsMap = {
+  currentEntitlementIOS: QueryCurrentEntitlementIosArgs;
+  fetchProducts: QueryFetchProductsArgs;
+  getActiveSubscriptions: QueryGetActiveSubscriptionsArgs;
+  getAppTransactionIOS: never;
+  getAvailablePurchases: QueryGetAvailablePurchasesArgs;
+  getPendingTransactionsIOS: never;
+  getPromotedProductIOS: never;
+  getReceiptDataIOS: never;
+  getStorefrontIOS: never;
+  getTransactionJwsIOS: QueryGetTransactionJwsIosArgs;
+  hasActiveSubscriptions: QueryHasActiveSubscriptionsArgs;
+  isEligibleForIntroOfferIOS: QueryIsEligibleForIntroOfferIosArgs;
+  isTransactionVerifiedIOS: QueryIsTransactionVerifiedIosArgs;
+  latestTransactionIOS: QueryLatestTransactionIosArgs;
+  subscriptionStatusIOS: QuerySubscriptionStatusIosArgs;
+};
+
+export type QueryField<K extends keyof Query> =
+  QueryArgsMap[K] extends never
+    ? () => NonNullable<Query[K]>
+    : (args: QueryArgsMap[K]) => NonNullable<Query[K]>;
+
+export type QueryFieldMap = {
+  [K in keyof Query]?: QueryField<K>;
+};
+// -- End query helper types
+
+// -- Mutation helper types (auto-generated)
+export type MutationArgsMap = {
+  acknowledgePurchaseAndroid: MutationAcknowledgePurchaseAndroidArgs;
+  beginRefundRequestIOS: MutationBeginRefundRequestIosArgs;
+  clearTransactionIOS: never;
+  consumePurchaseAndroid: MutationConsumePurchaseAndroidArgs;
+  deepLinkToSubscriptions: MutationDeepLinkToSubscriptionsArgs;
+  endConnection: never;
+  finishTransaction: MutationFinishTransactionArgs;
+  initConnection: never;
+  presentCodeRedemptionSheetIOS: never;
+  requestPurchase: MutationRequestPurchaseArgs;
+  requestPurchaseOnPromotedProductIOS: never;
+  restorePurchases: never;
+  showManageSubscriptionsIOS: never;
+  syncIOS: never;
+  validateReceipt: MutationValidateReceiptArgs;
+};
+
+export type MutationField<K extends keyof Mutation> =
+  MutationArgsMap[K] extends never
+    ? () => NonNullable<Mutation[K]>
+    : (args: MutationArgsMap[K]) => NonNullable<Mutation[K]>;
+
+export type MutationFieldMap = {
+  [K in keyof Mutation]?: MutationField<K>;
+};
+// -- End mutation helper types
+
+// -- Subscription helper types (auto-generated)
+export type SubscriptionArgsMap = {
+  promotedProductIOS: never;
+  purchaseError: never;
+  purchaseUpdated: never;
+};
+
+export type SubscriptionField<K extends keyof Subscription> =
+  SubscriptionArgsMap[K] extends never
+    ? () => NonNullable<Subscription[K]>
+    : (args: SubscriptionArgsMap[K]) => NonNullable<Subscription[K]>;
+
+export type SubscriptionFieldMap = {
+  [K in keyof Subscription]?: SubscriptionField<K>;
+};
+// -- End subscription helper types
