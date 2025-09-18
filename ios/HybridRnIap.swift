@@ -198,9 +198,9 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<RequestPurchaseResult> {
+    func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<RequestPurchaseResult?> {
         return Promise.async {
-            let defaultResult: RequestPurchaseResult = .third([])
+            let defaultResult: RequestPurchaseResult? = .third([])
             guard let iosRequest = request.ios else {
                 let error = self.createPurchaseErrorResult(
                     code: OpenIapError.UserError,
