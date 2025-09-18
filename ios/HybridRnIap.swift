@@ -187,9 +187,38 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             do {
                 try self.ensureConnection()
-                // Prefer OpenIAP for fetching
-                let req = OpenIapProductRequest(skus: skus, type: type)
-                let products = try await OpenIapModule.shared.fetchProducts(req)
+
+                let normalizedType = type.lowercased()
+                let products: [OpenIapProduct]
+
+                if normalizedType == "all" {
+                    var deduped: [String: OpenIapProduct] = [:]
+                    for kind in ["in-app", "subs"] {
+                        let request = OpenIapProductRequest(skus: skus, type: kind)
+                        let fetched = try await OpenIapModule.shared.fetchProducts(request)
+                        for item in fetched { deduped[item.id] = item }
+                    }
+                    products = Array(deduped.values)
+                } else {
+                    var resolvedType = type
+                    switch normalizedType {
+                    case "inapp":
+                        #if DEBUG
+                        print("[HybridRnIap] fetchProducts received legacy type 'inapp'; forwarding as 'in-app'")
+                        #endif
+                        fallthrough
+                    case "in-app":
+                        resolvedType = "in-app"
+                    case "subs":
+                        resolvedType = "subs"
+                    default:
+                        break
+                    }
+
+                    let request = OpenIapProductRequest(skus: skus, type: resolvedType)
+                    products = try await OpenIapModule.shared.fetchProducts(request)
+                }
+
                 return products.map { self.convertOpenIapProductToNitroProduct($0) }
             } catch {
                 // Propagate OpenIAP error

@@ -140,8 +140,37 @@ class HybridRnIap : HybridRnIapSpec() {
             }
 
             initConnection().await()
-            val reqType = ProductRequest.ProductRequestType.fromString(type)
-            val products = openIap.fetchProducts(ProductRequest(skus.toList(), reqType))
+
+            val normalizedType = type.lowercase()
+            val skusList = skus.toList()
+
+            val products: List<OpenIapProduct> = when (normalizedType) {
+                "all" -> {
+                    val collected = mutableMapOf<String, OpenIapProduct>()
+                    listOf("in-app", "subs").forEach { kind ->
+                        val requestType = ProductRequest.ProductRequestType.fromString(kind)
+                        val fetched = openIap.fetchProducts(ProductRequest(skusList, requestType))
+                        fetched.forEach { collected[it.id] = it }
+                    }
+                    collected.values.toList()
+                }
+                "inapp", "in-app" -> {
+                    if (normalizedType == "inapp") {
+                        Log.w(TAG, "fetchProducts received legacy type 'inapp'; forwarding as 'in-app'")
+                    }
+                    val requestType = ProductRequest.ProductRequestType.fromString("in-app")
+                    openIap.fetchProducts(ProductRequest(skusList, requestType))
+                }
+                "subs" -> {
+                    val requestType = ProductRequest.ProductRequestType.fromString("subs")
+                    openIap.fetchProducts(ProductRequest(skusList, requestType))
+                }
+                else -> {
+                    Log.w(TAG, "fetchProducts received unknown type '$type'; defaulting to ProductRequest.fromString")
+                    val requestType = ProductRequest.ProductRequestType.fromString(type)
+                    openIap.fetchProducts(ProductRequest(skusList, requestType))
+                }
+            }
 
             // populate type cache
             products.forEach { p -> productTypeBySku[p.id] = p.type.value }
