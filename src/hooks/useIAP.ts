@@ -33,7 +33,6 @@ import type {
   Purchase,
   PurchaseError,
   ProductSubscription,
-  PurchaseIOS,
 } from '../types';
 import type {MutationFinishTransactionArgs} from '../types';
 import {normalizeErrorCodeFromNative} from '../utils/errorMapping';
@@ -82,7 +81,7 @@ type UseIap = {
   ) => Promise<any>;
   restorePurchases: () => Promise<void>;
   getPromotedProductIOS: () => Promise<Product | null>;
-  requestPurchaseOnPromotedProductIOS: () => Promise<PurchaseIOS>;
+  requestPurchaseOnPromotedProductIOS: () => Promise<boolean>;
   getActiveSubscriptions: (
     subscriptionIds?: string[],
   ) => Promise<ActiveSubscription[]>;

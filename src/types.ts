@@ -154,7 +154,7 @@ export interface Mutation {
   /** Initiate a purchase flow; rely on events for final state */
   requestPurchase?: Promise<(Purchase | Purchase[] | null)>;
   /** Purchase the promoted product surfaced by the App Store */
-  requestPurchaseOnPromotedProductIOS: Promise<PurchaseIOS>;
+  requestPurchaseOnPromotedProductIOS: Promise<boolean>;
   /** Restore completed purchases across platforms */
   restorePurchases: Promise<void>;
   /** Open subscription management UI and return changed purchases (iOS 15+) */
@@ -438,7 +438,7 @@ export interface Query {
   /** Get active subscriptions (filters by subscriptionIds when provided) */
   getActiveSubscriptions: Promise<ActiveSubscription[]>;
   /** Fetch the current app transaction (iOS 16+) */
-  getAppTransactionIOS?: Promise<(string | null)>;
+  getAppTransactionIOS?: Promise<(AppTransaction | null)>;
   /** Get all available purchases for the current user */
   getAvailablePurchases: Promise<Purchase[]>;
   /** Retrieve all pending transactions in the StoreKit queue */

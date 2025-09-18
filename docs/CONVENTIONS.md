@@ -119,6 +119,7 @@ export const fetchProducts = async (request: {
 ```
 
 - `src/index.ts` must only expose APIs that are declared in the canonical schema (`src/types.ts`). If the schema changes, update it first, regenerate as needed, and then adjust `index.ts` to match.
+- Non-API helpers (parsers, mappers, etc.) should live alongside other utilities (for shared helpers add them to `src/utils.ts`). Import these helpers into `index.ts` instead of defining them inline so the file stays focused on exported APIs.
 
 ## Platform-Specific Naming
 

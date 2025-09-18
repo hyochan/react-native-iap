@@ -24,6 +24,7 @@ import type {
   PurchaseError,
   PurchaseIOS,
   QueryField,
+  AppTransaction,
   ReceiptValidationResultAndroid,
   ReceiptValidationResultIOS,
   RequestPurchaseAndroidProps,
@@ -44,6 +45,7 @@ import {
 import {parseErrorStringToJsonObj} from './utils/error';
 import {normalizeErrorCodeFromNative} from './utils/errorMapping';
 import {getSuccessFromPurchaseVariant} from './utils/purchase';
+import {parseAppTransactionPayload} from './utils';
 
 // Export all types
 export type {
@@ -479,7 +481,23 @@ export const getAppTransactionIOS: QueryField<
 
   try {
     const appTransaction = await IAP.instance.getAppTransactionIOS();
-    return appTransaction;
+    if (appTransaction == null) {
+      return null;
+    }
+
+    if (typeof appTransaction === 'string') {
+      const parsed = parseAppTransactionPayload(appTransaction);
+      if (parsed) {
+        return parsed;
+      }
+      throw new Error('Unable to parse app transaction payload');
+    }
+
+    if (typeof appTransaction === 'object' && appTransaction !== null) {
+      return appTransaction as AppTransaction;
+    }
+
+    return null;
   } catch (error) {
     console.error('Failed to get app transaction:', error);
     throw error;
@@ -1082,7 +1100,7 @@ export const presentCodeRedemptionSheetIOS: MutationField<
 
 /**
  * Buy promoted product on iOS
- * @returns Promise<void>
+ * @returns Promise<boolean> - true when the request triggers successfully
  * @platform iOS
  */
 export const requestPurchaseOnPromotedProductIOS: MutationField<
@@ -1107,7 +1125,7 @@ export const requestPurchaseOnPromotedProductIOS: MutationField<
       throw new Error('Promoted purchase result not available for iOS');
     }
 
-    return converted as PurchaseIOS;
+    return true;
   } catch (error) {
     console.error('[requestPurchaseOnPromotedProductIOS] Failed:', error);
     throw error;

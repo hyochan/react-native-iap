@@ -539,8 +539,9 @@ describe('Public API (src/index.ts)', () => {
       } as any;
       mockIap.getPendingTransactionsIOS = jest.fn(async () => [pending]);
       const result = await IAP.requestPurchaseOnPromotedProductIOS();
-      expect(result.productId).toBe('sku2');
+      expect(result).toBe(true);
       expect(mockIap.buyPromotedProductIOS).toHaveBeenCalledTimes(1);
+      expect(mockIap.getPendingTransactionsIOS).toHaveBeenCalledTimes(1);
     });
 
     it('clearTransactionIOS resolves without throwing', async () => {
