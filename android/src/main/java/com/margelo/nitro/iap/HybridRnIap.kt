@@ -9,11 +9,12 @@ import dev.hyo.openiap.OpenIapModule
 import dev.hyo.openiap.listener.OpenIapPurchaseErrorListener
 import dev.hyo.openiap.listener.OpenIapPurchaseUpdateListener
 import dev.hyo.openiap.models.DeepLinkOptions as OpenIapDeepLinkOptions
+import dev.hyo.openiap.models.OpenIapRequestPurchaseProps
+import dev.hyo.openiap.models.OpenIapSerialization
 import dev.hyo.openiap.models.OpenIapProduct
 import dev.hyo.openiap.models.OpenIapPurchase
 import dev.hyo.openiap.models.ProductRequest
-import dev.hyo.openiap.models.OpenIapRequestPurchaseProps
-import dev.hyo.openiap.models.OpenIapSerialization
+import dev.hyo.openiap.models.RequestSubscriptionAndroidProps.SubscriptionOffer as OpenIapSubscriptionOffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CompletableDeferred
@@ -208,12 +209,21 @@ class HybridRnIap : HybridRnIapSpec() {
                 val typeStr = androidRequest.skus.firstOrNull()?.let { productTypeBySku[it] } ?: "inapp"
                 val typeEnum = ProductRequest.ProductRequestType.fromString(typeStr)
 
+                val subscriptionOffers = androidRequest.subscriptionOffers
+                    ?.map { offer ->
+                        OpenIapSubscriptionOffer(
+                            sku = offer.sku,
+                            offerToken = offer.offerToken
+                        )
+                    }
+
                 val result = openIap.requestPurchase(
                     OpenIapRequestPurchaseProps(
                         skus = androidRequest.skus.toList(),
                         obfuscatedAccountIdAndroid = androidRequest.obfuscatedAccountIdAndroid,
                         obfuscatedProfileIdAndroid = androidRequest.obfuscatedProfileIdAndroid,
-                        isOfferPersonalized = androidRequest.isOfferPersonalized
+                        isOfferPersonalized = androidRequest.isOfferPersonalized,
+                        subscriptionOffers = subscriptionOffers ?: emptyList()
                     ),
                     typeEnum
                 )

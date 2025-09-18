@@ -341,6 +341,27 @@ describe('Public API (src/index.ts)', () => {
       const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
       expect(passed.android.subscriptionOffers).toEqual([]);
     });
+
+    it('Android subs forwards subscriptionOffers when provided', async () => {
+      (Platform as any).OS = 'android';
+      await IAP.requestPurchase({
+        request: {
+          android: {
+            skus: ['sub1'],
+            subscriptionOffers: [
+              {sku: 'sub1', offerToken: 'offer-1'},
+              {sku: 'sub1', offerToken: 'offer-2'},
+            ],
+          },
+        },
+        type: 'subs',
+      });
+      const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
+      expect(passed.android.subscriptionOffers).toEqual([
+        {sku: 'sub1', offerToken: 'offer-1'},
+        {sku: 'sub1', offerToken: 'offer-2'},
+      ]);
+    });
   });
 
   describe('getAvailablePurchases', () => {
