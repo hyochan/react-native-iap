@@ -243,16 +243,21 @@ class HybridRnIap : HybridRnIapSpec() {
             val androidOptions = options?.android
             initConnection().await()
 
-            val result: List<OpenIapPurchase> = when (androidOptions?.type?.name) {
-                "INAPP" -> {
-                    val typeEnum = ProductRequest.ProductRequestType.fromString("inapp")
-                    openIap.getAvailableItems(typeEnum)
+            val typeName = androidOptions?.type?.name?.lowercase()
+            val normalizedType = when (typeName) {
+                "inapp" -> {
+                    Log.w(TAG, "getAvailablePurchases received legacy type 'inapp'; forwarding as 'in-app'")
+                    "in-app"
                 }
-                "SUBS" -> {
-                    val typeEnum = ProductRequest.ProductRequestType.fromString("subs")
-                    openIap.getAvailableItems(typeEnum)
-                }
-                else -> openIap.getAvailablePurchases()
+                "in-app", "subs" -> typeName
+                else -> null
+            }
+
+            val result: List<OpenIapPurchase> = if (normalizedType != null) {
+                val typeEnum = ProductRequest.ProductRequestType.fromString(normalizedType)
+                openIap.getAvailableItems(typeEnum)
+            } else {
+                openIap.getAvailablePurchases()
             }
             result.map { convertToNitroPurchase(it) }.toTypedArray()
         }
