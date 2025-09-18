@@ -426,7 +426,7 @@ class HybridRnIap : HybridRnIapSpec() {
             displayPrice = product.displayPrice,
             currency = product.currency,
             price = product.price,
-            platform = "android",
+            platform = IapPlatform.ANDROID,
             // iOS fields (null on Android)
             typeIOS = null,
             isFamilyShareableIOS = null,
@@ -464,10 +464,10 @@ class HybridRnIap : HybridRnIapSpec() {
             productId = purchase.productId,
             transactionDate = purchase.transactionDate.toDouble(),
             purchaseToken = purchase.purchaseToken,
-            platform = "android",
+            platform = IapPlatform.ANDROID,
             // Common fields
             quantity = purchase.quantity.toDouble(),
-            purchaseState = purchase.purchaseState.value,
+            purchaseState = mapPurchaseState(purchase.purchaseState),
             isAutoRenewing = purchase.isAutoRenewing,
             // iOS fields
             quantityIOS = null,
@@ -485,6 +485,17 @@ class HybridRnIap : HybridRnIapSpec() {
             obfuscatedAccountIdAndroid = purchase.obfuscatedAccountIdAndroid,
             obfuscatedProfileIdAndroid = purchase.obfuscatedProfileIdAndroid
         )
+    }
+
+    private fun mapPurchaseState(state: OpenIapPurchase.PurchaseState): PurchaseState {
+        return when (state.name.uppercase()) {
+            "PURCHASED" -> PurchaseState.PURCHASED
+            "PENDING" -> PurchaseState.PENDING
+            "DEFERRED" -> PurchaseState.DEFERRED
+            "RESTORED" -> PurchaseState.RESTORED
+            "FAILED", "FAILURE", "CANCELED", "CANCELLED" -> PurchaseState.FAILED
+            else -> PurchaseState.UNKNOWN
+        }
     }
     
     // Billing error messages handled by OpenIAP
@@ -517,7 +528,7 @@ class HybridRnIap : HybridRnIapSpec() {
     }
 
     // Android-specific deep link to subscription management
-    override fun deepLinkToSubscriptionsAndroid(options: DeepLinkOptions): Promise<Unit> {
+    override fun deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid): Promise<Unit> {
         return Promise.async {
             try {
                 initConnection().await()
@@ -580,7 +591,7 @@ class HybridRnIap : HybridRnIapSpec() {
     }
 
     // Receipt validation
-    override fun validateReceipt(params: ReceiptValidationProps): Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
+    override fun validateReceipt(params: NitroReceiptValidationParams): Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
         return Promise.async {
             try {
                 // For Android, we need the androidOptions to be provided

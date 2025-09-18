@@ -155,7 +155,7 @@ dependencies {
   
   // Kotlin coroutines
   implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
-  implementation 'io.github.hyochan.openiap:openiap-google:1.1.11'
+  implementation 'io.github.hyochan.openiap:openiap-google:1.1.12'
 }
 
 configurations.all {
