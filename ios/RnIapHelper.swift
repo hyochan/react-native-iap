@@ -23,17 +23,21 @@ enum RnIapHelper {
 
     static func parseProductQueryType(_ rawValue: String?) -> ProductQueryType {
         guard let raw = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
-            return .all
-        }
-        switch raw.lowercased() {
-        case "inapp", ProductQueryType.inApp.rawValue:
             return .inApp
-        case ProductQueryType.subs.rawValue:
+        }
+        let normalized = raw
+            .lowercased()
+            .replacingOccurrences(of: "_", with: "")
+            .replacingOccurrences(of: "-", with: "")
+        switch normalized {
+        case "subs", "subscription", "subscriptions":
             return .subs
-        case ProductQueryType.all.rawValue:
+        case "all":
             return .all
+        case "inapp":
+            return .inApp
         default:
-            return .all
+            return .inApp
         }
     }
 

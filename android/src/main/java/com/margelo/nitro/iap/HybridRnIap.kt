@@ -263,11 +263,34 @@ class HybridRnIap : HybridRnIapSpec() {
                 initConnection().await()
                 withContext(Dispatchers.Main) { runCatching { openIap.setActivity(context.currentActivity) } }
 
-                val missing = androidRequest.skus.firstOrNull { !productTypeBySku.containsKey(it) }
-                if (missing != null) {
-                    RnIapLog.warn("requestPurchase missing cached type for $missing")
-                    sendPurchaseError(toErrorResult(OpenIAPError.SkuNotFound(missing), missing))
-                    return@async defaultResult
+                val missingSkus = androidRequest.skus.filterNot { productTypeBySku.containsKey(it) }
+                if (missingSkus.isNotEmpty()) {
+                    RnIapLog.warn(
+                        "requestPurchase missing cached type for ${missingSkus.joinToString()}; attempting fetch"
+                    )
+                    val queryKinds = listOf(ProductQueryType.InApp, ProductQueryType.Subs)
+                    for (kind in queryKinds) {
+                        runCatching {
+                            RnIapLog.payload(
+                                "requestPurchase.fetchMissing",
+                                mapOf("skus" to missingSkus, "type" to kind.rawValue)
+                            )
+                            openIap.fetchProducts(ProductRequest(missingSkus, kind)).productsOrEmpty()
+                        }.onSuccess { fetched ->
+                            fetched.forEach { productTypeBySku[it.id] = it.type.rawValue }
+                        }.onFailure { error ->
+                            RnIapLog.failure("requestPurchase.fetchMissing", error)
+                        }
+                        if (missingSkus.all { productTypeBySku.containsKey(it) }) {
+                            break
+                        }
+                    }
+
+                    val stillMissing = missingSkus.firstOrNull { !productTypeBySku.containsKey(it) }
+                    if (stillMissing != null) {
+                        sendPurchaseError(toErrorResult(OpenIAPError.SkuNotFound(stillMissing), stillMissing))
+                        return@async defaultResult
+                    }
                 }
 
                 val typeHint = androidRequest.skus.firstOrNull()?.let { productTypeBySku[it] } ?: "inapp"

@@ -326,7 +326,7 @@ class HybridRnIap: HybridRnIapSpec {
                         result["originalPlatform"] = appTx.originalPlatform
                         let jsonData = try JSONSerialization.data(withJSONObject: result, options: [])
                         let string = String(data: jsonData, encoding: .utf8)
-                        RnIapLog.result("getAppTransactionIOS", value: string)
+                        RnIapLog.result("getAppTransactionIOS", value: "<appTransaction>")
                         return string
                     }
                     RnIapLog.result("getAppTransactionIOS", value: nil)

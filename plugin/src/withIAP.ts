@@ -69,10 +69,28 @@ function loadOpenIapConfig(): {google: string} {
   }
 }
 
-const OPENIAP_VERSION = loadOpenIapConfig().google;
+let cachedOpenIapVersion: string | null = null;
+const getOpenIapVersion = (): string => {
+  if (cachedOpenIapVersion) {
+    return cachedOpenIapVersion;
+  }
+  cachedOpenIapVersion = loadOpenIapConfig().google;
+  return cachedOpenIapVersion;
+};
 
 const modifyAppBuildGradle = (gradle: string): string => {
   let modified = gradle;
+
+  let openiapVersion: string;
+  try {
+    openiapVersion = getOpenIapVersion();
+  } catch (error) {
+    WarningAggregator.addWarningAndroid(
+      'react-native-iap',
+      `react-native-iap: Failed to resolve OpenIAP version (${error instanceof Error ? error.message : error})`,
+    );
+    return gradle;
+  }
 
   // Replace legacy Billing/GMS instructions with OpenIAP Google library
   // Remove any old billingclient or play-services-base lines we may have added previously
@@ -87,7 +105,7 @@ const modifyAppBuildGradle = (gradle: string): string => {
     )
     .replace(/\n{3,}/g, '\n\n');
 
-  const openiapDep = `    implementation "${OPENIAP_COORD}:${OPENIAP_VERSION}"`;
+  const openiapDep = `    implementation "${OPENIAP_COORD}:${openiapVersion}"`;
 
   if (!modified.includes(OPENIAP_COORD)) {
     if (!/dependencies\s*{/.test(modified)) {
@@ -97,7 +115,7 @@ const modifyAppBuildGradle = (gradle: string): string => {
     }
     if (!hasLoggedPluginExecution) {
       console.log(
-        `🛠️ react-native-iap: Added OpenIAP (${OPENIAP_VERSION}) to build.gradle`,
+        `🛠️ react-native-iap: Added OpenIAP (${openiapVersion}) to build.gradle`,
       );
     }
   }
