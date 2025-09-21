@@ -8,6 +8,7 @@ class HybridRnIap: HybridRnIapSpec {
     private var updateListenerTask: Task<Void, Never>?
     private var isInitialized: Bool = false
     private var isInitializing: Bool = false
+    private var productTypeBySku: [String: String] = [:]
     // OpenIAP event subscriptions
     private var purchaseUpdatedSub: Subscription?
     private var purchaseErrorSub: Subscription?
@@ -128,6 +129,7 @@ class HybridRnIap: HybridRnIapSpec {
                 products.append(product)
                 seenIds.insert(product.id)
             }
+            products.forEach { productTypeBySku[$0.id] = $0.type.lowercased() }
             RnIapLog.result(
                 "fetchProducts",
                 value: products.map { ["id": $0.id, "type": $0.type] }
@@ -179,8 +181,9 @@ class HybridRnIap: HybridRnIapSpec {
                     iosPayload["withOffer"] = withOffer
                 }
 
+                let resolvedType = RnIapHelper.parseProductQueryType(self.productTypeBySku[iosRequest.sku])
                 let payload: [String: Any] = [
-                    "type": ProductQueryType.inApp.rawValue,
+                    "type": resolvedType.rawValue,
                     "requestPurchase": ["ios": iosPayload]
                 ]
 
