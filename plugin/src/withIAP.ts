@@ -7,6 +7,8 @@ import {
 } from 'expo/config-plugins';
 import type {ConfigPlugin} from 'expo/config-plugins';
 import type {ExpoConfig} from '@expo/config-types';
+import {readFileSync} from 'node:fs';
+import {resolve as resolvePath} from 'node:path';
 
 const pkg = require('../../package.json');
 
@@ -46,7 +48,28 @@ export const modifyProjectBuildGradle = (gradle: string): string => {
 };
 
 const OPENIAP_COORD = 'io.github.hyochan.openiap:openiap-google';
-const OPENIAP_VERSION = '1.1.12';
+
+function loadOpenIapConfig(): {google: string} {
+  const versionsPath = resolvePath(__dirname, '../../openiap-versions.json');
+  try {
+    const raw = readFileSync(versionsPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    const googleVersion =
+      typeof parsed?.google === 'string' ? parsed.google.trim() : '';
+    if (!googleVersion) {
+      throw new Error(
+        'react-native-iap: "google" version missing or invalid in openiap-versions.json',
+      );
+    }
+    return {google: googleVersion};
+  } catch (error) {
+    throw new Error(
+      `react-native-iap: Unable to load openiap-versions.json (${error instanceof Error ? error.message : error})`,
+    );
+  }
+}
+
+const OPENIAP_VERSION = loadOpenIapConfig().google;
 
 const modifyAppBuildGradle = (gradle: string): string => {
   let modified = gradle;
@@ -143,7 +166,7 @@ const withIapIosFollyWorkaround: ConfigPlugin<IapPluginProps | undefined> = (
     // Temporary deprecation notice; remove when old key is dropped
     WarningAggregator.addWarningIOS(
       'react-native-iap',
-      "react-native-iap: 'ios.with-folly-no-couroutines' is deprecated; use 'ios.with-folly-no-coroutines'."
+      "react-native-iap: 'ios.with-folly-no-couroutines' is deprecated; use 'ios.with-folly-no-coroutines'.",
     );
   }
   const enabled = !!(newKey ?? oldKey);

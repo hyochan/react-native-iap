@@ -1,4 +1,15 @@
+import {readFileSync} from 'node:fs';
+import {resolve as resolvePath} from 'node:path';
 import plugin from '../src/withIAP';
+
+const versionsPath = resolvePath(__dirname, '../../openiap-versions.json');
+const openiapVersions = JSON.parse(readFileSync(versionsPath, 'utf8'));
+const OPENIAP_VERSION: string = openiapVersions.google;
+if (typeof OPENIAP_VERSION !== 'string' || OPENIAP_VERSION.length === 0) {
+  throw new Error(
+    'Test setup: Invalid "google" version in openiap-versions.json',
+  );
+}
 
 // Mock config-plugins with simple pass-through helpers that immediately run mods
 jest.mock('expo/config-plugins', () => ({
@@ -51,14 +62,16 @@ describe('withIAP config plugin (Android)', () => {
     const config = makeConfig(initial, {manifest: {}});
     const result: any = plugin(config as any);
     const out = result.modResults.contents as string;
-    expect(out).toContain('io.github.hyochan.openiap:openiap-google:1.1.12');
-    expect((console.log as jest.Mock).mock.calls.join(' ')).toMatch(
-      /Added OpenIAP \(1\.1\.12\) to build\.gradle/,
+    expect(out).toContain(
+      `io.github.hyochan.openiap:openiap-google:${OPENIAP_VERSION}`,
+    );
+    expect((console.log as jest.Mock).mock.calls.join(' ')).toContain(
+      `(${OPENIAP_VERSION})`,
     );
   });
 
   it('is idempotent and respects hasLoggedPluginExecution', () => {
-    const initial = `dependencies {\n    implementation "io.github.hyochan.openiap:openiap-google:1.1.12"\n}`;
+    const initial = `dependencies {\n    implementation "io.github.hyochan.openiap:openiap-google:${OPENIAP_VERSION}"\n}`;
     const config1 = makeConfig(initial, {manifest: {}});
     const res1: any = plugin(config1 as any);
     expect(

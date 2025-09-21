@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 buildscript {
   repositories {
     google()
@@ -18,6 +20,27 @@ def reactNativeArchitectures() {
 def isNewArchitectureEnabled() {
   return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
 }
+
+def resolveOpenIapVersionsFile() {
+  def candidates = [
+    new File(projectDir.parentFile, 'openiap-versions.json'),
+    new File(rootDir.parentFile ?: rootDir, 'openiap-versions.json'),
+    new File(rootProject.projectDir.parentFile ?: rootProject.projectDir, 'openiap-versions.json')
+  ]
+  return candidates.find { it.exists() }
+}
+
+def openiapVersionsFile = resolveOpenIapVersionsFile()
+if (openiapVersionsFile == null) {
+  throw new GradleException("react-native-iap: Unable to locate openiap-versions.json")
+}
+
+def openiapVersions = new JsonSlurper().parse(openiapVersionsFile)
+def googleVersion = (openiapVersions instanceof Map) ? openiapVersions.google : null
+if (!(googleVersion instanceof String) || !googleVersion.trim()) {
+  throw new GradleException("react-native-iap: 'google' version missing or invalid in openiap-versions.json")
+}
+def googleVersionString = googleVersion.trim()
 
 apply plugin: "com.android.library"
 apply plugin: 'org.jetbrains.kotlin.android'
@@ -155,7 +178,7 @@ dependencies {
   
   // Kotlin coroutines
   implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
-  implementation 'io.github.hyochan.openiap:openiap-google:1.1.12'
+  implementation "io.github.hyochan.openiap:openiap-google:${googleVersionString}"
 }
 
 configurations.all {

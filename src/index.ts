@@ -443,7 +443,10 @@ export const getPromotedProductIOS: QueryField<
   }
 
   try {
-    const nitroProduct = await IAP.instance.requestPromotedProductIOS();
+    const nitroProduct =
+      typeof IAP.instance.getPromotedProductIOS === 'function'
+        ? await IAP.instance.getPromotedProductIOS()
+        : await IAP.instance.requestPromotedProductIOS();
     if (!nitroProduct) {
       return null;
     }
@@ -633,6 +636,40 @@ export const getReceiptDataIOS: QueryField<'getReceiptDataIOS'> = async () => {
     return await IAP.instance.getReceiptDataIOS();
   } catch (error) {
     console.error('[getReceiptDataIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const getReceiptIOS = async (): Promise<string> => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('getReceiptIOS is only available on iOS');
+  }
+
+  try {
+    if (typeof IAP.instance.getReceiptIOS === 'function') {
+      return await IAP.instance.getReceiptIOS();
+    }
+    return await IAP.instance.getReceiptDataIOS();
+  } catch (error) {
+    console.error('[getReceiptIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+export const requestReceiptRefreshIOS = async (): Promise<string> => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('requestReceiptRefreshIOS is only available on iOS');
+  }
+
+  try {
+    if (typeof IAP.instance.requestReceiptRefreshIOS === 'function') {
+      return await IAP.instance.requestReceiptRefreshIOS();
+    }
+    return await IAP.instance.getReceiptDataIOS();
+  } catch (error) {
+    console.error('[requestReceiptRefreshIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -1258,10 +1295,32 @@ export const deepLinkToSubscriptions: MutationField<
   }
   if (Platform.OS === 'ios') {
     try {
-      await IAP.instance.showManageSubscriptionsIOS();
+      if (typeof IAP.instance.deepLinkToSubscriptionsIOS === 'function') {
+        await IAP.instance.deepLinkToSubscriptionsIOS();
+      } else {
+        await IAP.instance.showManageSubscriptionsIOS();
+      }
     } catch (error) {
       console.warn('[deepLinkToSubscriptions] Failed on iOS:', error);
     }
+  }
+};
+
+export const deepLinkToSubscriptionsIOS = async (): Promise<boolean> => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('deepLinkToSubscriptionsIOS is only available on iOS');
+  }
+
+  try {
+    if (typeof IAP.instance.deepLinkToSubscriptionsIOS === 'function') {
+      return await IAP.instance.deepLinkToSubscriptionsIOS();
+    }
+    await IAP.instance.showManageSubscriptionsIOS();
+    return true;
+  } catch (error) {
+    console.error('[deepLinkToSubscriptionsIOS] Failed:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
   }
 };
 

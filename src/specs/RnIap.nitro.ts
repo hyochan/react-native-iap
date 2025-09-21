@@ -370,6 +370,13 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   requestPromotedProductIOS(): Promise<NitroProduct | null>;
 
   /**
+   * Retrieve the currently promoted product without initiating a purchase flow (iOS only)
+   * @returns Promise<NitroProduct | null> - The promoted product or null if none available
+   * @platform iOS
+   */
+  getPromotedProductIOS(): Promise<NitroProduct | null>;
+
+  /**
    * Buy the promoted product from the App Store (iOS only)
    * @returns Promise<void>
    * @platform iOS
@@ -444,6 +451,13 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   showManageSubscriptionsIOS(): Promise<NitroPurchase[]>;
 
   /**
+   * Deep link to the native subscription management UI (iOS only)
+   * @returns Promise<boolean> - True if the deep link request succeeded
+   * @platform iOS
+   */
+  deepLinkToSubscriptionsIOS(): Promise<boolean>;
+
+  /**
    * Check if user is eligible for intro offer (iOS only)
    * @param groupID - The subscription group ID
    * @returns Promise<boolean> - Eligibility status
@@ -457,6 +471,20 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
    * @platform iOS
    */
   getReceiptDataIOS(): Promise<string>;
+
+  /**
+   * Alias for getReceiptDataIOS maintained for compatibility (iOS only)
+   * @returns Promise<string> - Base64 encoded receipt data
+   * @platform iOS
+   */
+  getReceiptIOS(): Promise<string>;
+
+  /**
+   * Request a refreshed receipt from the App Store (iOS only)
+   * @returns Promise<string> - Updated Base64 encoded receipt data
+   * @platform iOS
+   */
+  requestReceiptRefreshIOS(): Promise<string>;
 
   /**
    * Check if transaction is verified (iOS only)

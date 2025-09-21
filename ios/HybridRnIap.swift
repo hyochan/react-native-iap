@@ -5,18 +5,13 @@ import OpenIAP
 @available(iOS 15.0, *)
 class HybridRnIap: HybridRnIapSpec {
     // MARK: - Properties
-    
     private var updateListenerTask: Task<Void, Never>?
     private var isInitialized: Bool = false
     private var isInitializing: Bool = false
-    // No local StoreKit cache; rely on OpenIAP
     // OpenIAP event subscriptions
     private var purchaseUpdatedSub: Subscription?
     private var purchaseErrorSub: Subscription?
     private var promotedProductSub: Subscription?
-    
-    // Promoted products are handled via OpenIAP listener
-    
     // Event listeners
     private var purchaseUpdatedListeners: [(NitroPurchase) -> Void] = []
     private var purchaseErrorListeners: [(NitroPurchaseResult) -> Void] = []
@@ -42,131 +37,27 @@ class HybridRnIap: HybridRnIapSpec {
     
     func initConnection() throws -> Promise<Bool> {
         return Promise.async {
-            // If already initialized or initializing, ensure listeners are attached and return immediately
+            RnIapLog.payload("initConnection", payload: nil)
+            self.attachListenersIfNeeded()
+
             if self.isInitialized || self.isInitializing {
-                if self.purchaseUpdatedSub == nil {
-                    self.purchaseUpdatedSub = OpenIapModule.shared.purchaseUpdatedListener { [weak self] openIapPurchase in
-                        guard let self else { return }
-                        Task { @MainActor in
-                            let nitro = self.convertOpenIapPurchaseToNitroPurchase(openIapPurchase)
-                            self.sendPurchaseUpdate(nitro)
-                        }
-                    }
-                }
-                if self.purchaseErrorSub == nil {
-                    self.purchaseErrorSub = OpenIapModule.shared.purchaseErrorListener { [weak self] error in
-                        guard let self else { return }
-                        Task { @MainActor in
-                            #if DEBUG
-                            print("[HybridRnIap] purchaseError event: code=\(error.code), productId=\(error.productId ?? "-")")
-                            #endif
-                    let nitroError = self.createPurchaseErrorResult(
-                        code: error.code,
-                        message: error.message,
-                        productId: error.productId
-                    )
-                    self.sendPurchaseError(nitroError, productId: error.productId)
-                        }
-                    }
-                }
-                if self.promotedProductSub == nil {
-                    self.promotedProductSub = OpenIapModule.shared.promotedProductListenerIOS { [weak self] productId in
-                        guard let self else { return }
-                        Task {
-                            do {
-                                let req = OpenIapProductRequest(skus: [productId], type: "all")
-                                let products = try await OpenIapModule.shared.fetchProducts(req)
-                                if let p = products.first {
-                                    let nitro = self.convertOpenIapProductToNitroProduct(p)
-                                    await MainActor.run {
-                                        for listener in self.promotedProductListeners { listener(nitro) }
-                                    }
-                                }
-                            } catch {
-                                let id = productId
-                                await MainActor.run {
-                                    var minimal = NitroProduct()
-                                    minimal.id = id
-                                    minimal.title = id
-                                    minimal.type = "inapp"
-                                    minimal.platform = .ios
-                                    for listener in self.promotedProductListeners { listener(minimal) }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                RnIapLog.result("initConnection", value: true)
                 return true
             }
 
-            // Begin non-blocking initialization
             self.isInitializing = true
-            // Pre-attach listeners so events are not missed
-            if self.purchaseUpdatedSub == nil {
-                self.purchaseUpdatedSub = OpenIapModule.shared.purchaseUpdatedListener { [weak self] openIapPurchase in
-                    guard let self else { return }
-                    Task { @MainActor in
-                        let nitro = self.convertOpenIapPurchaseToNitroPurchase(openIapPurchase)
-                        self.sendPurchaseUpdate(nitro)
-                    }
-                }
-            }
-            if self.purchaseErrorSub == nil {
-                self.purchaseErrorSub = OpenIapModule.shared.purchaseErrorListener { [weak self] error in
-                    guard let self else { return }
-                    Task { @MainActor in
-                        #if DEBUG
-                        print("[HybridRnIap] purchaseError event: code=\(error.code), productId=\(error.productId ?? "-")")
-                        #endif
-                        let nitroError = self.createPurchaseErrorResult(
-                            code: error.code,
-                            message: error.message,
-                            productId: error.productId
-                        )
-                        self.sendPurchaseError(nitroError, productId: error.productId)
-                    }
-                }
-            }
-            if self.promotedProductSub == nil {
-                self.promotedProductSub = OpenIapModule.shared.promotedProductListenerIOS { [weak self] productId in
-                    guard let self else { return }
-                    Task {
-                        do {
-                            let req = OpenIapProductRequest(skus: [productId], type: "all")
-                            let products = try await OpenIapModule.shared.fetchProducts(req)
-                            if let p = products.first {
-                                let nitro = self.convertOpenIapProductToNitroProduct(p)
-                                await MainActor.run {
-                                    for listener in self.promotedProductListeners { listener(nitro) }
-                                }
-                            }
-                        } catch {
-                            let id = productId
-                            await MainActor.run {
-                                var minimal = NitroProduct()
-                                minimal.id = id
-                                minimal.title = id
-                                minimal.type = "inapp"
-                                minimal.platform = .ios
-                                for listener in self.promotedProductListeners { listener(minimal) }
-                            }
-                        }
-                    }
-                }
-            }
 
-            // Perform initialization and only report success when native init succeeds
             do {
                 let ok = try await OpenIapModule.shared.initConnection()
+                RnIapLog.result("initConnection", value: ok)
                 self.isInitialized = ok
                 self.isInitializing = false
                 return ok
             } catch {
-                // Surface as event and keep flags consistent
-                let err = self.createPurchaseErrorResult(
-                    code: OpenIapError.InitConnection,
-                    message: error.localizedDescription,
-                    productId: nil
+                RnIapLog.failure("initConnection", error: error)
+                let err = RnIapHelper.makePurchaseErrorResult(
+                    code: .initConnection,
+                    message: error.localizedDescription
                 )
                 self.sendPurchaseError(err, productId: nil)
                 self.isInitialized = false
@@ -185,97 +76,135 @@ class HybridRnIap: HybridRnIapSpec {
     
     func fetchProducts(skus: [String], type: String) throws -> Promise<[NitroProduct]> {
         return Promise.async {
-            do {
-                try self.ensureConnection()
+            try self.ensureConnection()
+            RnIapLog.payload("fetchProducts", payload: [
+                "skus": skus,
+                "type": type
+            ])
 
-                let normalizedType = type.lowercased()
-                let products: [OpenIapProduct]
-
-                if normalizedType == "all" {
-                    var deduped: [String: OpenIapProduct] = [:]
-                    for kind in ["in-app", "subs"] {
-                        let request = OpenIapProductRequest(skus: skus, type: kind)
-                        let fetched = try await OpenIapModule.shared.fetchProducts(request)
-                        for item in fetched { deduped[item.id] = item }
-                    }
-                    products = Array(deduped.values)
-                } else {
-                    var resolvedType = type
-                    switch normalizedType {
-                    case "inapp":
-                        #if DEBUG
-                        print("[HybridRnIap] fetchProducts received legacy type 'inapp'; forwarding as 'in-app'")
-                        #endif
-                        fallthrough
-                    case "in-app":
-                        resolvedType = "in-app"
-                    case "subs":
-                        resolvedType = "subs"
-                    default:
-                        break
-                    }
-
-                    let request = OpenIapProductRequest(skus: skus, type: resolvedType)
-                    products = try await OpenIapModule.shared.fetchProducts(request)
-                }
-
-                return products.map { self.convertOpenIapProductToNitroProduct($0) }
-            } catch {
-                // Propagate OpenIAP error
-                throw error
+            if skus.isEmpty {
+                throw PurchaseError.make(code: .emptySkuList)
             }
+
+            var productsById: [String: NitroProduct] = [:]
+            let normalizedType = type.lowercased()
+            let queryTypes: [ProductQueryType]
+            if normalizedType == "all" {
+                queryTypes = [.inApp, .subs]
+            } else {
+                if normalizedType == "inapp" {
+                    RnIapLog.warn("fetchProducts received legacy type 'inapp'; forwarding as 'in-app'")
+                }
+                queryTypes = [RnIapHelper.parseProductQueryType(type)]
+            }
+
+            for queryType in queryTypes {
+                let request = try OpenIapSerialization.productRequest(skus: skus, type: queryType)
+                RnIapLog.payload(
+                    "fetchProducts.native",
+                    payload: [
+                        "skus": skus,
+                        "type": queryType.rawValue
+                    ]
+                )
+                let result = try await OpenIapModule.shared.fetchProducts(request)
+                let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.products(result))
+                RnIapLog.result("fetchProducts.native", value: payloads)
+                for payload in payloads {
+                    let nitroProduct = RnIapHelper.convertProductDictionary(payload)
+                    productsById[nitroProduct.id] = nitroProduct
+                }
+            }
+
+            var products: [NitroProduct] = []
+            var seenIds = Set<String>()
+            for sku in skus {
+                if let product = productsById[sku], !seenIds.contains(product.id) {
+                    products.append(product)
+                    seenIds.insert(product.id)
+                }
+            }
+            for product in productsById.values where !seenIds.contains(product.id) {
+                products.append(product)
+                seenIds.insert(product.id)
+            }
+            RnIapLog.result(
+                "fetchProducts",
+                value: products.map { ["id": $0.id, "type": $0.type] }
+            )
+            return products
         }
     }
     
     func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<RequestPurchaseResult?> {
         return Promise.async {
             let defaultResult: RequestPurchaseResult? = .third([])
+            RnIapLog.payload(
+                "requestPurchase",
+                payload: [
+                    "hasIOS": request.ios != nil,
+                    "hasAndroid": request.android != nil
+                ]
+            )
+
             guard let iosRequest = request.ios else {
-                let error = self.createPurchaseErrorResult(
-                    code: OpenIapError.UserError,
+                let error = RnIapHelper.makePurchaseErrorResult(
+                    code: .developerError,
                     message: "No iOS request provided"
                 )
                 self.sendPurchaseError(error, productId: nil)
                 return defaultResult
             }
-            do {
-                // Event-first behavior: don't reject Promise on connection issues
-                guard self.isInitialized else {
-                    #if DEBUG
-                    print("[HybridRnIap] requestPurchase while not initialized; sending InitConnection")
-                    #endif
-                    let err = self.createPurchaseErrorResult(
-                        code: OpenIapError.InitConnection,
-                        message: "IAP store connection not initialized",
-                        productId: iosRequest.sku
-                    )
-                    self.sendPurchaseError(err, productId: iosRequest.sku)
-                    return defaultResult
-                }
-                // Delegate purchase to OpenIAP. It emits success/error events which we bridge above.
-                let props = OpenIapRequestPurchaseProps(
-                    sku: iosRequest.sku,
-                    andDangerouslyFinishTransactionAutomatically: iosRequest.andDangerouslyFinishTransactionAutomatically,
-                    appAccountToken: iosRequest.appAccountToken,
-                    quantity: iosRequest.quantity != nil ? Int(iosRequest.quantity!) : nil,
-                    withOffer: iosRequest.withOffer.flatMap { dict in
-                        guard let id = dict["identifier"],
-                              let key = dict["keyIdentifier"],
-                              let nonce = dict["nonce"],
-                              let sig = dict["signature"],
-                              let ts = dict["timestamp"] else { return nil }
-                        return OpenIapDiscountOffer(identifier: id, keyIdentifier: key, nonce: nonce, signature: sig, timestamp: ts)
-                    }
+
+            guard self.isInitialized else {
+                let err = RnIapHelper.makePurchaseErrorResult(
+                    code: .initConnection,
+                    message: "IAP store connection not initialized",
+                    iosRequest.sku
                 )
-                _ = try await OpenIapModule.shared.requestPurchase(props)
+                self.sendPurchaseError(err, productId: iosRequest.sku)
+                return defaultResult
+            }
+
+            do {
+                var iosPayload: [String: Any] = ["sku": iosRequest.sku]
+                if let quantity = iosRequest.quantity { iosPayload["quantity"] = Int(quantity) }
+                if let finishAutomatically = iosRequest.andDangerouslyFinishTransactionAutomatically {
+                    iosPayload["andDangerouslyFinishTransactionAutomatically"] = finishAutomatically
+                }
+                if let appAccountToken = iosRequest.appAccountToken {
+                    iosPayload["appAccountToken"] = appAccountToken
+                }
+                if let withOffer = iosRequest.withOffer {
+                    iosPayload["withOffer"] = withOffer
+                }
+
+                let payload: [String: Any] = [
+                    "type": ProductQueryType.inApp.rawValue,
+                    "requestPurchase": ["ios": iosPayload]
+                ]
+
+                let props = try OpenIapSerialization.decode(object: payload, as: RequestPurchaseProps.self)
+
+                RnIapLog.payload(
+                    "requestPurchase.native",
+                    payload: iosPayload
+                )
+
+                let result = try await OpenIapModule.shared.requestPurchase(props)
+                if result != nil {
+                    RnIapLog.result("requestPurchase", value: "delegated to OpenIAP")
+                } else {
+                    RnIapLog.result("requestPurchase", value: nil)
+                }
+
                 return defaultResult
             } catch {
-                // Ensure an error reaches JS even if OpenIAP threw before emitting.
-                // Use simple de-duplication window to avoid double-emitting.
-                let err = self.createPurchaseErrorResult(
-                    code: OpenIapError.ServiceError,
+                RnIapLog.failure("requestPurchase", error: error)
+                let err = RnIapHelper.makePurchaseErrorResult(
+                    code: .purchaseError,
                     message: error.localizedDescription,
-                    productId: iosRequest.sku
+                    iosRequest.sku
                 )
                 self.sendPurchaseErrorDedup(err, productId: iosRequest.sku)
                 return defaultResult
@@ -287,13 +216,21 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
+                let alsoPublish = options?.ios?.alsoPublishToEventListener ?? false
                 let onlyActive = options?.ios?.onlyIncludeActiveItemsIOS ?? options?.ios?.onlyIncludeActiveItems ?? false
-                let props = OpenIapPurchaseOptions(alsoPublishToEventListenerIOS: false, onlyIncludeActiveItemsIOS: onlyActive)
-                let purchases = try await OpenIapModule.shared.getAvailablePurchases(props)
-                return purchases.map { self.convertOpenIapPurchaseToNitroPurchase($0) }
+                let optionsDictionary: [String: Any] = [
+                    "alsoPublishToEventListenerIOS": alsoPublish,
+                    "onlyIncludeActiveItemsIOS": onlyActive
+                ]
+                let purchaseOptions = try OpenIapSerialization.purchaseOptions(from: optionsDictionary)
+                RnIapLog.payload("getAvailablePurchases", payload: optionsDictionary)
+                let purchases = try await OpenIapModule.shared.getAvailablePurchases(purchaseOptions)
+                let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.purchases(purchases))
+                RnIapLog.result("getAvailablePurchases", value: payloads)
+                return payloads.map { RnIapHelper.convertPurchaseDictionary($0) }
             } catch {
-                // Propagate OpenIAP error or map to network error
-                throw OpenIapError.make(code: OpenIapError.NetworkError)
+                RnIapLog.failure("getAvailablePurchases", error: error)
+                throw error
             }
         }
     }
@@ -303,11 +240,19 @@ class HybridRnIap: HybridRnIapSpec {
             guard let iosParams = params.ios else { return .first(true) }
             try self.ensureConnection()
             do {
-                let ok = try await OpenIapModule.shared.finishTransaction(transactionIdentifier: iosParams.transactionId)
-                return .first(ok)
+                RnIapLog.payload(
+                    "finishTransaction",
+                    payload: ["transactionId": iosParams.transactionId]
+                )
+                let purchasePayload: [String: Any] = ["transactionIdentifier": iosParams.transactionId]
+                let purchaseInput = try OpenIapSerialization.purchaseInput(from: purchasePayload)
+                try await OpenIapModule.shared.finishTransaction(purchase: purchaseInput, isConsumable: nil)
+                RnIapLog.result("finishTransaction", value: true)
+                return .first(true)
             } catch {
+                RnIapLog.failure("finishTransaction", error: error)
                 let tid = iosParams.transactionId
-                throw OpenIapError.make(code: OpenIapError.PurchaseError, message: "Transaction not found: \(tid)")
+                throw PurchaseError.make(code: .purchaseError, message: "Transaction not found: \(tid)")
             }
         }
     }
@@ -315,10 +260,15 @@ class HybridRnIap: HybridRnIapSpec {
     func validateReceipt(params: NitroReceiptValidationParams) throws -> Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
         return Promise.async {
             do {
-                let result = try await OpenIapModule.shared.validateReceiptIOS(OpenIapReceiptValidationProps(sku: params.sku))
+                RnIapLog.payload("validateReceiptIOS", payload: ["sku": params.sku])
+                let props = try OpenIapSerialization.receiptValidationProps(from: ["sku": params.sku])
+                let result = try await OpenIapModule.shared.validateReceiptIOS(props)
+                let encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
+                RnIapLog.result("validateReceiptIOS", value: encoded)
                 var latest: NitroPurchase? = nil
-                if let tx = result.latestTransaction {
-                    latest = self.convertOpenIapPurchaseToNitroPurchase(tx)
+                if let transaction = result.latestTransaction {
+                    let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.purchase(transaction))
+                    latest = RnIapHelper.convertPurchaseDictionary(payload)
                 }
                 let mapped = NitroReceiptValidationResultIOS(
                     isValid: result.isValid,
@@ -328,7 +278,8 @@ class HybridRnIap: HybridRnIapSpec {
                 )
                 return .first(mapped)
             } catch {
-                throw OpenIapError.make(code: OpenIapError.ReceiptFailed, message: error.localizedDescription)
+                RnIapLog.failure("validateReceiptIOS", error: error)
+                throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
             }
         }
     }
@@ -338,9 +289,13 @@ class HybridRnIap: HybridRnIapSpec {
     func getStorefrontIOS() throws -> Promise<String> {
         return Promise.async {
             do {
-                return try await OpenIapModule.shared.getStorefrontIOS()
+                RnIapLog.payload("getStorefrontIOS", payload: nil)
+                let storefront = try await OpenIapModule.shared.getStorefrontIOS()
+                RnIapLog.result("getStorefrontIOS", value: storefront)
+                return storefront
             } catch {
-                throw OpenIapError.make(code: OpenIapError.ServiceError, message: error.localizedDescription)
+                RnIapLog.failure("getStorefrontIOS", error: error)
+                throw PurchaseError.make(code: .serviceError, message: error.localizedDescription)
             }
         }
     }
@@ -348,63 +303,74 @@ class HybridRnIap: HybridRnIapSpec {
     func getAppTransactionIOS() throws -> Promise<String?> {
         return Promise.async {
             do {
+                RnIapLog.payload("getAppTransactionIOS", payload: nil)
                 if #available(iOS 16.0, *) {
                     if let appTx = try await OpenIapModule.shared.getAppTransactionIOS() {
                         var result: [String: Any?] = [
                             "bundleId": appTx.bundleId,
                             "appVersion": appTx.appVersion,
                             "originalAppVersion": appTx.originalAppVersion,
-                            "originalPurchaseDate": appTx.originalPurchaseDate.timeIntervalSince1970 * 1000,
+                            "originalPurchaseDate": appTx.originalPurchaseDate,
                             "deviceVerification": appTx.deviceVerification,
                             "deviceVerificationNonce": appTx.deviceVerificationNonce,
                             "environment": appTx.environment,
-                            "signedDate": appTx.signedDate.timeIntervalSince1970 * 1000,
+                            "signedDate": appTx.signedDate,
                             "appId": appTx.appId,
                             "appVersionId": appTx.appVersionId,
-                            "preorderDate": appTx.preorderDate != nil ? (appTx.preorderDate!.timeIntervalSince1970 * 1000) : nil
+                            "preorderDate": appTx.preorderDate
                         ]
                         result["appTransactionId"] = appTx.appTransactionId
                         result["originalPlatform"] = appTx.originalPlatform
                         let jsonData = try JSONSerialization.data(withJSONObject: result, options: [])
-                        return String(data: jsonData, encoding: .utf8)
+                        let string = String(data: jsonData, encoding: .utf8)
+                        RnIapLog.result("getAppTransactionIOS", value: string)
+                        return string
                     }
+                    RnIapLog.result("getAppTransactionIOS", value: nil)
                     return nil
                 } else {
+                    RnIapLog.result("getAppTransactionIOS", value: nil)
                     return nil
                 }
             } catch {
+                RnIapLog.failure("getAppTransactionIOS", error: error)
                 return nil
             }
         }
     }
     
-    func requestPromotedProductIOS() throws -> Promise<NitroProduct?> {
+    func getPromotedProductIOS() throws -> Promise<NitroProduct?> {
         return Promise.async {
+            try self.ensureConnection()
             do {
-                if let p = try await OpenIapModule.shared.getPromotedProductIOS() {
-                    var n = NitroProduct()
-                    n.id = p.productIdentifier
-                    n.title = p.localizedTitle
-                    n.description = p.localizedDescription
-                    n.type = "inapp"
-                    n.platform = .ios
-                    n.price = p.price
-                    n.currency = p.priceLocale.currencyCode
-                    return n
+                RnIapLog.payload("getPromotedProductIOS", payload: nil)
+                guard let product = try await OpenIapModule.shared.getPromotedProductIOS() else {
+                    RnIapLog.result("getPromotedProductIOS", value: nil)
+                    return nil
                 }
-                return nil
+                let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(product))
+                RnIapLog.result("getPromotedProductIOS", value: payload)
+                return RnIapHelper.convertProductDictionary(payload)
             } catch {
-                return nil
+                RnIapLog.failure("getPromotedProductIOS", error: error)
+                throw PurchaseError.make(code: .serviceError, message: error.localizedDescription)
             }
         }
+    }
+
+    func requestPromotedProductIOS() throws -> Promise<NitroProduct?> {
+        return try getPromotedProductIOS()
     }
     
     func buyPromotedProductIOS() throws -> Promise<Void> {
         return Promise.async {
             do {
-                try await OpenIapModule.shared.requestPurchaseOnPromotedProductIOS()
+                RnIapLog.payload("buyPromotedProductIOS", payload: nil)
+                let ok = try await OpenIapModule.shared.requestPurchaseOnPromotedProductIOS()
+                RnIapLog.result("buyPromotedProductIOS", value: ok)
             } catch {
                 // Event-only: OpenIAP will emit purchaseError for this flow. Avoid Promise rejection.
+                RnIapLog.failure("buyPromotedProductIOS", error: error)
             }
         }
     }
@@ -412,11 +378,14 @@ class HybridRnIap: HybridRnIapSpec {
     func presentCodeRedemptionSheetIOS() throws -> Promise<Bool> {
         return Promise.async {
             do {
+                RnIapLog.payload("presentCodeRedemptionSheetIOS", payload: nil)
                 let ok = try await OpenIapModule.shared.presentCodeRedemptionSheetIOS()
+                RnIapLog.result("presentCodeRedemptionSheetIOS", value: ok)
                 return ok
             } catch {
                 // Fallback with explicit error for simulator or unsupported cases
-                throw OpenIapError.make(code: OpenIapError.FeatureNotSupported)
+                RnIapLog.failure("presentCodeRedemptionSheetIOS", error: error)
+                throw PurchaseError.make(code: .featureNotSupported)
             }
         }
     }
@@ -424,9 +393,12 @@ class HybridRnIap: HybridRnIapSpec {
     func clearTransactionIOS() throws -> Promise<Void> {
         return Promise.async {
             do {
-                try await OpenIapModule.shared.clearTransactionIOS()
+                RnIapLog.payload("clearTransactionIOS", payload: nil)
+                let ok = try await OpenIapModule.shared.clearTransactionIOS()
+                RnIapLog.result("clearTransactionIOS", value: ok)
             } catch {
                 // ignore
+                RnIapLog.failure("clearTransactionIOS", error: error)
             }
         }
     }
@@ -437,35 +409,28 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                if let statuses = try await OpenIapModule.shared.subscriptionStatusIOS(sku: sku) {
-                    return statuses.map { s in
-                        var renewal: NitroSubscriptionRenewalInfo? = nil
-                        if let r = s.renewalInfo {
-                            renewal = NitroSubscriptionRenewalInfo(
-                                autoRenewStatus: r.autoRenewStatus,
-                                autoRenewPreference: r.autoRenewPreference,
-                                expirationReason: r.expirationReason.map { Double($0) },
-                                gracePeriodExpirationDate: r.gracePeriodExpirationDate?.timeIntervalSince1970,
-                                currentProductID: r.currentProductID,
-                                platform: "ios"
-                            )
-                        }
-                        let isActive: Bool
-                        switch s.state {
-                        case .subscribed:
-                            isActive = true
-                        default:
-                            isActive = false
-                        }
-                        return NitroSubscriptionStatus(
-                            state: isActive ? 1 : 0,
-                            platform: "ios",
-                            renewalInfo: renewal
-                        )
+                RnIapLog.payload("subscriptionStatusIOS", payload: ["sku": sku])
+                let statuses = try await OpenIapModule.shared.subscriptionStatusIOS(sku: sku)
+                let payloads = statuses.map { RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode($0)) }
+                RnIapLog.result("subscriptionStatusIOS", value: payloads)
+                return payloads.map { payload in
+                    let stateValue: Double
+                    if let numeric = RnIapHelper.doubleValue(payload["state"]) {
+                        stateValue = numeric
+                    } else if let stateString = payload["state"] as? String {
+                        stateValue = stateString.lowercased() == "subscribed" ? 1 : 0
+                    } else {
+                        stateValue = 0
                     }
+                    let platform = payload["platform"] as? String ?? "ios"
+                    var renewalInfo: NitroSubscriptionRenewalInfo? = nil
+                    if let renewalPayload = payload["renewalInfo"] as? [String: Any?] {
+                        renewalInfo = RnIapHelper.convertRenewalInfo(RnIapHelper.sanitizeDictionary(renewalPayload))
+                    }
+                    return NitroSubscriptionStatus(state: stateValue, platform: platform, renewalInfo: renewalInfo)
                 }
-                return []
             } catch {
+                RnIapLog.failure("subscriptionStatusIOS", error: error)
                 return []
             }
         }
@@ -475,13 +440,18 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
+                RnIapLog.payload("currentEntitlementIOS", payload: ["sku": sku])
                 let purchase = try await OpenIapModule.shared.currentEntitlementIOS(sku: sku)
                 if let purchase {
-                    return self.convertOpenIapPurchaseToNitroPurchase(purchase)
+                    let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(purchase))
+                    RnIapLog.result("currentEntitlementIOS", value: payload)
+                    return RnIapHelper.convertPurchaseDictionary(payload)
                 }
+                RnIapLog.result("currentEntitlementIOS", value: nil)
                 return Optional<NitroPurchase>.none
             } catch {
-                throw OpenIapError.make(code: OpenIapError.SkuNotFound, productId: sku)
+                RnIapLog.failure("currentEntitlementIOS", error: error)
+                throw PurchaseError.make(code: .skuNotFound, productId: sku)
             }
         }
     }
@@ -490,13 +460,18 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
+                RnIapLog.payload("latestTransactionIOS", payload: ["sku": sku])
                 let purchase = try await OpenIapModule.shared.latestTransactionIOS(sku: sku)
                 if let purchase {
-                    return self.convertOpenIapPurchaseToNitroPurchase(purchase)
+                    let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(purchase))
+                    RnIapLog.result("latestTransactionIOS", value: payload)
+                    return RnIapHelper.convertPurchaseDictionary(payload)
                 }
+                RnIapLog.result("latestTransactionIOS", value: nil)
                 return Optional<NitroPurchase>.none
             } catch {
-                throw OpenIapError.make(code: OpenIapError.SkuNotFound, productId: sku)
+                RnIapLog.failure("latestTransactionIOS", error: error)
+                throw PurchaseError.make(code: .skuNotFound, productId: sku)
             }
         }
     }
@@ -504,9 +479,14 @@ class HybridRnIap: HybridRnIapSpec {
     func getPendingTransactionsIOS() throws -> Promise<[NitroPurchase]> {
         return Promise.async {
             do {
+                RnIapLog.payload("getPendingTransactionsIOS", payload: nil)
                 let pending = try await OpenIapModule.shared.getPendingTransactionsIOS()
-                return pending.map { self.convertOpenIapPurchaseToNitroPurchase($0) }
+                let unionPurchases = pending.map { OpenIAP.Purchase.purchaseIos($0) }
+                let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.purchases(unionPurchases))
+                RnIapLog.result("getPendingTransactionsIOS", value: payloads)
+                return payloads.map { RnIapHelper.convertPurchaseDictionary($0) }
             } catch {
+                RnIapLog.failure("getPendingTransactionsIOS", error: error)
                 return []
             }
         }
@@ -515,43 +495,112 @@ class HybridRnIap: HybridRnIapSpec {
     func syncIOS() throws -> Promise<Bool> {
         return Promise.async {
             do {
+                RnIapLog.payload("syncIOS", payload: nil)
                 let ok = try await OpenIapModule.shared.syncIOS()
+                RnIapLog.result("syncIOS", value: ok)
                 return ok
             } catch {
-                throw OpenIapError.make(code: OpenIapError.ServiceError, message: error.localizedDescription)
+                RnIapLog.failure("syncIOS", error: error)
+                throw PurchaseError.make(code: .serviceError, message: error.localizedDescription)
             }
         }
     }
     
     func showManageSubscriptionsIOS() throws -> Promise<[NitroPurchase]> {
         return Promise.async {
+            try self.ensureConnection()
             do {
                 // Trigger system UI
+                RnIapLog.payload("showManageSubscriptionsIOS", payload: nil)
                 _ = try await OpenIapModule.shared.showManageSubscriptionsIOS()
                 // Return current entitlements as approximation of updates
-                let purchases = try await OpenIapModule.shared.getAvailablePurchases(OpenIapPurchaseOptions(alsoPublishToEventListenerIOS: false, onlyIncludeActiveItemsIOS: true))
-                return purchases.map { self.convertOpenIapPurchaseToNitroPurchase($0) }
+                let optionsDictionary: [String: Any] = [
+                    "alsoPublishToEventListenerIOS": false,
+                    "onlyIncludeActiveItemsIOS": true
+                ]
+                let iosOptions = try OpenIapSerialization.purchaseOptions(from: optionsDictionary)
+                let purchases = try await OpenIapModule.shared.getAvailablePurchases(iosOptions)
+                let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.purchases(purchases))
+                RnIapLog.result("showManageSubscriptionsIOS", value: payloads)
+                return payloads.map { RnIapHelper.convertPurchaseDictionary($0) }
             } catch {
-                throw OpenIapError.make(code: OpenIapError.ServiceError, message: error.localizedDescription)
+                RnIapLog.failure("showManageSubscriptionsIOS", error: error)
+                throw PurchaseError.make(code: .serviceError, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func deepLinkToSubscriptionsIOS() throws -> Promise<Bool> {
+        return Promise.async {
+            try self.ensureConnection()
+            do {
+                RnIapLog.payload("deepLinkToSubscriptionsIOS", payload: nil)
+                try await OpenIapModule.shared.deepLinkToSubscriptions(nil)
+                RnIapLog.result("deepLinkToSubscriptionsIOS", value: true)
+                return true
+            } catch {
+                RnIapLog.failure("deepLinkToSubscriptionsIOS", error: error)
+                throw PurchaseError.make(code: .serviceError, message: error.localizedDescription)
             }
         }
     }
     
     func isEligibleForIntroOfferIOS(groupID: String) throws -> Promise<Bool> {
         return Promise.async {
-            return await OpenIapModule.shared.isEligibleForIntroOfferIOS(groupID: groupID)
+            RnIapLog.payload("isEligibleForIntroOfferIOS", payload: ["groupID": groupID])
+            let value = try await OpenIapModule.shared.isEligibleForIntroOfferIOS(groupID: groupID)
+            RnIapLog.result("isEligibleForIntroOfferIOS", value: value)
+            return value
         }
     }
     
     func getReceiptDataIOS() throws -> Promise<String> {
         return Promise.async {
+            try self.ensureConnection()
             do {
+                RnIapLog.payload("getReceiptDataIOS", payload: nil)
                 if let receipt = try await OpenIapModule.shared.getReceiptDataIOS() {
+                    RnIapLog.result("getReceiptDataIOS", value: "<receipt>")
                     return receipt
                 }
-                throw OpenIapError.make(code: OpenIapError.ReceiptFailed)
+                throw PurchaseError.make(code: .receiptFailed)
             } catch {
-                throw OpenIapError.make(code: OpenIapError.ReceiptFailed, message: error.localizedDescription)
+                RnIapLog.failure("getReceiptDataIOS", error: error)
+                throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func getReceiptIOS() throws -> Promise<String> {
+        return Promise.async {
+            try self.ensureConnection()
+            do {
+                RnIapLog.payload("getReceiptIOS", payload: nil)
+                if let receipt = try await OpenIapModule.shared.getReceiptDataIOS() {
+                    RnIapLog.result("getReceiptIOS", value: "<receipt>")
+                    return receipt
+                }
+                throw PurchaseError.make(code: .receiptFailed)
+            } catch {
+                RnIapLog.failure("getReceiptIOS", error: error)
+                throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func requestReceiptRefreshIOS() throws -> Promise<String> {
+        return Promise.async {
+            try self.ensureConnection()
+            do {
+                RnIapLog.payload("requestReceiptRefreshIOS", payload: nil)
+                if let receipt = try await OpenIapModule.shared.getReceiptDataIOS() {
+                    RnIapLog.result("requestReceiptRefreshIOS", value: "<receipt>")
+                    return receipt
+                }
+                throw PurchaseError.make(code: .receiptFailed)
+            } catch {
+                RnIapLog.failure("requestReceiptRefreshIOS", error: error)
+                throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
             }
         }
     }
@@ -559,7 +608,10 @@ class HybridRnIap: HybridRnIapSpec {
     func isTransactionVerifiedIOS(sku: String) throws -> Promise<Bool> {
         return Promise.async {
             try self.ensureConnection()
-            return await OpenIapModule.shared.isTransactionVerifiedIOS(sku: sku)
+            RnIapLog.payload("isTransactionVerifiedIOS", payload: ["sku": sku])
+            let value = try await OpenIapModule.shared.isTransactionVerifiedIOS(sku: sku)
+            RnIapLog.result("isTransactionVerifiedIOS", value: value)
+            return value
         }
     }
     
@@ -567,17 +619,28 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
+                RnIapLog.payload("getTransactionJwsIOS", payload: ["sku": sku])
                 let jws = try await OpenIapModule.shared.getTransactionJwsIOS(sku: sku)
+                RnIapLog.result("getTransactionJwsIOS", value: jws)
                 return jws
             } catch {
-                throw OpenIapError.make(code: OpenIapError.TransactionValidationFailed, message: "Can't find transaction for sku \(sku)")
+                RnIapLog.failure("getTransactionJwsIOS", error: error)
+                throw PurchaseError.make(code: .transactionValidationFailed, message: "Can't find transaction for sku \(sku)")
             }
         }
     }
     
     func beginRefundRequestIOS(sku: String) throws -> Promise<String?> {
         return Promise.async {
-            do { return try await OpenIapModule.shared.beginRefundRequestIOS(sku: sku) } catch { return nil }
+            do {
+                RnIapLog.payload("beginRefundRequestIOS", payload: ["sku": sku])
+                let result = try await OpenIapModule.shared.beginRefundRequestIOS(sku: sku)
+                RnIapLog.result("beginRefundRequestIOS", value: result)
+                return result
+            } catch {
+                RnIapLog.failure("beginRefundRequestIOS", error: error)
+                return nil
+            }
         }
     }
     
@@ -586,23 +649,12 @@ class HybridRnIap: HybridRnIapSpec {
         
         // If a promoted product is already available from OpenIAP, notify immediately
         Task {
-            if let p = try? await OpenIapModule.shared.getPromotedProductIOS() {
-                let id = p.productIdentifier
-                let title = p.localizedTitle
-                let desc = p.localizedDescription
-                let price = p.price
-                let currency = p.priceLocale.currencyCode
-                await MainActor.run {
-                    var n = NitroProduct()
-                    n.id = id
-                    n.title = title
-                    n.description = desc
-                    n.type = "inapp"
-                    n.platform = .ios
-                    n.price = price
-                    n.currency = currency
-                    listener(n)
-                }
+            RnIapLog.payload("promotedProductListenerIOS.fetch", payload: nil)
+            if let product = try? await OpenIapModule.shared.getPromotedProductIOS() {
+                let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(product))
+                RnIapLog.result("promotedProductListenerIOS.fetch", value: payload)
+                let nitro = RnIapHelper.convertProductDictionary(payload)
+                await MainActor.run { listener(nitro) }
             }
         }
     }
@@ -636,10 +688,78 @@ class HybridRnIap: HybridRnIapSpec {
     }
     
     // MARK: - Private Helper Methods
-    
+
+    private func attachListenersIfNeeded() {
+        if purchaseUpdatedSub == nil {
+            RnIapLog.payload("purchaseUpdatedListener.register", payload: nil)
+            purchaseUpdatedSub = OpenIapModule.shared.purchaseUpdatedListener { [weak self] openIapPurchase in
+                guard let self else { return }
+                Task { @MainActor in
+                    let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.purchase(openIapPurchase))
+                    RnIapLog.result("purchaseUpdatedListener", value: payload)
+                    let nitro = RnIapHelper.convertPurchaseDictionary(payload)
+                    self.sendPurchaseUpdate(nitro)
+                }
+            }
+            RnIapLog.result("purchaseUpdatedListener.register", value: "attached")
+        }
+
+        if purchaseErrorSub == nil {
+            RnIapLog.payload("purchaseErrorListener.register", payload: nil)
+            purchaseErrorSub = OpenIapModule.shared.purchaseErrorListener { [weak self] error in
+                guard let self else { return }
+                Task { @MainActor in
+                    let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(error))
+                    RnIapLog.result("purchaseErrorListener", value: payload)
+                    let nitroError = RnIapHelper.makePurchaseErrorResult(
+                        code: error.code,
+                        message: error.message,
+                        error.productId
+                    )
+                    self.sendPurchaseError(nitroError, productId: error.productId)
+                }
+            }
+            RnIapLog.result("purchaseErrorListener.register", value: "attached")
+        }
+
+        if promotedProductSub == nil {
+            RnIapLog.payload("promotedProductListenerIOS.register", payload: nil)
+            promotedProductSub = OpenIapModule.shared.promotedProductListenerIOS { [weak self] productId in
+                guard let self else { return }
+                Task {
+                    RnIapLog.payload("promotedProductListenerIOS", payload: ["productId": productId])
+                    do {
+                        let request = try OpenIapSerialization.productRequest(skus: [productId], type: .all)
+                        let result = try await OpenIapModule.shared.fetchProducts(request)
+                        let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.products(result))
+                        RnIapLog.result("fetchProducts", value: payloads)
+                        if let payload = payloads.first {
+                            let nitro = RnIapHelper.convertProductDictionary(payload)
+                            await MainActor.run {
+                                for listener in self.promotedProductListeners { listener(nitro) }
+                            }
+                        }
+                    } catch {
+                        RnIapLog.failure("promotedProductListenerIOS", error: error)
+                        let id = productId
+                        await MainActor.run {
+                            var minimal = NitroProduct()
+                            minimal.id = id
+                            minimal.title = id
+                            minimal.type = "inapp"
+                            minimal.platform = .ios
+                            for listener in self.promotedProductListeners { listener(minimal) }
+                        }
+                    }
+                }
+            }
+            RnIapLog.result("promotedProductListenerIOS.register", value: "attached")
+        }
+    }
+
     private func ensureConnection() throws {
         guard isInitialized else {
-            throw OpenIapError.make(code: OpenIapError.InitConnection, message: "Connection not initialized. Call initConnection() first.")
+            throw PurchaseError.make(code: .initConnection, message: "Connection not initialized. Call initConnection() first.")
         }
     }
     
@@ -675,16 +795,6 @@ class HybridRnIap: HybridRnIapSpec {
         sendPurchaseError(error, productId: productId)
     }
     
-    private func createPurchaseErrorResult(code: String, message: String, productId: String? = nil) -> NitroPurchaseResult {
-        var result = NitroPurchaseResult()
-        result.responseCode = 0
-        result.code = code
-        result.message = message
-        // Do not overload the token field with productId
-        result.purchaseToken = nil
-        return result
-    }
-    
     private func cleanupExistingState() {
         // Cancel transaction listener if any
         updateListenerTask?.cancel()
@@ -693,68 +803,31 @@ class HybridRnIap: HybridRnIapSpec {
         
         
         // Remove OpenIAP listeners & end connection
-        if let sub = purchaseUpdatedSub { OpenIapModule.shared.removeListener(sub) }
-        if let sub = purchaseErrorSub { OpenIapModule.shared.removeListener(sub) }
-        if let sub = promotedProductSub { OpenIapModule.shared.removeListener(sub) }
+        if let sub = purchaseUpdatedSub {
+            RnIapLog.payload("removeListener", payload: "purchaseUpdated")
+            OpenIapModule.shared.removeListener(sub)
+        }
+        if let sub = purchaseErrorSub {
+            RnIapLog.payload("removeListener", payload: "purchaseError")
+            OpenIapModule.shared.removeListener(sub)
+        }
+        if let sub = promotedProductSub {
+            RnIapLog.payload("removeListener", payload: "promotedProduct")
+            OpenIapModule.shared.removeListener(sub)
+        }
         purchaseUpdatedSub = nil
         purchaseErrorSub = nil
         promotedProductSub = nil
-        Task { _ = try? await OpenIapModule.shared.endConnection() }
+        Task {
+            RnIapLog.payload("endConnection", payload: nil)
+            let result = try? await OpenIapModule.shared.endConnection()
+            RnIapLog.result("endConnection", value: result as Any)
+        }
 
         // Clear event listeners
         purchaseUpdatedListeners.removeAll()
         purchaseErrorListeners.removeAll()
         promotedProductListeners.removeAll()
-    }
-
-    // MARK: - OpenIAP -> Nitro mappers
-    private func convertOpenIapProductToNitroProduct(_ p: OpenIapProduct) -> NitroProduct {
-        var n = NitroProduct()
-        n.id = p.id
-        n.title = p.title
-        n.description = p.description
-        n.type = p.type
-        n.displayName = p.displayName ?? p.displayNameIOS
-        n.displayPrice = p.displayPrice
-        n.currency = p.currency
-        n.price = p.price
-        if let platform = IapPlatform(fromString: p.platform) {
-            n.platform = platform
-        }
-        // iOS specifics
-        n.typeIOS = p.typeIOS.rawValue
-        n.isFamilyShareableIOS = p.isFamilyShareableIOS
-        n.jsonRepresentationIOS = p.jsonRepresentationIOS
-        n.subscriptionPeriodUnitIOS = p.subscriptionPeriodUnitIOS
-        if let num = p.subscriptionPeriodNumberIOS, let d = Double(num) { n.subscriptionPeriodNumberIOS = d }
-        n.introductoryPriceIOS = p.introductoryPriceIOS
-        if let amt = p.introductoryPriceAsAmountIOS, let d = Double(amt) { n.introductoryPriceAsAmountIOS = d }
-        n.introductoryPricePaymentModeIOS = p.introductoryPricePaymentModeIOS
-        if let cnt = p.introductoryPriceNumberOfPeriodsIOS, let d = Double(cnt) { n.introductoryPriceNumberOfPeriodsIOS = d }
-        n.introductoryPriceSubscriptionPeriodIOS = p.introductoryPriceSubscriptionPeriodIOS
-        return n
-    }
-
-    private func convertOpenIapPurchaseToNitroPurchase(_ p: OpenIapPurchase) -> NitroPurchase {
-        var n = NitroPurchase()
-        n.id = p.id
-        n.productId = p.productId
-        n.transactionDate = p.transactionDate
-        n.purchaseToken = p.purchaseToken
-        if let platform = IapPlatform(fromString: p.platform) {
-            n.platform = platform
-        }
-        n.quantity = Double(p.quantity)
-        if let state = PurchaseState(fromString: p.purchaseState.rawValue) {
-            n.purchaseState = state
-        }
-        n.isAutoRenewing = p.isAutoRenewing
-        // iOS specifics
-        if let q = p.quantityIOS { n.quantityIOS = Double(q) }
-        n.originalTransactionDateIOS = p.originalTransactionDateIOS
-        n.originalTransactionIdentifierIOS = p.originalTransactionIdentifierIOS
-        n.appAccountToken = p.appAccountToken
-        return n
     }
 
     // MARK: - Android-only stubs (required for protocol conformance)
@@ -763,13 +836,13 @@ class HybridRnIap: HybridRnIapSpec {
     // because the TS spec marks them as Android-only.
     func getStorefrontAndroid() throws -> Promise<String> {
         return Promise.async {
-            throw OpenIapError.make(code: OpenIapError.FeatureNotSupported)
+            throw PurchaseError.make(code: .featureNotSupported)
         }
     }
 
     func deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid) throws -> Promise<Void> {
         return Promise.async {
-            throw OpenIapError.make(code: OpenIapError.FeatureNotSupported)
+            throw PurchaseError.make(code: .featureNotSupported)
         }
     }
 }

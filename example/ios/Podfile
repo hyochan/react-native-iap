@@ -4,6 +4,18 @@ require Pod::Executable.execute_command('node', ['-p',
     "react-native/scripts/react_native_pods.rb",
     {paths: [process.argv[1]]},
   )', __dir__]).strip
+require 'json'
+
+versions_path = File.expand_path('../../openiap-versions.json', __dir__)
+unless File.exist?(versions_path)
+  raise 'react-native-iap example: Missing openiap-versions.json at repo root.'
+end
+
+openiap_versions = JSON.parse(File.read(versions_path))
+openiap_apple_version = openiap_versions['apple']
+unless openiap_apple_version.is_a?(String) && !openiap_apple_version.strip.empty?
+  raise 'react-native-iap example: "apple" version missing or invalid in openiap-versions.json.'
+end
 
 # Use CDN with fallback
 source 'https://cdn.cocoapods.org/'
@@ -25,7 +37,7 @@ target 'example' do
   )
 
   # Work around CDN/trunk propagation delay by pulling OpenIAP directly from Git.
-  pod 'openiap', :git => 'https://github.com/hyodotdev/openiap-apple.git', :tag => '1.1.12'
+  pod 'openiap', :git => 'https://github.com/hyodotdev/openiap-apple.git', :tag => openiap_apple_version
 
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202

@@ -24,6 +24,7 @@
     "cpp",
     "nitrogen",
     "nitro.json",
+    "openiap-versions.json",
     "*.podspec",
     "app.plugin.js",
     "react-native.config.js",
@@ -67,7 +68,7 @@
     "prepare:husky": "husky install",
     "precommit": "lint-staged",
     "ci:check": "./scripts/ci-check.sh",
-    "generate:types": "node scripts/update-types.mjs --tag 1.0.6",
+    "generate:types": "node scripts/update-types.mjs",
     "generate:icon": "cd docs/static/img && npx sharp-cli resize 32 32 --input icon.png --output favicon-32x32.png && npx sharp-cli resize 16 16 --input icon.png --output favicon-16x16.png && npx sharp-cli resize 192 192 --input icon.png --output android-chrome-192x192.png && npx sharp-cli resize 512 512 --input icon.png --output android-chrome-512x512.png && npx sharp-cli resize 180 180 --input icon.png --output apple-touch-icon.png && npx sharp-cli resize 1200 630 --input icon.png --output og-image.png && npx sharp-cli resize 150 150 --input icon.png --output favicon.png && npx sharp-cli --input favicon-32x32.png --output favicon.ico",
     "commitlint": "commitlint"
   },

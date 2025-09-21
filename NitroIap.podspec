@@ -1,6 +1,16 @@
 require "json"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
+versions_path = File.join(__dir__, "openiap-versions.json")
+unless File.exist?(versions_path)
+  raise "NitroIap: Missing openiap-versions.json. Add the file to manage native dependency versions."
+end
+
+versions = JSON.parse(File.read(versions_path))
+apple_version = versions["apple"]
+unless apple_version.is_a?(String) && !apple_version.strip.empty?
+  raise "NitroIap: 'apple' version missing or invalid in openiap-versions.json"
+end
 
 Pod::Spec.new do |s|
   s.name         = "NitroIap"
@@ -32,7 +42,7 @@ Pod::Spec.new do |s|
   s.dependency 'React-jsi'
   s.dependency 'React-callinvoker'
   # OpenIAP Apple for StoreKit 2 integration
-  s.dependency 'openiap', '1.1.12'
+  s.dependency 'openiap', apple_version
 
   install_modules_dependencies(s)
 end

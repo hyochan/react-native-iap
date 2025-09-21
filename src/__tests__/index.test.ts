@@ -84,6 +84,9 @@ describe('Public API (src/index.ts)', () => {
         createHybridObject: jest.fn(() => mockIap),
       },
     }));
+    mockIap.deepLinkToSubscriptionsIOS = undefined;
+    mockIap.getReceiptIOS = undefined;
+    mockIap.requestReceiptRefreshIOS = undefined;
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     IAP = require('../index');
   });
@@ -623,6 +626,38 @@ describe('Public API (src/index.ts)', () => {
       await expect(IAP.getReceiptDataIOS()).resolves.toBe('r');
     });
 
+    it('getReceiptIOS prefers dedicated native method', async () => {
+      (Platform as any).OS = 'ios';
+      mockIap.getReceiptIOS = jest.fn(async () => 'get');
+      await expect(IAP.getReceiptIOS()).resolves.toBe('get');
+      expect(mockIap.getReceiptIOS).toHaveBeenCalled();
+    });
+
+    it('getReceiptIOS falls back to getReceiptDataIOS when missing', async () => {
+      (Platform as any).OS = 'ios';
+      delete mockIap.getReceiptIOS;
+      mockIap.getReceiptDataIOS = jest.fn(async () => 'fallback');
+      await expect(IAP.getReceiptIOS()).resolves.toBe('fallback');
+      expect(mockIap.getReceiptDataIOS).toHaveBeenCalled();
+    });
+
+    it('requestReceiptRefreshIOS prefers native method when available', async () => {
+      (Platform as any).OS = 'ios';
+      mockIap.requestReceiptRefreshIOS = jest.fn(async () => 'refresh');
+      await expect(IAP.requestReceiptRefreshIOS()).resolves.toBe('refresh');
+      expect(mockIap.requestReceiptRefreshIOS).toHaveBeenCalled();
+    });
+
+    it('requestReceiptRefreshIOS falls back to getReceiptDataIOS when missing', async () => {
+      (Platform as any).OS = 'ios';
+      delete mockIap.requestReceiptRefreshIOS;
+      mockIap.getReceiptDataIOS = jest.fn(async () => 'fallback-refresh');
+      await expect(IAP.requestReceiptRefreshIOS()).resolves.toBe(
+        'fallback-refresh',
+      );
+      expect(mockIap.getReceiptDataIOS).toHaveBeenCalled();
+    });
+
     it('isTransactionVerifiedIOS returns boolean', async () => {
       (Platform as any).OS = 'ios';
       mockIap.isTransactionVerifiedIOS = jest.fn(async () => true);
@@ -812,8 +847,16 @@ describe('Public API (src/index.ts)', () => {
       });
     });
 
-    it('deepLinkToSubscriptions uses iOS manage subscriptions on iOS', async () => {
+    it('deepLinkToSubscriptions uses iOS deeplink when available', async () => {
       (Platform as any).OS = 'ios';
+      mockIap.deepLinkToSubscriptionsIOS = jest.fn(async () => true);
+      await expect(IAP.deepLinkToSubscriptions()).resolves.toBeUndefined();
+      expect(mockIap.deepLinkToSubscriptionsIOS).toHaveBeenCalled();
+    });
+
+    it('deepLinkToSubscriptions falls back to manage subscriptions when deeplink missing', async () => {
+      (Platform as any).OS = 'ios';
+      delete mockIap.deepLinkToSubscriptionsIOS;
       mockIap.showManageSubscriptionsIOS = jest.fn(async () => []);
       await expect(IAP.deepLinkToSubscriptions()).resolves.toBeUndefined();
       expect(mockIap.showManageSubscriptionsIOS).toHaveBeenCalled();

@@ -1,28 +1,41 @@
 package com.margelo.nitro.iap
 
-import android.util.Log
 import com.facebook.react.bridge.ReactApplicationContext
 import com.margelo.nitro.NitroModules
 import com.margelo.nitro.core.Promise
+import dev.hyo.openiap.AndroidSubscriptionOfferInput
+import dev.hyo.openiap.DeepLinkOptions as OpenIapDeepLinkOptions
+import dev.hyo.openiap.FetchProductsResult
+import dev.hyo.openiap.FetchProductsResultProducts
+import dev.hyo.openiap.FetchProductsResultSubscriptions
 import dev.hyo.openiap.OpenIapError as OpenIAPError
 import dev.hyo.openiap.OpenIapModule
+import dev.hyo.openiap.ProductAndroid
+import dev.hyo.openiap.ProductQueryType
+import dev.hyo.openiap.ProductRequest
+import dev.hyo.openiap.ProductSubscriptionAndroid
+import dev.hyo.openiap.ProductSubscriptionAndroidOfferDetails
+import dev.hyo.openiap.ProductCommon
+import dev.hyo.openiap.ProductType
+import dev.hyo.openiap.Purchase as OpenIapPurchase
+import dev.hyo.openiap.PurchaseAndroid
+import dev.hyo.openiap.RequestPurchaseAndroidProps
+import dev.hyo.openiap.RequestPurchaseProps
+import dev.hyo.openiap.RequestPurchasePropsByPlatforms
+import dev.hyo.openiap.RequestPurchaseResultPurchase
+import dev.hyo.openiap.RequestPurchaseResultPurchases
+import dev.hyo.openiap.RequestSubscriptionAndroidProps
+import dev.hyo.openiap.RequestSubscriptionPropsByPlatforms
 import dev.hyo.openiap.listener.OpenIapPurchaseErrorListener
 import dev.hyo.openiap.listener.OpenIapPurchaseUpdateListener
-import dev.hyo.openiap.models.DeepLinkOptions as OpenIapDeepLinkOptions
-import dev.hyo.openiap.models.OpenIapRequestPurchaseProps
-import dev.hyo.openiap.models.OpenIapSerialization
-import dev.hyo.openiap.models.OpenIapProduct
-import dev.hyo.openiap.models.OpenIapPurchase
-import dev.hyo.openiap.models.ProductRequest
-import dev.hyo.openiap.models.RequestSubscriptionAndroidProps.SubscriptionOffer as OpenIapSubscriptionOffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CompletableDeferred
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.Locale
 
 class HybridRnIap : HybridRnIapSpec() {
-    companion object {
-        const val TAG = "RnIap"
-    }
     
     // Get ReactApplicationContext lazily from NitroModules
     private val context: ReactApplicationContext by lazy {
@@ -45,8 +58,12 @@ class HybridRnIap : HybridRnIapSpec() {
     // Connection methods
     override fun initConnection(): Promise<Boolean> {
         return Promise.async {
+            RnIapLog.payload("initConnection", null)
             // Fast-path: if already initialized, return immediately
-            if (isInitialized) return@async true
+            if (isInitialized) {
+                RnIapLog.result("initConnection", true)
+                return@async true
+            }
 
             // Set current activity best-effort; don't fail init if missing
             withContext(Dispatchers.Main) {
@@ -60,18 +77,32 @@ class HybridRnIap : HybridRnIapSpec() {
                     false
                 } else true
             }
-            if (wasExisting) return@async initDeferred!!.await()
+            if (wasExisting) {
+                val result = initDeferred!!.await()
+                RnIapLog.result("initConnection.await", result)
+                return@async result
+            }
 
             if (!listenersAttached) {
                 listenersAttached = true
+                RnIapLog.payload("listeners.attach", null)
                 openIap.addPurchaseUpdateListener(OpenIapPurchaseUpdateListener { p ->
-                    runCatching { sendPurchaseUpdate(convertToNitroPurchase(p)) }
-                        .onFailure { Log.e(TAG, "Failed to forward purchase update", it) }
+                    runCatching {
+                        RnIapLog.result(
+                            "purchaseUpdatedListener",
+                            mapOf("id" to p.id, "sku" to p.productId)
+                        )
+                        sendPurchaseUpdate(convertToNitroPurchase(p))
+                    }.onFailure { RnIapLog.failure("purchaseUpdatedListener", it) }
                 })
                 openIap.addPurchaseErrorListener(OpenIapPurchaseErrorListener { e ->
                     val code = OpenIAPError.toCode(e)
                     val message = e.message ?: OpenIAPError.defaultMessage(code)
                     runCatching {
+                        RnIapLog.result(
+                            "purchaseErrorListener",
+                            mapOf("code" to code, "message" to message)
+                        )
                         sendPurchaseError(
                             NitroPurchaseResult(
                                 responseCode = -1.0,
@@ -81,15 +112,20 @@ class HybridRnIap : HybridRnIapSpec() {
                                 purchaseToken = null
                             )
                         )
-                    }.onFailure { Log.e(TAG, "Failed to forward purchase error", it) }
+                    }.onFailure { RnIapLog.failure("purchaseErrorListener", it) }
                 })
+                RnIapLog.result("listeners.attach", "attached")
             }
 
             // We created it above; reuse the shared instance
             val deferred = initDeferred!!
             try {
-                val ok = runCatching { openIap.initConnection() }.getOrElse { err ->
+                val ok = runCatching {
+                    RnIapLog.payload("initConnection.native", null)
+                    openIap.initConnection()
+                }.getOrElse { err ->
                     val error = OpenIAPError.InitConnection()
+                    RnIapLog.failure("initConnection.native", err)
                     throw Exception(
                         toErrorJson(
                             error = error,
@@ -100,6 +136,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 }
                 if (!ok) {
                     val error = OpenIAPError.InitConnection()
+                    RnIapLog.failure("initConnection.native", Exception(error.message))
                     throw Exception(
                         toErrorJson(
                             error = error,
@@ -109,11 +146,13 @@ class HybridRnIap : HybridRnIapSpec() {
                 }
                 isInitialized = true
                 deferred.complete(true)
+                RnIapLog.result("initConnection", true)
                 true
             } catch (e: Exception) {
                 // Complete exceptionally so all concurrent awaiters receive the same failure
                 if (!deferred.isCompleted) deferred.completeExceptionally(e)
                 isInitialized = false
+                RnIapLog.failure("initConnection", e)
                 throw e
             } finally {
                 initDeferred = null
@@ -123,10 +162,12 @@ class HybridRnIap : HybridRnIapSpec() {
     
     override fun endConnection(): Promise<Boolean> {
         return Promise.async {
+            RnIapLog.payload("endConnection", null)
             runCatching { openIap.endConnection() }
             productTypeBySku.clear()
             isInitialized = false
             initDeferred = null
+            RnIapLog.result("endConnection", true)
             true
         }
     }
@@ -134,7 +175,13 @@ class HybridRnIap : HybridRnIapSpec() {
     // Product methods
     override fun fetchProducts(skus: Array<String>, type: String): Promise<Array<NitroProduct>> {
         return Promise.async {
-            Log.d(TAG, "fetchProducts (OpenIAP) skus=${skus.joinToString()} type=$type")
+            RnIapLog.payload(
+                "fetchProducts",
+                mapOf(
+                    "skus" to skus.toList(),
+                    "type" to type
+                )
+            )
 
             if (skus.isEmpty()) {
                 throw Exception(toErrorJson(OpenIAPError.EmptySkuList))
@@ -142,40 +189,46 @@ class HybridRnIap : HybridRnIapSpec() {
 
             initConnection().await()
 
-            val normalizedType = type.lowercase()
+            val queryType = parseProductQueryType(type)
             val skusList = skus.toList()
 
-            val products: List<OpenIapProduct> = when (normalizedType) {
-                "all" -> {
-                    val collected = mutableMapOf<String, OpenIapProduct>()
-                    listOf("in-app", "subs").forEach { kind ->
-                        val requestType = ProductRequest.ProductRequestType.fromString(kind)
-                        val fetched = openIap.fetchProducts(ProductRequest(skusList, requestType))
+            val products: List<ProductCommon> = when (queryType) {
+                ProductQueryType.All -> {
+                    val collected = linkedMapOf<String, ProductCommon>()
+                    listOf(ProductQueryType.InApp, ProductQueryType.Subs).forEach { kind ->
+                        RnIapLog.payload(
+                            "fetchProducts.native",
+                            mapOf("skus" to skusList, "type" to kind.rawValue)
+                        )
+                        val fetched = openIap.fetchProducts(ProductRequest(skusList, kind)).productsOrEmpty()
+                        RnIapLog.result(
+                            "fetchProducts.native",
+                            fetched.map { mapOf("id" to it.id, "type" to it.type.rawValue) }
+                        )
                         fetched.forEach { collected[it.id] = it }
                     }
                     collected.values.toList()
                 }
-                "inapp", "in-app" -> {
-                    if (normalizedType == "inapp") {
-                        Log.w(TAG, "fetchProducts received legacy type 'inapp'; forwarding as 'in-app'")
-                    }
-                    val requestType = ProductRequest.ProductRequestType.fromString("in-app")
-                    openIap.fetchProducts(ProductRequest(skusList, requestType))
-                }
-                "subs" -> {
-                    val requestType = ProductRequest.ProductRequestType.fromString("subs")
-                    openIap.fetchProducts(ProductRequest(skusList, requestType))
-                }
                 else -> {
-                    Log.w(TAG, "fetchProducts received unknown type '$type'; defaulting to ProductRequest.fromString")
-                    val requestType = ProductRequest.ProductRequestType.fromString(type)
-                    openIap.fetchProducts(ProductRequest(skusList, requestType))
+                    RnIapLog.payload(
+                        "fetchProducts.native",
+                        mapOf("skus" to skusList, "type" to queryType.rawValue)
+                    )
+                    val fetched = openIap.fetchProducts(ProductRequest(skusList, queryType)).productsOrEmpty()
+                    RnIapLog.result(
+                        "fetchProducts.native",
+                        fetched.map { mapOf("id" to it.id, "type" to it.type.rawValue) }
+                    )
+                    fetched
                 }
             }
 
-            // populate type cache
-            products.forEach { p -> productTypeBySku[p.id] = p.type.value }
+            products.forEach { p -> productTypeBySku[p.id] = p.type.rawValue }
 
+            RnIapLog.result(
+                "fetchProducts",
+                products.map { mapOf("id" to it.id, "type" to it.type.rawValue) }
+            )
             products.map { convertToNitroProduct(it) }.toTypedArray()
         }
     }
@@ -184,15 +237,24 @@ class HybridRnIap : HybridRnIapSpec() {
     // Purchase methods (Unified)
     override fun requestPurchase(request: NitroPurchaseRequest): Promise<RequestPurchaseResult?> {
         return Promise.async {
-            val defaultResult = RequestPurchaseResult.create(emptyArray())
+            val defaultResult = RequestPurchaseResult.create(emptyArray<com.margelo.nitro.iap.Purchase>())
+
+            RnIapLog.payload(
+                "requestPurchase",
+                mapOf(
+                    "androidSkus" to (request.android?.skus?.toList() ?: emptyList()),
+                    "hasIOS" to (request.ios != null)
+                )
+            )
 
             val androidRequest = request.android ?: run {
-                // Programming error: no Android params provided
+                RnIapLog.warn("requestPurchase called without android payload")
                 sendPurchaseError(toErrorResult(OpenIAPError.DeveloperError))
                 return@async defaultResult
             }
 
             if (androidRequest.skus.isEmpty()) {
+                RnIapLog.warn("requestPurchase received empty SKU list")
                 sendPurchaseError(toErrorResult(OpenIAPError.EmptySkuList))
                 return@async defaultResult
             }
@@ -203,38 +265,86 @@ class HybridRnIap : HybridRnIapSpec() {
 
                 val missing = androidRequest.skus.firstOrNull { !productTypeBySku.containsKey(it) }
                 if (missing != null) {
+                    RnIapLog.warn("requestPurchase missing cached type for $missing")
                     sendPurchaseError(toErrorResult(OpenIAPError.SkuNotFound(missing), missing))
                     return@async defaultResult
                 }
-                val typeStr = androidRequest.skus.firstOrNull()?.let { productTypeBySku[it] } ?: "inapp"
-                val typeEnum = ProductRequest.ProductRequestType.fromString(typeStr)
+
+                val typeHint = androidRequest.skus.firstOrNull()?.let { productTypeBySku[it] } ?: "inapp"
+                val queryType = parseProductQueryType(typeHint)
 
                 val subscriptionOffers = androidRequest.subscriptionOffers
-                    ?.map { offer ->
-                        OpenIapSubscriptionOffer(
-                            sku = offer.sku,
-                            offerToken = offer.offerToken
+                    ?.mapNotNull { offer ->
+                        val sku = offer.sku
+                        val token = offer.offerToken
+                        if (sku.isBlank() || token.isBlank()) {
+                            null
+                        } else {
+                            AndroidSubscriptionOfferInput(sku = sku, offerToken = token)
+                        }
+                    }
+                    ?: emptyList()
+                val normalizedOffers = subscriptionOffers.takeIf { it.isNotEmpty() }
+
+                val requestProps = when (queryType) {
+                    ProductQueryType.Subs -> {
+                        val replacementMode = (androidRequest.replacementModeAndroid as? Number)?.toInt()
+                        val androidProps = RequestSubscriptionAndroidProps(
+                            isOfferPersonalized = androidRequest.isOfferPersonalized,
+                            obfuscatedAccountIdAndroid = androidRequest.obfuscatedAccountIdAndroid,
+                            obfuscatedProfileIdAndroid = androidRequest.obfuscatedProfileIdAndroid,
+                            purchaseTokenAndroid = androidRequest.purchaseTokenAndroid,
+                            replacementModeAndroid = replacementMode,
+                            skus = androidRequest.skus.toList(),
+                            subscriptionOffers = normalizedOffers
+                        )
+                        RequestPurchaseProps(
+                            request = RequestPurchaseProps.Request.Subscription(
+                                RequestSubscriptionPropsByPlatforms(android = androidProps)
+                            ),
+                            type = ProductQueryType.Subs
                         )
                     }
+                    ProductQueryType.InApp, ProductQueryType.All -> {
+                        val androidProps = RequestPurchaseAndroidProps(
+                            isOfferPersonalized = androidRequest.isOfferPersonalized,
+                            obfuscatedAccountIdAndroid = androidRequest.obfuscatedAccountIdAndroid,
+                            obfuscatedProfileIdAndroid = androidRequest.obfuscatedProfileIdAndroid,
+                            skus = androidRequest.skus.toList()
+                        )
+                        RequestPurchaseProps(
+                            request = RequestPurchaseProps.Request.Purchase(
+                                RequestPurchasePropsByPlatforms(android = androidProps)
+                            ),
+                            type = ProductQueryType.InApp
+                        )
+                    }
+                }
 
-                val result = openIap.requestPurchase(
-                    OpenIapRequestPurchaseProps(
-                        skus = androidRequest.skus.toList(),
-                        obfuscatedAccountIdAndroid = androidRequest.obfuscatedAccountIdAndroid,
-                        obfuscatedProfileIdAndroid = androidRequest.obfuscatedProfileIdAndroid,
-                        isOfferPersonalized = androidRequest.isOfferPersonalized,
-                        subscriptionOffers = subscriptionOffers ?: emptyList()
-                    ),
-                    typeEnum
+                RnIapLog.payload(
+                    "requestPurchase.native",
+                    mapOf(
+                        "skus" to androidRequest.skus.toList(),
+                        "type" to requestProps.type.rawValue,
+                        "offerCount" to (normalizedOffers?.size ?: 0)
+                    )
                 )
 
-                result.forEach { p ->
-                    runCatching { sendPurchaseUpdate(convertToNitroPurchase(p)) }
-                        .onFailure { Log.e(TAG, "Failed to forward PURCHASE_UPDATED", it) }
+                val result = openIap.requestPurchase(requestProps)
+                val purchases = result.purchasesOrEmpty()
+                purchases.forEach { p ->
+                    runCatching {
+                        RnIapLog.result(
+                            "requestPurchase.native",
+                            mapOf("id" to p.id, "sku" to p.productId)
+                        )
+                        sendPurchaseUpdate(convertToNitroPurchase(p))
+                    }.onFailure { RnIapLog.failure("requestPurchase.native", it) }
                 }
 
                 defaultResult
             } catch (e: Exception) {
+                RnIapLog.failure("requestPurchase", e)
                 sendPurchaseError(
                     toErrorResult(
                         error = OpenIAPError.PurchaseFailed(),
@@ -253,10 +363,15 @@ class HybridRnIap : HybridRnIapSpec() {
             val androidOptions = options?.android
             initConnection().await()
 
+            RnIapLog.payload(
+                "getAvailablePurchases",
+                mapOf("type" to androidOptions?.type?.name)
+            )
+
             val typeName = androidOptions?.type?.name?.lowercase()
             val normalizedType = when (typeName) {
                 "inapp" -> {
-                    Log.w(TAG, "getAvailablePurchases received legacy type 'inapp'; forwarding as 'in-app'")
+                    RnIapLog.warn("getAvailablePurchases received legacy type 'inapp'; forwarding as 'in-app'")
                     "in-app"
                 }
                 "in-app", "subs" -> typeName
@@ -264,11 +379,20 @@ class HybridRnIap : HybridRnIapSpec() {
             }
 
             val result: List<OpenIapPurchase> = if (normalizedType != null) {
-                val typeEnum = ProductRequest.ProductRequestType.fromString(normalizedType)
+                val typeEnum = parseProductQueryType(normalizedType)
+                RnIapLog.payload(
+                    "getAvailablePurchases.native",
+                    mapOf("type" to typeEnum.rawValue)
+                )
                 openIap.getAvailableItems(typeEnum)
             } else {
-                openIap.getAvailablePurchases()
+                RnIapLog.payload("getAvailablePurchases.native", mapOf("type" to "all"))
+                openIap.getAvailablePurchases(null)
             }
+            RnIapLog.result(
+                "getAvailablePurchases",
+                result.map { mapOf("id" to it.id, "sku" to it.productId) }
+            )
             result.map { convertToNitroPurchase(it) }.toTypedArray()
         }
     }
@@ -280,8 +404,17 @@ class HybridRnIap : HybridRnIapSpec() {
             val purchaseToken = androidParams.purchaseToken
             val isConsumable = androidParams.isConsumable ?: false
 
+            RnIapLog.payload(
+                "finishTransaction",
+                mapOf(
+                    "purchaseToken" to purchaseToken?.let { "<hidden>" },
+                    "isConsumable" to isConsumable
+                )
+            )
+
             // Validate token early to avoid confusing native errors
             if (purchaseToken.isNullOrBlank()) {
+                RnIapLog.warn("finishTransaction called with missing purchaseToken")
                 return@async Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
                         responseCode = -1.0,
@@ -315,7 +448,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 } else {
                     openIap.acknowledgePurchaseAndroid(purchaseToken)
                 }
-                Variant_Boolean_NitroPurchaseResult.Second(
+                val result = Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
                         responseCode = 0.0,
                         debugMessage = null,
@@ -324,8 +457,11 @@ class HybridRnIap : HybridRnIapSpec() {
                         purchaseToken = purchaseToken
                     )
                 )
+                RnIapLog.result("finishTransaction", mapOf("success" to true))
+                result
             } catch (e: Exception) {
                 val err = OpenIAPError.BillingError()
+                RnIapLog.failure("finishTransaction", e)
                 Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
                         responseCode = -1.0,
@@ -364,13 +500,13 @@ class HybridRnIap : HybridRnIapSpec() {
     override fun addPromotedProductListenerIOS(listener: (product: NitroProduct) -> Unit) {
         // Promoted products are iOS-only, but we implement the interface for consistency
         promotedProductListenersIOS.add(listener)
-        Log.w(TAG, "addPromotedProductListenerIOS called on Android - promoted products are iOS-only")
+        RnIapLog.warn("addPromotedProductListenerIOS called on Android - promoted products are iOS-only")
     }
-    
+
     override fun removePromotedProductListenerIOS(listener: (product: NitroProduct) -> Unit) {
         // Promoted products are iOS-only, but we implement the interface for consistency
         promotedProductListenersIOS.clear()
-        Log.w(TAG, "removePromotedProductListenerIOS called on Android - promoted products are iOS-only")
+        RnIapLog.warn("removePromotedProductListenerIOS called on Android - promoted products are iOS-only")
     }
     
     // Billing callbacks handled internally by OpenIAP
@@ -381,6 +517,10 @@ class HybridRnIap : HybridRnIapSpec() {
      * Send purchase update event to listeners
      */
     private fun sendPurchaseUpdate(purchase: NitroPurchase) {
+        RnIapLog.result(
+            "sendPurchaseUpdate",
+            mapOf("productId" to purchase.productId, "platform" to purchase.platform)
+        )
         for (listener in purchaseUpdatedListeners) {
             listener(purchase)
         }
@@ -390,6 +530,10 @@ class HybridRnIap : HybridRnIapSpec() {
      * Send purchase error event to listeners
      */
     private fun sendPurchaseError(error: NitroPurchaseResult) {
+        RnIapLog.result(
+            "sendPurchaseError",
+            mapOf("code" to error.code, "message" to error.message)
+        )
         for (listener in purchaseErrorListeners) {
             listener(error)
         }
@@ -413,12 +557,75 @@ class HybridRnIap : HybridRnIapSpec() {
             purchaseToken = null
         )
     }
-    
-    private fun convertToNitroProduct(product: OpenIapProduct): NitroProduct {
-        val subOffers = product.subscriptionOfferDetailsAndroid
-        val subOffersJson = subOffers?.let { OpenIapSerialization.toJson(it) }
 
-        // Derive Android-specific fields from OpenIAP models
+    private fun parseProductQueryType(rawType: String): ProductQueryType {
+        val normalized = rawType
+            .trim()
+            .lowercase(Locale.US)
+            .replace("_", "")
+            .replace("-", "")
+        return when (normalized) {
+            "subs", "subscription", "subscriptions" -> ProductQueryType.Subs
+            "all" -> ProductQueryType.All
+            else -> ProductQueryType.InApp
+        }
+    }
+
+    private fun FetchProductsResult.productsOrEmpty(): List<ProductCommon> = when (this) {
+        is FetchProductsResultProducts -> this.value.orEmpty().filterIsInstance<ProductCommon>()
+        is FetchProductsResultSubscriptions -> this.value.orEmpty().filterIsInstance<ProductCommon>()
+    }
+
+    private fun dev.hyo.openiap.RequestPurchaseResult?.purchasesOrEmpty(): List<OpenIapPurchase> = when (this) {
+        is RequestPurchaseResultPurchases -> this.value.orEmpty().mapNotNull { it }
+        is RequestPurchaseResultPurchase -> this.value?.let(::listOf).orEmpty()
+        else -> emptyList()
+    }
+
+    private fun serializeSubscriptionOffers(offers: List<ProductSubscriptionAndroidOfferDetails>): String {
+        val array = JSONArray()
+        offers.forEach { offer ->
+            val offerJson = JSONObject()
+            offerJson.put("basePlanId", offer.basePlanId)
+            offerJson.put("offerId", offer.offerId)
+            offerJson.put("offerTags", JSONArray(offer.offerTags))
+            offerJson.put("offerToken", offer.offerToken)
+
+            val phasesArray = JSONArray()
+            offer.pricingPhases.pricingPhaseList.forEach { phase ->
+                val phaseJson = JSONObject()
+                phaseJson.put("billingCycleCount", phase.billingCycleCount)
+                phaseJson.put("billingPeriod", phase.billingPeriod)
+                phaseJson.put("formattedPrice", phase.formattedPrice)
+                phaseJson.put("priceAmountMicros", phase.priceAmountMicros)
+                phaseJson.put("priceCurrencyCode", phase.priceCurrencyCode)
+                phaseJson.put("recurrenceMode", phase.recurrenceMode)
+                phasesArray.put(phaseJson)
+            }
+
+            val pricingPhasesJson = JSONObject()
+            pricingPhasesJson.put("pricingPhaseList", phasesArray)
+            offerJson.put("pricingPhases", pricingPhasesJson)
+
+            array.put(offerJson)
+        }
+        return array.toString()
+    }
+
+    private fun convertToNitroProduct(product: ProductCommon): NitroProduct {
+        val subscriptionOffers = when (product) {
+            is ProductSubscriptionAndroid -> product.subscriptionOfferDetailsAndroid.orEmpty()
+            is ProductAndroid -> product.subscriptionOfferDetailsAndroid.orEmpty()
+            else -> emptyList()
+        }
+        val oneTimeOffer = when (product) {
+            is ProductSubscriptionAndroid -> product.oneTimePurchaseOfferDetailsAndroid
+            is ProductAndroid -> product.oneTimePurchaseOfferDetailsAndroid
+            else -> null
+        }
+
+        val subscriptionOffersJson = subscriptionOffers.takeIf { it.isNotEmpty() }?.let { serializeSubscriptionOffers(it) }
+
         var originalPriceAndroid: String? = null
         var originalPriceAmountMicrosAndroid: Double? = null
         var introductoryPriceValueAndroid: Double? = null
@@ -427,33 +634,28 @@ class HybridRnIap : HybridRnIapSpec() {
         var subscriptionPeriodAndroid: String? = null
         var freeTrialPeriodAndroid: String? = null
 
-        if (product.type == OpenIapProduct.ProductType.InApp) {
-            product.oneTimePurchaseOfferDetailsAndroid?.let { otp ->
+        if (product.type == ProductType.InApp) {
+            oneTimeOffer?.let { otp ->
                 originalPriceAndroid = otp.formattedPrice
-                // priceAmountMicros is a string; parse to number if possible
                 originalPriceAmountMicrosAndroid = otp.priceAmountMicros.toDoubleOrNull()
             }
         } else {
-            // SUBS: inspect pricing phases
-            val phases = subOffers?.firstOrNull()?.pricingPhases?.pricingPhaseList
-            if (!phases.isNullOrEmpty()) {
-                // Base recurring phase: recurrenceMode == 2 (INFINITE), else last non-zero priced phase
+            val phases = subscriptionOffers.firstOrNull()?.pricingPhases?.pricingPhaseList.orEmpty()
+            if (phases.isNotEmpty()) {
                 val basePhase = phases.firstOrNull { it.recurrenceMode == 2 } ?: phases.last()
                 originalPriceAndroid = basePhase.formattedPrice
                 originalPriceAmountMicrosAndroid = basePhase.priceAmountMicros.toDoubleOrNull()
                 subscriptionPeriodAndroid = basePhase.billingPeriod
 
-                // Introductory phase: finite cycles (>0) and priced (>0)
                 val introPhase = phases.firstOrNull {
                     it.billingCycleCount > 0 && (it.priceAmountMicros.toLongOrNull() ?: 0L) > 0L
                 }
                 if (introPhase != null) {
-                    introductoryPriceValueAndroid = (introPhase.priceAmountMicros.toDoubleOrNull() ?: 0.0) / 1_000_000.0
+                    introductoryPriceValueAndroid = introPhase.priceAmountMicros.toDoubleOrNull()?.div(1_000_000.0)
                     introductoryPriceCyclesAndroid = introPhase.billingCycleCount.toDouble()
                     introductoryPricePeriodAndroid = introPhase.billingPeriod
                 }
 
-                // Free trial: zero-priced phase
                 val trialPhase = phases.firstOrNull { (it.priceAmountMicros.toLongOrNull() ?: 0L) == 0L }
                 if (trialPhase != null) {
                     freeTrialPeriodAndroid = trialPhase.billingPeriod
@@ -465,13 +667,12 @@ class HybridRnIap : HybridRnIapSpec() {
             id = product.id,
             title = product.title,
             description = product.description,
-            type = product.type.value,
+            type = product.type.rawValue,
             displayName = product.displayName,
             displayPrice = product.displayPrice,
             currency = product.currency,
             price = product.price,
             platform = IapPlatform.ANDROID,
-            // iOS fields (null on Android)
             typeIOS = null,
             isFamilyShareableIOS = null,
             jsonRepresentationIOS = null,
@@ -482,7 +683,6 @@ class HybridRnIap : HybridRnIapSpec() {
             introductoryPricePaymentModeIOS = null,
             introductoryPriceNumberOfPeriodsIOS = null,
             introductoryPriceSubscriptionPeriodIOS = null,
-            // Android derivations
             originalPriceAndroid = originalPriceAndroid,
             originalPriceAmountMicrosAndroid = originalPriceAmountMicrosAndroid,
             introductoryPriceValueAndroid = introductoryPriceValueAndroid,
@@ -490,55 +690,52 @@ class HybridRnIap : HybridRnIapSpec() {
             introductoryPricePeriodAndroid = introductoryPricePeriodAndroid,
             subscriptionPeriodAndroid = subscriptionPeriodAndroid,
             freeTrialPeriodAndroid = freeTrialPeriodAndroid,
-            subscriptionOfferDetailsAndroid = subOffersJson
+            subscriptionOfferDetailsAndroid = subscriptionOffersJson
         )
     }
     
     // Purchase state is provided as enum value by OpenIAP
     
     private fun convertToNitroPurchase(purchase: OpenIapPurchase): NitroPurchase {
-        // Map OpenIAP purchase state back to legacy numeric Android state for compatibility
+        val androidPurchase = purchase as? PurchaseAndroid
         val purchaseStateAndroidNumeric = when (purchase.purchaseState) {
-            OpenIapPurchase.PurchaseState.Purchased -> 1.0
-            OpenIapPurchase.PurchaseState.Pending -> 2.0
-            else -> 0.0 // UNSPECIFIED/UNKNOWN/other
+            dev.hyo.openiap.PurchaseState.Purchased -> 1.0
+            dev.hyo.openiap.PurchaseState.Pending -> 2.0
+            else -> 0.0
         }
         return NitroPurchase(
             id = purchase.id,
             productId = purchase.productId,
-            transactionDate = purchase.transactionDate.toDouble(),
+            transactionDate = purchase.transactionDate,
             purchaseToken = purchase.purchaseToken,
             platform = IapPlatform.ANDROID,
-            // Common fields
             quantity = purchase.quantity.toDouble(),
             purchaseState = mapPurchaseState(purchase.purchaseState),
             isAutoRenewing = purchase.isAutoRenewing,
-            // iOS fields
             quantityIOS = null,
             originalTransactionDateIOS = null,
             originalTransactionIdentifierIOS = null,
             appAccountToken = null,
-            // Android fields
-            purchaseTokenAndroid = purchase.purchaseTokenAndroid,
-            dataAndroid = purchase.dataAndroid,
-            signatureAndroid = purchase.signatureAndroid,
-            autoRenewingAndroid = purchase.autoRenewingAndroid,
+            purchaseTokenAndroid = androidPurchase?.purchaseToken,
+            dataAndroid = androidPurchase?.dataAndroid,
+            signatureAndroid = androidPurchase?.signatureAndroid,
+            autoRenewingAndroid = androidPurchase?.autoRenewingAndroid,
             purchaseStateAndroid = purchaseStateAndroidNumeric,
-            isAcknowledgedAndroid = purchase.isAcknowledgedAndroid,
-            packageNameAndroid = purchase.packageNameAndroid,
-            obfuscatedAccountIdAndroid = purchase.obfuscatedAccountIdAndroid,
-            obfuscatedProfileIdAndroid = purchase.obfuscatedProfileIdAndroid
+            isAcknowledgedAndroid = androidPurchase?.isAcknowledgedAndroid,
+            packageNameAndroid = androidPurchase?.packageNameAndroid,
+            obfuscatedAccountIdAndroid = androidPurchase?.obfuscatedAccountIdAndroid,
+            obfuscatedProfileIdAndroid = androidPurchase?.obfuscatedProfileIdAndroid
         )
     }
 
-    private fun mapPurchaseState(state: OpenIapPurchase.PurchaseState): PurchaseState {
-        return when (state.name.uppercase()) {
-            "PURCHASED" -> PurchaseState.PURCHASED
-            "PENDING" -> PurchaseState.PENDING
-            "DEFERRED" -> PurchaseState.DEFERRED
-            "RESTORED" -> PurchaseState.RESTORED
-            "FAILED", "FAILURE", "CANCELED", "CANCELLED" -> PurchaseState.FAILED
-            else -> PurchaseState.UNKNOWN
+    private fun mapPurchaseState(state: dev.hyo.openiap.PurchaseState): PurchaseState {
+        return when (state) {
+            dev.hyo.openiap.PurchaseState.Purchased -> PurchaseState.PURCHASED
+            dev.hyo.openiap.PurchaseState.Pending -> PurchaseState.PENDING
+            dev.hyo.openiap.PurchaseState.Deferred -> PurchaseState.DEFERRED
+            dev.hyo.openiap.PurchaseState.Restored -> PurchaseState.RESTORED
+            dev.hyo.openiap.PurchaseState.Failed -> PurchaseState.FAILED
+            dev.hyo.openiap.PurchaseState.Unknown -> PurchaseState.UNKNOWN
         }
     }
     
@@ -563,9 +760,12 @@ class HybridRnIap : HybridRnIapSpec() {
         return Promise.async {
             try {
                 initConnection().await()
-                openIap.getStorefront()
+                RnIapLog.payload("getStorefrontAndroid", null)
+                val value = openIap.getStorefront()
+                RnIapLog.result("getStorefrontAndroid", value)
+                value
             } catch (e: Exception) {
-                Log.w(TAG, "getStorefrontAndroid failed", e)
+                RnIapLog.failure("getStorefrontAndroid", e)
                 ""
             }
         }
@@ -580,10 +780,18 @@ class HybridRnIap : HybridRnIapSpec() {
                     skuAndroid = options.skuAndroid,
                     packageNameAndroid = options.packageNameAndroid
                 ).let { openIap.deepLinkToSubscriptions(it) }
+                RnIapLog.result("deepLinkToSubscriptionsAndroid", true)
             } catch (e: Exception) {
-                Log.e(TAG, "deepLinkToSubscriptionsAndroid failed", e)
+                RnIapLog.failure("deepLinkToSubscriptionsAndroid", e)
                 throw e
             }
+        }
+    }
+
+    // iOS-specific method - not supported on Android
+    override fun getPromotedProductIOS(): Promise<NitroProduct?> {
+        return Promise.async {
+            null
         }
     }
 
@@ -631,6 +839,12 @@ class HybridRnIap : HybridRnIapSpec() {
         return Promise.async {
             // Not supported on Android. Return empty list for iOS-only API.
             emptyArray()
+        }
+    }
+
+    override fun deepLinkToSubscriptionsIOS(): Promise<Boolean> {
+        return Promise.async {
+            false
         }
     }
 
@@ -734,7 +948,19 @@ class HybridRnIap : HybridRnIapSpec() {
             throw Exception(toErrorJson(OpenIAPError.NotSupported))
         }
     }
-    
+
+    override fun getReceiptIOS(): Promise<String> {
+        return Promise.async {
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+        }
+    }
+
+    override fun requestReceiptRefreshIOS(): Promise<String> {
+        return Promise.async {
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+        }
+    }
+
     override fun isTransactionVerifiedIOS(sku: String): Promise<Boolean> {
         return Promise.async {
             throw Exception(toErrorJson(OpenIAPError.NotSupported))
@@ -756,9 +982,10 @@ class HybridRnIap : HybridRnIapSpec() {
         debugMessage: String? = null,
         messageOverride: String? = null
     ): String {
-        val code = OpenIAPError.toCode(error)
+        val code = OpenIAPError.Companion.toCode(error)
         val message = messageOverride?.takeIf { it.isNotBlank() }
-            ?: error.message.ifEmpty { OpenIAPError.defaultMessage(code) }
+            ?: error.message?.takeIf { it.isNotBlank() }
+            ?: OpenIAPError.Companion.defaultMessage(code)
         return BillingUtils.createErrorJson(
             code = code,
             message = message,
@@ -774,9 +1001,10 @@ class HybridRnIap : HybridRnIapSpec() {
         debugMessage: String? = null,
         messageOverride: String? = null
     ): NitroPurchaseResult {
-        val code = OpenIAPError.toCode(error)
+        val code = OpenIAPError.Companion.toCode(error)
         val message = messageOverride?.takeIf { it.isNotBlank() }
-            ?: error.message.ifEmpty { OpenIAPError.defaultMessage(code) }
+            ?: error.message?.takeIf { it.isNotBlank() }
+            ?: OpenIAPError.Companion.defaultMessage(code)
         return NitroPurchaseResult(
             responseCode = -1.0,
             debugMessage = debugMessage ?: error.message,

@@ -90,11 +90,11 @@ Before installing React Native IAP, make sure you have:
 
 #### Android Configuration
 
-Add the OpenIAP Google library to your `android/app/build.gradle` dependencies:
+Add the OpenIAP Google library to your `android/app/build.gradle` dependencies. React Native IAP pins the native module versions in `openiap-versions.json` so Android, iOS, and tooling stay in sync:
 
 ```gradle
 dependencies {
-    implementation "io.github.hyochan.openiap:openiap-google:1.1.12"
+    implementation "io.github.hyochan.openiap:openiap-google:1.2.6"
 }
 ```
 
