@@ -351,7 +351,6 @@ class HybridRnIap : HybridRnIapSpec() {
                             "requestPurchase.native",
                             mapOf("id" to p.id, "sku" to p.productId)
                         )
-                        sendPurchaseUpdate(convertToNitroPurchase(p))
                     }.onFailure { RnIapLog.failure("requestPurchase.native", it) }
                 }
 
