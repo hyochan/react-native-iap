@@ -295,7 +295,6 @@ export default function SubscriptionFlow() {
       const errorMessage =
         error instanceof Error ? error.message : 'Subscription failed';
       setPurchaseResult(`❌ Subscription failed: ${errorMessage}`);
-      Alert.alert('Subscription Failed', errorMessage);
     }
   };
 

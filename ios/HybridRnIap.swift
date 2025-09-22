@@ -17,10 +17,12 @@ class HybridRnIap: HybridRnIapSpec {
     private var purchaseUpdatedListeners: [(NitroPurchase) -> Void] = []
     private var purchaseErrorListeners: [(NitroPurchaseResult) -> Void] = []
     private var promotedProductListeners: [(NitroProduct) -> Void] = []
-    // Deduplication for purchase error events
-    private var lastPurchaseErrorCode: String? = nil
-    private var lastPurchaseErrorProductId: String? = nil
+    private var lastPurchaseErrorKey: String? = nil
     private var lastPurchaseErrorTimestamp: TimeInterval = 0
+    private var deliveredPurchaseEventKeys: Set<String> = []
+    private var deliveredPurchaseEventOrder: [String] = []
+    private let purchaseEventDedupLimit = 128
+    private var purchasePayloadById: [String: [String: Any]] = [:]
     
     // MARK: - Initialization
     
@@ -179,12 +181,13 @@ class HybridRnIap: HybridRnIapSpec {
                 }
 
                 let resolvedType = RnIapHelper.parseProductQueryType(self.productTypeBySku[iosRequest.sku])
-                let payload: [String: Any] = [
-                    "type": resolvedType.rawValue,
-                    "requestPurchase": ["ios": iosPayload]
-                ]
+                let purchaseType: ProductQueryType = resolvedType == .all ? .inApp : resolvedType
+                self.productTypeBySku[iosRequest.sku] = purchaseType.rawValue
 
-                let props = try OpenIapSerialization.decode(object: payload, as: RequestPurchaseProps.self)
+                let props = try RnIapHelper.decodeRequestPurchaseProps(
+                    iosPayload: iosPayload,
+                    type: purchaseType
+                )
 
                 RnIapLog.payload(
                     "requestPurchase.native", iosPayload
@@ -197,6 +200,11 @@ class HybridRnIap: HybridRnIapSpec {
                     RnIapLog.result("requestPurchase", nil)
                 }
 
+                return defaultResult
+            } catch let purchaseError as PurchaseError {
+                RnIapLog.failure("requestPurchase", error: purchaseError)
+                // OpenIAP already publishes purchaseError events for PurchaseError instances.
+                // Avoid emitting a duplicate event back to JS; simply return.
                 return defaultResult
             } catch {
                 RnIapLog.failure("requestPurchase", error: error)
@@ -242,10 +250,24 @@ class HybridRnIap: HybridRnIapSpec {
                 RnIapLog.payload(
                     "finishTransaction", ["transactionId": iosParams.transactionId]
                 )
-                let purchasePayload: [String: Any] = ["transactionIdentifier": iosParams.transactionId]
+                var purchasePayload = await MainActor.run { () -> [String: Any]? in
+                    self.purchasePayloadById[iosParams.transactionId]
+                }
+                if purchasePayload == nil {
+                    RnIapLog.warn("Missing cached purchase payload for \(iosParams.transactionId); falling back to identifier-only finish")
+                    purchasePayload = ["transactionIdentifier": iosParams.transactionId]
+                }
+                guard let purchasePayload else {
+                    throw PurchaseError.make(code: .purchaseError, message: "Missing purchase context for \(iosParams.transactionId)")
+                }
+                let sanitizedPayload = RnIapHelper.sanitizeDictionary(purchasePayload)
+                RnIapLog.payload("finishTransaction.nativePayload", sanitizedPayload)
                 let purchaseInput = try OpenIapSerialization.purchaseInput(from: purchasePayload)
                 try await OpenIapModule.shared.finishTransaction(purchase: purchaseInput, isConsumable: nil)
                 RnIapLog.result("finishTransaction", true)
+                await MainActor.run {
+                    self.purchasePayloadById.removeValue(forKey: iosParams.transactionId)
+                }
                 return .first(true)
             } catch {
                 RnIapLog.failure("finishTransaction", error: error)
@@ -441,8 +463,14 @@ class HybridRnIap: HybridRnIapSpec {
                 RnIapLog.payload("currentEntitlementIOS", ["sku": sku])
                 let purchase = try await OpenIapModule.shared.currentEntitlementIOS(sku: sku)
                 if let purchase {
-                    let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(purchase))
+                    let raw = OpenIapSerialization.encode(purchase)
+                    let payload = RnIapHelper.sanitizeDictionary(raw)
                     RnIapLog.result("currentEntitlementIOS", payload)
+                    if let identifier = raw["id"] as? String {
+                        await MainActor.run {
+                            self.purchasePayloadById[identifier] = raw
+                        }
+                    }
                     return RnIapHelper.convertPurchaseDictionary(payload)
                 }
                 RnIapLog.result("currentEntitlementIOS", nil)
@@ -461,8 +489,14 @@ class HybridRnIap: HybridRnIapSpec {
                 RnIapLog.payload("latestTransactionIOS", ["sku": sku])
                 let purchase = try await OpenIapModule.shared.latestTransactionIOS(sku: sku)
                 if let purchase {
-                    let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(purchase))
+                    let raw = OpenIapSerialization.encode(purchase)
+                    let payload = RnIapHelper.sanitizeDictionary(raw)
                     RnIapLog.result("latestTransactionIOS", payload)
+                    if let identifier = raw["id"] as? String {
+                        await MainActor.run {
+                            self.purchasePayloadById[identifier] = raw
+                        }
+                    }
                     return RnIapHelper.convertPurchaseDictionary(payload)
                 }
                 RnIapLog.result("latestTransactionIOS", nil)
@@ -479,7 +513,17 @@ class HybridRnIap: HybridRnIapSpec {
             do {
                 RnIapLog.payload("getPendingTransactionsIOS", nil)
                 let pending = try await OpenIapModule.shared.getPendingTransactionsIOS()
-                let unionPurchases = pending.map { OpenIAP.Purchase.purchaseIos($0) }
+                var unionPurchases: [OpenIAP.Purchase] = []
+                for purchase in pending {
+                    let union = OpenIAP.Purchase.purchaseIos(purchase)
+                    unionPurchases.append(union)
+                    let raw = OpenIapSerialization.purchase(union)
+                    if let identifier = raw["id"] as? String {
+                        await MainActor.run {
+                            self.purchasePayloadById[identifier] = raw
+                        }
+                    }
+                }
                 let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.purchases(unionPurchases))
                 RnIapLog.result("getPendingTransactionsIOS", payloads)
                 return payloads.map { RnIapHelper.convertPurchaseDictionary($0) }
@@ -557,11 +601,12 @@ class HybridRnIap: HybridRnIapSpec {
             try self.ensureConnection()
             do {
                 RnIapLog.payload("getReceiptDataIOS", nil)
-                if let receipt = try await OpenIapModule.shared.getReceiptDataIOS() {
-                    RnIapLog.result("getReceiptDataIOS", "<receipt>")
-                    return receipt
-                }
-                throw PurchaseError.make(code: .receiptFailed)
+                let receipt = try await RnIapHelper.loadReceiptData(refresh: false)
+                RnIapLog.result("getReceiptDataIOS", "<receipt>")
+                return receipt
+            } catch let purchaseError as PurchaseError {
+                RnIapLog.failure("getReceiptDataIOS", error: purchaseError)
+                throw purchaseError
             } catch {
                 RnIapLog.failure("getReceiptDataIOS", error: error)
                 throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
@@ -574,11 +619,12 @@ class HybridRnIap: HybridRnIapSpec {
             try self.ensureConnection()
             do {
                 RnIapLog.payload("getReceiptIOS", nil)
-                if let receipt = try await OpenIapModule.shared.getReceiptDataIOS() {
-                    RnIapLog.result("getReceiptIOS", "<receipt>")
-                    return receipt
-                }
-                throw PurchaseError.make(code: .receiptFailed)
+                let receipt = try await RnIapHelper.loadReceiptData(refresh: true)
+                RnIapLog.result("getReceiptIOS", "<receipt>")
+                return receipt
+            } catch let purchaseError as PurchaseError {
+                RnIapLog.failure("getReceiptIOS", error: purchaseError)
+                throw purchaseError
             } catch {
                 RnIapLog.failure("getReceiptIOS", error: error)
                 throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
@@ -591,11 +637,12 @@ class HybridRnIap: HybridRnIapSpec {
             try self.ensureConnection()
             do {
                 RnIapLog.payload("requestReceiptRefreshIOS", nil)
-                if let receipt = try await OpenIapModule.shared.getReceiptDataIOS() {
-                    RnIapLog.result("requestReceiptRefreshIOS", "<receipt>")
-                    return receipt
-                }
-                throw PurchaseError.make(code: .receiptFailed)
+                let receipt = try await RnIapHelper.loadReceiptData(refresh: true)
+                RnIapLog.result("requestReceiptRefreshIOS", "<receipt>")
+                return receipt
+            } catch let purchaseError as PurchaseError {
+                RnIapLog.failure("requestReceiptRefreshIOS", error: purchaseError)
+                throw purchaseError
             } catch {
                 RnIapLog.failure("requestReceiptRefreshIOS", error: error)
                 throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
@@ -693,8 +740,12 @@ class HybridRnIap: HybridRnIapSpec {
             purchaseUpdatedSub = OpenIapModule.shared.purchaseUpdatedListener { [weak self] openIapPurchase in
                 guard let self else { return }
                 Task { @MainActor in
-                    let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.purchase(openIapPurchase))
+                    let rawPayload = OpenIapSerialization.purchase(openIapPurchase)
+                    let payload = RnIapHelper.sanitizeDictionary(rawPayload)
                     RnIapLog.result("purchaseUpdatedListener", payload)
+                    if let identifier = rawPayload["id"] as? String {
+                        self.purchasePayloadById[identifier] = rawPayload
+                    }
                     let nitro = RnIapHelper.convertPurchaseDictionary(payload)
                     self.sendPurchaseUpdate(nitro)
                 }
@@ -762,16 +813,47 @@ class HybridRnIap: HybridRnIapSpec {
     }
     
     private func sendPurchaseUpdate(_ purchase: NitroPurchase) {
+        let keyComponents = [
+            purchase.id,
+            purchase.productId,
+            String(purchase.transactionDate),
+            purchase.originalTransactionIdentifierIOS ?? "",
+            purchase.purchaseToken ?? ""
+        ]
+        let eventKey = keyComponents.joined(separator: "#")
+
+        if deliveredPurchaseEventKeys.contains(eventKey) {
+            RnIapLog.warn("Duplicate purchase update skipped for \(purchase.productId)")
+            return
+        }
+
+        deliveredPurchaseEventKeys.insert(eventKey)
+        deliveredPurchaseEventOrder.append(eventKey)
+        if deliveredPurchaseEventOrder.count > purchaseEventDedupLimit, let removed = deliveredPurchaseEventOrder.first {
+            deliveredPurchaseEventOrder.removeFirst()
+            deliveredPurchaseEventKeys.remove(removed)
+        }
+
         for listener in purchaseUpdatedListeners {
             listener(purchase)
         }
     }
     
     private func sendPurchaseError(_ error: NitroPurchaseResult, productId: String? = nil) {
-        // Update last error for deduplication using the associated product SKU (not token)
-        lastPurchaseErrorCode = error.code
-        lastPurchaseErrorProductId = productId
-        lastPurchaseErrorTimestamp = Date().timeIntervalSince1970
+        let now = Date().timeIntervalSince1970
+        let dedupIdentifier = productId
+            ?? (error.purchaseToken?.isEmpty == false ? error.purchaseToken : nil)
+            ?? (error.message.isEmpty ? nil : error.message)
+        let currentKey = RnIapHelper.makeErrorDedupKey(code: error.code, productId: dedupIdentifier)
+        // Dedup only when the exact same error is emitted almost simultaneously.
+        let withinWindow = (now - lastPurchaseErrorTimestamp) < 0.15
+        if currentKey == lastPurchaseErrorKey && withinWindow {
+            return
+        }
+
+        lastPurchaseErrorKey = currentKey
+        lastPurchaseErrorTimestamp = now
+
         // Ensure we never leak SKU via purchaseToken
         var sanitized = error
         if let pid = productId, sanitized.purchaseToken == pid {
@@ -783,13 +865,6 @@ class HybridRnIap: HybridRnIapSpec {
     }
 
     private func sendPurchaseErrorDedup(_ error: NitroPurchaseResult, productId: String? = nil) {
-        let now = Date().timeIntervalSince1970
-        let sameCode = (error.code == lastPurchaseErrorCode)
-        let sameProduct = (productId == lastPurchaseErrorProductId)
-        let withinWindow = (now - lastPurchaseErrorTimestamp) < 0.3
-        if sameCode && sameProduct && withinWindow {
-            return
-        }
         sendPurchaseError(error, productId: productId)
     }
     
@@ -826,6 +901,11 @@ class HybridRnIap: HybridRnIapSpec {
         purchaseUpdatedListeners.removeAll()
         purchaseErrorListeners.removeAll()
         promotedProductListeners.removeAll()
+        deliveredPurchaseEventKeys.removeAll()
+        deliveredPurchaseEventOrder.removeAll()
+        purchasePayloadById.removeAll()
+        lastPurchaseErrorKey = nil
+        lastPurchaseErrorTimestamp = 0
     }
 
     // MARK: - Android-only stubs (required for protocol conformance)

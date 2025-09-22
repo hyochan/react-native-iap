@@ -137,6 +137,48 @@ enum RnIapHelper {
         )
     }
 
+    // MARK: - Request helpers
+
+    static func decodeRequestPurchaseProps(
+        iosPayload: [String: Any],
+        type: ProductQueryType
+    ) throws -> RequestPurchaseProps {
+        let normalizedType: ProductQueryType = type == .all ? .inApp : type
+        var normalized: [String: Any] = ["type": normalizedType.rawValue]
+
+        switch normalizedType {
+        case .subs:
+            normalized["requestSubscription"] = ["ios": iosPayload]
+        case .inApp, .all:
+            normalized["requestPurchase"] = ["ios": iosPayload]
+        }
+
+        return try OpenIapSerialization.decode(object: normalized, as: RequestPurchaseProps.self)
+    }
+
+    // MARK: - Shared helpers
+
+    static func makeErrorDedupKey(code: String, productId: String?) -> String {
+        "\(code)#\(productId ?? "-")"
+    }
+
+    static func loadReceiptData(refresh: Bool) async throws -> String {
+        if refresh {
+            _ = try await OpenIapModule.shared.syncIOS()
+        }
+
+        do {
+            guard let receipt = try await OpenIapModule.shared.getReceiptDataIOS(), !receipt.isEmpty else {
+                throw PurchaseError.make(code: .receiptFailed)
+            }
+            return receipt
+        } catch let error as PurchaseError {
+            throw error
+        } catch {
+            throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
+        }
+    }
+
     // MARK: - Error helpers
 
     static func makePurchaseErrorResult(

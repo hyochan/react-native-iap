@@ -240,8 +240,6 @@ const PurchaseFlow: React.FC = () => {
       const errorMessage =
         error instanceof Error ? error.message : 'Purchase request failed';
       setPurchaseResult(`❌ Purchase request failed: ${errorMessage}`);
-
-      Alert.alert('Request Failed', errorMessage);
     }
   };
 
