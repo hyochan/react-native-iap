@@ -120,10 +120,12 @@ class HybridRnIap : HybridRnIapSpec() {
             // We created it above; reuse the shared instance
             val deferred = initDeferred!!
             try {
-                val ok = runCatching {
+                val ok = try {
                     RnIapLog.payload("initConnection.native", null)
-                    openIap.initConnection()
-                }.getOrElse { err ->
+                    withContext(Dispatchers.Main) {
+                        openIap.initConnection()
+                    }
+                } catch (err: Throwable) {
                     val error = OpenIAPError.InitConnection()
                     RnIapLog.failure("initConnection.native", err)
                     throw Exception(
@@ -343,7 +345,9 @@ class HybridRnIap : HybridRnIapSpec() {
                     )
                 )
 
-                val result = openIap.requestPurchase(requestProps)
+                val result = withContext(Dispatchers.Main) {
+                    openIap.requestPurchase(requestProps)
+                }
                 val purchases = result.purchasesOrEmpty()
                 purchases.forEach { p ->
                     runCatching {

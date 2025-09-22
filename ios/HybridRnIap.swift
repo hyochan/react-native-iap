@@ -130,7 +130,9 @@ class HybridRnIap: HybridRnIapSpec {
                 products.append(product)
                 seenIds.insert(product.id)
             }
-            products.forEach { self.productTypeBySku[$0.id] = $0.type.lowercased() }
+            await MainActor.run {
+                products.forEach { self.productTypeBySku[$0.id] = $0.type.lowercased() }
+            }
             RnIapLog.result(
                 "fetchProducts", products.map { ["id": $0.id, "type": $0.type] }
             )
@@ -180,9 +182,12 @@ class HybridRnIap: HybridRnIapSpec {
                     iosPayload["withOffer"] = withOffer
                 }
 
-                let resolvedType = RnIapHelper.parseProductQueryType(self.productTypeBySku[iosRequest.sku])
+                let cachedType = await MainActor.run { self.productTypeBySku[iosRequest.sku] }
+                let resolvedType = RnIapHelper.parseProductQueryType(cachedType)
                 let purchaseType: ProductQueryType = resolvedType == .all ? .inApp : resolvedType
-                self.productTypeBySku[iosRequest.sku] = purchaseType.rawValue
+                await MainActor.run {
+                    self.productTypeBySku[iosRequest.sku] = purchaseType.rawValue
+                }
 
                 let props = try RnIapHelper.decodeRequestPurchaseProps(
                     iosPayload: iosPayload,
@@ -283,7 +288,13 @@ class HybridRnIap: HybridRnIapSpec {
                 RnIapLog.payload("validateReceiptIOS", ["sku": params.sku])
                 let props = try OpenIapSerialization.receiptValidationProps(from: ["sku": params.sku])
                 let result = try await OpenIapModule.shared.validateReceiptIOS(props)
-                let encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
+                var encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
+                if encoded["receiptData"] != nil {
+                    encoded["receiptData"] = "<receipt>"
+                }
+                if encoded["jwsRepresentation"] != nil {
+                    encoded["jwsRepresentation"] = "<jws>"
+                }
                 RnIapLog.result("validateReceiptIOS", encoded)
                 var latest: NitroPurchase? = nil
                 if let transaction = result.latestTransaction {
@@ -666,7 +677,8 @@ class HybridRnIap: HybridRnIapSpec {
             do {
                 RnIapLog.payload("getTransactionJwsIOS", ["sku": sku])
                 let jws = try await OpenIapModule.shared.getTransactionJwsIOS(sku: sku)
-                RnIapLog.result("getTransactionJwsIOS", jws)
+                let maskedJws: Any? = (jws == nil) ? nil : "<jws>"
+                RnIapLog.result("getTransactionJwsIOS", maskedJws)
                 return jws
             } catch {
                 RnIapLog.failure("getTransactionJwsIOS", error: error)
