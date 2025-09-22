@@ -672,18 +672,6 @@ function SubscriptionFlowContainer() {
     }
   }, [connected, fetchProducts, getAvailablePurchases]);
 
-  useEffect(() => {
-    if (connected && !statusAutoCheckedRef.current) {
-      const timer = setTimeout(() => {
-        statusAutoCheckedRef.current = true;
-        void handleRefreshStatus();
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [connected]);
-
   const handleRefreshStatus = useCallback(async () => {
     if (!connected || isCheckingStatus) return;
 
@@ -696,6 +684,18 @@ function SubscriptionFlowContainer() {
       setIsCheckingStatus(false);
     }
   }, [connected, getActiveSubscriptions, isCheckingStatus]);
+
+  useEffect(() => {
+    if (connected && !statusAutoCheckedRef.current) {
+      const timer = setTimeout(() => {
+        statusAutoCheckedRef.current = true;
+        void handleRefreshStatus();
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [connected, handleRefreshStatus]);
 
   const handleSubscription = useCallback(
     (itemId: string) => {
