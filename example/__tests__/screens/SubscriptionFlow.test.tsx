@@ -5,8 +5,6 @@ import * as RNIap from 'react-native-iap';
 import {SUBSCRIPTION_PRODUCT_IDS} from '../../src/utils/constants';
 
 const requestPurchaseMock = RNIap.requestPurchase as jest.Mock;
-const showManageSubscriptionsMock =
-  RNIap.showManageSubscriptionsIOS as jest.Mock;
 const deepLinkToSubscriptionsMock = RNIap.deepLinkToSubscriptions as jest.Mock;
 
 const sampleSubscription = {
@@ -132,14 +130,11 @@ describe('SubscriptionFlow Screen', () => {
   });
 
   it('opens manage subscriptions when Manage pressed', async () => {
-    showManageSubscriptionsMock.mockResolvedValueOnce(false);
-
     const {getByText} = render(<SubscriptionFlow />);
 
     fireEvent.press(getByText('Manage'));
 
     await waitFor(() => {
-      expect(showManageSubscriptionsMock).toHaveBeenCalled();
       expect(deepLinkToSubscriptionsMock).toHaveBeenCalled();
     });
   });

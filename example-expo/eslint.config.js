@@ -18,4 +18,10 @@ module.exports = defineConfig([
       ],
     },
   },
+  {
+    files: ['app/*.tsx'],
+    rules: {
+      'react/no-unescaped-entities': 'off',
+    },
+  },
 ]);

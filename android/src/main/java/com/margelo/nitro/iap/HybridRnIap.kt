@@ -521,7 +521,8 @@ class HybridRnIap : HybridRnIapSpec() {
 
     override fun removePromotedProductListenerIOS(listener: (product: NitroProduct) -> Unit) {
         // Promoted products are iOS-only, but we implement the interface for consistency
-        promotedProductListenersIOS.clear()
+        val removed = promotedProductListenersIOS.remove(listener)
+        if (!removed) RnIapLog.warn("removePromotedProductListenerIOS: listener not found")
         RnIapLog.warn("removePromotedProductListenerIOS called on Android - promoted products are iOS-only")
     }
     

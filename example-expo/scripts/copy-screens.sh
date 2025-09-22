@@ -14,19 +14,25 @@ if [ ! -d "../example/screens" ]; then
     exit 1
 fi
 
-# Function to add generation comment to copied file
+# Function to add generation comment to copied file and update imports
 add_generation_comment() {
     local source_file=$1
     local target_file=$2
     local source_name=$(basename "$source_file")
     
-    # Create temp file with comment and original content
+    # Create temp file with comment and modified content
     {
         echo "// Generated from example/screens/$source_name"
         echo "// This file is automatically copied during postinstall"
         echo "// Do not edit directly - modify the source file instead"
         echo ""
-        cat "$source_file"
+        # Read the source file and replace imports
+        sed \
+            -e "s|from '\.\./src/components/Loading'|from '../components/Loading'|g" \
+            -e "s|from '\.\./src/utils/constants'|from '../constants/products'|g" \
+            -e "s|from '\.\./src/components/PurchaseDetails'|from '../components/PurchaseDetails'|g" \
+            -e "s|from '\.\./src/components/PurchaseSummaryRow'|from '../components/PurchaseSummaryRow'|g" \
+            "$source_file"
     } > "$target_file"
 }
 

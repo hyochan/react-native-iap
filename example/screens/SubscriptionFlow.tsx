@@ -14,17 +14,14 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import {
   requestPurchase,
   useIAP,
-  showManageSubscriptionsIOS,
   deepLinkToSubscriptions,
+  type ActiveSubscription,
+  type ProductSubscription,
+  type Purchase,
+  type PurchaseError,
 } from 'react-native-iap';
 import Loading from '../src/components/Loading';
 import {SUBSCRIPTION_PRODUCT_IDS} from '../src/utils/constants';
-import type {
-  ActiveSubscription,
-  ProductSubscription,
-  Purchase,
-} from 'react-native-iap';
-import type {PurchaseError} from 'react-native-iap';
 import PurchaseDetails from '../src/components/PurchaseDetails';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
 
@@ -738,10 +735,7 @@ function SubscriptionFlowContainer() {
 
   const handleManageSubscriptions = useCallback(async () => {
     try {
-      const handled = await showManageSubscriptionsIOS();
-      if (!handled) {
-        await deepLinkToSubscriptions();
-      }
+      await deepLinkToSubscriptions();
     } catch (error) {
       console.warn('Failed to open subscription management:', error);
       Alert.alert(
