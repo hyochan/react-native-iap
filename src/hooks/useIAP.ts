@@ -1,13 +1,11 @@
 // External dependencies
 import {useCallback, useEffect, useState, useRef} from 'react';
-import {Platform} from 'react-native';
 
 // Internal modules
 import {
   initConnection,
   purchaseErrorListener,
   purchaseUpdatedListener,
-  promotedProductListenerIOS,
   getAvailablePurchases,
   finishTransaction as finishTransactionInternal,
   requestPurchase as requestPurchaseInternal,
@@ -45,8 +43,6 @@ interface EventSubscription {
 type UseIap = {
   connected: boolean;
   products: Product[];
-  promotedProductsIOS: Purchase[];
-  promotedProductIdIOS?: string;
   subscriptions: ProductSubscription[];
   availablePurchases: Purchase[];
   promotedProductIOS?: Product;
@@ -57,16 +53,6 @@ type UseIap = {
     skus: string[];
     type?: ProductQueryType | null;
   }) => Promise<void>;
-  /**
-   * @deprecated Use fetchProducts({ skus, type: 'in-app' }) instead. This method will be removed in version 3.0.0.
-   * Note: This method internally uses fetchProducts, so no deprecation warning is shown.
-   */
-  getProducts: (skus: string[]) => Promise<void>;
-  /**
-   * @deprecated Use fetchProducts({ skus, type: 'subs' }) instead. This method will be removed in version 3.0.0.
-   * Note: This method internally uses fetchProducts, so no deprecation warning is shown.
-   */
-  getSubscriptions: (skus: string[]) => Promise<void>;
   requestPurchase: (
     params: RequestPurchaseProps,
   ) => Promise<RequestPurchaseResult | null>;
@@ -103,11 +89,9 @@ export interface UseIapOptions {
 export function useIAP(options?: UseIapOptions): UseIap {
   const [connected, setConnected] = useState<boolean>(false);
   const [products, setProducts] = useState<Product[]>([]);
-  const [promotedProductsIOS] = useState<Purchase[]>([]);
   const [subscriptions, setSubscriptions] = useState<ProductSubscription[]>([]);
   const [availablePurchases, setAvailablePurchases] = useState<Purchase[]>([]);
   const [promotedProductIOS, setPromotedProductIOS] = useState<Product>();
-  const [promotedProductIdIOS] = useState<string>();
   const [activeSubscriptions, setActiveSubscriptions] = useState<
     ActiveSubscription[]
   >([]);
@@ -147,7 +131,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
   const subscriptionsRef = useRef<{
     purchaseUpdate?: EventSubscription;
     purchaseError?: EventSubscription;
-    promotedProductsIOS?: EventSubscription;
     promotedProductIOS?: EventSubscription;
   }>({});
 
@@ -156,54 +139,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
   useEffect(() => {
     subscriptionsRefState.current = subscriptions;
   }, [subscriptions]);
-
-  const getProductsInternal = useCallback(
-    async (skus: string[]): Promise<void> => {
-      try {
-        const result = await fetchProducts({
-          skus,
-          type: 'in-app',
-        });
-        const newProducts = (result ?? []).filter(
-          (item): item is Product => item.type === 'in-app',
-        );
-        setProducts((prevProducts: Product[]) =>
-          mergeWithDuplicateCheck(
-            prevProducts,
-            newProducts,
-            (product: Product) => product.id,
-          ),
-        );
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      }
-    },
-    [mergeWithDuplicateCheck],
-  );
-
-  const getSubscriptionsInternal = useCallback(
-    async (skus: string[]): Promise<void> => {
-      try {
-        const result = await fetchProducts({
-          skus,
-          type: 'subs',
-        });
-        const newSubscriptions = (result ?? []).filter(
-          (item): item is ProductSubscription => item.type === 'subs',
-        );
-        setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
-          mergeWithDuplicateCheck(
-            prevSubscriptions,
-            newSubscriptions,
-            (subscription: ProductSubscription) => subscription.id,
-          ),
-        );
-      } catch (error) {
-        console.error('Error fetching subscriptions:', error);
-      }
-    },
-    [mergeWithDuplicateCheck],
-  );
 
   const fetchProductsInternal = useCallback(
     async (params: {
@@ -394,25 +329,12 @@ export function useIAP(options?: UseIapOptions): UseIap {
       }
     });
 
-    if (Platform.OS === 'ios') {
-      subscriptionsRef.current.promotedProductsIOS = promotedProductListenerIOS(
-        (product: Product) => {
-          setPromotedProductIOS(product);
-          if (optionsRef.current?.onPromotedProductIOS) {
-            optionsRef.current.onPromotedProductIOS(product);
-          }
-        },
-      );
-    }
-
     const result = await initConnection();
     setConnected(result);
     if (!result) {
       // Clean up some listeners but leave purchaseError for potential retries
       subscriptionsRef.current.purchaseUpdate?.remove();
-      subscriptionsRef.current.promotedProductsIOS?.remove();
       subscriptionsRef.current.purchaseUpdate = undefined;
-      subscriptionsRef.current.promotedProductsIOS = undefined;
       return;
     }
   }, [getActiveSubscriptionsInternal, getAvailablePurchasesInternal]);
@@ -424,7 +346,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
     return () => {
       currentSubscriptions.purchaseUpdate?.remove();
       currentSubscriptions.purchaseError?.remove();
-      currentSubscriptions.promotedProductsIOS?.remove();
       currentSubscriptions.promotedProductIOS?.remove();
       // Keep connection alive across screens to avoid race conditions
       setConnected(false);
@@ -434,8 +355,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
   return {
     connected,
     products,
-    promotedProductsIOS,
-    promotedProductIdIOS,
     subscriptions,
     finishTransaction,
     availablePurchases,
@@ -453,8 +372,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
         console.warn('Failed to restore purchases:', e);
       }
     },
-    getProducts: getProductsInternal,
-    getSubscriptions: getSubscriptionsInternal,
     getPromotedProductIOS,
     requestPurchaseOnPromotedProductIOS,
     getActiveSubscriptions: getActiveSubscriptionsInternal,
