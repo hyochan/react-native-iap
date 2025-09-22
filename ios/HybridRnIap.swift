@@ -38,11 +38,11 @@ class HybridRnIap: HybridRnIapSpec {
     
     func initConnection() throws -> Promise<Bool> {
         return Promise.async {
-            RnIapLog.payload("initConnection", payload: nil)
+            RnIapLog.payload("initConnection", nil)
             self.attachListenersIfNeeded()
 
             if self.isInitialized || self.isInitializing {
-                RnIapLog.result("initConnection", value: true)
+                RnIapLog.result("initConnection", true)
                 return true
             }
 
@@ -50,7 +50,7 @@ class HybridRnIap: HybridRnIapSpec {
 
             do {
                 let ok = try await OpenIapModule.shared.initConnection()
-                RnIapLog.result("initConnection", value: ok)
+                RnIapLog.result("initConnection", ok)
                 self.isInitialized = ok
                 self.isInitializing = false
                 return ok
@@ -78,7 +78,7 @@ class HybridRnIap: HybridRnIapSpec {
     func fetchProducts(skus: [String], type: String) throws -> Promise<[NitroProduct]> {
         return Promise.async {
             try self.ensureConnection()
-            RnIapLog.payload("fetchProducts", payload: [
+            RnIapLog.payload("fetchProducts", [
                 "skus": skus,
                 "type": type
             ])
@@ -102,15 +102,14 @@ class HybridRnIap: HybridRnIapSpec {
             for queryType in queryTypes {
                 let request = try OpenIapSerialization.productRequest(skus: skus, type: queryType)
                 RnIapLog.payload(
-                    "fetchProducts.native",
-                    payload: [
+                    "fetchProducts.native", [
                         "skus": skus,
                         "type": queryType.rawValue
                     ]
                 )
                 let result = try await OpenIapModule.shared.fetchProducts(request)
                 let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.products(result))
-                RnIapLog.result("fetchProducts.native", value: payloads)
+                RnIapLog.result("fetchProducts.native", payloads)
                 for payload in payloads {
                     let nitroProduct = RnIapHelper.convertProductDictionary(payload)
                     productsById[nitroProduct.id] = nitroProduct
@@ -131,8 +130,7 @@ class HybridRnIap: HybridRnIapSpec {
             }
             products.forEach { self.productTypeBySku[$0.id] = $0.type.lowercased() }
             RnIapLog.result(
-                "fetchProducts",
-                value: products.map { ["id": $0.id, "type": $0.type] }
+                "fetchProducts", products.map { ["id": $0.id, "type": $0.type] }
             )
             return products
         }
@@ -142,8 +140,7 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             let defaultResult: RequestPurchaseResult? = .third([])
             RnIapLog.payload(
-                "requestPurchase",
-                payload: [
+                "requestPurchase", [
                     "hasIOS": request.ios != nil,
                     "hasAndroid": request.android != nil
                 ]
@@ -190,15 +187,14 @@ class HybridRnIap: HybridRnIapSpec {
                 let props = try OpenIapSerialization.decode(object: payload, as: RequestPurchaseProps.self)
 
                 RnIapLog.payload(
-                    "requestPurchase.native",
-                    payload: iosPayload
+                    "requestPurchase.native", iosPayload
                 )
 
                 let result = try await OpenIapModule.shared.requestPurchase(props)
                 if result != nil {
-                    RnIapLog.result("requestPurchase", value: "delegated to OpenIAP")
+                    RnIapLog.result("requestPurchase", "delegated to OpenIAP")
                 } else {
-                    RnIapLog.result("requestPurchase", value: nil)
+                    RnIapLog.result("requestPurchase", nil)
                 }
 
                 return defaultResult
@@ -226,10 +222,10 @@ class HybridRnIap: HybridRnIapSpec {
                     "onlyIncludeActiveItemsIOS": onlyActive
                 ]
                 let purchaseOptions = try OpenIapSerialization.purchaseOptions(from: optionsDictionary)
-                RnIapLog.payload("getAvailablePurchases", payload: optionsDictionary)
+                RnIapLog.payload("getAvailablePurchases", optionsDictionary)
                 let purchases = try await OpenIapModule.shared.getAvailablePurchases(purchaseOptions)
                 let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.purchases(purchases))
-                RnIapLog.result("getAvailablePurchases", value: payloads)
+                RnIapLog.result("getAvailablePurchases", payloads)
                 return payloads.map { RnIapHelper.convertPurchaseDictionary($0) }
             } catch {
                 RnIapLog.failure("getAvailablePurchases", error: error)
@@ -244,13 +240,12 @@ class HybridRnIap: HybridRnIapSpec {
             try self.ensureConnection()
             do {
                 RnIapLog.payload(
-                    "finishTransaction",
-                    payload: ["transactionId": iosParams.transactionId]
+                    "finishTransaction", ["transactionId": iosParams.transactionId]
                 )
                 let purchasePayload: [String: Any] = ["transactionIdentifier": iosParams.transactionId]
                 let purchaseInput = try OpenIapSerialization.purchaseInput(from: purchasePayload)
                 try await OpenIapModule.shared.finishTransaction(purchase: purchaseInput, isConsumable: nil)
-                RnIapLog.result("finishTransaction", value: true)
+                RnIapLog.result("finishTransaction", true)
                 return .first(true)
             } catch {
                 RnIapLog.failure("finishTransaction", error: error)
@@ -263,11 +258,11 @@ class HybridRnIap: HybridRnIapSpec {
     func validateReceipt(params: NitroReceiptValidationParams) throws -> Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
         return Promise.async {
             do {
-                RnIapLog.payload("validateReceiptIOS", payload: ["sku": params.sku])
+                RnIapLog.payload("validateReceiptIOS", ["sku": params.sku])
                 let props = try OpenIapSerialization.receiptValidationProps(from: ["sku": params.sku])
                 let result = try await OpenIapModule.shared.validateReceiptIOS(props)
                 let encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
-                RnIapLog.result("validateReceiptIOS", value: encoded)
+                RnIapLog.result("validateReceiptIOS", encoded)
                 var latest: NitroPurchase? = nil
                 if let transaction = result.latestTransaction {
                     let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.purchase(transaction))
@@ -292,9 +287,9 @@ class HybridRnIap: HybridRnIapSpec {
     func getStorefrontIOS() throws -> Promise<String> {
         return Promise.async {
             do {
-                RnIapLog.payload("getStorefrontIOS", payload: nil)
+                RnIapLog.payload("getStorefrontIOS", nil)
                 let storefront = try await OpenIapModule.shared.getStorefrontIOS()
-                RnIapLog.result("getStorefrontIOS", value: storefront)
+                RnIapLog.result("getStorefrontIOS", storefront)
                 return storefront
             } catch {
                 RnIapLog.failure("getStorefrontIOS", error: error)
@@ -306,7 +301,7 @@ class HybridRnIap: HybridRnIapSpec {
     func getAppTransactionIOS() throws -> Promise<String?> {
         return Promise.async {
             do {
-                RnIapLog.payload("getAppTransactionIOS", payload: nil)
+                RnIapLog.payload("getAppTransactionIOS", nil)
                 if #available(iOS 16.0, *) {
                     if let appTx = try await OpenIapModule.shared.getAppTransactionIOS() {
                         var result: [String: Any?] = [
@@ -326,13 +321,13 @@ class HybridRnIap: HybridRnIapSpec {
                         result["originalPlatform"] = appTx.originalPlatform
                         let jsonData = try JSONSerialization.data(withJSONObject: result, options: [])
                         let string = String(data: jsonData, encoding: .utf8)
-                        RnIapLog.result("getAppTransactionIOS", value: "<appTransaction>")
+                        RnIapLog.result("getAppTransactionIOS", "<appTransaction>")
                         return string
                     }
-                    RnIapLog.result("getAppTransactionIOS", value: nil)
+                    RnIapLog.result("getAppTransactionIOS", nil)
                     return nil
                 } else {
-                    RnIapLog.result("getAppTransactionIOS", value: nil)
+                    RnIapLog.result("getAppTransactionIOS", nil)
                     return nil
                 }
             } catch {
@@ -346,13 +341,13 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                RnIapLog.payload("getPromotedProductIOS", payload: nil)
+                RnIapLog.payload("getPromotedProductIOS", nil)
                 guard let product = try await OpenIapModule.shared.getPromotedProductIOS() else {
-                    RnIapLog.result("getPromotedProductIOS", value: nil)
+                    RnIapLog.result("getPromotedProductIOS", nil)
                     return nil
                 }
                 let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(product))
-                RnIapLog.result("getPromotedProductIOS", value: payload)
+                RnIapLog.result("getPromotedProductIOS", payload)
                 return RnIapHelper.convertProductDictionary(payload)
             } catch {
                 RnIapLog.failure("getPromotedProductIOS", error: error)
@@ -368,9 +363,9 @@ class HybridRnIap: HybridRnIapSpec {
     func buyPromotedProductIOS() throws -> Promise<Void> {
         return Promise.async {
             do {
-                RnIapLog.payload("buyPromotedProductIOS", payload: nil)
+                RnIapLog.payload("buyPromotedProductIOS", nil)
                 let ok = try await OpenIapModule.shared.requestPurchaseOnPromotedProductIOS()
-                RnIapLog.result("buyPromotedProductIOS", value: ok)
+                RnIapLog.result("buyPromotedProductIOS", ok)
             } catch {
                 // Event-only: OpenIAP will emit purchaseError for this flow. Avoid Promise rejection.
                 RnIapLog.failure("buyPromotedProductIOS", error: error)
@@ -381,9 +376,9 @@ class HybridRnIap: HybridRnIapSpec {
     func presentCodeRedemptionSheetIOS() throws -> Promise<Bool> {
         return Promise.async {
             do {
-                RnIapLog.payload("presentCodeRedemptionSheetIOS", payload: nil)
+                RnIapLog.payload("presentCodeRedemptionSheetIOS", nil)
                 let ok = try await OpenIapModule.shared.presentCodeRedemptionSheetIOS()
-                RnIapLog.result("presentCodeRedemptionSheetIOS", value: ok)
+                RnIapLog.result("presentCodeRedemptionSheetIOS", ok)
                 return ok
             } catch {
                 // Fallback with explicit error for simulator or unsupported cases
@@ -396,9 +391,9 @@ class HybridRnIap: HybridRnIapSpec {
     func clearTransactionIOS() throws -> Promise<Void> {
         return Promise.async {
             do {
-                RnIapLog.payload("clearTransactionIOS", payload: nil)
+                RnIapLog.payload("clearTransactionIOS", nil)
                 let ok = try await OpenIapModule.shared.clearTransactionIOS()
-                RnIapLog.result("clearTransactionIOS", value: ok)
+                RnIapLog.result("clearTransactionIOS", ok)
             } catch {
                 // ignore
                 RnIapLog.failure("clearTransactionIOS", error: error)
@@ -412,10 +407,10 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                RnIapLog.payload("subscriptionStatusIOS", payload: ["sku": sku])
+                RnIapLog.payload("subscriptionStatusIOS", ["sku": sku])
                 let statuses = try await OpenIapModule.shared.subscriptionStatusIOS(sku: sku)
                 let payloads = statuses.map { RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode($0)) }
-                RnIapLog.result("subscriptionStatusIOS", value: payloads)
+                RnIapLog.result("subscriptionStatusIOS", payloads)
                 return payloads.map { payload in
                     let stateValue: Double
                     if let numeric = RnIapHelper.doubleValue(payload["state"]) {
@@ -443,14 +438,14 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                RnIapLog.payload("currentEntitlementIOS", payload: ["sku": sku])
+                RnIapLog.payload("currentEntitlementIOS", ["sku": sku])
                 let purchase = try await OpenIapModule.shared.currentEntitlementIOS(sku: sku)
                 if let purchase {
                     let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(purchase))
-                    RnIapLog.result("currentEntitlementIOS", value: payload)
+                    RnIapLog.result("currentEntitlementIOS", payload)
                     return RnIapHelper.convertPurchaseDictionary(payload)
                 }
-                RnIapLog.result("currentEntitlementIOS", value: nil)
+                RnIapLog.result("currentEntitlementIOS", nil)
                 return Optional<NitroPurchase>.none
             } catch {
                 RnIapLog.failure("currentEntitlementIOS", error: error)
@@ -463,14 +458,14 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                RnIapLog.payload("latestTransactionIOS", payload: ["sku": sku])
+                RnIapLog.payload("latestTransactionIOS", ["sku": sku])
                 let purchase = try await OpenIapModule.shared.latestTransactionIOS(sku: sku)
                 if let purchase {
                     let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(purchase))
-                    RnIapLog.result("latestTransactionIOS", value: payload)
+                    RnIapLog.result("latestTransactionIOS", payload)
                     return RnIapHelper.convertPurchaseDictionary(payload)
                 }
-                RnIapLog.result("latestTransactionIOS", value: nil)
+                RnIapLog.result("latestTransactionIOS", nil)
                 return Optional<NitroPurchase>.none
             } catch {
                 RnIapLog.failure("latestTransactionIOS", error: error)
@@ -482,11 +477,11 @@ class HybridRnIap: HybridRnIapSpec {
     func getPendingTransactionsIOS() throws -> Promise<[NitroPurchase]> {
         return Promise.async {
             do {
-                RnIapLog.payload("getPendingTransactionsIOS", payload: nil)
+                RnIapLog.payload("getPendingTransactionsIOS", nil)
                 let pending = try await OpenIapModule.shared.getPendingTransactionsIOS()
                 let unionPurchases = pending.map { OpenIAP.Purchase.purchaseIos($0) }
                 let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.purchases(unionPurchases))
-                RnIapLog.result("getPendingTransactionsIOS", value: payloads)
+                RnIapLog.result("getPendingTransactionsIOS", payloads)
                 return payloads.map { RnIapHelper.convertPurchaseDictionary($0) }
             } catch {
                 RnIapLog.failure("getPendingTransactionsIOS", error: error)
@@ -498,9 +493,9 @@ class HybridRnIap: HybridRnIapSpec {
     func syncIOS() throws -> Promise<Bool> {
         return Promise.async {
             do {
-                RnIapLog.payload("syncIOS", payload: nil)
+                RnIapLog.payload("syncIOS", nil)
                 let ok = try await OpenIapModule.shared.syncIOS()
-                RnIapLog.result("syncIOS", value: ok)
+                RnIapLog.result("syncIOS", ok)
                 return ok
             } catch {
                 RnIapLog.failure("syncIOS", error: error)
@@ -514,7 +509,7 @@ class HybridRnIap: HybridRnIapSpec {
             try self.ensureConnection()
             do {
                 // Trigger system UI
-                RnIapLog.payload("showManageSubscriptionsIOS", payload: nil)
+                RnIapLog.payload("showManageSubscriptionsIOS", nil)
                 _ = try await OpenIapModule.shared.showManageSubscriptionsIOS()
                 // Return current entitlements as approximation of updates
                 let optionsDictionary: [String: Any] = [
@@ -524,7 +519,7 @@ class HybridRnIap: HybridRnIapSpec {
                 let iosOptions = try OpenIapSerialization.purchaseOptions(from: optionsDictionary)
                 let purchases = try await OpenIapModule.shared.getAvailablePurchases(iosOptions)
                 let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.purchases(purchases))
-                RnIapLog.result("showManageSubscriptionsIOS", value: payloads)
+                RnIapLog.result("showManageSubscriptionsIOS", payloads)
                 return payloads.map { RnIapHelper.convertPurchaseDictionary($0) }
             } catch {
                 RnIapLog.failure("showManageSubscriptionsIOS", error: error)
@@ -537,9 +532,9 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                RnIapLog.payload("deepLinkToSubscriptionsIOS", payload: nil)
+                RnIapLog.payload("deepLinkToSubscriptionsIOS", nil)
                 try await OpenIapModule.shared.deepLinkToSubscriptions(nil)
-                RnIapLog.result("deepLinkToSubscriptionsIOS", value: true)
+                RnIapLog.result("deepLinkToSubscriptionsIOS", true)
                 return true
             } catch {
                 RnIapLog.failure("deepLinkToSubscriptionsIOS", error: error)
@@ -550,9 +545,9 @@ class HybridRnIap: HybridRnIapSpec {
     
     func isEligibleForIntroOfferIOS(groupID: String) throws -> Promise<Bool> {
         return Promise.async {
-            RnIapLog.payload("isEligibleForIntroOfferIOS", payload: ["groupID": groupID])
+            RnIapLog.payload("isEligibleForIntroOfferIOS", ["groupID": groupID])
             let value = try await OpenIapModule.shared.isEligibleForIntroOfferIOS(groupID: groupID)
-            RnIapLog.result("isEligibleForIntroOfferIOS", value: value)
+            RnIapLog.result("isEligibleForIntroOfferIOS", value)
             return value
         }
     }
@@ -561,9 +556,9 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                RnIapLog.payload("getReceiptDataIOS", payload: nil)
+                RnIapLog.payload("getReceiptDataIOS", nil)
                 if let receipt = try await OpenIapModule.shared.getReceiptDataIOS() {
-                    RnIapLog.result("getReceiptDataIOS", value: "<receipt>")
+                    RnIapLog.result("getReceiptDataIOS", "<receipt>")
                     return receipt
                 }
                 throw PurchaseError.make(code: .receiptFailed)
@@ -578,9 +573,9 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                RnIapLog.payload("getReceiptIOS", payload: nil)
+                RnIapLog.payload("getReceiptIOS", nil)
                 if let receipt = try await OpenIapModule.shared.getReceiptDataIOS() {
-                    RnIapLog.result("getReceiptIOS", value: "<receipt>")
+                    RnIapLog.result("getReceiptIOS", "<receipt>")
                     return receipt
                 }
                 throw PurchaseError.make(code: .receiptFailed)
@@ -595,9 +590,9 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                RnIapLog.payload("requestReceiptRefreshIOS", payload: nil)
+                RnIapLog.payload("requestReceiptRefreshIOS", nil)
                 if let receipt = try await OpenIapModule.shared.getReceiptDataIOS() {
-                    RnIapLog.result("requestReceiptRefreshIOS", value: "<receipt>")
+                    RnIapLog.result("requestReceiptRefreshIOS", "<receipt>")
                     return receipt
                 }
                 throw PurchaseError.make(code: .receiptFailed)
@@ -611,9 +606,9 @@ class HybridRnIap: HybridRnIapSpec {
     func isTransactionVerifiedIOS(sku: String) throws -> Promise<Bool> {
         return Promise.async {
             try self.ensureConnection()
-            RnIapLog.payload("isTransactionVerifiedIOS", payload: ["sku": sku])
+            RnIapLog.payload("isTransactionVerifiedIOS", ["sku": sku])
             let value = try await OpenIapModule.shared.isTransactionVerifiedIOS(sku: sku)
-            RnIapLog.result("isTransactionVerifiedIOS", value: value)
+            RnIapLog.result("isTransactionVerifiedIOS", value)
             return value
         }
     }
@@ -622,9 +617,9 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                RnIapLog.payload("getTransactionJwsIOS", payload: ["sku": sku])
+                RnIapLog.payload("getTransactionJwsIOS", ["sku": sku])
                 let jws = try await OpenIapModule.shared.getTransactionJwsIOS(sku: sku)
-                RnIapLog.result("getTransactionJwsIOS", value: jws)
+                RnIapLog.result("getTransactionJwsIOS", jws)
                 return jws
             } catch {
                 RnIapLog.failure("getTransactionJwsIOS", error: error)
@@ -636,9 +631,9 @@ class HybridRnIap: HybridRnIapSpec {
     func beginRefundRequestIOS(sku: String) throws -> Promise<String?> {
         return Promise.async {
             do {
-                RnIapLog.payload("beginRefundRequestIOS", payload: ["sku": sku])
+                RnIapLog.payload("beginRefundRequestIOS", ["sku": sku])
                 let result = try await OpenIapModule.shared.beginRefundRequestIOS(sku: sku)
-                RnIapLog.result("beginRefundRequestIOS", value: result)
+                RnIapLog.result("beginRefundRequestIOS", result)
                 return result
             } catch {
                 RnIapLog.failure("beginRefundRequestIOS", error: error)
@@ -652,10 +647,10 @@ class HybridRnIap: HybridRnIapSpec {
         
         // If a promoted product is already available from OpenIAP, notify immediately
         Task {
-            RnIapLog.payload("promotedProductListenerIOS.fetch", payload: nil)
+            RnIapLog.payload("promotedProductListenerIOS.fetch", nil)
             if let product = try? await OpenIapModule.shared.getPromotedProductIOS() {
                 let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(product))
-                RnIapLog.result("promotedProductListenerIOS.fetch", value: payload)
+                RnIapLog.result("promotedProductListenerIOS.fetch", payload)
                 let nitro = RnIapHelper.convertProductDictionary(payload)
                 await MainActor.run { listener(nitro) }
             }
@@ -694,26 +689,26 @@ class HybridRnIap: HybridRnIapSpec {
 
     private func attachListenersIfNeeded() {
         if purchaseUpdatedSub == nil {
-            RnIapLog.payload("purchaseUpdatedListener.register", payload: nil)
+            RnIapLog.payload("purchaseUpdatedListener.register", nil)
             purchaseUpdatedSub = OpenIapModule.shared.purchaseUpdatedListener { [weak self] openIapPurchase in
                 guard let self else { return }
                 Task { @MainActor in
                     let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.purchase(openIapPurchase))
-                    RnIapLog.result("purchaseUpdatedListener", value: payload)
+                    RnIapLog.result("purchaseUpdatedListener", payload)
                     let nitro = RnIapHelper.convertPurchaseDictionary(payload)
                     self.sendPurchaseUpdate(nitro)
                 }
             }
-            RnIapLog.result("purchaseUpdatedListener.register", value: "attached")
+            RnIapLog.result("purchaseUpdatedListener.register", "attached")
         }
 
         if purchaseErrorSub == nil {
-            RnIapLog.payload("purchaseErrorListener.register", payload: nil)
+            RnIapLog.payload("purchaseErrorListener.register", nil)
             purchaseErrorSub = OpenIapModule.shared.purchaseErrorListener { [weak self] error in
                 guard let self else { return }
                 Task { @MainActor in
                     let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(error))
-                    RnIapLog.result("purchaseErrorListener", value: payload)
+                    RnIapLog.result("purchaseErrorListener", payload)
                     let nitroError = RnIapHelper.makePurchaseErrorResult(
                         code: error.code,
                         message: error.message,
@@ -722,20 +717,20 @@ class HybridRnIap: HybridRnIapSpec {
                     self.sendPurchaseError(nitroError, productId: error.productId)
                 }
             }
-            RnIapLog.result("purchaseErrorListener.register", value: "attached")
+            RnIapLog.result("purchaseErrorListener.register", "attached")
         }
 
         if promotedProductSub == nil {
-            RnIapLog.payload("promotedProductListenerIOS.register", payload: nil)
+            RnIapLog.payload("promotedProductListenerIOS.register", nil)
             promotedProductSub = OpenIapModule.shared.promotedProductListenerIOS { [weak self] productId in
                 guard let self else { return }
                 Task {
-                    RnIapLog.payload("promotedProductListenerIOS", payload: ["productId": productId])
+                    RnIapLog.payload("promotedProductListenerIOS", ["productId": productId])
                     do {
                         let request = try OpenIapSerialization.productRequest(skus: [productId], type: .all)
                         let result = try await OpenIapModule.shared.fetchProducts(request)
                         let payloads = RnIapHelper.sanitizeArray(OpenIapSerialization.products(result))
-                        RnIapLog.result("fetchProducts", value: payloads)
+                        RnIapLog.result("fetchProducts", payloads)
                         if let payload = payloads.first {
                             let nitro = RnIapHelper.convertProductDictionary(payload)
                             await MainActor.run {
@@ -756,7 +751,7 @@ class HybridRnIap: HybridRnIapSpec {
                     }
                 }
             }
-            RnIapLog.result("promotedProductListenerIOS.register", value: "attached")
+            RnIapLog.result("promotedProductListenerIOS.register", "attached")
         }
     }
 
@@ -807,24 +802,24 @@ class HybridRnIap: HybridRnIapSpec {
         
         // Remove OpenIAP listeners & end connection
         if let sub = purchaseUpdatedSub {
-            RnIapLog.payload("removeListener", payload: "purchaseUpdated")
+            RnIapLog.payload("removeListener", "purchaseUpdated")
             OpenIapModule.shared.removeListener(sub)
         }
         if let sub = purchaseErrorSub {
-            RnIapLog.payload("removeListener", payload: "purchaseError")
+            RnIapLog.payload("removeListener", "purchaseError")
             OpenIapModule.shared.removeListener(sub)
         }
         if let sub = promotedProductSub {
-            RnIapLog.payload("removeListener", payload: "promotedProduct")
+            RnIapLog.payload("removeListener", "promotedProduct")
             OpenIapModule.shared.removeListener(sub)
         }
         purchaseUpdatedSub = nil
         purchaseErrorSub = nil
         promotedProductSub = nil
         Task {
-            RnIapLog.payload("endConnection", payload: nil)
+            RnIapLog.payload("endConnection", nil)
             let result = try? await OpenIapModule.shared.endConnection()
-            RnIapLog.result("endConnection", value: result as Any)
+            RnIapLog.result("endConnection", result as Any)
         }
 
         // Clear event listeners

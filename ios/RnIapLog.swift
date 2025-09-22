@@ -34,11 +34,11 @@ enum RnIapLog {
     static func warn(_ message: String) { log(.warn, message) }
     static func error(_ message: String) { log(.error, message) }
 
-    static func payload(_ name: String, payload: Any?) {
+    static func payload(_ name: String, _ payload: Any?) {
         debug("\(name) payload: \(stringify(payload))")
     }
 
-    static func result(_ name: String, value: Any?) {
+    static func result(_ name: String, _ value: Any?) {
         debug("\(name) result: \(stringify(value))")
     }
 
