@@ -1,5 +1,5 @@
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import type {ViewStyle} from 'react-native';
+import type {StyleProp, ViewStyle} from 'react-native';
 import type {Purchase} from 'react-native-iap';
 
 const platformLabel = (platform?: string | null): string => {
@@ -36,7 +36,7 @@ const resolveTransactionId = (
 type Props = {
   purchase: Purchase;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 };
 
 function PurchaseSummaryRow({purchase, onPress, style}: Props) {

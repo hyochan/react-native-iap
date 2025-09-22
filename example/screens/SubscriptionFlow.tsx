@@ -721,6 +721,11 @@ function SubscriptionFlowContainer() {
           },
         },
         type: 'subs',
+      }).catch((err: PurchaseError) => {
+        console.warn('requestPurchase failed:', err);
+        setIsProcessing(false);
+        setPurchaseResult(`❌ Subscription failed: ${err.message}`);
+        Alert.alert('Subscription Failed', err.message);
       });
     },
     [subscriptions],

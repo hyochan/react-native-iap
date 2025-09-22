@@ -1,11 +1,13 @@
 // External dependencies
 import {useCallback, useEffect, useState, useRef} from 'react';
+import {Platform} from 'react-native';
 
 // Internal modules
 import {
   initConnection,
   purchaseErrorListener,
   purchaseUpdatedListener,
+  promotedProductListenerIOS,
   getAvailablePurchases,
   finishTransaction as finishTransactionInternal,
   requestPurchase as requestPurchaseInternal,
@@ -328,6 +330,19 @@ export function useIAP(options?: UseIapOptions): UseIap {
         optionsRef.current.onPurchaseError(mappedError);
       }
     });
+
+    if (Platform.OS === 'ios') {
+      // iOS promoted products listener
+      subscriptionsRef.current.promotedProductIOS = promotedProductListenerIOS(
+        (product: Product) => {
+          setPromotedProductIOS(product);
+
+          if (optionsRef.current?.onPromotedProductIOS) {
+            optionsRef.current.onPromotedProductIOS(product);
+          }
+        },
+      );
+    }
 
     const result = await initConnection();
     setConnected(result);

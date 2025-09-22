@@ -1,15 +1,15 @@
 import {useMemo} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
-import type {TextStyle, ViewStyle} from 'react-native';
+import type {StyleProp, TextStyle, ViewStyle} from 'react-native';
 import type {Purchase} from 'react-native-iap';
 import {buildPurchaseRows} from '../utils/buildPurchaseRows';
 
 type PurchaseDetailsProps = {
   purchase: Purchase;
-  containerStyle?: ViewStyle;
-  rowStyle?: ViewStyle;
-  labelStyle?: TextStyle;
-  valueStyle?: TextStyle;
+  containerStyle?: StyleProp<ViewStyle>;
+  rowStyle?: StyleProp<ViewStyle>;
+  labelStyle?: StyleProp<TextStyle>;
+  valueStyle?: StyleProp<TextStyle>;
 };
 
 function PurchaseDetails({
@@ -28,7 +28,7 @@ function PurchaseDetails({
   return (
     <View style={[styles.container, containerStyle]}>
       {rows.map((row) => (
-        <View key={`${row.label}-${row.value}`} style={[rowStyle, styles.row]}>
+        <View key={`${row.label}-${row.value}`} style={[styles.row, rowStyle]}>
           <Text style={[styles.label, labelStyle]}>{row.label}</Text>
           <Text style={[styles.value, valueStyle]}>{row.value}</Text>
         </View>
