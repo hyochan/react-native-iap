@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkreact_native_iap_docs=self.webpackChunkreact_native_iap_docs||[]).push([[6611],{4916:a=>{a.exports=JSON.parse('{"metadata":{"permalink":"/react-native-iap/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":6,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);

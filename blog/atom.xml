@@ -2,126 +2,124 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://hyochan.github.io/react-native-iap/blog</id>
     <title>React Native IAP Blog</title>
-    <updated>2025-09-18T00:00:00.000Z</updated>
+    <updated>2025-09-22T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://hyochan.github.io/react-native-iap/blog"/>
     <subtitle>React Native IAP Blog</subtitle>
     <icon>https://hyochan.github.io/react-native-iap/img/favicon.png</icon>
     <entry>
-        <title type="html"><![CDATA[Release 14.3.5]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/18/release-14.3.5</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/18/release-14.3.5"/>
-        <updated>2025-09-18T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Changed]]></summary>
-        <content type="html"><![CDATA[<h2 class="anchor anchorWithStickyNavbar_LWe7" id="changed">Changed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/18/release-14.3.5#changed" class="hash-link" aria-label="Direct link to Changed" title="Direct link to Changed">​</a></h2>
-<p>Small Android-centric polish with dependency bumps to keep the store bridges aligned.</p>
+        <title type="html"><![CDATA[Release 14.4.0 - Full OpenIAP Ecosystem Adoption]]></title>
+        <id>https://hyochan.github.io/react-native-iap/blog/release-14.4.0</id>
+        <link href="https://hyochan.github.io/react-native-iap/blog/release-14.4.0"/>
+        <updated>2025-09-22T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[React Native IAP 14.4.0 graduates into the full OpenIAP ecosystem with unified native stacks, improved error handling, and streamlined purchase flows.]]></summary>
+        <content type="html"><![CDATA[<p><img decoding="async" loading="lazy" src="https://github.com/hyochan/react-native-iap/raw/main/docs/static/img/logo.png" alt="React Native IAP Logo" class="img_ev3q"></p>
+<p>React Native IAP 14.4.0 graduates the project into the full OpenIAP ecosystem. The release ships with three dedicated native stacks:</p>
 <ul>
-<li>Upgrade the fallback/config plugin to <a href="https://github.com/hyodotdev/openiap-google/releases/tag/1.1.10" target="_blank" rel="noopener noreferrer">openiap-google 1.1.10</a> so Android builds pick up the latest Billing configuration fixes.</li>
-<li>Bump the iOS pod to <a href="https://github.com/hyodotdev/openiap-apple/releases/tag/1.1.12" target="_blank" rel="noopener noreferrer">openiap 1.1.12</a> and switch native error codes to PascalCase to match the shared TypeScript surface.</li>
-<li>Restore the explicit <code>Failed to initialize connection</code> message when Play Billing rejects <code>initConnection()</code> so logs stay actionable.</li>
-<li>Keep receipt validation failures tagged with a helpful prefix even when the underlying exception omits a message.</li>
-<li>Drop the purchase token from acknowledge/consume error payloads to avoid leaking identifiers in client logs.</li>
+<li><a href="https://github.com/openiap/apple" target="_blank" rel="noopener noreferrer"><strong>openiap-apple</strong></a> — StoreKit 2 implementation for Apple platforms</li>
+<li><a href="https://github.com/openiap/google" target="_blank" rel="noopener noreferrer"><strong>openiap-google</strong></a> — Google Play Billing integration for Android</li>
+<li><a href="https://github.com/openiap/gql" target="_blank" rel="noopener noreferrer"><strong>openiap-gql</strong></a> — GraphQL helpers that drive types and tooling</li>
 </ul>
-<p>No breaking changes.</p>]]></content>
+<p>From 14.4.0 onward, React Native IAP stays in lockstep with these modules: Apple v1.2.2, Google v1.2.6, and GQL v1.0.8. That shared version alignment gives React Native IAP stable native compatibility and a unified type system straight from the OpenIAP schema.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-highlights">🚀 Highlights<a href="https://hyochan.github.io/react-native-iap/blog/release-14.4.0#-highlights" class="hash-link" aria-label="Direct link to 🚀 Highlights" title="Direct link to 🚀 Highlights">​</a></h2>
+<ul>
+<li>Adopted the full OpenIAP core stack—<strong>openiap-gql</strong>, <strong>openiap-apple v1.2.2</strong>, and <strong>openiap-google v1.2.6</strong>—bringing React Native IAP into alignment with the shared ecosystem used across Flutter, React Native, and KMP.</li>
+<li>Trimmed roughly <strong>two thirds</strong> of our custom native bridge code by delegating logic to the OpenIAP modules.</li>
+<li>Expanded automated coverage to about <strong>98%</strong>, spanning purchase flows, native bridge entry points, and error mapping utilities.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-openiap-upgrades">🔁 OpenIAP Upgrades<a href="https://hyochan.github.io/react-native-iap/blog/release-14.4.0#-openiap-upgrades" class="hash-link" aria-label="Direct link to 🔁 OpenIAP Upgrades" title="Direct link to 🔁 OpenIAP Upgrades">​</a></h2>
+<ul>
+<li>Normalized purchase payloads on both platforms so every bridge call sanitizes platform casing and forwards the complete OpenIAP record.</li>
+<li>Migrated Android to the new RequestPurchaseProps / PurchaseResult / ErrorCode contracts, achieving parity with the Apple module.</li>
+<li>Centralized native dependency versions via <a href="https://github.com/hyochan/react-native-iap/blob/main/openiap-versions.json" target="_blank" rel="noopener noreferrer"><code>openiap-versions.json</code></a>; Gradle now fails fast if the Google artifact version is missing and scripts/migrations read from one source of truth.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-bug-fixes">🐞 Bug Fixes<a href="https://hyochan.github.io/react-native-iap/blog/release-14.4.0#-bug-fixes" class="hash-link" aria-label="Direct link to 🐞 Bug Fixes" title="Direct link to 🐞 Bug Fixes">​</a></h2>
+<ul>
+<li><strong>fix(android)</strong>: honor subscription offerToken (<a href="https://github.com/hyochan/react-native-iap/pull/214" target="_blank" rel="noopener noreferrer">#214</a>) restores proper handling of <code>subscriptionOfferDetailsAndroid</code> so Google Play discounts apply reliably.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="️-safer-purchases--better-errors">🛡️ Safer Purchases &amp; Better Errors<a href="https://hyochan.github.io/react-native-iap/blog/release-14.4.0#%EF%B8%8F-safer-purchases--better-errors" class="hash-link" aria-label="Direct link to 🛡️ Safer Purchases &amp; Better Errors" title="Direct link to 🛡️ Safer Purchases &amp; Better Errors">​</a></h2>
+<ul>
+<li><code>requestPurchase</code> on iOS explicitly rejects unsupported product types instead of silently treating all as in-app.</li>
+<li>Error handling now consistently routes through the shared ErrorCode table so promise rejections, platform conversions, and predicates remain aligned.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="️-tooling--workflow">🛠️ Tooling &amp; Workflow<a href="https://hyochan.github.io/react-native-iap/blog/release-14.4.0#%EF%B8%8F-tooling--workflow" class="hash-link" aria-label="Direct link to 🛠️ Tooling &amp; Workflow" title="Direct link to 🛠️ Tooling &amp; Workflow">​</a></h2>
+<ul>
+<li>Contributor docs clarify how to bump OpenIAP packages, regenerate types, and keep <code>openiap-versions.json</code> synchronized for Android and iOS builds.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="️-important-changes">⚠️ Important Changes<a href="https://hyochan.github.io/react-native-iap/blog/release-14.4.0#%EF%B8%8F-important-changes" class="hash-link" aria-label="Direct link to ⚠️ Important Changes" title="Direct link to ⚠️ Important Changes">​</a></h2>
+<ul>
+<li><strong>Transaction identifiers</strong>: <code>transactionId</code> is reinstated as the primary store reference (<code>orderId</code> on Android, StoreKit transaction ID on iOS). Android's generic <code>id</code> is no longer repurposed for orders; when Google Play omits an <code>orderId</code> (typical for consumables), <code>transactionId</code> becomes <code>null</code> and clients should rely on the unified <code>purchaseToken</code> (Android purchase token / iOS JWS). This value is the canonical receipt for server validation.</li>
+<li><strong>iOS request types</strong>: purchase requests must specify either <code>in-app</code> or <code>subs</code>. Passing <code>all</code> (or any other type) throws an explicit error.</li>
+<li><strong>Promoted products</strong>: events now emit the full sanitized product payload; downstream listeners should expect the entire object instead of just <code>productId</code>.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-installation">📦 Installation<a href="https://hyochan.github.io/react-native-iap/blog/release-14.4.0#-installation" class="hash-link" aria-label="Direct link to 📦 Installation" title="Direct link to 📦 Installation">​</a></h2>
+<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">npm install react-native-iap@14.4.0</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># or</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">yarn add react-native-iap@14.4.0</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># or</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">bun add react-native-iap@14.4.0</span><br></span></code></pre></div></div>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-references">🔗 References<a href="https://hyochan.github.io/react-native-iap/blog/release-14.4.0#-references" class="hash-link" aria-label="Direct link to 🔗 References" title="Direct link to 🔗 References">​</a></h2>
+<ul>
+<li>Recent work: <a href="https://github.com/hyochan/react-native-iap/pulls?q=is%3Apr+is%3Aclosed" target="_blank" rel="noopener noreferrer">Closed pull requests</a></li>
+<li>Release builds on the OpenIAP ecosystem: <a href="https://openiap.dev/" target="_blank" rel="noopener noreferrer">openiap.dev</a></li>
+</ul>
+<p>Enjoy the smoother upgrade path and richer diagnostics shipped in 14.4.0! Let us know how it goes via <a href="https://github.com/hyochan/react-native-iap/issues" target="_blank" rel="noopener noreferrer">GitHub issues</a>.</p>
+<hr>]]></content>
         <author>
             <name>Hyo</name>
             <uri>https://github.com/hyochan</uri>
         </author>
         <category label="Release" term="Release"/>
-        <category label="Android" term="Android"/>
     </entry>
     <entry>
-        <title type="html"><![CDATA[Release 14.3.5]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/18/release-14.3.6</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/18/release-14.3.6"/>
-        <updated>2025-09-18T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Breaking(minor) ⚡️]]></summary>
-        <content type="html"><![CDATA[<h2 class="anchor anchorWithStickyNavbar_LWe7" id="breakingminor-️">Breaking(minor) ⚡️<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/18/release-14.3.6#breakingminor-%EF%B8%8F" class="hash-link" aria-label="Direct link to Breaking(minor) ⚡️" title="Direct link to Breaking(minor) ⚡️">​</a></h2>
+        <title type="html"><![CDATA[Release 14.3.0]]></title>
+        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0</id>
+        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0"/>
+        <updated>2025-09-13T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[This release consolidates the 14.3.x patch series with comprehensive improvements across Android, iOS, documentation, examples, and ecosystem alignment.]]></summary>
+        <content type="html"><![CDATA[<p>This release consolidates the 14.3.x patch series with comprehensive improvements across Android, iOS, documentation, examples, and ecosystem alignment.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="breaking-changes-️">Breaking Changes ⚡️<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#breaking-changes-%EF%B8%8F" class="hash-link" aria-label="Direct link to Breaking Changes ⚡️" title="Direct link to Breaking Changes ⚡️">​</a></h2>
 <p><code>useIAP</code> now expects callers to lean on the supplied callbacks instead of the temporary <code>currentPurchase</code> helpers.</p>
-<!-- -->
-<div style="flex:1;margin-top:24px;margin-bottom:24px"><div class="adfit-top"></div></div>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="what-changed">What changed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/18/release-14.3.6#what-changed" class="hash-link" aria-label="Direct link to What changed" title="Direct link to What changed">​</a></h2>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="added">Added<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#added" class="hash-link" aria-label="Direct link to Added" title="Direct link to Added">​</a></h2>
 <ul>
-<li>Removed the <code>currentPurchase</code> / <code>currentPurchaseError</code> state from <code>useIAP</code> and route purchase outcomes through <code>onPurchaseSuccess</code> / <code>onPurchaseError</code>.</li>
-<li>Trimmed the duplicate-event guard and logs so the hook focuses on forwarding results and refreshing subscription snapshots.</li>
+<li><code>getStorefront()</code>: returns the current storefront country code.</li>
+<li><code>deepLinkToSubscriptions()</code>: opens the native subscription management UI (Android/iOS).</li>
+<li>Examples: "Manage Subscriptions" buttons in SubscriptionFlow and AvailablePurchases (opens native subscription management cross‑platform)</li>
+<li>Examples: Tap a purchased item to open a details modal</li>
 </ul>
-<p>We realize this is a slight breaking tweak for hook consumers, but the root API stays intact and the behavior is now clearer. Thanks for understanding as we ship it as 3.0.6.</p>]]></content>
-        <author>
-            <name>Hyo</name>
-            <uri>https://github.com/hyochan</uri>
-        </author>
-        <category label="hook" term="hook"/>
-        <category label="breaking" term="breaking"/>
-        <category label="docs" term="docs"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Release 14.3.3]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/16/release-14.3.3</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/16/release-14.3.3"/>
-        <updated>2025-09-16T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Changed]]></summary>
-        <content type="html"><![CDATA[<h2 class="anchor anchorWithStickyNavbar_LWe7" id="changed">Changed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/16/release-14.3.3#changed" class="hash-link" aria-label="Direct link to Changed" title="Direct link to Changed">​</a></h2>
-<p>Patch polish for the 14.3 line: better guard rails around purchase requests and cleaner error mapping.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="changed">Changed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#changed" class="hash-link" aria-label="Direct link to Changed" title="Direct link to Changed">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="android--ios-platform-updates">Android &amp; iOS Platform Updates<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#android--ios-platform-updates" class="hash-link" aria-label="Direct link to Android &amp; iOS Platform Updates" title="Direct link to Android &amp; iOS Platform Updates">​</a></h3>
+<ul>
+<li>Android: migrate to OpenIAP Google 1.1.0; align init and field mapping with spec.</li>
+<li>Upgrade the fallback/config plugin to <a href="https://github.com/hyodotdev/openiap-google/releases/tag/1.1.10" target="_blank" rel="noopener noreferrer">openiap-google 1.1.10</a> so Android builds pick up the latest Billing configuration fixes.</li>
+<li>Bump the iOS pod to <a href="https://github.com/hyochan/react-native-iap/releases/tag/1.1.12" target="_blank" rel="noopener noreferrer">openiap 1.1.12</a> and switch native error codes to PascalCase to match the shared TypeScript surface.</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="javascript--bridge-improvements">JavaScript &amp; Bridge Improvements<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#javascript--bridge-improvements" class="hash-link" aria-label="Direct link to JavaScript &amp; Bridge Improvements" title="Direct link to JavaScript &amp; Bridge Improvements">​</a></h3>
 <ul>
 <li>JS: Treat <code>requestPurchase</code>/<code>requestSubscription</code> separately, warn in development when the wrong payload is supplied, and drop the legacy <code>request</code> fallback.</li>
 <li>JS: Normalize native error codes (including the Android "canceled" spelling) and keep init connection failures suppressed until the store is ready.</li>
 <li>Bridge: Warn when the iOS product type is unrecognized and align Active Subscription expiration fields with the generated schema.</li>
-<li>GraphQL: Bump to <a href="https://github.com/hyodotdev/openiap-gql/releases/tag/1.0.0" target="_blank" rel="noopener noreferrer">openiap-gql 1.0.0</a> so the generated schema stays in sync with the published contract.</li>
+<li>Removed the <code>currentPurchase</code> / <code>currentPurchaseError</code> state from <code>useIAP</code> and route purchase outcomes through <code>onPurchaseSuccess</code> / <code>onPurchaseError</code>.</li>
+<li>Trimmed the duplicate-event guard and logs so the hook focuses on forwarding results and refreshing subscription snapshots.</li>
 </ul>
-<p>No breaking changes.</p>]]></content>
-        <author>
-            <name>Hyo</name>
-            <uri>https://github.com/hyochan</uri>
-        </author>
-        <category label="Release" term="Release"/>
-        <category label="iOS" term="iOS"/>
-        <category label="Android" term="Android"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Release 14.3.2]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/15/release-14.3.2</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/15/release-14.3.2"/>
-        <updated>2025-09-15T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Changed]]></summary>
-        <content type="html"><![CDATA[<h2 class="anchor anchorWithStickyNavbar_LWe7" id="changed">Changed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/15/release-14.3.2#changed" class="hash-link" aria-label="Direct link to Changed" title="Direct link to Changed">​</a></h2>
-<p>Small patch focusing on Nitro init robustness and the optional Expo iOS Folly workaround.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="documentation--examples">Documentation &amp; Examples<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#documentation--examples" class="hash-link" aria-label="Direct link to Documentation &amp; Examples" title="Direct link to Documentation &amp; Examples">​</a></h3>
 <ul>
-<li>Fix: Guard HybridObject creation and drop <code>isRuntimeAlive</code> usage to prevent CI/Jest issues.</li>
-<li>Plugin: Re‑add opt‑in <code>"with-folly-no-couroutines": true</code> to inject Folly defines in the Podfile.</li>
-<li>Docs: Restore installation note and remove a local Docusaurus type shim to avoid duplicate identifiers.</li>
-</ul>
-<p>No breaking changes.</p>]]></content>
-        <author>
-            <name>Hyo</name>
-            <uri>https://github.com/hyochan</uri>
-        </author>
-        <category label="Release" term="Release"/>
-        <category label="plugin" term="plugin"/>
-        <category label="iOS" term="iOS"/>
-        <category label="docs" term="docs"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Release 14.3.1]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1"/>
-        <updated>2025-09-14T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Small polish release focusing on examples, documentation, and a critical fix for an iOS crash on startup.]]></summary>
-        <content type="html"><![CDATA[<p>Small polish release focusing on examples, documentation, and a critical fix for an iOS crash on startup.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="added">Added<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1#added" class="hash-link" aria-label="Direct link to Added" title="Direct link to Added">​</a></h2>
-<ul>
-<li>Examples: “Manage Subscriptions” buttons in SubscriptionFlow and AvailablePurchases (opens native subscription management cross‑platform)</li>
-<li>Examples: Tap a purchased item to open a details modal</li>
-</ul>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="changed">Changed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1#changed" class="hash-link" aria-label="Direct link to Changed" title="Direct link to Changed">​</a></h2>
-<ul>
-<li>Docs: Clarify event‑driven purchase model (requests don’t resolve with results); add FAQ about transient iOS success→error timing and simple debounce guidance</li>
+<li>Docs: Clarify event‑driven purchase model (requests don't resolve with results); add FAQ about transient iOS success→error timing and simple debounce guidance</li>
 <li>Docs/Examples: Prefer <code>purchase.id</code>; continue using <code>purchaseToken</code> for server validation</li>
 <li>Examples: Redact sensitive fields in logs and modals (no raw <code>transactionReceipt</code> or full <code>purchaseToken</code>)</li>
+<li>Docs: Restore installation note and remove a local Docusaurus type shim to avoid duplicate identifiers.</li>
 </ul>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/14/release-14.3.1#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="nitro--plugin-enhancements">Nitro &amp; Plugin Enhancements<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#nitro--plugin-enhancements" class="hash-link" aria-label="Direct link to Nitro &amp; Plugin Enhancements" title="Direct link to Nitro &amp; Plugin Enhancements">​</a></h3>
 <ul>
-<li>iOS: Sanitize purchase error payload so product identifiers don’t appear in <code>purchaseToken</code> on error events; keep internal de‑duplication by SKU</li>
+<li>Plugin: Re‑add opt‑in <code>"with-folly-no-couroutines": true</code> to inject Folly defines in the Podfile.</li>
+<li>GraphQL: Bump to <a href="https://github.com/hyodotdev/openiap-gql/releases/tag/1.0.0" target="_blank" rel="noopener noreferrer">openiap-gql 1.0.0</a> so the generated schema stays in sync with the published contract.</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h2>
+<ul>
+<li>Android: address a potential <code>init</code> race and improve error propagation.</li>
+<li>iOS: add temporary stubs to keep Nitro/iOS aligned with the JS spec.</li>
+<li>iOS: Sanitize purchase error payload so product identifiers don't appear in <code>purchaseToken</code> on error events; keep internal de‑duplication by SKU</li>
 <li>Examples/Tests: Align transaction row with <code>purchase.id</code> and update tests</li>
+<li>Fix: Guard HybridObject creation and drop <code>isRuntimeAlive</code> usage to prevent CI/Jest issues.</li>
+<li>Restore the explicit <code>Failed to initialize connection</code> message when Play Billing rejects <code>initConnection()</code> so logs stay actionable.</li>
+<li>Keep receipt validation failures tagged with a helpful prefix even when the underlying exception omits a message.</li>
+<li>Drop the purchase token from acknowledge/consume error payloads to avoid leaking identifiers in client logs.</li>
 </ul>
 <p>No breaking changes. Compatible with 14.3.x line.</p>]]></content>
         <author>
@@ -129,63 +127,13 @@
             <uri>https://github.com/hyochan</uri>
         </author>
         <category label="Release" term="Release"/>
-        <category label="docs" term="docs"/>
-        <category label="examples" term="examples"/>
-        <category label="iOS" term="iOS"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Release 14.3.0]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0"/>
-        <updated>2025-09-13T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Short, focused release centered on Android init behavior and two new JS helpers.]]></summary>
-        <content type="html"><![CDATA[<p>Short, focused release centered on Android init behavior and two new JS helpers.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="added">Added<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#added" class="hash-link" aria-label="Direct link to Added" title="Direct link to Added">​</a></h2>
-<ul>
-<li><code>getStorefront()</code>: returns the current storefront country code.</li>
-<li><code>deepLinkToSubscriptions()</code>: opens the native subscription management UI (Android/iOS).</li>
-</ul>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="changed">Changed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#changed" class="hash-link" aria-label="Direct link to Changed" title="Direct link to Changed">​</a></h2>
-<ul>
-<li>Android: migrate to OpenIAP Google 1.1.0; align init and field mapping with spec.</li>
-</ul>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/13/release-14.3.0#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h2>
-<ul>
-<li>Android: address a potential <code>init</code> race and improve error propagation.</li>
-<li>iOS: add temporary stubs to keep Nitro/iOS aligned with the JS spec.</li>
-</ul>]]></content>
-        <author>
-            <name>Hyo</name>
-            <uri>https://github.com/hyochan</uri>
-        </author>
-        <category label="Release" term="Release"/>
         <category label="Android" term="Android"/>
         <category label="iOS" term="iOS"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Release 14.2.3]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3"/>
-        <updated>2025-09-12T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Focused patch release with a key Android fix and minor chores.]]></summary>
-        <content type="html"><![CDATA[<p>Focused patch release with a key Android fix and minor chores.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h2>
-<ul>
-<li>Android: add <code>offerTags</code> and fix <code>pricingPhases</code> in <code>subscriptionOfferDetails</code> (#2998)</li>
-</ul>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="chore">Chore<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/12/release-14.2.3#chore" class="hash-link" aria-label="Direct link to Chore" title="Direct link to Chore">​</a></h2>
-<ul>
-<li>iOS: enforce iOS 15+ in podspec</li>
-<li>Lint: format files to sync with <code>.vscode</code> and Prettier</li>
-<li>ESLint: avoid <code>.</code> import in config</li>
-</ul>]]></content>
-        <author>
-            <name>Hyo</name>
-            <uri>https://github.com/hyochan</uri>
-        </author>
-        <category label="Release" term="Release"/>
-        <category label="Android" term="Android"/>
-        <category label="iOS" term="iOS"/>
+        <category label="Plugin" term="Plugin"/>
+        <category label="Documentation" term="Documentation"/>
+        <category label="Examples" term="Examples"/>
+        <category label="Hook" term="Hook"/>
+        <category label="Breaking" term="Breaking"/>
     </entry>
     <entry>
         <title type="html"><![CDATA[Release 14.2.0]]></title>
@@ -198,9 +146,12 @@
 <ul>
 <li>iOS: Idempotent, non-blocking <code>initConnection()</code> with proper failure propagation. Prevents false-positive connected states under rapid navigation.</li>
 <li>iOS: Upgraded OpenIAP to <code>~&gt; 1.1.8</code> for StoreKit 2 stability.</li>
+<li>iOS: Upgraded OpenIAP to <code>~&gt; 1.1.9</code> (<a href="https://github.com/hyodotdev/openiap-apple/releases/tag/1.1.9" target="_blank" rel="noopener noreferrer">notes</a>)</li>
+<li>iOS: Event‑only purchase flow with error de‑duplication (no double cancel popups)</li>
 <li>Android: Ship consumer R8 keep rules so Nitro <code>HybridObjects</code> aren’t stripped in release builds. Apps no longer need manual keeps.</li>
 <li>CI: Use vendored Yarn binary to avoid Corepack network/503 issues.</li>
 <li>Examples: Stabilized Subscription/Purchase flows and improved tests.</li>
+<li>Examples: Guard <code>finishTransaction</code> until connected; short delayed retry for reliability</li>
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="details">Details<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.0#details" class="hash-link" aria-label="Direct link to Details" title="Direct link to Details">​</a></h2>
 <ul>
@@ -231,52 +182,10 @@
         <category label="Release" term="Release"/>
         <category label="iOS" term="iOS"/>
         <category label="Android" term="Android"/>
-        <category label="nitro" term="nitro"/>
+        <category label="Nitro" term="Nitro"/>
     </entry>
     <entry>
-        <title type="html"><![CDATA[Release 14.2.2]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.1</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.1"/>
-        <updated>2025-09-10T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Small stability update focused on iOS and example UX.]]></summary>
-        <content type="html"><![CDATA[<p>Small stability update focused on iOS and example UX.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="highlights">Highlights<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.1#highlights" class="hash-link" aria-label="Direct link to Highlights" title="Direct link to Highlights">​</a></h2>
-<ul>
-<li>iOS: Upgraded OpenIAP to <code>~&gt; 1.1.9</code> (<a href="https://github.com/hyodotdev/openiap-apple/releases/tag/1.1.9" target="_blank" rel="noopener noreferrer">notes</a>)</li>
-<li>iOS: Event‑only purchase flow with error de‑duplication (no double cancel popups)</li>
-<li>Examples: Guard <code>finishTransaction</code> until connected; short delayed retry for reliability</li>
-</ul>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="notes">Notes<a href="https://hyochan.github.io/react-native-iap/blog/2025/09/10/release-14.2.1#notes" class="hash-link" aria-label="Direct link to Notes" title="Direct link to Notes">​</a></h2>
-<p>No breaking changes. If you edited specs, regenerate Nitrogen:</p>
-<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">yarn nitrogen</span><br></span></code></pre></div></div>]]></content>
-        <author>
-            <name>Hyo</name>
-            <uri>https://github.com/hyochan</uri>
-        </author>
-        <category label="Release" term="Release"/>
-        <category label="iOS" term="iOS"/>
-        <category label="nitro" term="nitro"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Release 14.1.1]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/release-14.1.1</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/release-14.1.1"/>
-        <updated>2025-09-08T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[14.1.1]]></summary>
-        <content type="html"><![CDATA[<h2 class="anchor anchorWithStickyNavbar_LWe7" id="1411">14.1.1<a href="https://hyochan.github.io/react-native-iap/blog/release-14.1.1#1411" class="hash-link" aria-label="Direct link to 14.1.1" title="Direct link to 14.1.1">​</a></h2>
-<h3 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/release-14.1.1#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h3>
-<ul>
-<li>iOS: Fetch missing products from StoreKit when not cached</li>
-</ul>]]></content>
-        <author>
-            <name>Hyo</name>
-            <uri>https://github.com/hyochan</uri>
-        </author>
-        <category label="Release" term="Release"/>
-        <category label="patch" term="patch"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[v14.1.0 - Type System Improvements & API Enhancements]]></title>
+        <title type="html"><![CDATA[Release 14.1.0 - Type System Improvements & API Enhancements]]></title>
         <id>https://hyochan.github.io/react-native-iap/blog/release-14-1-0</id>
         <link href="https://hyochan.github.io/react-native-iap/blog/release-14-1-0"/>
         <updated>2025-09-06T00:00:00.000Z</updated>
@@ -350,6 +259,10 @@
 <p>Common fields like <code>purchaseState</code> and <code>isAutoRenewing</code> provide unified interfaces across platforms.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="-more-detailed-information">✅ More Detailed Information<a href="https://hyochan.github.io/react-native-iap/blog/release-14-1-0#-more-detailed-information" class="hash-link" aria-label="Direct link to ✅ More Detailed Information" title="Direct link to ✅ More Detailed Information">​</a></h3>
 <p>New enums and return types provide richer information about products and purchases.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="fixed">Fixed<a href="https://hyochan.github.io/react-native-iap/blog/release-14-1-0#fixed" class="hash-link" aria-label="Direct link to Fixed" title="Direct link to Fixed">​</a></h2>
+<ul>
+<li>iOS: Fetch missing products from StoreKit when not cached</li>
+</ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="upgrading">Upgrading<a href="https://hyochan.github.io/react-native-iap/blog/release-14-1-0#upgrading" class="hash-link" aria-label="Direct link to Upgrading" title="Direct link to Upgrading">​</a></h2>
 <div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">npm install react-native-iap react-native-nitro-modules</span><br></span></code></pre></div></div>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="community">Community<a href="https://hyochan.github.io/react-native-iap/blog/release-14-1-0#community" class="hash-link" aria-label="Direct link to Community" title="Direct link to Community">​</a></h2>
@@ -361,56 +274,25 @@
         </author>
         <category label="Release" term="Release"/>
         <category label="React Native IAP" term="React Native IAP"/>
-        <category label="types" term="types"/>
+        <category label="Types" term="Types"/>
         <category label="API" term="API"/>
     </entry>
     <entry>
-        <title type="html"><![CDATA[v14.1.1 - iOS Product Cache Invalidation]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/release-14-1-1</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/release-14-1-1"/>
-        <updated>2025-09-06T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[We're releasing v14.1.1 with an important fix for iOS subscription management.]]></summary>
-        <content type="html"><![CDATA[<p>We're releasing v14.1.1 with an important fix for iOS subscription management.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-bug-fix">🐛 Bug Fix<a href="https://hyochan.github.io/react-native-iap/blog/release-14-1-1#-bug-fix" class="hash-link" aria-label="Direct link to 🐛 Bug Fix" title="Direct link to 🐛 Bug Fix">​</a></h2>
-<h3 class="anchor anchorWithStickyNavbar_LWe7" id="ios-fixed-product-fetching-in-subscription-management">iOS: Fixed Product Fetching in Subscription Management<a href="https://hyochan.github.io/react-native-iap/blog/release-14-1-1#ios-fixed-product-fetching-in-subscription-management" class="hash-link" aria-label="Direct link to iOS: Fixed Product Fetching in Subscription Management" title="Direct link to iOS: Fixed Product Fetching in Subscription Management">​</a></h3>
-<p>Fixed an issue where <code>showManageSubscriptionsIOS()</code> would fail to detect subscription changes when products weren't pre-cached in the ProductStore. The method now includes a fallback mechanism that:</p>
-<ul>
-<li>Fetches products directly from StoreKit when not found in cache</li>
-<li>Derives subscription SKUs from <code>Transaction.currentEntitlements</code> when ProductStore is empty</li>
-<li>Ensures subscription status changes are properly detected even without calling <code>fetchProducts()</code> first</li>
-</ul>
-<p>This fix improves the reliability of subscription management UI interactions on iOS.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-installation">📦 Installation<a href="https://hyochan.github.io/react-native-iap/blog/release-14-1-1#-installation" class="hash-link" aria-label="Direct link to 📦 Installation" title="Direct link to 📦 Installation">​</a></h2>
-<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">npm install react-native-iap@14.1.1</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># or</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">yarn add react-native-iap@14.1.1</span><br></span></code></pre></div></div>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-acknowledgments">🙏 Acknowledgments<a href="https://hyochan.github.io/react-native-iap/blog/release-14-1-1#-acknowledgments" class="hash-link" aria-label="Direct link to 🙏 Acknowledgments" title="Direct link to 🙏 Acknowledgments">​</a></h2>
-<p>Thanks to the CodeRabbit AI reviewer for identifying this edge case and suggesting the improvement.</p>
-<hr>
-<p>For the complete changelog, see <a href="https://github.com/hyochan/react-native-iap/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md</a></p>]]></content>
-        <author>
-            <name>Hyo</name>
-            <uri>https://github.com/hyochan</uri>
-        </author>
-        <category label="Release" term="Release"/>
-        <category label="React Native IAP" term="React Native IAP"/>
-        <category label="bugfix" term="bugfix"/>
-        <category label="iOS" term="iOS"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[v14.0.1 - Expo Plugin Fixes]]></title>
-        <id>https://hyochan.github.io/react-native-iap/blog/release-14-0-1</id>
-        <link href="https://hyochan.github.io/react-native-iap/blog/release-14-0-1"/>
+        <title type="html"><![CDATA[Release 14.0.0 - Expo Plugin Fixes]]></title>
+        <id>https://hyochan.github.io/react-native-iap/blog/release-14-0-0</id>
+        <link href="https://hyochan.github.io/react-native-iap/blog/release-14-0-0"/>
         <updated>2025-09-03T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[We've just released React Native IAP 14.0.1 with important fixes for Expo plugin and npm publishing. 🛠️]]></summary>
-        <content type="html"><![CDATA[<p>We've just released React Native IAP 14.0.1 with important fixes for Expo plugin and npm publishing. 🛠️</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="whats-fixed">What's Fixed<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-1#whats-fixed" class="hash-link" aria-label="Direct link to What's Fixed" title="Direct link to What's Fixed">​</a></h2>
-<h3 class="anchor anchorWithStickyNavbar_LWe7" id="npm-publishing">NPM Publishing<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-1#npm-publishing" class="hash-link" aria-label="Direct link to NPM Publishing" title="Direct link to NPM Publishing">​</a></h3>
+        <summary type="html"><![CDATA[We've just released React Native IAP 14.0.0 with important fixes for Expo plugin and npm publishing. 🛠️]]></summary>
+        <content type="html"><![CDATA[<p>We've just released React Native IAP 14.0.0 with important fixes for Expo plugin and npm publishing. 🛠️</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="whats-fixed">What's Fixed<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-0#whats-fixed" class="hash-link" aria-label="Direct link to What's Fixed" title="Direct link to What's Fixed">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="npm-publishing">NPM Publishing<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-0#npm-publishing" class="hash-link" aria-label="Direct link to NPM Publishing" title="Direct link to NPM Publishing">​</a></h3>
 <p>Fixed the npm package to properly include all required build files. The <code>lib/</code> directory and <code>app.plugin.js</code> are now correctly included when publishing to npm.</p>
-<h3 class="anchor anchorWithStickyNavbar_LWe7" id="ci-and-testing">CI and Testing<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-1#ci-and-testing" class="hash-link" aria-label="Direct link to CI and Testing" title="Direct link to CI and Testing">​</a></h3>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="ci-and-testing">CI and Testing<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-0#ci-and-testing" class="hash-link" aria-label="Direct link to CI and Testing" title="Direct link to CI and Testing">​</a></h3>
 <p>Improved test stability and added Codecov integration for better code coverage tracking. Tests now run reliably in CI environments.</p>
-<h3 class="anchor anchorWithStickyNavbar_LWe7" id="example-expo-setup">Example-Expo Setup<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-1#example-expo-setup" class="hash-link" aria-label="Direct link to Example-Expo Setup" title="Direct link to Example-Expo Setup">​</a></h3>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="example-expo-setup">Example-Expo Setup<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-0#example-expo-setup" class="hash-link" aria-label="Direct link to Example-Expo Setup" title="Direct link to Example-Expo Setup">​</a></h3>
 <p>Resolved Nitro module registration issues in the example-expo app, making it easier to test and develop with Expo.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="upgrading">Upgrading<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-1#upgrading" class="hash-link" aria-label="Direct link to Upgrading" title="Direct link to Upgrading">​</a></h2>
-<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">npm install react-native-iap@14.0.1</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># or</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">yarn add react-native-iap@14.0.1</span><br></span></code></pre></div></div>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="upgrading">Upgrading<a href="https://hyochan.github.io/react-native-iap/blog/release-14-0-0#upgrading" class="hash-link" aria-label="Direct link to Upgrading" title="Direct link to Upgrading">​</a></h2>
+<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">npm install react-native-iap@14.0.0</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># or</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">yarn add react-native-iap@14.0.0</span><br></span></code></pre></div></div>
 <p>For the full changelog, see our <a href="https://github.com/hyochan/react-native-iap/releases" target="_blank" rel="noopener noreferrer">GitHub releases</a>.</p>]]></content>
         <author>
             <name>Hyo</name>
