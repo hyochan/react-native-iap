@@ -33,115 +33,129 @@ jest.mock('react-native-nitro-modules', () => ({
 }));
 
 // Mock the actual IAP module functions
-jest.mock('../src/index', () => ({
-  // Core functions
-  initConnection: jest.fn(() => Promise.resolve(true)),
-  endConnection: jest.fn(() => Promise.resolve()),
-  getProducts: jest.fn(() => Promise.resolve([])),
-  getSubscriptions: jest.fn(() => Promise.resolve([])),
-  fetchProducts: jest.fn(() => Promise.resolve([])),
-  requestPurchase: jest.fn(() => Promise.resolve()),
-  finishTransaction: jest.fn(() => Promise.resolve()),
-  getAvailablePurchases: jest.fn(() => Promise.resolve([])),
-  getPurchaseHistory: jest.fn(() => Promise.resolve([])),
+jest.mock('../src/index', () => {
+  const mockFetchProducts = jest.fn(() => Promise.resolve([]));
+  const mockGetAvailablePurchases = jest.fn(() => Promise.resolve([]));
+  const mockFinishTransaction = jest.fn(() => Promise.resolve());
+  const mockGetActiveSubscriptions = jest.fn(() => Promise.resolve([]));
+  const mockRequestPurchase = jest.fn(() => Promise.resolve());
 
-  // Android specific
-  acknowledgePurchaseAndroid: jest.fn(() => Promise.resolve(true)),
-  consumePurchaseAndroid: jest.fn(() => Promise.resolve(true)),
-  deepLinkingGetPendingPurchases: jest.fn(() => Promise.resolve()),
-  validateReceiptAndroid: jest.fn(() => Promise.resolve()),
-
-  // iOS specific
-  clearTransactionIOS: jest.fn(() => Promise.resolve(true)),
-  clearProductsIOS: jest.fn(() => Promise.resolve()),
-  promotedProductIOS: jest.fn(() => Promise.resolve()),
-  requestPromotedProductIOS: jest.fn(() => Promise.resolve(null)),
-  beginRefundRequestIOS: jest.fn(() => Promise.resolve(null)),
-  validateReceiptIos: jest.fn(() => Promise.resolve()),
-  presentCodeRedemptionSheetIOS: jest.fn(() => Promise.resolve(true)),
-
-  // Event listeners
-  purchaseUpdatedListener: jest.fn((callback) => ({remove: jest.fn()})),
-  purchaseErrorListener: jest.fn((callback) => ({remove: jest.fn()})),
-
-  // Hook
-  useIAP: jest.fn(() => ({
-    isInitialized: false,
+  const mockUseIAP = jest.fn(() => ({
+    connected: false,
     products: [],
     subscriptions: [],
     availablePurchases: [],
-    initConnectionAndListen: jest.fn(() => Promise.resolve(true)),
+    activeSubscriptions: [],
+    fetchProducts: mockFetchProducts,
+    finishTransaction: mockFinishTransaction,
+    getAvailablePurchases: mockGetAvailablePurchases,
+    getActiveSubscriptions: mockGetActiveSubscriptions,
+  }));
+
+  return {
+    // Core functions
+    initConnection: jest.fn(() => Promise.resolve(true)),
+    endConnection: jest.fn(() => Promise.resolve()),
     getProducts: jest.fn(() => Promise.resolve([])),
     getSubscriptions: jest.fn(() => Promise.resolve([])),
-    getAvailablePurchases: jest.fn(() => Promise.resolve([])),
-    requestPurchase: jest.fn(() => Promise.resolve()),
-    finishTransaction: jest.fn(() => Promise.resolve()),
-  })),
+    fetchProducts: mockFetchProducts,
+    requestPurchase: mockRequestPurchase,
+    finishTransaction: mockFinishTransaction,
+    getAvailablePurchases: mockGetAvailablePurchases,
+    getPurchaseHistory: jest.fn(() => Promise.resolve([])),
+    getActiveSubscriptions: mockGetActiveSubscriptions,
 
-  // Utility functions
-  parseErrorStringToJsonObj: jest.fn((error) => {
-    if (typeof error === 'string') {
-      try {
-        return JSON.parse(error);
-      } catch {
-        return {message: error};
+    // Android specific
+    acknowledgePurchaseAndroid: jest.fn(() => Promise.resolve(true)),
+    consumePurchaseAndroid: jest.fn(() => Promise.resolve(true)),
+    deepLinkingGetPendingPurchases: jest.fn(() => Promise.resolve()),
+    validateReceiptAndroid: jest.fn(() => Promise.resolve()),
+    deepLinkToSubscriptions: jest.fn(() => Promise.resolve(true)),
+
+    // iOS specific
+    clearTransactionIOS: jest.fn(() => Promise.resolve(true)),
+    clearProductsIOS: jest.fn(() => Promise.resolve()),
+    promotedProductIOS: jest.fn(() => Promise.resolve()),
+    requestPromotedProductIOS: jest.fn(() => Promise.resolve(null)),
+    beginRefundRequestIOS: jest.fn(() => Promise.resolve(null)),
+    validateReceiptIos: jest.fn(() => Promise.resolve()),
+    presentCodeRedemptionSheetIOS: jest.fn(() => Promise.resolve(true)),
+    showManageSubscriptionsIOS: jest.fn(() => Promise.resolve(true)),
+    getAppTransactionIOS: jest.fn(() => Promise.resolve(null)),
+
+    // Event listeners
+    purchaseUpdatedListener: jest.fn((callback) => ({remove: jest.fn()})),
+    purchaseErrorListener: jest.fn((callback) => ({remove: jest.fn()})),
+
+    // Hook
+    useIAP: mockUseIAP,
+
+    // Utility functions
+    parseErrorStringToJsonObj: jest.fn((error) => {
+      if (typeof error === 'string') {
+        try {
+          return JSON.parse(error);
+        } catch {
+          return {message: error};
+        }
       }
-    }
-    return error;
-  }),
-  isUserCancelledError: jest.fn((error) => {
-    return error?.code === 'E_USER_CANCELLED';
-  }),
+      return error;
+    }),
+    isUserCancelledError: jest.fn((error) => {
+      return error?.code === 'E_USER_CANCELLED';
+    }),
 
-  // Enums and constants
-  ErrorCode: {
-    Unknown: 'UNKNOWN',
-    UserCancelled: 'USER_CANCELLED',
-    ItemUnavailable: 'ITEM_UNAVAILABLE',
-    NetworkError: 'NETWORK_ERROR',
-    ServiceError: 'SERVICE_ERROR',
-    DeveloperError: 'DEVELOPER_ERROR',
-    ReceiptFinished: 'RECEIPT_FINISHED',
-    E_USER_CANCELLED: 'USER_CANCELLED',
-    E_ITEM_UNAVAILABLE: 'ITEM_UNAVAILABLE',
-    E_NETWORK_ERROR: 'NETWORK_ERROR',
-    E_SERVICE_ERROR: 'SERVICE_ERROR',
-    E_DEVELOPER_ERROR: 'DEVELOPER_ERROR',
-    E_RECEIPT_FINISHED: 'RECEIPT_FINISHED',
-    E_NOT_PREPARED: 'NOT_PREPARED',
-    E_UNKNOWN: 'UNKNOWN',
-  },
-  ProductQueryType: {
-    InApp: 'in-app',
-    Subs: 'subs',
-    All: 'all',
-  },
-  ProductType: {
-    InApp: 'in-app',
-    Subs: 'subs',
-  },
-  Platform: {
-    Ios: 'ios',
-    Android: 'android',
-  },
-  ProrationMode: {
-    IMMEDIATE_WITHOUT_PRORATION: 'IMMEDIATE_WITHOUT_PRORATION',
-    IMMEDIATE_WITH_TIME_PRORATION: 'IMMEDIATE_WITH_TIME_PRORATION',
-    IMMEDIATE_AND_CHARGE_PRORATED_PRICE: 'IMMEDIATE_AND_CHARGE_PRORATED_PRICE',
-    IMMEDIATE_AND_CHARGE_FULL_PRICE: 'IMMEDIATE_AND_CHARGE_FULL_PRICE',
-    DEFERRED: 'DEFERRED',
-  },
-  InstallSourceAndroid: {
-    GOOGLE_PLAY: 'GOOGLE_PLAY',
-    AMAZON: 'AMAZON',
-    NOT_SET: 'NOT_SET',
-  },
-  PurchaseAndroidState: {
-    UNSPECIFIED_STATE: 0,
-    PURCHASED: 1,
-    PENDING: 2,
-  },
-}));
+    // Enums and constants
+    ErrorCode: {
+      Unknown: 'UNKNOWN',
+      UserCancelled: 'USER_CANCELLED',
+      ItemUnavailable: 'ITEM_UNAVAILABLE',
+      NetworkError: 'NETWORK_ERROR',
+      ServiceError: 'SERVICE_ERROR',
+      DeveloperError: 'DEVELOPER_ERROR',
+      ReceiptFinished: 'RECEIPT_FINISHED',
+      E_USER_CANCELLED: 'USER_CANCELLED',
+      E_ITEM_UNAVAILABLE: 'ITEM_UNAVAILABLE',
+      E_NETWORK_ERROR: 'NETWORK_ERROR',
+      E_SERVICE_ERROR: 'SERVICE_ERROR',
+      E_DEVELOPER_ERROR: 'DEVELOPER_ERROR',
+      E_RECEIPT_FINISHED: 'RECEIPT_FINISHED',
+      E_NOT_PREPARED: 'NOT_PREPARED',
+      E_UNKNOWN: 'UNKNOWN',
+    },
+    ProductQueryType: {
+      InApp: 'in-app',
+      Subs: 'subs',
+      All: 'all',
+    },
+    ProductType: {
+      InApp: 'in-app',
+      Subs: 'subs',
+    },
+    Platform: {
+      Ios: 'ios',
+      Android: 'android',
+    },
+    ProrationMode: {
+      IMMEDIATE_WITHOUT_PRORATION: 'IMMEDIATE_WITHOUT_PRORATION',
+      IMMEDIATE_WITH_TIME_PRORATION: 'IMMEDIATE_WITH_TIME_PRORATION',
+      IMMEDIATE_AND_CHARGE_PRORATED_PRICE:
+        'IMMEDIATE_AND_CHARGE_PRORATED_PRICE',
+      IMMEDIATE_AND_CHARGE_FULL_PRICE: 'IMMEDIATE_AND_CHARGE_FULL_PRICE',
+      DEFERRED: 'DEFERRED',
+    },
+    InstallSourceAndroid: {
+      GOOGLE_PLAY: 'GOOGLE_PLAY',
+      AMAZON: 'AMAZON',
+      NOT_SET: 'NOT_SET',
+    },
+    PurchaseAndroidState: {
+      UNSPECIFIED_STATE: 0,
+      PURCHASED: 1,
+      PENDING: 2,
+    },
+  };
+});
 
 // Mock @react-native-clipboard/clipboard
 jest.mock('@react-native-clipboard/clipboard', () => ({
