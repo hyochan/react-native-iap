@@ -590,11 +590,11 @@ function SubscriptionFlowContainer() {
             });
             return;
           }
-          if (Date.now() - started < 1000) {
-            setTimeout(tryFinish, 100);
+          if (Date.now() - started < 30000) {
+            setTimeout(tryFinish, 500);
           }
         };
-        setTimeout(tryFinish, 100);
+        setTimeout(tryFinish, 500);
       } else {
         await finishTransaction({
           purchase,
@@ -617,8 +617,7 @@ function SubscriptionFlowContainer() {
         `✅ Subscription activated\n` +
           `Product: ${purchase.productId}\n` +
           `Transaction ID: ${purchase.id}\n` +
-          `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}\n` +
-          `Token: ${purchase.purchaseToken?.substring(0, 50) || 'N/A'}...`,
+          `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}`,
       );
 
       Alert.alert('Success', 'Purchase completed successfully!');
