@@ -129,7 +129,7 @@ class HybridRnIap: HybridRnIapSpec {
                 products.append(product)
                 seenIds.insert(product.id)
             }
-            products.forEach { productTypeBySku[$0.id] = $0.type.lowercased() }
+            products.forEach { self.productTypeBySku[$0.id] = $0.type.lowercased() }
             RnIapLog.result(
                 "fetchProducts",
                 value: products.map { ["id": $0.id, "type": $0.type] }

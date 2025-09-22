@@ -265,31 +265,21 @@ class HybridRnIap : HybridRnIapSpec() {
 
                 val missingSkus = androidRequest.skus.filterNot { productTypeBySku.containsKey(it) }
                 if (missingSkus.isNotEmpty()) {
-                    RnIapLog.warn(
-                        "requestPurchase missing cached type for ${missingSkus.joinToString()}; attempting fetch"
-                    )
-                    val queryKinds = listOf(ProductQueryType.InApp, ProductQueryType.Subs)
-                    for (kind in queryKinds) {
-                        runCatching {
-                            RnIapLog.payload(
-                                "requestPurchase.fetchMissing",
-                                mapOf("skus" to missingSkus, "type" to kind.rawValue)
-                            )
-                            openIap.fetchProducts(ProductRequest(missingSkus, kind)).productsOrEmpty()
-                        }.onSuccess { fetched ->
-                            fetched.forEach { productTypeBySku[it.id] = it.type.rawValue }
-                        }.onFailure { error ->
+                    missingSkus.forEach { sku ->
+                        RnIapLog.warn("requestPurchase missing cached type for $sku; attempting fetch")
+                        val fetched = runCatching {
+                            openIap.fetchProducts(
+                                ProductRequest(listOf(sku), ProductQueryType.All)
+                            ).productsOrEmpty()
+                        }.getOrElse { error ->
                             RnIapLog.failure("requestPurchase.fetchMissing", error)
+                            emptyList()
                         }
-                        if (missingSkus.all { productTypeBySku.containsKey(it) }) {
-                            break
+                        fetched.firstOrNull()?.let { productTypeBySku[it.id] = it.type.rawValue }
+                        if (!productTypeBySku.containsKey(sku)) {
+                            sendPurchaseError(toErrorResult(OpenIAPError.SkuNotFound(sku), sku))
+                            return@async defaultResult
                         }
-                    }
-
-                    val stillMissing = missingSkus.firstOrNull { !productTypeBySku.containsKey(it) }
-                    if (stillMissing != null) {
-                        sendPurchaseError(toErrorResult(OpenIAPError.SkuNotFound(stillMissing), stillMissing))
-                        return@async defaultResult
                     }
                 }
 
