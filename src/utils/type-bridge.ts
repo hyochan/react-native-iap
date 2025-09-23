@@ -70,6 +70,7 @@ function normalizeProductTypeIOS(value?: Nullable<string>): ProductTypeIOS {
       return 'non-consumable';
     case 'autorenewablesubscription':
     case 'auto_renewable_subscription':
+    case 'auto-renewable-subscription':
     case 'autorenewable':
       return 'auto-renewable-subscription';
     case 'nonrenewingsubscription':
