@@ -5,6 +5,7 @@ const ERROR_CODE_ALIASES: Record<string, ErrorCode> = {
   USER_CANCELED: ErrorCode.UserCancelled,
   E_USER_CANCELLED: ErrorCode.UserCancelled,
   USER_CANCELLED: ErrorCode.UserCancelled,
+  'USER-CANCELLED': ErrorCode.UserCancelled,
 };
 
 export const normalizeErrorCodeFromNative = (code: unknown): ErrorCode => {
