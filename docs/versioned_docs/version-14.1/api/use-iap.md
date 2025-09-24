@@ -171,7 +171,6 @@ export default function MyStore() {
 interface UseIAPOptions {
   onPurchaseSuccess?: (purchase: Purchase) => void;
   onPurchaseError?: (error: PurchaseError) => void;
-  onSyncError?: (error: Error) => void;
   autoFinishTransactions?: boolean; // Default: true
 }
 ```
@@ -202,18 +201,6 @@ interface UseIAPOptions {
     if (error.code !== ErrorCode.UserCancelled) {
       Alert.alert('Purchase Failed', error.message);
     }
-  };
-  ```
-
-#### onSyncError
-
-- **Type**: `(error: Error) => void`
-- **Description**: Called when there's an error syncing with the store
-- **Example**:
-
-  ```tsx
-  onSyncError: (error) => {
-    console.warn('Store sync error:', error.message);
   };
   ```
 

@@ -48,9 +48,6 @@ const {
   onPurchaseError: (error) => {
     console.error('Purchase failed:', error);
   },
-  onSyncError: (error) => {
-    console.warn('Sync error:', error);
-  },
 });
 ```
 
@@ -68,7 +65,6 @@ const {
 interface UseIAPOptions {
   onPurchaseSuccess?: (purchase: Purchase) => void;
   onPurchaseError?: (error: PurchaseError) => void;
-  onSyncError?: (error: Error) => void;
   shouldAutoSyncPurchases?: boolean; // Controls auto sync behavior inside the hook
   onPromotedProductIOS?: (product: Product) => void; // iOS promoted products
 }
@@ -100,18 +96,6 @@ interface UseIAPOptions {
     if (error.code !== ErrorCode.UserCancelled) {
       Alert.alert('Purchase Failed', error.message);
     }
-  };
-  ```
-
-#### onSyncError
-
-- **Type**: `(error: Error) => void`
-- **Description**: Called when there's an error syncing with the store
-- **Example**:
-
-  ```tsx
-  onSyncError: (error) => {
-    console.warn('Store sync error:', error.message);
   };
   ```
 

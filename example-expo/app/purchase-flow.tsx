@@ -565,10 +565,6 @@ function PurchaseFlowContainer() {
       setIsProcessing(false);
       setPurchaseResult(`Purchase failed: ${error.message}`);
     },
-    onSyncError: (error: Error) => {
-      console.warn('Sync error:', error);
-      Alert.alert('Sync Error', `Failed to sync purchases: ${error.message}`);
-    },
   });
 
   const didFetchRef = useRef(false);

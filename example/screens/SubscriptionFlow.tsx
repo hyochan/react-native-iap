@@ -633,13 +633,6 @@ function SubscriptionFlowContainer() {
       setPurchaseResult(`❌ Subscription failed: ${error.message}`);
       Alert.alert('Subscription Failed', error.message);
     },
-    onSyncError: (error: Error) => {
-      console.warn('Sync error:', error);
-      Alert.alert(
-        'Sync Error',
-        `Failed to sync subscriptions: ${error.message}`,
-      );
-    },
   });
 
   useEffect(() => {

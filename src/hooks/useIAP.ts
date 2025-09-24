@@ -79,8 +79,6 @@ type UseIap = {
 export interface UseIapOptions {
   onPurchaseSuccess?: (purchase: Purchase) => void;
   onPurchaseError?: (error: PurchaseError) => void;
-  onSyncError?: (error: Error) => void;
-  shouldAutoSyncPurchases?: boolean; // New option to control auto-syncing
   onPromotedProductIOS?: (product: Product) => void;
 }
 

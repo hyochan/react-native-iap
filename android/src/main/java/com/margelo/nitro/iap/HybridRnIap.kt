@@ -126,7 +126,7 @@ class HybridRnIap : HybridRnIapSpec() {
                         openIap.initConnection()
                     }
                 } catch (err: Throwable) {
-                    val error = OpenIAPError.InitConnection()
+                    val error = OpenIAPError.InitConnection
                     RnIapLog.failure("initConnection.native", err)
                     throw Exception(
                         toErrorJson(
@@ -137,7 +137,7 @@ class HybridRnIap : HybridRnIapSpec() {
                     )
                 }
                 if (!ok) {
-                    val error = OpenIAPError.InitConnection()
+                    val error = OpenIAPError.InitConnection
                     RnIapLog.failure("initConnection.native", Exception(error.message))
                     throw Exception(
                         toErrorJson(
@@ -279,7 +279,7 @@ class HybridRnIap : HybridRnIapSpec() {
                         }
                         fetched.firstOrNull()?.let { productTypeBySku[it.id] = it.type.rawValue }
                         if (!productTypeBySku.containsKey(sku)) {
-                            sendPurchaseError(toErrorResult(OpenIAPError.SkuNotFound(sku), sku))
+                            sendPurchaseError(toErrorResult(OpenIAPError.SkuNotFound(sku)))
                             return@async defaultResult
                         }
                     }
@@ -363,7 +363,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 RnIapLog.failure("requestPurchase", e)
                 sendPurchaseError(
                     toErrorResult(
-                        error = OpenIAPError.PurchaseFailed(),
+                        error = OpenIAPError.PurchaseFailed,
                         debugMessage = e.message,
                         messageOverride = e.message
                     )
@@ -446,7 +446,7 @@ class HybridRnIap : HybridRnIapSpec() {
             try {
                 initConnection().await()
             } catch (e: Exception) {
-                val err = OpenIAPError.InitConnection()
+                val err = OpenIAPError.InitConnection
                 return@async Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
                         responseCode = -1.0,
@@ -476,7 +476,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 RnIapLog.result("finishTransaction", mapOf("success" to true))
                 result
             } catch (e: Exception) {
-                val err = OpenIAPError.BillingError()
+                val err = OpenIAPError.BillingError
                 RnIapLog.failure("finishTransaction", e)
                 Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
@@ -909,7 +909,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 
             } catch (e: Exception) {
                 val debugMessage = e.message
-                val error = OpenIAPError.InvalidReceipt()
+                val error = OpenIAPError.InvalidReceipt
                 throw Exception(
                     toErrorJson(
                         error = error,
