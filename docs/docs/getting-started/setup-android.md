@@ -282,6 +282,6 @@ const handlePendingPurchase = (purchase: Purchase) => {
 
 ## Next Steps
 
-- [Learn about getting started guide](../guides/getting-started)
+- [Review the installation guide](./installation)
 - [Explore iOS setup](./setup-ios)
 - [Understand error codes](../api/error-codes)

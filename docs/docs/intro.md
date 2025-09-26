@@ -22,7 +22,7 @@ Your sponsorship keeps this work moving—ensuring more developers across platfo
 
 ## 📚 Guides
 
-- [**Getting Started**](./guides/getting-started): Complete guide to implementing in-app purchases
+- [**Installation**](./getting-started/installation): Complete guide to implementing in-app purchases
 - [**Purchase Lifecycle**](./guides/lifecycle): Understanding connection management and best practices
 - [**Purchase Implementation**](./guides/purchases): Detailed purchase flow and event handling
 - [**FAQ**](./guides/faq): Frequently asked questions and solutions
@@ -271,7 +271,7 @@ React Native IAP is built with a modern architecture that emphasizes:
 
 ### 📚 Guides
 
-- [**Getting Started**](./guides/getting-started): Complete guide to implementing in-app purchases
+- [**Installation**](./getting-started/installation): Complete guide to implementing in-app purchases
 - [**Purchase Lifecycle**](./guides/lifecycle): Understanding connection management and best practices
 - [**Purchase Implementation**](./guides/purchases): Detailed purchase flow and event handling
 - [**FAQ**](./guides/faq): Frequently asked questions and solutions

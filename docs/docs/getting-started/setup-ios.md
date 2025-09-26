@@ -179,5 +179,5 @@ const handlePurchaseError = (error: any) => {
 ## Next Steps
 
 - [Learn about Android setup](./setup-android)
-- [Explore getting started guide](../guides/getting-started)
+- [Review the installation guide](./installation)
 - [Understand error codes](../api/error-codes)
