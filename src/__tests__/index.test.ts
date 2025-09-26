@@ -37,6 +37,9 @@ const mockIap: any = {
   buyPromotedProductIOS: jest.fn(async () => undefined),
   presentCodeRedemptionSheetIOS: jest.fn(async () => true),
 
+  // Unified storefront
+  getStorefront: jest.fn(async () => 'USA'),
+
   // receipt validation (unified API)
   validateReceipt: jest.fn(async () => ({
     isValid: true,
@@ -87,6 +90,7 @@ describe('Public API (src/index.ts)', () => {
     mockIap.deepLinkToSubscriptionsIOS = undefined;
     mockIap.getReceiptIOS = undefined;
     mockIap.requestReceiptRefreshIOS = undefined;
+    mockIap.getStorefront = jest.fn(async () => 'USA');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     IAP = require('../index');
   });
@@ -461,6 +465,40 @@ describe('Public API (src/index.ts)', () => {
       await expect(
         IAP.finishTransaction({purchase: {id: 'tid'} as any}),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('storefront helpers', () => {
+    it('getStorefront uses unified native method when available on iOS', async () => {
+      (Platform as any).OS = 'ios';
+      mockIap.getStorefront = jest.fn(async () => 'USA');
+      await expect(IAP.getStorefront()).resolves.toBe('USA');
+      expect(mockIap.getStorefront).toHaveBeenCalledTimes(1);
+      expect(mockIap.getStorefrontIOS).not.toHaveBeenCalled();
+    });
+
+    it('getStorefront falls back to iOS-specific implementation when unified method missing', async () => {
+      (Platform as any).OS = 'ios';
+      mockIap.getStorefront = undefined;
+      await expect(IAP.getStorefront()).resolves.toBe('USA');
+      expect(mockIap.getStorefrontIOS).toHaveBeenCalledTimes(1);
+    });
+
+    it('getStorefront uses unified method on Android', async () => {
+      const expected = 'KOR';
+      mockIap.getStorefront = jest.fn(async () => expected);
+      (Platform as any).OS = 'android';
+      await expect(IAP.getStorefront()).resolves.toBe(expected);
+      expect(mockIap.getStorefront).toHaveBeenCalledTimes(1);
+    });
+
+    it('getStorefront returns empty string and warns when native method missing', async () => {
+      (Platform as any).OS = 'android';
+      mockIap.getStorefront = undefined;
+      await expect(IAP.getStorefront()).resolves.toBe('');
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Native getStorefront is not available'),
+      );
     });
   });
 

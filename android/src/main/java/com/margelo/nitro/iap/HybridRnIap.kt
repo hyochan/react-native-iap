@@ -490,7 +490,22 @@ class HybridRnIap : HybridRnIapSpec() {
             }
         }
     }
-    
+
+    override fun getStorefront(): Promise<String> {
+        return Promise.async {
+            try {
+                initConnection().await()
+                RnIapLog.payload("getStorefront", null)
+                val value = openIap.getStorefront()
+                RnIapLog.result("getStorefront", value)
+                value
+            } catch (e: Exception) {
+                RnIapLog.failure("getStorefront", e)
+                ""
+            }
+        }
+    }
+
     override val memorySize: Long
         get() = 0L
     
@@ -769,22 +784,6 @@ class HybridRnIap : HybridRnIapSpec() {
     override fun getAppTransactionIOS(): Promise<String?> {
         return Promise.async {
             throw Exception(toErrorJson(OpenIAPError.NotSupported))
-        }
-    }
-
-    // Android-specific storefront getter
-    override fun getStorefrontAndroid(): Promise<String> {
-        return Promise.async {
-            try {
-                initConnection().await()
-                RnIapLog.payload("getStorefrontAndroid", null)
-                val value = openIap.getStorefront()
-                RnIapLog.result("getStorefrontAndroid", value)
-                value
-            } catch (e: Exception) {
-                RnIapLog.failure("getStorefrontAndroid", e)
-                ""
-            }
         }
     }
 
