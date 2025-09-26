@@ -314,21 +314,24 @@ class HybridRnIap: HybridRnIapSpec {
             }
         }
     }
-    
-    // MARK: - iOS-specific Public Methods
-    
-    func getStorefrontIOS() throws -> Promise<String> {
+
+    func getStorefront() throws -> Promise<String> {
         return Promise.async {
             do {
-                RnIapLog.payload("getStorefrontIOS", nil)
+                RnIapLog.payload("getStorefront", nil)
                 let storefront = try await OpenIapModule.shared.getStorefrontIOS()
-                RnIapLog.result("getStorefrontIOS", storefront)
+                RnIapLog.result("getStorefront", storefront)
                 return storefront
             } catch {
-                RnIapLog.failure("getStorefrontIOS", error: error)
+                RnIapLog.failure("getStorefront", error: error)
                 throw PurchaseError.make(code: .serviceError, message: error.localizedDescription)
             }
         }
+    }
+
+    // MARK: - iOS-specific Public Methods
+    func getStorefrontIOS() throws -> Promise<String> {
+        return try getStorefront()
     }
     
     func getAppTransactionIOS() throws -> Promise<String?> {
@@ -918,16 +921,6 @@ class HybridRnIap: HybridRnIapSpec {
         purchasePayloadById.removeAll()
         lastPurchaseErrorKey = nil
         lastPurchaseErrorTimestamp = 0
-    }
-
-    // MARK: - Android-only stubs (required for protocol conformance)
-    // These APIs are Android-specific. Expose stubs on iOS to satisfy the
-    // generated Swift protocol. They will never be called from JS on iOS
-    // because the TS spec marks them as Android-only.
-    func getStorefrontAndroid() throws -> Promise<String> {
-        return Promise.async {
-            throw PurchaseError.make(code: .featureNotSupported)
-        }
     }
 
     func deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid) throws -> Promise<Void> {

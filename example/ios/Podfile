@@ -30,10 +30,13 @@ prepare_react_native_project!
 target 'example' do
   config = use_native_modules!
 
+  # Force absolute app path to avoid overly nested relative paths in build scripts
+  app_path = File.expand_path('..', __dir__)
+
   use_react_native!(
     :path => config[:reactNativePath],
-    # An absolute path to your application root.
-    :app_path => "#{Pod::Config.instance.installation_root}/.."
+    # Absolute path to the application root prevents runaway ../../ segments
+    :app_path => app_path
   )
 
   # Work around CDN/trunk propagation delay by pulling OpenIAP directly from Git.

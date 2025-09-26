@@ -8,7 +8,7 @@ PODS:
   - hermes-engine (0.81.1):
     - hermes-engine/Pre-built (= 0.81.1)
   - hermes-engine/Pre-built (0.81.1)
-  - NitroIap (14.4.3):
+  - NitroIap (14.4.5):
     - boost
     - DoubleConversion
     - fast_float
@@ -2747,10 +2747,10 @@ SPEC CHECKSUMS:
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: 4f8246b1f6d79f625e0d99472d1f3a71da4d28ca
-  NitroIap: 0334bb6a2379907b20ba556d6ec49f0f94dc3e96
+  NitroIap: b3d39741d8528e63f258e4cccf14b3f04b5f1a02
   NitroModules: d9c969e83c30ec1e7efc95e0ae58c21db1585c14
   openiap: 92c66923a5aa128777da7dc6283a06b331eeab37
-  RCT-Folly: 846fda9475e61ec7bcbf8a3fe81edfcaeb090669
+  RCT-Folly: 59ec0ac1f2f39672a0c6e6cecdd39383b764646f
   RCTDeprecation: c4b9e2fd0ab200e3af72b013ed6113187c607077
   RCTRequired: e97dd5dafc1db8094e63bc5031e0371f092ae92a
   RCTTypeSafety: 720403058b7c1380c6a3ae5706981d6362962c89
@@ -2819,6 +2819,6 @@ SPEC CHECKSUMS:
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: fa23995c18b65978347b096d0836f4f5093df545
 
-PODFILE CHECKSUM: 68a7c2afe0ade1366edc9327417ab94a1539b9b1
+PODFILE CHECKSUM: f03bb7813aed3d3c0b30414d3d99a1a8d5d800c5
 
 COCOAPODS: 1.15.2

@@ -475,6 +475,39 @@ export const getStorefrontIOS: QueryField<'getStorefrontIOS'> = async () => {
   }
 };
 
+export const getStorefront: QueryField<'getStorefront'> = async () => {
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
+    console.warn(
+      '[getStorefront] Storefront lookup is only supported on iOS and Android.',
+    );
+    return '';
+  }
+
+  const hasUnifiedMethod = typeof IAP.instance.getStorefront === 'function';
+
+  if (!hasUnifiedMethod && Platform.OS === 'ios') {
+    return getStorefrontIOS();
+  }
+
+  if (!hasUnifiedMethod) {
+    console.warn(
+      '[getStorefront] Native getStorefront is not available on this build.',
+    );
+    return '';
+  }
+
+  try {
+    const storefront = await IAP.instance.getStorefront();
+    return storefront ?? '';
+  } catch (error) {
+    console.error(
+      `[getStorefront] Failed to get storefront on ${Platform.OS}:`,
+      error,
+    );
+    throw error;
+  }
+};
+
 export const getAppTransactionIOS: QueryField<
   'getAppTransactionIOS'
 > = async () => {

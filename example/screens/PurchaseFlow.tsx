@@ -10,7 +10,12 @@ import {
   ScrollView,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
-import {requestPurchase, useIAP, getAppTransactionIOS} from 'react-native-iap';
+import {
+  requestPurchase,
+  useIAP,
+  getAppTransactionIOS,
+  getStorefront,
+} from 'react-native-iap';
 import Loading from '../src/components/Loading';
 import {
   CONSUMABLE_PRODUCT_IDS,
@@ -58,8 +63,11 @@ type PurchaseFlowProps = {
   isProcessing: boolean;
   lastPurchase: Purchase | null;
   refreshingAvailablePurchases: boolean;
+  storefront: string | null;
+  isFetchingStorefront: boolean;
   onPurchase: (productId: string) => void;
   onRefreshAvailablePurchases: () => Promise<void>;
+  onRefreshStorefront: () => void;
 };
 
 /**
@@ -81,8 +89,11 @@ function PurchaseFlow({
   isProcessing,
   lastPurchase,
   refreshingAvailablePurchases,
+  storefront,
+  isFetchingStorefront,
   onPurchase,
   onRefreshAvailablePurchases,
+  onRefreshStorefront,
 }: PurchaseFlowProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -201,15 +212,41 @@ function PurchaseFlow({
 
       <View style={styles.content}>
         <View style={styles.statusContainer}>
-          <Text style={styles.statusLabel}>Store Connection:</Text>
-          <Text
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>Store Connection:</Text>
+            <Text
+              style={[
+                styles.statusValue,
+                {color: connected ? '#4CAF50' : '#F44336'},
+              ]}
+            >
+              {connected ? '✅ Connected' : '❌ Disconnected'}
+            </Text>
+          </View>
+
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>Storefront:</Text>
+            <Text style={styles.statusValue}>
+              {storefront && storefront.trim().length > 0
+                ? storefront
+                : 'Unavailable'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
             style={[
-              styles.statusValue,
-              {color: connected ? '#4CAF50' : '#F44336'},
+              styles.statusActionButton,
+              (!connected || isFetchingStorefront) && {opacity: 0.7},
             ]}
+            onPress={onRefreshStorefront}
+            disabled={!connected || isFetchingStorefront}
           >
-            {connected ? '✅ Connected' : '❌ Disconnected'}
-          </Text>
+            <Text style={styles.statusActionButtonText}>
+              {isFetchingStorefront
+                ? 'Fetching storefront...'
+                : 'Refresh storefront'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -495,6 +532,8 @@ function PurchaseFlowContainer() {
   const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
   const [refreshingAvailablePurchases, setRefreshingAvailablePurchases] =
     useState(false);
+  const [storefront, setStorefront] = useState<string | null>(null);
+  const [fetchingStorefront, setFetchingStorefront] = useState(false);
 
   const {
     connected,
@@ -565,6 +604,19 @@ function PurchaseFlowContainer() {
 
   const didFetchRef = useRef(false);
 
+  const fetchStorefront = useCallback(async () => {
+    setFetchingStorefront(true);
+    try {
+      const code = await getStorefront();
+      setStorefront(code?.trim() ? code : null);
+    } catch (error) {
+      console.warn('[PurchaseFlow] getStorefront failed:', error);
+      setStorefront(null);
+    } finally {
+      setFetchingStorefront(false);
+    }
+  }, []);
+
   useEffect(() => {
     console.log('[PurchaseFlow] useEffect - connected:', connected);
     console.log('[PurchaseFlow] PRODUCT_IDS:', PRODUCT_IDS);
@@ -586,11 +638,14 @@ function PurchaseFlowContainer() {
         .catch((error) => {
           console.warn('[PurchaseFlow] getAvailablePurchases error:', error);
         });
+
+      void fetchStorefront();
     } else if (!connected) {
       didFetchRef.current = false;
       console.log('[PurchaseFlow] Not fetching products - not connected');
+      setStorefront(null);
     }
-  }, [connected, fetchProducts, getAvailablePurchases]);
+  }, [connected, fetchProducts, fetchStorefront, getAvailablePurchases]);
 
   const handleRefreshAvailablePurchases = useCallback(async () => {
     if (refreshingAvailablePurchases) {
@@ -636,6 +691,10 @@ function PurchaseFlowContainer() {
     });
   }, []);
 
+  const handleRefreshStorefront = useCallback(() => {
+    void fetchStorefront();
+  }, [fetchStorefront]);
+
   return (
     <PurchaseFlow
       connected={connected}
@@ -645,8 +704,11 @@ function PurchaseFlowContainer() {
       isProcessing={isProcessing}
       lastPurchase={lastPurchase}
       refreshingAvailablePurchases={refreshingAvailablePurchases}
+      storefront={storefront}
+      isFetchingStorefront={fetchingStorefront}
       onPurchase={handlePurchase}
       onRefreshAvailablePurchases={handleRefreshAvailablePurchases}
+      onRefreshStorefront={handleRefreshStorefront}
     />
   );
 }
@@ -677,12 +739,16 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   statusContainer: {
-    flexDirection: 'row',
     backgroundColor: 'white',
     padding: 15,
     borderRadius: 8,
     marginBottom: 15,
+    gap: 12,
+  },
+  statusRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   statusLabel: {
     fontSize: 14,
@@ -691,6 +757,18 @@ const styles = StyleSheet.create({
   },
   statusValue: {
     fontSize: 14,
+    fontWeight: '600',
+  },
+  statusActionButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+  },
+  statusActionButtonText: {
+    color: 'white',
+    fontSize: 13,
     fontWeight: '600',
   },
   section: {

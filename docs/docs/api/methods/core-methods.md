@@ -124,9 +124,7 @@ const loadSubscriptions = async () => {
 
 Initiates a purchase request for products or subscriptions.
 
-> **📖 Reference:** [OpenIAP Request APIs](https://www.openiap.dev/docs/apis#request-apis)
-
-> **⚠️ Platform Differences:**
+> **📖 Reference:** [OpenIAP Request APIs](https://www.openiap.dev/docs/apis#request-apis) **⚠️ Platform Differences:**
 >
 > - **iOS**: Can only purchase one product at a time (uses `sku: string`)
 > - **Android**: Can purchase multiple products at once (uses `skus: string[]`)
@@ -372,7 +370,7 @@ const openSubscriptionSettings = () => {
 
 ## getStorefront()
 
-Return the storefront in ISO 3166-1 alpha-2 or ISO 3166-1 alpha-3 format
+Return the storefront in ISO 3166-1 alpha-2 or ISO 3166-1 alpha-3 format. Works on both iOS and Android—on other platforms it returns an empty string.
 
 ```tsx
 import {getStorefront} from 'react-native-iap';

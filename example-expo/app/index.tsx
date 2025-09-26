@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {Link} from 'expo-router';
-import {getStorefrontIOS} from 'react-native-iap';
+import {getStorefront} from 'react-native-iap';
 
 /**
  * Example App Landing Page
@@ -13,8 +13,8 @@ export default function Home() {
   const [storefront, setStorefront] = useState<string | null>(null);
 
   useEffect(() => {
-    // getStorefrontIOS already handles platform checks internally
-    getStorefrontIOS()
+    // getStorefront handles platform checks internally
+    getStorefront()
       .then((storefront: any) => {
         setStorefront(storefront);
       })

@@ -514,10 +514,11 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   >;
 
   /**
-   * Get Google Play storefront country code (Android)
-   * @platform Android
+   * Get the storefront country/region code for the current user.
+   * @returns Promise<string> - The storefront country code (e.g., "USA")
+   * @platform ios | android
    */
-  getStorefrontAndroid?(): Promise<string>;
+  getStorefront(): Promise<string>;
 
   /**
    * Deep link to Play Store subscription management (Android)
