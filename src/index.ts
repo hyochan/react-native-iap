@@ -33,6 +33,8 @@ import type {
   RequestSubscriptionAndroidProps,
   RequestSubscriptionIosProps,
   RequestSubscriptionPropsByPlatforms,
+  ActiveSubscription,
+  PurchaseAndroid,
 } from './types';
 import {
   convertNitroProductToProduct,
@@ -1376,11 +1378,79 @@ export const deepLinkToSubscriptionsIOS = async (): Promise<boolean> => {
  * }
  * ```
  */
-// Export subscription helpers
-export {
-  getActiveSubscriptions,
-  hasActiveSubscriptions,
-} from './helpers/subscription';
+/**
+ * Get active subscriptions
+ * @param subscriptionIds - Optional array of subscription IDs to filter by
+ * @returns Promise<ActiveSubscription[]> - Array of active subscriptions
+ */
+export const getActiveSubscriptions = async (
+  subscriptionIds?: string[],
+): Promise<ActiveSubscription[]> => {
+  try {
+    // Get available purchases and filter for subscriptions
+    const purchases = await getAvailablePurchases();
+
+    // Filter for subscriptions and map to ActiveSubscription format
+    const subscriptions = purchases
+      .filter((purchase) => {
+        // Filter by subscription IDs if provided
+        if (subscriptionIds && subscriptionIds.length > 0) {
+          return subscriptionIds.includes(purchase.productId);
+        }
+        return true;
+      })
+      .map((purchase): ActiveSubscription => {
+        const iosPurchase = purchase as PurchaseIOS;
+        const androidPurchase = purchase as PurchaseAndroid;
+        return {
+          productId: purchase.productId,
+          isActive: true, // If it's in availablePurchases, it's active
+          // Backend validation fields
+          transactionId: purchase.id,
+          purchaseToken: purchase.purchaseToken,
+          transactionDate: purchase.transactionDate,
+          // Platform-specific fields
+          expirationDateIOS: iosPurchase.expirationDateIOS ?? null,
+          autoRenewingAndroid:
+            androidPurchase.autoRenewingAndroid ??
+            androidPurchase.isAutoRenewing, // deprecated - use isAutoRenewing instead
+          environmentIOS: iosPurchase.environmentIOS,
+          // Convenience fields
+          willExpireSoon: false, // Would need to calculate based on expiration date
+          daysUntilExpirationIOS:
+            iosPurchase.expirationDateIOS != null
+              ? Math.ceil(
+                  (iosPurchase.expirationDateIOS - Date.now()) /
+                    (1000 * 60 * 60 * 24),
+                )
+              : undefined,
+        };
+      });
+
+    return subscriptions;
+  } catch (error) {
+    console.error('Failed to get active subscriptions:', error);
+    throw error;
+  }
+};
+
+/**
+ * Check if there are any active subscriptions
+ * @param subscriptionIds - Optional array of subscription IDs to check
+ * @returns Promise<boolean> - True if there are active subscriptions
+ */
+export const hasActiveSubscriptions = async (
+  subscriptionIds?: string[],
+): Promise<boolean> => {
+  try {
+    const activeSubscriptions = await getActiveSubscriptions(subscriptionIds);
+    return activeSubscriptions.length > 0;
+  } catch (error) {
+    console.error('Failed to check active subscriptions:', error);
+    return false;
+  }
+};
+
 
 // Type conversion utilities
 export {
