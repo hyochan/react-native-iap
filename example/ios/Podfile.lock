@@ -8,7 +8,7 @@ PODS:
   - hermes-engine (0.81.1):
     - hermes-engine/Pre-built (= 0.81.1)
   - hermes-engine/Pre-built (0.81.1)
-  - NitroIap (14.4.6):
+  - NitroIap (14.4.7):
     - boost
     - DoubleConversion
     - fast_float
@@ -2747,7 +2747,7 @@ SPEC CHECKSUMS:
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: 4f8246b1f6d79f625e0d99472d1f3a71da4d28ca
-  NitroIap: ccc2fca3c413542a65f8f275e3875153dfc84374
+  NitroIap: 3b79a5729fff1f468a4f8f562a37cb0594e82d5c
   NitroModules: 7d693306799405ca141ef5c24efc0936f20a09c0
   openiap: bd45c90b44a0fb4bebaa9c2501598d76c253eb0f
   RCT-Folly: 846fda9475e61ec7bcbf8a3fe81edfcaeb090669
