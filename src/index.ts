@@ -1383,9 +1383,9 @@ export const deepLinkToSubscriptionsIOS = async (): Promise<boolean> => {
  * @param subscriptionIds - Optional array of subscription IDs to filter by
  * @returns Promise<ActiveSubscription[]> - Array of active subscriptions
  */
-export const getActiveSubscriptions = async (
-  subscriptionIds?: string[],
-): Promise<ActiveSubscription[]> => {
+export const getActiveSubscriptions: QueryField<
+  'getActiveSubscriptions'
+> = async (subscriptionIds) => {
   try {
     // Get all available purchases first
     const allPurchases = await getAvailablePurchases();
@@ -1515,9 +1515,9 @@ export const getActiveSubscriptions = async (
  * @param subscriptionIds - Optional array of subscription IDs to check
  * @returns Promise<boolean> - True if there are active subscriptions
  */
-export const hasActiveSubscriptions = async (
-  subscriptionIds?: string[],
-): Promise<boolean> => {
+export const hasActiveSubscriptions: QueryField<
+  'hasActiveSubscriptions'
+> = async (subscriptionIds) => {
   try {
     const activeSubscriptions = await getActiveSubscriptions(subscriptionIds);
     return activeSubscriptions.length > 0;
