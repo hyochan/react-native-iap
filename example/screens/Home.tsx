@@ -21,6 +21,12 @@ type Props = {
 const Home: React.FC<Props> = ({navigation}) => {
   const menuItems = [
     {
+      title: 'All Products',
+      subtitle: 'View all products and subscriptions',
+      route: 'AllProducts' as keyof RootStackParamList,
+      enabled: true,
+    },
+    {
       title: 'Purchase Flow',
       subtitle: 'Test in-app purchases',
       route: 'PurchaseFlow' as keyof RootStackParamList,

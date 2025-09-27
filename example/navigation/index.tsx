@@ -2,6 +2,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import Home from '../screens/Home';
+import AllProducts from '../screens/AllProducts';
 import PurchaseFlow from '../screens/PurchaseFlow';
 import SubscriptionFlow from '../screens/SubscriptionFlow';
 import AvailablePurchases from '../screens/AvailablePurchases';
@@ -9,6 +10,7 @@ import OfferCode from '../screens/OfferCode';
 
 export type RootStackParamList = {
   Home: undefined;
+  AllProducts: undefined;
   PurchaseFlow: undefined;
   SubscriptionFlow: undefined;
   AvailablePurchases: undefined;
@@ -25,6 +27,11 @@ export default function AppNavigator() {
           name="Home"
           component={Home}
           options={{title: 'react-native-iap'}}
+        />
+        <Stack.Screen
+          name="AllProducts"
+          component={AllProducts}
+          options={{title: 'All Products'}}
         />
         <Stack.Screen
           name="PurchaseFlow"
