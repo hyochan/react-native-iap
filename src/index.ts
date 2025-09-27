@@ -1400,8 +1400,23 @@ export const getActiveSubscriptions = async (
         return true;
       })
       .map((purchase): ActiveSubscription => {
-        const iosPurchase = purchase as PurchaseIOS;
-        const androidPurchase = purchase as PurchaseAndroid;
+        // Safe access to platform-specific fields with type guards
+        const expirationDateIOS =
+          'expirationDateIOS' in purchase
+            ? ((purchase as PurchaseIOS).expirationDateIOS ?? null)
+            : null;
+
+        const environmentIOS =
+          'environmentIOS' in purchase
+            ? (purchase as PurchaseIOS).environmentIOS
+            : undefined;
+
+        const autoRenewingAndroid =
+          'autoRenewingAndroid' in purchase || 'isAutoRenewing' in purchase
+            ? ((purchase as PurchaseAndroid).autoRenewingAndroid ??
+              (purchase as PurchaseAndroid).isAutoRenewing) // deprecated - use isAutoRenewing instead
+            : undefined;
+
         return {
           productId: purchase.productId,
           isActive: true, // If it's in availablePurchases, it's active
@@ -1410,18 +1425,15 @@ export const getActiveSubscriptions = async (
           purchaseToken: purchase.purchaseToken,
           transactionDate: purchase.transactionDate,
           // Platform-specific fields
-          expirationDateIOS: iosPurchase.expirationDateIOS ?? null,
-          autoRenewingAndroid:
-            androidPurchase.autoRenewingAndroid ??
-            androidPurchase.isAutoRenewing, // deprecated - use isAutoRenewing instead
-          environmentIOS: iosPurchase.environmentIOS,
+          expirationDateIOS,
+          autoRenewingAndroid,
+          environmentIOS,
           // Convenience fields
           willExpireSoon: false, // Would need to calculate based on expiration date
           daysUntilExpirationIOS:
-            iosPurchase.expirationDateIOS != null
+            expirationDateIOS != null
               ? Math.ceil(
-                  (iosPurchase.expirationDateIOS - Date.now()) /
-                    (1000 * 60 * 60 * 24),
+                  (expirationDateIOS - Date.now()) / (1000 * 60 * 60 * 24),
                 )
               : undefined,
         };
@@ -1450,7 +1462,6 @@ export const hasActiveSubscriptions = async (
     return false;
   }
 };
-
 
 // Type conversion utilities
 export {
