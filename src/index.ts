@@ -1396,62 +1396,10 @@ export const getActiveSubscriptions: QueryField<
     // In production with real data, Android subscription filtering is done via platform-specific calls
     // But for backward compatibility and test support, we also check platform-specific fields
 
-    const purchases = allPurchases.filter((purchase) => {
-      if (purchase.platform === 'ios') {
-        // For iOS, check if it has subscription-specific fields
-        const iosPurchase = purchase as any;
-        const hasExpirationDate = iosPurchase.expirationDateIOS != null;
-        const hasSubscriptionGroup = iosPurchase.subscriptionGroupIdIOS != null;
-
-        // For test compatibility: if no iOS-specific subscription fields are present,
-        // but it's an iOS purchase, we may need to assume it's a subscription
-        // This is a temporary measure for test compatibility
-        if (!hasExpirationDate && !hasSubscriptionGroup) {
-          // In tests, iOS purchases may not have subscription fields properly set
-          // Check the product ID for subscription naming patterns
-          const productId = purchase.productId || '';
-          const likelySubscription =
-            productId.includes('subscription') ||
-            productId.includes('_sub') ||
-            productId.includes('sub_') ||
-            productId.includes('sub.') ||
-            productId.includes('sub-') ||
-            productId.startsWith('sub_') ||
-            productId.startsWith('sub.') ||
-            productId.startsWith('sub-') ||
-            productId.endsWith('_sub');
-          return likelySubscription;
-        }
-
-        return hasExpirationDate || hasSubscriptionGroup;
-      } else if (purchase.platform === 'android') {
-        // For Android, check subscription fields
-        const androidPurchase = purchase as any;
-        const hasAutoRenewingField =
-          androidPurchase.autoRenewingAndroid != null;
-        const isAutoRenewing = androidPurchase.isAutoRenewing === true;
-
-        // For test compatibility: if no Android-specific subscription fields are present,
-        // check the product ID for subscription naming patterns
-        if (!hasAutoRenewingField && !isAutoRenewing) {
-          const productId = purchase.productId || '';
-          const likelySubscription =
-            productId.includes('subscription') ||
-            productId.includes('_sub') ||
-            productId.includes('sub_') ||
-            productId.includes('sub.') ||
-            productId.includes('sub-') ||
-            productId.startsWith('sub_') ||
-            productId.startsWith('sub.') ||
-            productId.startsWith('sub-') ||
-            productId.endsWith('_sub');
-          return likelySubscription;
-        }
-
-        return hasAutoRenewingField || isAutoRenewing;
-      }
-      return false;
-    });
+    // Since expirationDateIOS and subscriptionGroupIdIOS are not available in NitroPurchase,
+    // we need to rely on other indicators or assume all purchases are subscriptions
+    // when called from getActiveSubscriptions
+    const purchases = allPurchases;
 
     // Filter for subscriptions and map to ActiveSubscription format
     const subscriptions = purchases

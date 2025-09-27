@@ -161,6 +161,7 @@ describe('Public API (src/index.ts)', () => {
         description: 'Desc',
         type: 'inapp',
         platform: 'ios',
+        isAutoRenewing: true,
         displayPrice: '$1',
         currency: 'USD',
       };
@@ -209,6 +210,7 @@ describe('Public API (src/index.ts)', () => {
           description: 'desc',
           type: 'inapp',
           platform: 'ios',
+          isAutoRenewing: true,
           displayPrice: '$1.00',
           currency: 'USD',
         },
@@ -374,7 +376,7 @@ describe('Public API (src/index.ts)', () => {
   describe('getAvailablePurchases', () => {
     it('iOS path passes deprecation-compatible flags', async () => {
       (Platform as any).OS = 'ios';
-      mockIap.getAvailablePurchases.mockResolvedValueOnce([]);
+      mockIap.getAvailablePurchases.mockImplementationOnce(async () => []);
       await IAP.getAvailablePurchases({
         alsoPublishToEventListenerIOS: true,
         onlyIncludeActiveItemsIOS: false,
@@ -577,6 +579,7 @@ describe('Public API (src/index.ts)', () => {
         description: 'Desc2',
         type: 'inapp',
         platform: 'ios',
+        isAutoRenewing: true,
         displayPrice: '$1',
         currency: 'USD',
       };
@@ -624,6 +627,7 @@ describe('Public API (src/index.ts)', () => {
         {
           state: 1,
           platform: 'ios',
+          isAutoRenewing: true,
           renewalInfo: {autoRenewStatus: true, platform: 'ios'},
         },
       ]);
@@ -913,6 +917,9 @@ describe('Public API (src/index.ts)', () => {
 
     describe('getActiveSubscriptions', () => {
       it('should return active subscriptions from available purchases', async () => {
+        // Set Platform to iOS (getAvailablePurchases behaves differently per platform)
+        (Platform as any).OS = 'ios';
+
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -921,6 +928,9 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
             expirationDateIOS: Date.now() + 86400000, // 1 day from now
             environmentIOS: 'Production',
           } as any,
@@ -930,12 +940,24 @@ describe('Public API (src/index.ts)', () => {
             transactionId: 'trans2',
             purchaseToken: 'token2',
             transactionDate: Date.now(),
-            platform: 'android',
-            autoRenewingAndroid: true,
+            platform: 'ios', // Changed to iOS (purchases can only be from one platform)
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            subscriptionGroupIdIOS: 'group1', // Add iOS subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // Mock returns data as NitroPurchase format (raw from native)
+        // For iOS, getAvailablePurchases is called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if (options?.ios) {
+              return mockPurchases;
+            }
+            return [];
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -961,6 +983,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should calculate days until expiration correctly for iOS subscriptions', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -969,6 +992,9 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
             expirationDateIOS: Date.now() + 3 * 86400000, // 3 days from now
             environmentIOS: 'Production',
           } as any,
@@ -979,11 +1005,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token2',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
             expirationDateIOS: Date.now() + 10 * 86400000, // 10 days from now
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -994,6 +1039,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle expired iOS subscriptions', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1002,11 +1048,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now() - 86400000,
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
             expirationDateIOS: Date.now() - 3600000, // 1 hour ago
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -1016,6 +1081,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle Android subscriptions with various states', async () => {
+        (Platform as any).OS = 'android';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1024,6 +1090,9 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'android',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
             autoRenewingAndroid: true,
           } as any,
           {
@@ -1033,6 +1102,9 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token2',
             transactionDate: Date.now(),
             platform: 'android',
+            isAutoRenewing: false,
+            quantity: 1,
+            purchaseState: 'purchased',
             autoRenewingAndroid: false,
           } as any,
           {
@@ -1042,11 +1114,22 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token3',
             transactionDate: Date.now(),
             platform: 'android',
-            // autoRenewingAndroid is undefined
+            isAutoRenewing: false, // Has the field but is false
+            quantity: 1,
+            purchaseState: 'purchased',
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For Android, getAvailablePurchases is called twice (inapp and subs)
+        // Return empty for inapp, and mockPurchases for subs
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if (options?.android?.type === 'inapp') {
+              return [];
+            }
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -1057,6 +1140,8 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle mixed platform subscriptions', async () => {
+        (Platform as any).OS = 'ios';
+        // iOS platform can only have iOS purchases
         const mockPurchases: Purchase[] = [
           {
             productId: 'ios_sub',
@@ -1065,22 +1150,39 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
             expirationDateIOS: Date.now() + 86400000,
             environmentIOS: 'Sandbox',
           } as any,
           {
-            productId: 'android_sub',
+            productId: 'ios_sub2',
             id: 'trans2',
             transactionId: 'trans2',
             purchaseToken: 'token2',
             transactionDate: Date.now(),
-            platform: 'android',
-            autoRenewingAndroid: true,
-            packageNameAndroid: 'com.example.app',
+            platform: 'ios',
+            isAutoRenewing: true,
+            subscriptionGroupIdIOS: 'group1',
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -1089,11 +1191,12 @@ describe('Public API (src/index.ts)', () => {
           result.find((s: any) => s.productId === 'ios_sub'),
         ).toBeDefined();
         expect(
-          result.find((s: any) => s.productId === 'android_sub'),
+          result.find((s: any) => s.productId === 'ios_sub2'),
         ).toBeDefined();
       });
 
       it('should filter subscriptions by provided IDs', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1102,6 +1205,10 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
           {
             productId: 'subscription2',
@@ -1110,6 +1217,10 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token2',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            subscriptionGroupIdIOS: 'group1', // Add subscription field
           } as any,
           {
             productId: 'subscription3',
@@ -1118,10 +1229,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token3',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions([
           'subscription1',
@@ -1134,6 +1265,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should calculate days until expiration for iOS subscriptions', async () => {
+        (Platform as any).OS = 'ios';
         const futureDate = Date.now() + 5 * 86400000; // 5 days from now
         const mockPurchases: Purchase[] = [
           {
@@ -1143,11 +1275,28 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
             expirationDateIOS: futureDate,
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -1156,7 +1305,7 @@ describe('Public API (src/index.ts)', () => {
 
       it('should handle errors and rethrow them', async () => {
         const error = new Error('Failed to fetch purchases');
-        mockIap.getAvailablePurchases = jest.fn(async () => {
+        mockIap.getAvailablePurchases.mockImplementation(async () => {
           throw error;
         });
 
@@ -1170,7 +1319,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should return empty array when no purchases available', async () => {
-        mockIap.getAvailablePurchases = jest.fn(async () => []);
+        mockIap.getAvailablePurchases.mockImplementation(async () => []);
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -1178,6 +1327,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle duplicate subscription IDs in purchases', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1186,6 +1336,10 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now() - 86400000,
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
           {
             productId: 'subscription1', // Duplicate ID
@@ -1194,10 +1348,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token2',
             transactionDate: Date.now(), // Newer transaction
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            subscriptionGroupIdIOS: 'group1', // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -1209,6 +1383,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle null or undefined expiration dates', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1217,7 +1392,11 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
             expirationDateIOS: null,
+            subscriptionGroupIdIOS: 'group1', // Has subscription group, so it's a subscription
           } as any,
           {
             productId: 'subscription2',
@@ -1226,11 +1405,31 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token2',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
             expirationDateIOS: undefined,
+            subscriptionGroupIdIOS: 'group2', // Has subscription group, so it's a subscription
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -1247,11 +1446,29 @@ describe('Public API (src/index.ts)', () => {
             transactionId: 'trans1',
             purchaseToken: 'token1',
             transactionDate: Date.now(),
+            quantity: 1,
+            purchaseState: 'purchased',
             // platform field missing
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions();
 
@@ -1260,6 +1477,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle very large subscription lists efficiently', async () => {
+        (Platform as any).OS = 'ios';
         const largeNumberOfPurchases = Array.from(
           {length: 1000},
           (_, i) =>
@@ -1270,14 +1488,22 @@ describe('Public API (src/index.ts)', () => {
               purchaseToken: `token${i}`,
               transactionDate: Date.now(),
               platform: i % 2 === 0 ? 'ios' : 'android',
+              quantity: 1,
+              purchaseState: 'purchased',
               expirationDateIOS:
                 i % 2 === 0 ? Date.now() + i * 86400000 : undefined,
               autoRenewingAndroid: i % 2 === 1 ? true : undefined,
             }) as any,
         );
 
-        mockIap.getAvailablePurchases = jest.fn(
-          async () => largeNumberOfPurchases,
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if (options?.ios) {
+              return largeNumberOfPurchases;
+            }
+            return [];
+          },
         );
 
         const startTime = Date.now();
@@ -1289,6 +1515,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle case-sensitive subscription ID filtering', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'Subscription1',
@@ -1297,6 +1524,10 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
           {
             productId: 'subscription1',
@@ -1305,10 +1536,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token2',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            subscriptionGroupIdIOS: 'group1', // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.getActiveSubscriptions(['subscription1']);
 
@@ -1320,6 +1571,7 @@ describe('Public API (src/index.ts)', () => {
 
     describe('hasActiveSubscriptions', () => {
       it('should return true when there are active subscriptions', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1328,10 +1580,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.hasActiveSubscriptions();
 
@@ -1339,7 +1611,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should return false when there are no active subscriptions', async () => {
-        mockIap.getAvailablePurchases = jest.fn(async () => []);
+        mockIap.getAvailablePurchases.mockImplementation(async () => []);
 
         const result = await IAP.hasActiveSubscriptions();
 
@@ -1347,6 +1619,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should filter by subscription IDs when checking', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1355,6 +1628,10 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
           {
             productId: 'subscription2',
@@ -1363,10 +1640,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token2',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            subscriptionGroupIdIOS: 'group1', // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result1 = await IAP.hasActiveSubscriptions(['subscription1']);
         expect(result1).toBe(true);
@@ -1377,7 +1674,7 @@ describe('Public API (src/index.ts)', () => {
 
       it('should return false and log error when getActiveSubscriptions fails', async () => {
         const error = new Error('Failed to fetch');
-        mockIap.getAvailablePurchases = jest.fn(async () => {
+        mockIap.getAvailablePurchases.mockImplementation(async () => {
           throw error;
         });
 
@@ -1391,6 +1688,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle empty subscription ID array', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1399,10 +1697,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         // Empty array means no filter, so returns all subscriptions
         const result = await IAP.hasActiveSubscriptions([]);
@@ -1411,6 +1729,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should return true for expired iOS subscription if purchase exists', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1419,11 +1738,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
             expirationDateIOS: Date.now() - 86400000, // Expired 1 day ago
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         // Should return true even if expired (presence check)
         const result = await IAP.hasActiveSubscriptions();
@@ -1432,6 +1770,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle mixed array of valid and invalid subscription IDs', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'valid_sub',
@@ -1440,10 +1779,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.hasActiveSubscriptions([
           'valid_sub',
@@ -1455,6 +1814,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle concurrent calls correctly', async () => {
+        (Platform as any).OS = 'ios';
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1463,10 +1823,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         // Make concurrent calls
         const results = await Promise.all([
@@ -1481,6 +1861,7 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle special characters in subscription IDs', async () => {
+        (Platform as any).OS = 'android';
         const mockPurchases: Purchase[] = [
           {
             productId: 'sub.premium.monthly',
@@ -1489,6 +1870,10 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'android',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            autoRenewingAndroid: true, // Add subscription field
           } as any,
           {
             productId: 'sub-basic-yearly',
@@ -1497,6 +1882,9 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token2',
             transactionDate: Date.now(),
             platform: 'android',
+            isAutoRenewing: true, // Add subscription field
+            quantity: 1,
+            purchaseState: 'purchased',
           } as any,
           {
             productId: 'sub_pro_lifetime',
@@ -1505,10 +1893,22 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token3',
             transactionDate: Date.now(),
             platform: 'android',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            autoRenewingAndroid: true, // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For Android, getAvailablePurchases is called twice (inapp and subs)
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if (options?.android?.type === 'inapp') {
+              return [];
+            }
+            return mockPurchases;
+          },
+        );
 
         const result1 = await IAP.hasActiveSubscriptions([
           'sub.premium.monthly',
@@ -1522,6 +1922,9 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle undefined subscription ID parameter', async () => {
+        // Ensure Platform.OS is set to 'ios' for this test
+        (Platform as any).OS = 'ios';
+
         const mockPurchases: Purchase[] = [
           {
             productId: 'subscription1',
@@ -1530,10 +1933,32 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // Mock getAvailablePurchases to return purchases in NitroPurchase format
+        // getAvailablePurchases in the implementation expects raw NitroPurchase objects from native
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         // Undefined should check all subscriptions
         const result = await IAP.hasActiveSubscriptions(undefined);
@@ -1542,6 +1967,9 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should handle purchases with null productId', async () => {
+        // Ensure Platform.OS is set to 'ios' for this test
+        (Platform as any).OS = 'ios';
+
         const mockPurchases: Purchase[] = [
           {
             productId: null,
@@ -1550,6 +1978,10 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token1',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            expirationDateIOS: Date.now() + 86400000, // Has subscription field
           } as any,
           {
             productId: 'valid_sub',
@@ -1558,10 +1990,30 @@ describe('Public API (src/index.ts)', () => {
             purchaseToken: 'token2',
             transactionDate: Date.now(),
             platform: 'ios',
+            isAutoRenewing: true,
+            quantity: 1,
+            purchaseState: 'purchased',
+            subscriptionGroupIdIOS: 'group1', // Add subscription field
           } as any,
         ];
 
-        mockIap.getAvailablePurchases = jest.fn(async () => mockPurchases);
+        // For iOS, check if called with ios options
+        mockIap.getAvailablePurchases.mockImplementation(
+          async (options: any) => {
+            if ((Platform as any).OS === 'ios' && options?.ios) {
+              return mockPurchases;
+            }
+            if ((Platform as any).OS === 'android' && options?.android) {
+              // For Android, return based on type
+              if (options.android.type === 'inapp') {
+                return [];
+              }
+              return mockPurchases;
+            }
+            // Fallback for tests without platform check
+            return mockPurchases;
+          },
+        );
 
         const result = await IAP.hasActiveSubscriptions();
 
