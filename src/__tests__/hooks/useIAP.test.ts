@@ -28,11 +28,7 @@ jest.mock('react-native', () => ({
   Platform: {OS: 'ios', select: (obj: any) => obj.ios},
 }));
 
-// Mock helpers used via index re-exports
-jest.mock('../../helpers/subscription', () => ({
-  getActiveSubscriptions: jest.fn(async () => []),
-  hasActiveSubscriptions: jest.fn(async () => false),
-}));
+// Mock is handled through spyOn in beforeEach
 
 // Import after mocks
 import * as IAP from '../../index';
@@ -48,6 +44,8 @@ describe('hooks/useIAP (renderer)', () => {
   beforeEach(() => {
     jest.spyOn(IAP, 'initConnection').mockResolvedValue(true as any);
     jest.spyOn(IAP, 'getAvailablePurchases').mockResolvedValue([] as any);
+    jest.spyOn(IAP, 'getActiveSubscriptions').mockResolvedValue([] as any);
+    jest.spyOn(IAP, 'hasActiveSubscriptions').mockResolvedValue(false as any);
     jest.spyOn(IAP, 'finishTransaction').mockResolvedValue(undefined as any);
     jest.spyOn(IAP, 'purchaseUpdatedListener').mockImplementation((cb: any) => {
       capturedPurchaseListener = cb;
