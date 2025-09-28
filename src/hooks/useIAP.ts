@@ -1,6 +1,7 @@
 // External dependencies
 import {useCallback, useEffect, useState, useRef} from 'react';
 import {Platform} from 'react-native';
+import {RnIapConsole} from '../utils/debug';
 
 // Internal modules
 import {
@@ -146,27 +147,31 @@ export function useIAP(options?: UseIapOptions): UseIap {
       type?: ProductQueryType | null;
     }): Promise<void> => {
       if (!connectedRef.current) {
-        console.warn(
+        RnIapConsole.warn(
           '[useIAP] fetchProducts called before connection; skipping',
         );
         return;
       }
       try {
         const requestType = params.type ?? 'in-app';
+        RnIapConsole.debug('[useIAP] Calling fetchProducts with:', {
+          skus: params.skus,
+          type: requestType,
+        });
         const result = await fetchProducts({
           skus: params.skus,
           type: requestType,
         });
+        RnIapConsole.debug('[useIAP] fetchProducts result:', result);
         const items = (result ?? []) as (Product | ProductSubscription)[];
 
+        // fetchProducts already returns properly filtered results based on type
         if (requestType === 'subs') {
-          const newSubscriptions = items.filter(
-            (item): item is ProductSubscription => item.type === 'subs',
-          );
+          // All items are already subscriptions
           setSubscriptions((prevSubscriptions: ProductSubscription[]) =>
             mergeWithDuplicateCheck(
               prevSubscriptions,
-              newSubscriptions,
+              items as ProductSubscription[],
               (subscription: ProductSubscription) => subscription.id,
             ),
           );
@@ -174,6 +179,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
         }
 
         if (requestType === 'all') {
+          // fetchProducts already properly separates products and subscriptions
           const newProducts = items.filter(
             (item): item is Product => item.type === 'in-app',
           );
@@ -198,18 +204,16 @@ export function useIAP(options?: UseIapOptions): UseIap {
           return;
         }
 
-        const newProducts = items.filter(
-          (item): item is Product => item.type === 'in-app',
-        );
+        // For 'in-app' type, all items are already products
         setProducts((prevProducts: Product[]) =>
           mergeWithDuplicateCheck(
             prevProducts,
-            newProducts,
+            items as Product[],
             (product: Product) => product.id,
           ),
         );
       } catch (error) {
-        console.error('Error fetching products:', error);
+        RnIapConsole.error('Error fetching products:', error);
       }
     },
     [mergeWithDuplicateCheck],
@@ -224,7 +228,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
         });
         setAvailablePurchases(result);
       } catch (error) {
-        console.error('Error fetching available purchases:', error);
+        RnIapConsole.error('Error fetching available purchases:', error);
       }
     },
     [],
@@ -237,7 +241,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
         setActiveSubscriptions(result);
         return result;
       } catch (error) {
-        console.error('Error getting active subscriptions:', error);
+        RnIapConsole.error('Error getting active subscriptions:', error);
         // Don't clear existing activeSubscriptions on error - preserve current state
         // This prevents the UI from showing empty state when there are temporary network issues
         return [];
@@ -251,7 +255,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       try {
         return await hasActiveSubscriptions(subscriptionIds);
       } catch (error) {
-        console.error('Error checking active subscriptions:', error);
+        RnIapConsole.error('Error checking active subscriptions:', error);
         return false;
       }
     },
@@ -303,7 +307,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
           await getActiveSubscriptionsInternal();
           await getAvailablePurchasesInternal();
         } catch (e) {
-          console.warn('[useIAP] post-purchase refresh failed:', e);
+          RnIapConsole.warn('[useIAP] post-purchase refresh failed:', e);
         }
         if (optionsRef.current?.onPurchaseSuccess) {
           optionsRef.current.onPurchaseSuccess(purchase);
@@ -382,7 +386,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
         await restorePurchasesTopLevel();
         await getAvailablePurchasesInternal();
       } catch (e) {
-        console.warn('Failed to restore purchases:', e);
+        RnIapConsole.warn('Failed to restore purchases:', e);
       }
     },
     getPromotedProductIOS,

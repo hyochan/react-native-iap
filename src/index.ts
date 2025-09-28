@@ -35,6 +35,8 @@ import type {
   RequestSubscriptionPropsByPlatforms,
   ActiveSubscription,
   PurchaseAndroid,
+  ProductAndroid,
+  ProductSubscriptionAndroid,
 } from './types';
 import {
   convertNitroProductToProduct,
@@ -46,6 +48,7 @@ import {
 } from './utils/type-bridge';
 import {parseErrorStringToJsonObj} from './utils/error';
 import {normalizeErrorCodeFromNative} from './utils/errorMapping';
+import {RnIapConsole} from './utils/debug';
 import {getSuccessFromPurchaseVariant} from './utils/purchase';
 import {parseAppTransactionPayload} from './utils';
 
@@ -334,13 +337,87 @@ export const fetchProducts: QueryField<'fetchProducts'> = async (request) => {
 
     if (normalizedType === 'all') {
       const converted = await fetchAndConvert('all');
-      const productItems = converted.filter(
-        (item): item is Product => item.type === 'in-app',
+
+      RnIapConsole.debug(
+        '[fetchProducts] Converted items before filtering:',
+        converted.map((item) => ({
+          id: item.id,
+          type: item.type,
+          offers: (item as ProductSubscriptionAndroid)
+            .subscriptionOfferDetailsAndroid,
+        })),
       );
+
+      // For 'all' type, need to properly distinguish between products and subscriptions
+      // On Android, check subscriptionOfferDetailsAndroid to determine if it's a real subscription
+      const productItems = converted
+        .filter((item): item is Product => {
+          // iOS: check type
+          if (Platform.OS === 'ios') {
+            return item.type === 'in-app';
+          }
+          // Android: if subscriptionOfferDetailsAndroid has content, it's a subscription
+          // Empty array or undefined means it's an in-app product (default)
+          const androidItem = item as ProductAndroid;
+          const hasSubscriptionOffers =
+            androidItem.subscriptionOfferDetailsAndroid &&
+            Array.isArray(androidItem.subscriptionOfferDetailsAndroid) &&
+            androidItem.subscriptionOfferDetailsAndroid.length > 0;
+
+          RnIapConsole.debug(
+            `[fetchProducts] ${item.id}: type=${item.type}, subscriptionOfferDetailsAndroid=${
+              androidItem.subscriptionOfferDetailsAndroid === undefined
+                ? 'undefined'
+                : Array.isArray(androidItem.subscriptionOfferDetailsAndroid)
+                  ? `array(${androidItem.subscriptionOfferDetailsAndroid.length})`
+                  : 'not-array'
+            }, isProduct=${!hasSubscriptionOffers}`,
+          );
+          return !hasSubscriptionOffers; // Default is in-app product
+        })
+        .map((item) => {
+          // Fix the type field for Android products
+          if (Platform.OS === 'android') {
+            return {
+              ...item,
+              type: 'in-app' as const,
+            };
+          }
+          return item;
+        });
+
       const subscriptionItems = converted
-        .filter((item) => item.type === 'subs')
+        .filter((item) => {
+          // iOS: check type
+          if (Platform.OS === 'ios') {
+            return item.type === 'subs';
+          }
+          // Android: only consider it a subscription if it has actual offers
+          const androidItem = item as ProductAndroid;
+          const hasSubscriptionOffers =
+            androidItem.subscriptionOfferDetailsAndroid &&
+            Array.isArray(androidItem.subscriptionOfferDetailsAndroid) &&
+            androidItem.subscriptionOfferDetailsAndroid.length > 0;
+
+          RnIapConsole.debug(
+            `[fetchProducts-sub] ${item.id}: type=${item.type}, subscriptionOfferDetailsAndroid=${
+              androidItem.subscriptionOfferDetailsAndroid === undefined
+                ? 'undefined'
+                : Array.isArray(androidItem.subscriptionOfferDetailsAndroid)
+                  ? `array(${androidItem.subscriptionOfferDetailsAndroid.length})`
+                  : 'not-array'
+            }, isSub=${hasSubscriptionOffers}`,
+          );
+          return hasSubscriptionOffers;
+        })
         .map(convertProductToProductSubscription);
 
+      RnIapConsole.debug(
+        '[fetchProducts] After filtering - products:',
+        productItems.length,
+        'subs:',
+        subscriptionItems.length,
+      );
       return [...productItems, ...subscriptionItems] as FetchProductsResult;
     }
 

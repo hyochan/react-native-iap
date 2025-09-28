@@ -1,11 +1,11 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useState, useMemo} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
-  ScrollView,
+  SectionList,
 } from 'react-native';
 import {useIAP} from 'react-native-iap';
 import Loading from '../src/components/Loading';
@@ -36,19 +36,51 @@ function AllProducts() {
 
   useEffect(() => {
     console.log('[AllProducts] useEffect - connected:', connected);
+    console.log('[AllProducts] Current products:', products.length);
+    console.log('[AllProducts] Current subscriptions:', subscriptions.length);
+
     if (connected) {
-      console.log('[AllProducts] Fetching all products');
+      console.log(
+        '[AllProducts] Fetching all products with SKUs:',
+        ALL_PRODUCT_IDS,
+      );
 
       // Fetch all products with type 'all'
       fetchProducts({skus: ALL_PRODUCT_IDS, type: 'all'})
         .then(() => {
           console.log('[AllProducts] fetchProducts completed');
+          console.log('[AllProducts] Products after fetch:', products.length);
+          console.log(
+            '[AllProducts] Subscriptions after fetch:',
+            subscriptions.length,
+          );
         })
         .catch((error) => {
           console.error('[AllProducts] fetchProducts error:', error);
         });
     }
   }, [connected, fetchProducts]);
+
+  // Prepare sections for SectionList
+  const sections = useMemo(() => {
+    const sectionsData = [];
+
+    if (products.length > 0) {
+      sectionsData.push({
+        title: 'In-App Products',
+        data: products,
+      });
+    }
+
+    if (subscriptions.length > 0) {
+      sectionsData.push({
+        title: 'Subscriptions',
+        data: subscriptions,
+      });
+    }
+
+    return sectionsData;
+  }, [products, subscriptions]);
 
   const handleShowDetails = (product: Product) => {
     setSelectedProduct(product);
@@ -80,99 +112,83 @@ function AllProducts() {
     return <Loading message="Connecting to Store..." />;
   }
 
-  return (
-    <ScrollView style={styles.container}>
+  const renderItem = ({item}: {item: Product}) => (
+    <View style={styles.productCard}>
+      <View style={styles.productHeader}>
+        <View style={styles.productTitleContainer}>
+          <Text style={styles.productTitle}>{item.title}</Text>
+          <Text
+            style={[
+              styles.typeBadge,
+              item.type === 'subs'
+                ? styles.typeBadgeSubscription
+                : getProductTypeStyle(item),
+            ]}
+          >
+            {item.type === 'subs' ? 'SUBSCRIPTION' : getProductTypeLabel(item)}
+          </Text>
+        </View>
+        <Text style={styles.productPrice}>{item.displayPrice}</Text>
+      </View>
+      <Text style={styles.productDescription}>{item.description}</Text>
+      <TouchableOpacity
+        style={styles.detailsButton}
+        onPress={() => handleShowDetails(item)}
+      >
+        <Text style={styles.detailsButtonText}>Details</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderSectionHeader = ({section}: {section: {title: string}}) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{section.title}</Text>
+      <Text style={styles.sectionCount}>
+        {section.title === 'In-App Products'
+          ? `${products.length} item(s)`
+          : `${subscriptions.length} item(s)`}
+      </Text>
+    </View>
+  );
+
+  const ListHeaderComponent = () => (
+    <>
       <View style={styles.header}>
         <Text style={styles.title}>All Products</Text>
         <Text style={styles.subtitle}>In-App Purchases and Subscriptions</Text>
       </View>
-
-      <View style={styles.content}>
-        {/* Connection Status */}
-        <View style={styles.statusContainer}>
-          <Text style={styles.statusLabel}>Store Connection:</Text>
-          <Text
-            style={[
-              styles.statusValue,
-              {color: connected ? '#4CAF50' : '#F44336'},
-            ]}
-          >
-            {connected ? '✅ Connected' : '❌ Disconnected'}
-          </Text>
-        </View>
-
-        {/* Products List */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Products (In-App)</Text>
-          <Text style={styles.sectionSubtitle}>
-            {products.length > 0
-              ? `${products.length} product(s) loaded`
-              : 'No products'}
-          </Text>
-
-          {products.map((product) => (
-            <View key={product.id} style={styles.productCard}>
-              <View style={styles.productHeader}>
-                <View style={styles.productTitleContainer}>
-                  <Text style={styles.productTitle}>{product.title}</Text>
-                  <Text
-                    style={[styles.typeBadge, getProductTypeStyle(product)]}
-                  >
-                    {getProductTypeLabel(product)}
-                  </Text>
-                </View>
-                <Text style={styles.productPrice}>{product.displayPrice}</Text>
-              </View>
-              <Text style={styles.productDescription}>
-                {product.description}
-              </Text>
-              <TouchableOpacity
-                style={styles.detailsButton}
-                onPress={() => handleShowDetails(product)}
-              >
-                <Text style={styles.detailsButtonText}>Details</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-
-        {/* Subscriptions List */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Subscriptions</Text>
-          <Text style={styles.sectionSubtitle}>
-            {subscriptions.length > 0
-              ? `${subscriptions.length} subscription(s) loaded`
-              : 'No subscriptions'}
-          </Text>
-
-          {subscriptions.map((subscription) => (
-            <View key={subscription.id} style={styles.productCard}>
-              <View style={styles.productHeader}>
-                <View style={styles.productTitleContainer}>
-                  <Text style={styles.productTitle}>{subscription.title}</Text>
-                  <Text
-                    style={[styles.typeBadge, styles.typeBadgeSubscription]}
-                  >
-                    SUBS
-                  </Text>
-                </View>
-                <Text style={styles.productPrice}>
-                  {subscription.displayPrice}
-                </Text>
-              </View>
-              <Text style={styles.productDescription}>
-                {subscription.description}
-              </Text>
-              <TouchableOpacity
-                style={styles.detailsButton}
-                onPress={() => handleShowDetails(subscription)}
-              >
-                <Text style={styles.detailsButtonText}>Details</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
+      <View style={styles.statusContainer}>
+        <Text style={styles.statusLabel}>Store Connection:</Text>
+        <Text
+          style={[
+            styles.statusValue,
+            {color: connected ? '#4CAF50' : '#F44336'},
+          ]}
+        >
+          {connected ? '✅ Connected' : '❌ Disconnected'}
+        </Text>
       </View>
+    </>
+  );
+
+  const ListEmptyComponent = () => (
+    <View style={styles.emptyState}>
+      <Text style={styles.emptyStateText}>No products available</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        ListHeaderComponent={ListHeaderComponent}
+        ListEmptyComponent={ListEmptyComponent}
+        contentContainerStyle={styles.listContent}
+        stickySectionHeadersEnabled={false}
+      />
 
       {/* Product Details Modal */}
       <Modal
@@ -231,7 +247,7 @@ function AllProducts() {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -241,6 +257,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  listContent: {
+    flexGrow: 1,
   },
   header: {
     backgroundColor: '#FF6B6B',
@@ -257,15 +276,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
   },
-  content: {
-    padding: 15,
-  },
   statusContainer: {
     flexDirection: 'row',
     backgroundColor: 'white',
     padding: 15,
     borderRadius: 8,
-    marginBottom: 15,
+    margin: 15,
+    marginTop: 0,
     alignItems: 'center',
   },
   statusLabel: {
@@ -277,24 +294,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  section: {
-    marginBottom: 20,
+  sectionHeader: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 5,
+    color: '#333',
   },
-  sectionSubtitle: {
+  sectionCount: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 10,
+    marginTop: 2,
   },
   productCard: {
     backgroundColor: 'white',
     borderRadius: 8,
     padding: 15,
-    marginBottom: 10,
+    marginHorizontal: 15,
+    marginVertical: 5,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
