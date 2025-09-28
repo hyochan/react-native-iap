@@ -238,6 +238,8 @@ describe('Public API (src/index.ts)', () => {
           platform: 'android',
           displayPrice: '$1.00',
           currency: 'USD',
+          // Explicitly set as undefined to mark as in-app product
+          subscriptionOfferDetailsAndroid: undefined,
         },
         {
           id: 'y',
@@ -247,6 +249,26 @@ describe('Public API (src/index.ts)', () => {
           platform: 'android',
           displayPrice: '$2.00',
           currency: 'USD',
+          // Add subscription offer details to properly identify as subscription
+          subscriptionOfferDetailsAndroid: [
+            {
+              basePlanId: 'base',
+              offerTags: [],
+              offerToken: 'token',
+              pricingPhases: {
+                pricingPhaseList: [
+                  {
+                    billingCycleCount: 0,
+                    billingPeriod: 'P1M',
+                    formattedPrice: '$2.00',
+                    priceAmountMicros: '2000000',
+                    priceCurrencyCode: 'USD',
+                    recurrenceMode: 1,
+                  },
+                ],
+              },
+            },
+          ],
         },
       ]);
       const result = await IAP.fetchProducts({
@@ -254,14 +276,32 @@ describe('Public API (src/index.ts)', () => {
         type: 'all',
       });
       const items = result ?? [];
-      const productIds = items
-        .filter((item: any) => item.type === 'in-app')
-        .map((item: any) => item.id);
-      const subscriptionIds = items
-        .filter((item: any) => item.type === 'subs')
-        .map((item: any) => item.id);
-      expect(productIds).toEqual(['x']);
-      expect(subscriptionIds).toEqual(['y']);
+
+      // Debug: Log what we received
+      console.log(
+        'Test items received:',
+        items.map((item: any) => ({
+          id: item.id,
+          type: item.type,
+          hasOffers: item.subscriptionOfferDetailsAndroid?.length > 0,
+        })),
+      );
+
+      // Products should be properly categorized
+      expect(items).toHaveLength(2);
+      // Check that we have both products
+      const productIds = items.map((item: any) => item.id);
+      expect(productIds).toContain('x');
+      expect(productIds).toContain('y');
+
+      const xProduct = items.find((item: any) => item.id === 'x');
+      const yProduct = items.find((item: any) => item.id === 'y');
+
+      // Product x should be an in-app product (no subscription offers)
+      expect(xProduct?.type).toBe('in-app');
+
+      // Product y should be a subscription (has subscription offers)
+      expect(yProduct?.type).toBe('subs');
       expect(mockIap.fetchProducts).toHaveBeenNthCalledWith(
         1,
         ['x', 'y'],
@@ -498,7 +538,9 @@ describe('Public API (src/index.ts)', () => {
       (Platform as any).OS = 'android';
       mockIap.getStorefront = undefined;
       await expect(IAP.getStorefront()).resolves.toBe('');
+      // RnIapConsole.warn adds "[RN-IAP]" prefix
       expect(console.warn).toHaveBeenCalledWith(
+        '[RN-IAP]',
         expect.stringContaining('Native getStorefront is not available'),
       );
     });
@@ -1312,7 +1354,9 @@ describe('Public API (src/index.ts)', () => {
         await expect(IAP.getActiveSubscriptions()).rejects.toThrow(
           'Failed to fetch purchases',
         );
+        // RnIapConsole.error adds "[RN-IAP]" prefix
         expect(console.error).toHaveBeenCalledWith(
+          '[RN-IAP]',
           'Failed to get active subscriptions:',
           error,
         );
@@ -1681,7 +1725,9 @@ describe('Public API (src/index.ts)', () => {
         const result = await IAP.hasActiveSubscriptions();
 
         expect(result).toBe(false);
+        // RnIapConsole.error adds "[RN-IAP]" prefix
         expect(console.error).toHaveBeenCalledWith(
+          '[RN-IAP]',
           'Failed to check active subscriptions:',
           error,
         );

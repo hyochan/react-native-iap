@@ -159,7 +159,7 @@ export const purchaseUpdatedListener = (
       const convertedPurchase = convertNitroPurchaseToPurchase(nitroPurchase);
       listener(convertedPurchase);
     } else {
-      console.error(
+      RnIapConsole.error(
         'Invalid purchase data received from native:',
         nitroPurchase,
       );
@@ -174,7 +174,7 @@ export const purchaseUpdatedListener = (
   } catch (e) {
     const msg = toErrorMessage(e);
     if (msg.includes('Nitro runtime not installed')) {
-      console.warn(
+      RnIapConsole.warn(
         '[purchaseUpdatedListener] Nitro not ready yet; listener inert until initConnection()',
       );
     } else {
@@ -216,7 +216,7 @@ export const purchaseErrorListener = (
   } catch (e) {
     const msg = toErrorMessage(e);
     if (msg.includes('Nitro runtime not installed')) {
-      console.warn(
+      RnIapConsole.warn(
         '[purchaseErrorListener] Nitro not ready yet; listener inert until initConnection()',
       );
     } else {
@@ -243,7 +243,7 @@ export const promotedProductListenerIOS = (
   listener: (product: Product) => void,
 ): EventSubscription => {
   if (Platform.OS !== 'ios') {
-    console.warn(
+    RnIapConsole.warn(
       'promotedProductListenerIOS: This listener is only available on iOS',
     );
     return {remove: () => {}};
@@ -254,7 +254,7 @@ export const promotedProductListenerIOS = (
       const convertedProduct = convertNitroProductToProduct(nitroProduct);
       listener(convertedProduct);
     } else {
-      console.error(
+      RnIapConsole.error(
         'Invalid promoted product data received from native:',
         nitroProduct,
       );
@@ -269,7 +269,7 @@ export const promotedProductListenerIOS = (
   } catch (e) {
     const msg = toErrorMessage(e);
     if (msg.includes('Nitro runtime not installed')) {
-      console.warn(
+      RnIapConsole.warn(
         '[promotedProductListenerIOS] Nitro not ready yet; listener inert until initConnection()',
       );
     } else {
@@ -328,7 +328,7 @@ export const fetchProducts: QueryField<'fetchProducts'> = async (request) => {
       const nitroProducts = await IAP.instance.fetchProducts(skus, nitroType);
       const validProducts = nitroProducts.filter(validateNitroProduct);
       if (validProducts.length !== nitroProducts.length) {
-        console.warn(
+        RnIapConsole.warn(
           `[fetchProducts] Some products failed validation: ${nitroProducts.length - validProducts.length} invalid`,
         );
       }
@@ -376,8 +376,8 @@ export const fetchProducts: QueryField<'fetchProducts'> = async (request) => {
           return !hasSubscriptionOffers; // Default is in-app product
         })
         .map((item) => {
-          // Fix the type field for Android products
-          if (Platform.OS === 'android') {
+          // Fix the type field for Android products that were incorrectly marked as 'subs'
+          if (Platform.OS === 'android' && item.type === 'subs') {
             return {
               ...item,
               type: 'in-app' as const,
@@ -410,7 +410,14 @@ export const fetchProducts: QueryField<'fetchProducts'> = async (request) => {
           );
           return hasSubscriptionOffers;
         })
-        .map(convertProductToProductSubscription);
+        .map((item) => {
+          // Ensure subscription items have the correct type
+          const subscription = convertProductToProductSubscription(item);
+          return {
+            ...subscription,
+            type: 'subs' as const,
+          };
+        });
 
       RnIapConsole.debug(
         '[fetchProducts] After filtering - products:',
@@ -433,7 +440,7 @@ export const fetchProducts: QueryField<'fetchProducts'> = async (request) => {
 
     return convertedProducts as FetchProductsResult;
   } catch (error) {
-    console.error('[fetchProducts] Failed:', error);
+    RnIapConsole.error('[fetchProducts] Failed:', error);
     throw error;
   }
 };
@@ -475,7 +482,7 @@ export const getAvailablePurchases: QueryField<
 
       const validPurchases = nitroPurchases.filter(validateNitroPurchase);
       if (validPurchases.length !== nitroPurchases.length) {
-        console.warn(
+        RnIapConsole.warn(
           `[getAvailablePurchases] Some purchases failed validation: ${nitroPurchases.length - validPurchases.length} invalid`,
         );
       }
@@ -494,7 +501,7 @@ export const getAvailablePurchases: QueryField<
       const allNitroPurchases = [...inappNitroPurchases, ...subsNitroPurchases];
       const validPurchases = allNitroPurchases.filter(validateNitroPurchase);
       if (validPurchases.length !== allNitroPurchases.length) {
-        console.warn(
+        RnIapConsole.warn(
           `[getAvailablePurchases] Some Android purchases failed validation: ${allNitroPurchases.length - validPurchases.length} invalid`,
         );
       }
@@ -504,7 +511,7 @@ export const getAvailablePurchases: QueryField<
       throw new Error('Unsupported platform');
     }
   } catch (error) {
-    console.error('Failed to get available purchases:', error);
+    RnIapConsole.error('Failed to get available purchases:', error);
     throw error;
   }
 };
@@ -532,7 +539,7 @@ export const getPromotedProductIOS: QueryField<
     const converted = convertNitroProductToProduct(nitroProduct);
     return converted.platform === 'ios' ? (converted as ProductIOS) : null;
   } catch (error) {
-    console.error('[getPromotedProductIOS] Failed:', error);
+    RnIapConsole.error('[getPromotedProductIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -549,14 +556,14 @@ export const getStorefrontIOS: QueryField<'getStorefrontIOS'> = async () => {
     const storefront = await IAP.instance.getStorefrontIOS();
     return storefront;
   } catch (error) {
-    console.error('Failed to get storefront:', error);
+    RnIapConsole.error('Failed to get storefront:', error);
     throw error;
   }
 };
 
 export const getStorefront: QueryField<'getStorefront'> = async () => {
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
-    console.warn(
+    RnIapConsole.warn(
       '[getStorefront] Storefront lookup is only supported on iOS and Android.',
     );
     return '';
@@ -569,7 +576,7 @@ export const getStorefront: QueryField<'getStorefront'> = async () => {
   }
 
   if (!hasUnifiedMethod) {
-    console.warn(
+    RnIapConsole.warn(
       '[getStorefront] Native getStorefront is not available on this build.',
     );
     return '';
@@ -579,7 +586,7 @@ export const getStorefront: QueryField<'getStorefront'> = async () => {
     const storefront = await IAP.instance.getStorefront();
     return storefront ?? '';
   } catch (error) {
-    console.error(
+    RnIapConsole.error(
       `[getStorefront] Failed to get storefront on ${Platform.OS}:`,
       error,
     );
@@ -614,7 +621,7 @@ export const getAppTransactionIOS: QueryField<
 
     return null;
   } catch (error) {
-    console.error('Failed to get app transaction:', error);
+    RnIapConsole.error('Failed to get app transaction:', error);
     throw error;
   }
 };
@@ -633,7 +640,7 @@ export const subscriptionStatusIOS: QueryField<
       .filter((status): status is NitroSubscriptionStatus => status != null)
       .map(convertNitroSubscriptionStatusToSubscriptionStatusIOS);
   } catch (error) {
-    console.error('[subscriptionStatusIOS] Failed:', error);
+    RnIapConsole.error('[subscriptionStatusIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -654,7 +661,7 @@ export const currentEntitlementIOS: QueryField<
     }
     return null;
   } catch (error) {
-    console.error('[currentEntitlementIOS] Failed:', error);
+    RnIapConsole.error('[currentEntitlementIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -675,7 +682,7 @@ export const latestTransactionIOS: QueryField<'latestTransactionIOS'> = async (
     }
     return null;
   } catch (error) {
-    console.error('[latestTransactionIOS] Failed:', error);
+    RnIapConsole.error('[latestTransactionIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -696,7 +703,7 @@ export const getPendingTransactionsIOS: QueryField<
         (purchase): purchase is PurchaseIOS => purchase.platform === 'ios',
       );
   } catch (error) {
-    console.error('[getPendingTransactionsIOS] Failed:', error);
+    RnIapConsole.error('[getPendingTransactionsIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -717,7 +724,7 @@ export const showManageSubscriptionsIOS: MutationField<
         (purchase): purchase is PurchaseIOS => purchase.platform === 'ios',
       );
   } catch (error) {
-    console.error('[showManageSubscriptionsIOS] Failed:', error);
+    RnIapConsole.error('[showManageSubscriptionsIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -733,7 +740,7 @@ export const isEligibleForIntroOfferIOS: QueryField<
   try {
     return await IAP.instance.isEligibleForIntroOfferIOS(groupID);
   } catch (error) {
-    console.error('[isEligibleForIntroOfferIOS] Failed:', error);
+    RnIapConsole.error('[isEligibleForIntroOfferIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -747,7 +754,7 @@ export const getReceiptDataIOS: QueryField<'getReceiptDataIOS'> = async () => {
   try {
     return await IAP.instance.getReceiptDataIOS();
   } catch (error) {
-    console.error('[getReceiptDataIOS] Failed:', error);
+    RnIapConsole.error('[getReceiptDataIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -764,7 +771,7 @@ export const getReceiptIOS = async (): Promise<string> => {
     }
     return await IAP.instance.getReceiptDataIOS();
   } catch (error) {
-    console.error('[getReceiptIOS] Failed:', error);
+    RnIapConsole.error('[getReceiptIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -781,7 +788,7 @@ export const requestReceiptRefreshIOS = async (): Promise<string> => {
     }
     return await IAP.instance.getReceiptDataIOS();
   } catch (error) {
-    console.error('[requestReceiptRefreshIOS] Failed:', error);
+    RnIapConsole.error('[requestReceiptRefreshIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -797,7 +804,7 @@ export const isTransactionVerifiedIOS: QueryField<
   try {
     return await IAP.instance.isTransactionVerifiedIOS(sku);
   } catch (error) {
-    console.error('[isTransactionVerifiedIOS] Failed:', error);
+    RnIapConsole.error('[isTransactionVerifiedIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -813,7 +820,7 @@ export const getTransactionJwsIOS: QueryField<'getTransactionJwsIOS'> = async (
   try {
     return await IAP.instance.getTransactionJwsIOS(sku);
   } catch (error) {
-    console.error('[getTransactionJwsIOS] Failed:', error);
+    RnIapConsole.error('[getTransactionJwsIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -830,7 +837,7 @@ export const initConnection: MutationField<'initConnection'> = async () => {
   try {
     return await IAP.instance.initConnection();
   } catch (error) {
-    console.error('Failed to initialize IAP connection:', error);
+    RnIapConsole.error('Failed to initialize IAP connection:', error);
     throw error;
   }
 };
@@ -843,7 +850,7 @@ export const endConnection: MutationField<'endConnection'> = async () => {
     if (!iapRef) return true;
     return await IAP.instance.endConnection();
   } catch (error) {
-    console.error('Failed to end IAP connection:', error);
+    RnIapConsole.error('Failed to end IAP connection:', error);
     throw error;
   }
 };
@@ -859,7 +866,7 @@ export const restorePurchases: MutationField<'restorePurchases'> = async () => {
       onlyIncludeActiveItemsIOS: true,
     });
   } catch (error) {
-    console.error('Failed to restore purchases:', error);
+    RnIapConsole.error('Failed to restore purchases:', error);
     throw error;
   }
 };
@@ -987,7 +994,7 @@ export const requestPurchase: MutationField<'requestPurchase'> = async (
 
     return await IAP.instance.requestPurchase(unifiedRequest);
   } catch (error) {
-    console.error('Failed to request purchase:', error);
+    RnIapConsole.error('Failed to request purchase:', error);
     throw error;
   }
 };
@@ -1059,7 +1066,7 @@ export const finishTransaction: MutationField<'finishTransaction'> = async (
         return;
       }
     }
-    console.error('Failed to finish transaction:', error);
+    RnIapConsole.error('Failed to finish transaction:', error);
     throw error;
   }
 };
@@ -1092,7 +1099,7 @@ export const acknowledgePurchaseAndroid: MutationField<
     });
     return getSuccessFromPurchaseVariant(result, 'acknowledgePurchaseAndroid');
   } catch (error) {
-    console.error('Failed to acknowledge purchase Android:', error);
+    RnIapConsole.error('Failed to acknowledge purchase Android:', error);
     throw error;
   }
 };
@@ -1123,7 +1130,7 @@ export const consumePurchaseAndroid: MutationField<
     });
     return getSuccessFromPurchaseVariant(result, 'consumePurchaseAndroid');
   } catch (error) {
-    console.error('Failed to consume purchase Android:', error);
+    RnIapConsole.error('Failed to consume purchase Android:', error);
     throw error;
   }
 };
@@ -1199,7 +1206,7 @@ export const validateReceipt: MutationField<'validateReceipt'> = async (
       return result;
     }
   } catch (error) {
-    console.error('[validateReceipt] Failed:', error);
+    RnIapConsole.error('[validateReceipt] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -1219,7 +1226,7 @@ export const syncIOS: MutationField<'syncIOS'> = async () => {
     const result = await IAP.instance.syncIOS();
     return Boolean(result);
   } catch (error) {
-    console.error('[syncIOS] Failed:', error);
+    RnIapConsole.error('[syncIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -1241,7 +1248,7 @@ export const presentCodeRedemptionSheetIOS: MutationField<
     const result = await IAP.instance.presentCodeRedemptionSheetIOS();
     return Boolean(result);
   } catch (error) {
-    console.error('[presentCodeRedemptionSheetIOS] Failed:', error);
+    RnIapConsole.error('[presentCodeRedemptionSheetIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -1276,7 +1283,7 @@ export const requestPurchaseOnPromotedProductIOS: MutationField<
 
     return true;
   } catch (error) {
-    console.error('[requestPurchaseOnPromotedProductIOS] Failed:', error);
+    RnIapConsole.error('[requestPurchaseOnPromotedProductIOS] Failed:', error);
     throw error;
   }
 };
@@ -1297,7 +1304,7 @@ export const clearTransactionIOS: MutationField<
     await IAP.instance.clearTransactionIOS();
     return true;
   } catch (error) {
-    console.error('[clearTransactionIOS] Failed:', error);
+    RnIapConsole.error('[clearTransactionIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -1320,7 +1327,7 @@ export const beginRefundRequestIOS: MutationField<
     const status = await IAP.instance.beginRefundRequestIOS(sku);
     return status ?? null;
   } catch (error) {
-    console.error('[beginRefundRequestIOS] Failed:', error);
+    RnIapConsole.error('[beginRefundRequestIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -1413,7 +1420,7 @@ export const deepLinkToSubscriptions: MutationField<
         await IAP.instance.showManageSubscriptionsIOS();
       }
     } catch (error) {
-      console.warn('[deepLinkToSubscriptions] Failed on iOS:', error);
+      RnIapConsole.warn('[deepLinkToSubscriptions] Failed on iOS:', error);
     }
   }
 };
@@ -1430,7 +1437,7 @@ export const deepLinkToSubscriptionsIOS = async (): Promise<boolean> => {
     await IAP.instance.showManageSubscriptionsIOS();
     return true;
   } catch (error) {
-    console.error('[deepLinkToSubscriptionsIOS] Failed:', error);
+    RnIapConsole.error('[deepLinkToSubscriptionsIOS] Failed:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -1529,7 +1536,7 @@ export const getActiveSubscriptions: QueryField<
 
     return subscriptions;
   } catch (error) {
-    console.error('Failed to get active subscriptions:', error);
+    RnIapConsole.error('Failed to get active subscriptions:', error);
     const errorJson = parseErrorStringToJsonObj(error);
     throw new Error(errorJson.message);
   }
@@ -1547,7 +1554,7 @@ export const hasActiveSubscriptions: QueryField<
     const activeSubscriptions = await getActiveSubscriptions(subscriptionIds);
     return activeSubscriptions.length > 0;
   } catch (error) {
-    console.error('Failed to check active subscriptions:', error);
+    RnIapConsole.error('Failed to check active subscriptions:', error);
     return false;
   }
 };
@@ -1606,7 +1613,7 @@ const toNitroProductType = (
     return 'all';
   }
   if (type === 'inapp') {
-    console.warn(LEGACY_INAPP_WARNING);
+    RnIapConsole.warn(LEGACY_INAPP_WARNING);
     return 'inapp';
   }
   return 'inapp';
@@ -1632,7 +1639,7 @@ const normalizeProductQueryType = (
       return 'subs';
     }
     if (normalized === 'inapp') {
-      console.warn(LEGACY_INAPP_WARNING);
+      RnIapConsole.warn(LEGACY_INAPP_WARNING);
       return 'in-app';
     }
     if (normalized === 'in-app') {

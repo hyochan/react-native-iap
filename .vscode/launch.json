@@ -9,11 +9,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn && yarn prepare && cd example/ios && pod install && cd ../.. && yarn example ios"
+        "yarn && yarn prepare && cd example/ios && pod install && cd ../.. && RN_IAP_DEV_MODE=true yarn example ios"
       ],
       "console": "integratedTerminal",
       "env": {
-        "NODE_ENV": "development"
+        "NODE_ENV": "development",
+        "RN_IAP_DEV_MODE": "true"
       }
     },
     {
@@ -24,11 +25,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "yarn && yarn prepare && cd example/ios && pod install && cd ../.. && yarn example ios --device"
+        "yarn && yarn prepare && cd example/ios && pod install && cd ../.. && RN_IAP_DEV_MODE=true yarn example ios --device"
       ],
       "console": "integratedTerminal",
       "env": {
-        "NODE_ENV": "development"
+        "NODE_ENV": "development",
+        "RN_IAP_DEV_MODE": "true"
       }
     },
     {
@@ -37,10 +39,11 @@
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "yarn && yarn prepare && yarn example android"],
+      "runtimeArgs": ["-c", "yarn && yarn prepare && RN_IAP_DEV_MODE=true yarn example android"],
       "console": "integratedTerminal",
       "env": {
-        "NODE_ENV": "development"
+        "NODE_ENV": "development",
+        "RN_IAP_DEV_MODE": "true"
       }
     },
     {

@@ -24,6 +24,7 @@ import type {
   Purchase,
   SubscriptionStatusIOS,
 } from '../types';
+import {RnIapConsole} from './debug';
 
 const PLATFORM_IOS: IapPlatform = 'ios';
 const PLATFORM_ANDROID: IapPlatform = 'android';
@@ -78,7 +79,7 @@ function normalizeProductTypeIOS(value?: Nullable<string>): ProductTypeIOS {
       return 'non-renewing-subscription';
     default:
       if (value) {
-        console.warn(
+        RnIapConsole.warn(
           `[react-native-iap] Unknown iOS product type "${value}", defaulting to NonConsumable.`,
         );
       }
@@ -170,15 +171,25 @@ function toNullableBoolean(value: unknown): boolean | null {
   return null;
 }
 
-function parseSubscriptionOffers(value?: Nullable<string>) {
+function parseSubscriptionOffers(value?: Nullable<string> | any[]) {
   if (!value) return undefined;
+
+  // If it's already an array (from mocks), return it as-is
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  // Otherwise, try to parse it as JSON string
   try {
-    const parsed = JSON.parse(value);
+    const parsed = JSON.parse(value as string);
     if (Array.isArray(parsed)) {
       return parsed;
     }
   } catch (error) {
-    console.warn('Failed to parse subscriptionOfferDetailsAndroid:', error);
+    RnIapConsole.warn(
+      'Failed to parse subscriptionOfferDetailsAndroid:',
+      error,
+    );
   }
   return undefined;
 }
@@ -270,7 +281,7 @@ export function convertProductToProductSubscription(
   product: Product,
 ): ProductSubscription {
   if (product.type !== PRODUCT_TYPE_SUBS) {
-    console.warn(
+    RnIapConsole.warn(
       'Converting non-subscription product to ProductSubscription:',
       product.id,
     );
@@ -390,7 +401,7 @@ export function validateNitroProduct(nitroProduct: NitroProduct): boolean {
       !(field in nitroProduct) ||
       nitroProduct[field as keyof NitroProduct] == null
     ) {
-      console.error(
+      RnIapConsole.error(
         `NitroProduct missing required field: ${field}`,
         nitroProduct,
       );
@@ -415,7 +426,7 @@ export function validateNitroPurchase(nitroPurchase: NitroPurchase): boolean {
       !(field in nitroPurchase) ||
       nitroPurchase[field as keyof NitroPurchase] == null
     ) {
-      console.error(
+      RnIapConsole.error(
         `NitroPurchase missing required field: ${field}`,
         nitroPurchase,
       );

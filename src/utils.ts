@@ -1,4 +1,5 @@
 import type {AppTransaction} from './types';
+import {RnIapConsole} from './utils/debug';
 
 /**
  * Parse the string payload returned by the native getAppTransactionIOS call into
@@ -62,7 +63,10 @@ export const parseAppTransactionPayload = (
       signedDate,
     };
   } catch (error) {
-    console.warn('[parseAppTransactionPayload] Failed to parse payload', error);
+    RnIapConsole.warn(
+      '[parseAppTransactionPayload] Failed to parse payload',
+      error,
+    );
     return null;
   }
 };
