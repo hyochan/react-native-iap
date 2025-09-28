@@ -23,28 +23,7 @@ import {
 } from 'react-native-iap';
 import Loading from '../src/components/Loading';
 import {SUBSCRIPTION_PRODUCT_IDS} from '../src/utils/constants';
-import PurchaseDetails from '../src/components/PurchaseDetails';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
-
-const deduplicatePurchases = (purchases: Purchase[]): Purchase[] => {
-  const uniquePurchases = new Map<string, Purchase>();
-
-  for (const purchase of purchases) {
-    const existingPurchase = uniquePurchases.get(purchase.productId);
-    if (!existingPurchase) {
-      uniquePurchases.set(purchase.productId, purchase);
-    } else {
-      const existingTimestamp = existingPurchase.transactionDate || 0;
-      const newTimestamp = purchase.transactionDate || 0;
-
-      if (newTimestamp > existingTimestamp) {
-        uniquePurchases.set(purchase.productId, purchase);
-      }
-    }
-  }
-
-  return Array.from(uniquePurchases.values());
-};
 
 /**
  * Subscription Flow Example - Subscription Products
@@ -65,7 +44,6 @@ const deduplicatePurchases = (purchases: Purchase[]): Purchase[] => {
 type SubscriptionFlowProps = {
   connected: boolean;
   subscriptions: ProductSubscription[];
-  availablePurchases: Purchase[];
   activeSubscriptions: ActiveSubscription[];
   purchaseResult: string;
   isProcessing: boolean;
@@ -80,7 +58,6 @@ type SubscriptionFlowProps = {
 function SubscriptionFlow({
   connected,
   subscriptions,
-  availablePurchases,
   activeSubscriptions,
   purchaseResult,
   isProcessing,
@@ -94,15 +71,6 @@ function SubscriptionFlow({
   const [selectedSubscription, setSelectedSubscription] =
     useState<ProductSubscription | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(
-    null,
-  );
-  const [purchaseDetailsVisible, setPurchaseDetailsVisible] = useState(false);
-
-  const availablePurchaseRows = useMemo(
-    () => deduplicatePurchases(availablePurchases),
-    [availablePurchases],
-  );
 
   const ownedSubscriptions = useMemo(() => {
     return new Set(activeSubscriptions.map((sub) => sub.productId));
@@ -415,37 +383,6 @@ function SubscriptionFlow({
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Stored Purchases</Text>
-        <Text style={styles.sectionSubtitle}>
-          {availablePurchaseRows.length > 0
-            ? `${availablePurchaseRows.length} saved purchases`
-            : 'No stored purchases yet'}
-        </Text>
-
-        {availablePurchaseRows.length > 0 ? (
-          availablePurchaseRows.map((purchase) => (
-            <PurchaseSummaryRow
-              key={`${purchase.productId}-${
-                purchase.transactionDate ?? purchase.id ?? 'na'
-              }`}
-              purchase={purchase}
-              onPress={() => {
-                setSelectedPurchase(purchase);
-                setPurchaseDetailsVisible(true);
-              }}
-            />
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>
-              No stored purchases yet. Complete a subscription purchase to see
-              it here.
-            </Text>
-          </View>
-        )}
-      </View>
-
       {purchaseResult || lastPurchase ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Latest Activity</Text>
@@ -457,13 +394,7 @@ function SubscriptionFlow({
           {lastPurchase ? (
             <View style={styles.latestPurchaseContainer}>
               <Text style={styles.latestPurchaseTitle}>Latest Purchase</Text>
-              <PurchaseSummaryRow
-                purchase={lastPurchase}
-                onPress={() => {
-                  setSelectedPurchase(lastPurchase);
-                  setPurchaseDetailsVisible(true);
-                }}
-              />
+              <PurchaseSummaryRow purchase={lastPurchase} onPress={() => {}} />
             </View>
           ) : null}
         </View>
@@ -487,38 +418,6 @@ function SubscriptionFlow({
               </TouchableOpacity>
             </View>
             {renderSubscriptionDetails}
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={purchaseDetailsVisible}
-        onRequestClose={() => setPurchaseDetailsVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Purchase Details</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setPurchaseDetailsVisible(false)}
-              >
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            {selectedPurchase ? (
-              <View style={styles.modalContent}>
-                <PurchaseDetails
-                  purchase={selectedPurchase}
-                  containerStyle={styles.purchaseDetailsContainer}
-                  rowStyle={styles.purchaseDetailRow}
-                  labelStyle={styles.modalLabel}
-                  valueStyle={styles.modalValue}
-                />
-              </View>
-            ) : null}
           </View>
         </View>
       </Modal>
@@ -550,17 +449,14 @@ function SubscriptionFlowContainer() {
   const lastSuccessAtRef = useRef(0);
   const connectedRef = useRef(false);
   const fetchedProductsOnceRef = useRef(false);
-  const loadedPurchasesOnceRef = useRef(false);
   const statusAutoCheckedRef = useRef(false);
 
   const {
     connected,
     subscriptions,
-    availablePurchases,
     activeSubscriptions,
     fetchProducts,
     finishTransaction,
-    getAvailablePurchases,
     getActiveSubscriptions,
   } = useIAP({
     onPurchaseSuccess: async (purchase: Purchase) => {
@@ -607,11 +503,6 @@ function SubscriptionFlowContainer() {
       } catch (e) {
         console.warn('Failed to refresh active subscriptions:', e);
       }
-      try {
-        await getAvailablePurchases();
-      } catch (e) {
-        console.warn('Failed to refresh available purchases:', e);
-      }
 
       setPurchaseResult(
         `✅ Subscription activated\n` +
@@ -648,18 +539,8 @@ function SubscriptionFlowContainer() {
         });
         fetchedProductsOnceRef.current = true;
       }
-
-      if (!loadedPurchasesOnceRef.current) {
-        getAvailablePurchases()
-          .catch((error) => {
-            console.warn('Failed to load available purchases:', error);
-          })
-          .finally(() => {
-            loadedPurchasesOnceRef.current = true;
-          });
-      }
     }
-  }, [connected, fetchProducts, getAvailablePurchases]);
+  }, [connected, fetchProducts]);
 
   const handleRefreshStatus = useCallback(async () => {
     if (!connected || isCheckingStatus) return;
@@ -746,7 +627,6 @@ function SubscriptionFlowContainer() {
     <SubscriptionFlow
       connected={connected}
       subscriptions={subscriptions}
-      availablePurchases={availablePurchases}
       activeSubscriptions={activeSubscriptions}
       purchaseResult={purchaseResult}
       isProcessing={isProcessing}

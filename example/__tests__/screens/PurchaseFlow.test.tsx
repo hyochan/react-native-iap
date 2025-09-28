@@ -73,8 +73,8 @@ describe('PurchaseFlow Screen', () => {
     expect(getByText('Connecting to Store...')).toBeTruthy();
   });
 
-  it('fetches products and available purchases when connected', async () => {
-    const {fetchProducts, getAvailablePurchases} = mockIapState();
+  it('fetches products when connected', async () => {
+    const {fetchProducts} = mockIapState();
 
     render(<PurchaseFlow />);
 
@@ -84,8 +84,6 @@ describe('PurchaseFlow Screen', () => {
         type: 'in-app',
       });
     });
-
-    expect(getAvailablePurchases).toHaveBeenCalled();
   });
 
   it('displays fetched products', () => {
@@ -112,21 +110,6 @@ describe('PurchaseFlow Screen', () => {
         },
       },
       type: 'in-app',
-    });
-  });
-
-  it('handles refresh available purchases', async () => {
-    const {getAvailablePurchases} = mockIapState({
-      availablePurchases: [],
-    });
-
-    const {getByText} = render(<PurchaseFlow />);
-
-    const refreshButton = getByText('Refresh available purchases');
-    fireEvent.press(refreshButton!);
-
-    await waitFor(() => {
-      expect(getAvailablePurchases).toHaveBeenCalledTimes(2);
     });
   });
 

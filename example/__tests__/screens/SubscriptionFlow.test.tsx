@@ -69,8 +69,8 @@ describe('SubscriptionFlow Screen', () => {
     expect(getByText('Connecting to Store...')).toBeTruthy();
   });
 
-  it('fetches subscriptions and purchases when connected', async () => {
-    const {fetchProducts, getAvailablePurchases} = mockIapState();
+  it('fetches subscriptions when connected', async () => {
+    const {fetchProducts} = mockIapState();
 
     render(<SubscriptionFlow />);
 
@@ -80,8 +80,6 @@ describe('SubscriptionFlow Screen', () => {
         type: 'subs',
       });
     });
-
-    expect(getAvailablePurchases).toHaveBeenCalled();
   });
 
   it('displays subscription information', () => {
