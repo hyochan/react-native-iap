@@ -8,13 +8,15 @@ const requestPurchaseMock = RNIap.requestPurchase as jest.Mock;
 const deepLinkToSubscriptionsMock = RNIap.deepLinkToSubscriptions as jest.Mock;
 
 const sampleSubscription = {
-  type: 'subs',
+  type: 'subs' as const,
   id: 'dev.hyo.martie.premium',
   title: 'Premium Subscription',
   description: 'Access all premium features',
   displayPrice: '$9.99/month',
   price: 9.99,
   currency: 'USD',
+  platform: 'android' as const,
+  nameAndroid: 'Premium Subscription',
 };
 
 describe('SubscriptionFlow Screen', () => {
@@ -173,6 +175,202 @@ describe('SubscriptionFlow Screen', () => {
       expect(
         getByText('❌ Subscription failed: Subscription failed'),
       ).toBeTruthy();
+    });
+  });
+
+  it('handles upgrade/downgrade plan change for premium subscription', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    mockIapState({
+      activeSubscriptions: [
+        {
+          productId: 'dev.hyo.martie.premium',
+          transactionId: 'trans-1',
+          transactionDate: Date.now(),
+          isActive: true,
+        } as any,
+      ],
+      subscriptions: [
+        {
+          ...sampleSubscription,
+          subscriptionOfferDetailsAndroid: [
+            {
+              basePlanId: 'premium',
+              offerToken: 'offer-token-monthly',
+              offerTags: [],
+              pricingPhases: {
+                pricingPhaseList: [
+                  {
+                    formattedPrice: '$9.99',
+                    priceAmountMicros: '9990000',
+                    priceCurrencyCode: 'USD',
+                    billingPeriod: 'P1M',
+                    billingCycleCount: 0,
+                    recurrenceMode: 1,
+                  },
+                ],
+              },
+            },
+            {
+              basePlanId: 'premium-year',
+              offerToken: 'offer-token-yearly',
+              offerTags: [],
+              pricingPhases: {
+                pricingPhaseList: [
+                  {
+                    formattedPrice: '$99.99',
+                    priceAmountMicros: '99990000',
+                    priceCurrencyCode: 'USD',
+                    billingPeriod: 'P1Y',
+                    billingCycleCount: 0,
+                    recurrenceMode: 1,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const {getByText} = render(<SubscriptionFlow />);
+
+    // Should show upgrade button for monthly plan
+    await waitFor(() => {
+      expect(getByText('⬆️ Upgrade to Yearly Plan')).toBeTruthy();
+    });
+
+    // Press upgrade button
+    fireEvent.press(getByText('⬆️ Upgrade to Yearly Plan'));
+
+    // Should show confirmation alert
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Change Subscription Plan',
+      expect.stringContaining('upgrade to Yearly'),
+      expect.any(Array),
+    );
+  });
+
+  it('displays empty state when no subscriptions available', () => {
+    mockIapState({
+      subscriptions: [],
+    });
+
+    const {getByText} = render(<SubscriptionFlow />);
+
+    expect(
+      getByText('No subscriptions found. Configure products in the console.'),
+    ).toBeTruthy();
+    expect(
+      getByText('No subscriptions found. Please configure your products.'),
+    ).toBeTruthy();
+  });
+
+  it('shows already subscribed for owned products', () => {
+    mockIapState({
+      activeSubscriptions: [
+        {
+          productId: 'dev.hyo.martie.premium',
+        } as any,
+      ],
+    });
+
+    const {getByText} = render(<SubscriptionFlow />);
+
+    // Button should show 'Already Subscribed' and be disabled
+    const button = getByText('Already Subscribed');
+    expect(button).toBeTruthy();
+  });
+
+  it('retries loading subscriptions when retry button pressed', async () => {
+    const {fetchProducts} = mockIapState({
+      subscriptions: [],
+    });
+
+    const {getByText} = render(<SubscriptionFlow />);
+
+    fireEvent.press(getByText('Retry'));
+
+    await waitFor(() => {
+      expect(fetchProducts).toHaveBeenCalledWith({
+        skus: SUBSCRIPTION_PRODUCT_IDS,
+        type: 'subs',
+      });
+    });
+  });
+
+  it('handles connection state changes', () => {
+    mockIapState({
+      connected: false,
+    });
+
+    const {getByText, rerender} = render(<SubscriptionFlow />);
+
+    expect(getByText('Connecting to Store...')).toBeTruthy();
+
+    // Simulate connection established
+    mockIapState({
+      connected: true,
+    });
+
+    rerender(<SubscriptionFlow />);
+
+    expect(getByText('Available Subscriptions')).toBeTruthy();
+  });
+
+  it('opens subscription details modal', async () => {
+    const {getByText} = render(<SubscriptionFlow />);
+
+    // Open subscription details modal
+    fireEvent.press(getByText('ℹ️'));
+
+    await waitFor(() => {
+      expect(getByText('Subscription Details')).toBeTruthy();
+    });
+
+    // Modal content should be displayed
+    expect(getByText('📋 Copy')).toBeTruthy();
+    expect(getByText('🖥️ Console')).toBeTruthy();
+  });
+
+  it('logs subscription data to console', async () => {
+    const consoleSpy = jest.spyOn(console, 'log');
+
+    const {getByText} = render(<SubscriptionFlow />);
+
+    // Open subscription details modal
+    fireEvent.press(getByText('ℹ️'));
+
+    await waitFor(() => {
+      expect(getByText('Subscription Details')).toBeTruthy();
+    });
+
+    // Log to console
+    fireEvent.press(getByText('🖥️ Console'));
+
+    expect(consoleSpy).toHaveBeenCalledWith('=== SUBSCRIPTION DATA ===');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'dev.hyo.martie.premium',
+      }),
+    );
+  });
+
+  it('closes subscription details modal', async () => {
+    const {getByText, queryByText} = render(<SubscriptionFlow />);
+
+    // Open modal
+    fireEvent.press(getByText('ℹ️'));
+
+    await waitFor(() => {
+      expect(getByText('Subscription Details')).toBeTruthy();
+    });
+
+    // Close modal
+    fireEvent.press(getByText('✕'));
+
+    await waitFor(() => {
+      expect(queryByText('Subscription Details')).toBeNull();
     });
   });
 });
