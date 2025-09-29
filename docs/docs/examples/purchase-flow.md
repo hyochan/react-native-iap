@@ -10,11 +10,7 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
 
 <AdFitTopFixed />
 
-This example walks through a clean purchase flow using react-native-iap with the `useIAP` hook and the new platform‑specific request shape. It mirrors the working sample in `example/app/purchase-flow.tsx`.
-
-View the full example source:
-
-- GitHub: [example/app/purchase-flow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/app/purchase-flow.tsx)
+This example walks through a clean purchase flow using react-native-iap with the `useIAP` hook and the new platform‑specific request shape. It mirrors the working sample in [example/screens/PurchaseFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/PurchaseFlow.tsx).
 
 ## Flow Overview
 

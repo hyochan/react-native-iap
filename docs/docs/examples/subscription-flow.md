@@ -12,11 +12,7 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
 
 <AdFitTopFixed />
 
-This example walks through a practical subscriptions flow with react-native-iap. It mirrors the working sample in `example/app/subscription-flow.tsx`, including status checks, renewal handling, and subscription management UI.
-
-View the full example source:
-
-- GitHub: [example/app/subscription-flow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/app/subscription-flow.tsx)
+This example walks through a practical subscriptions flow with react-native-iap. It mirrors the working sample in [example/screens/SubscriptionFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx), including status checks, renewal handling, and subscription management UI.
 
 ## Important: Platform-Specific Subscription Properties
 
@@ -42,10 +38,6 @@ When checking subscription status, different platforms provide different propert
 ⚠️ **Note**: Always validate subscription status on your server for production apps. Client-side checks are useful for UI updates but should not be the sole source of truth.
 
 ## Complete Subscription Flow
-
-View the full example source:
-
-- GitHub: [example/app/subscription-flow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/app/subscription-flow.tsx)
 
 ```tsx
 import React, {useEffect, useState} from 'react';
