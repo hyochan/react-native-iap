@@ -254,7 +254,6 @@ function SubscriptionFlow({
   setCachedAvailablePurchases,
   setIsProcessing,
   setPurchaseResult,
-  setLastPurchasedPlan,
   onSubscribe,
   onRetryLoadSubscriptions,
   onRefreshStatus,
@@ -492,38 +491,29 @@ function SubscriptionFlow({
                     },
                   },
                   type: 'subs',
-                })
-                  .then(() => {
-                    // Store which plan was purchased
-                    setLastPurchasedPlan(targetBasePlanId);
-                    console.log(
-                      'Successfully purchased plan:',
-                      targetBasePlanId,
-                    );
-                  })
-                  .catch((err: PurchaseError) => {
-                    console.error('Plan change failed:', err);
-                    console.error('Full error:', JSON.stringify(err));
+                }).catch((err: PurchaseError) => {
+                  console.error('Plan change failed:', err);
+                  console.error('Full error:', JSON.stringify(err));
 
-                    // More helpful error messages
-                    let errorMessage = err.message;
-                    if (
-                      err.message?.includes('DEVELOPER_ERROR') ||
-                      err.message?.includes('Invalid arguments')
-                    ) {
-                      errorMessage =
-                        'Unable to change subscription plan. This may be due to:\n' +
-                        '• Subscriptions not being in the same group in Play Console\n' +
-                        '• Invalid offer configuration\n' +
-                        '• Missing purchase token\n\n' +
-                        'Original error: ' +
-                        err.message;
-                    }
+                  // More helpful error messages
+                  let errorMessage = err.message;
+                  if (
+                    err.message?.includes('DEVELOPER_ERROR') ||
+                    err.message?.includes('Invalid arguments')
+                  ) {
+                    errorMessage =
+                      'Unable to change subscription plan. This may be due to:\n' +
+                      '• Subscriptions not being in the same group in Play Console\n' +
+                      '• Invalid offer configuration\n' +
+                      '• Missing purchase token\n\n' +
+                      'Original error: ' +
+                      err.message;
+                  }
 
-                    setIsProcessing(false);
-                    setPurchaseResult(`❌ Plan change failed: ${err.message}`);
-                    Alert.alert('Plan Change Failed', errorMessage);
-                  });
+                  setIsProcessing(false);
+                  setPurchaseResult(`❌ Plan change failed: ${err.message}`);
+                  Alert.alert('Plan Change Failed', errorMessage);
+                });
               }
             },
           },
@@ -1065,14 +1055,27 @@ function SubscriptionFlowContainer() {
           JSON.stringify(purchaseData, null, 2),
         );
 
-        // Try to detect from offer details if available
+        // Map offerToken to basePlanId using fetched subscription data
         if (purchaseData.offerToken) {
-          if (purchaseData.offerToken.includes('premium-year')) {
-            setLastPurchasedPlan('premium-year');
-            console.log('Detected yearly plan from purchase (Android)');
+          const premiumSub = subscriptions.find(
+            (s) => s.id === 'dev.hyo.martie.premium',
+          ) as any;
+          const matchingOffer =
+            premiumSub?.subscriptionOfferDetailsAndroid?.find(
+              (offer: any) => offer.offerToken === purchaseData.offerToken,
+            );
+          if (matchingOffer?.basePlanId) {
+            setLastPurchasedPlan(matchingOffer.basePlanId);
+            console.log(
+              'Detected plan from offerToken (Android):',
+              matchingOffer.basePlanId,
+            );
           } else {
-            setLastPurchasedPlan('premium');
-            console.log('Detected monthly plan from purchase (Android)');
+            // Fallback if we can't find the matching offer
+            console.log(
+              'Could not map offerToken to basePlanId:',
+              purchaseData.offerToken,
+            );
           }
         }
       }
