@@ -111,50 +111,48 @@ For Android, your app must be uploaded to Play Console:
 
 ### `useIAP` hook not working
 
-#### 1. Missing provider setup
+#### 1. Hook is standalone - no provider needed
 
-Ensure you're using the hook within the provider context:
+The `useIAP` hook is standalone and manages its own state internally. You don't need any provider setup:
 
 ```tsx
-// ❌ Wrong: Hook used outside provider
-function App() {
-  const {connected} = useIAP(); // This will fail
-  return <MyApp />;
-}
-
-// ✅ Correct: Hook used within provider
-import {IAPProvider} from 'react-native-iap';
-
-function AppWithProvider() {
-  return (
-    <IAPProvider>
-      <App />
-    </IAPProvider>
-  );
-}
+// ✅ Correct: Direct usage - no provider needed
+import {useIAP} from 'react-native-iap';
 
 function App() {
-  const {connected} = useIAP(); // This works
+  const {connected, fetchProducts, products} = useIAP();
+
+  useEffect(() => {
+    if (connected) {
+      fetchProducts({skus: ['com.example.product'], type: 'in-app'});
+    }
+  }, [connected]);
+
   return <MyApp />;
 }
 ```
 
-#### 2. Multiple providers
+The hook automatically:
+- Initializes the connection to the store
+- Sets up event listeners for purchases and errors
+- Manages internal state for products, subscriptions, and purchases
+- Handles cleanup when the component unmounts
 
-Don't wrap your app with multiple IAP providers:
+#### 2. Using callbacks with useIAP
+
+You can pass callback options to handle purchase events:
 
 ```tsx
-// ❌ Wrong: Multiple providers
-<IAPProvider>
-  <IAPProvider>
-    <App />
-  </IAPProvider>
-</IAPProvider>
-
-// ✅ Correct: Single provider
-<IAPProvider>
-  <App />
-</IAPProvider>
+const {connected, requestPurchase} = useIAP({
+  onPurchaseSuccess: (purchase) => {
+    console.log('Purchase successful:', purchase);
+    // Handle successful purchase
+  },
+  onPurchaseError: (error) => {
+    console.error('Purchase failed:', error);
+    // Handle purchase error
+  },
+});
 ```
 
 ### Purchase flow issues

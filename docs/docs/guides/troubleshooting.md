@@ -84,50 +84,46 @@ For Android, your app must be uploaded to Play Console:
 
 ### `useIAP` hook not working
 
-#### 1. Missing provider setup
+#### 1. Hook initialization
 
-Ensure you're using the hook within the provider context:
+The `useIAP` hook is a standalone hook that manages its own state and doesn't require a provider:
 
 ```tsx
-// ❌ Wrong: Hook used outside provider
-function App() {
-  const {connected} = useIAP(); // This will fail
-  return <MyApp />;
-}
-
-// ✅ Correct: Hook used within provider
-import {IAPProvider} from 'react-native-iap';
-
-function AppWithProvider() {
-  return (
-    <IAPProvider>
-      <App />
-    </IAPProvider>
-  );
-}
+// ✅ Correct: Direct usage without provider
+import {useIAP} from 'react-native-iap';
 
 function App() {
-  const {connected} = useIAP(); // This works
+  const {connected, products, fetchProducts} = useIAP();
+
+  useEffect(() => {
+    if (connected) {
+      // Connection established, you can now fetch products
+      fetchProducts({skus: ['product1', 'product2']});
+    }
+  }, [connected]);
+
   return <MyApp />;
 }
 ```
 
-#### 2. Multiple providers
+#### 2. Connection not established
 
-Don't wrap your app with multiple IAP providers:
+The hook automatically initializes the connection when mounted. Check the `connected` state before making IAP calls:
 
 ```tsx
-// ❌ Wrong: Multiple providers
-<IAPProvider>
-  <IAPProvider>
-    <App />
-  </IAPProvider>
-</IAPProvider>
+const {connected, products, fetchProducts} = useIAP();
 
-// ✅ Correct: Single provider
-<IAPProvider>
-  <App />
-</IAPProvider>
+// ❌ Wrong: Calling methods before connection
+useEffect(() => {
+  fetchProducts({skus: ['product1']}); // May fail if not connected
+}, []);
+
+// ✅ Correct: Wait for connection
+useEffect(() => {
+  if (connected) {
+    fetchProducts({skus: ['product1']});
+  }
+}, [connected]);
 ```
 
 ### Purchase flow issues
