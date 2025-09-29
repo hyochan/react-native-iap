@@ -51,7 +51,6 @@ function MyStore() {
     products,
     fetchProducts,
     requestPurchase,
-    currentPurchase,
     finishTransaction,
   } = useIAP();
 
@@ -117,31 +116,43 @@ const handlePurchase = async (productId: string) => {
 
 **No more Platform.OS checks!** The new API automatically handles platform differences. iOS can only purchase one product at a time, while Android supports purchasing multiple products in a single transaction.
 
-### 5. Complete Transactions
+### 5. Handle Purchase Callbacks
 
-Finish purchases when they complete:
+Use the `onPurchaseSuccess` and `onPurchaseError` callbacks to handle purchase results:
 
 ```tsx
-useEffect(() => {
-  if (currentPurchase) {
-    const completePurchase = async () => {
-      try {
-        // Grant the purchase to user here
-        console.log('Purchase completed:', currentPurchase.id);
+const {
+  connected,
+  products,
+  fetchProducts,
+  requestPurchase,
+  finishTransaction,
+} = useIAP({
+  onPurchaseSuccess: async (purchase) => {
+    try {
+      console.log('Purchase successful:', purchase.productId);
 
-        // Finish the transaction
-        await finishTransaction({
-          purchase: currentPurchase,
-          isConsumable: true, // Set based on your product type
-        });
-      } catch (error) {
-        console.error('Failed to complete purchase:', error);
-      }
-    };
+      // TODO: Verify the receipt on your backend before granting access
+      // const isValid = await verifyReceiptOnBackend(purchase);
+      // if (!isValid) {
+      //   throw new Error('Invalid receipt');
+      // }
 
-    completePurchase();
-  }
-}, [currentPurchase]);
+      // Finish the transaction after verification
+      await finishTransaction({
+        purchase,
+        isConsumable: true, // Set based on your product type
+      });
+    } catch (error) {
+      console.error('Failed to complete purchase:', error);
+    }
+  },
+  onPurchaseError: (error) => {
+    if (error.code !== 'E_USER_CANCELLED') {
+      console.error('Purchase error:', error);
+    }
+  },
+});
 ```
 
 ### Complete Basic Example
@@ -159,9 +170,32 @@ export default function SimpleStore() {
     products,
     fetchProducts,
     requestPurchase,
-    currentPurchase,
     finishTransaction,
-  } = useIAP();
+  } = useIAP({
+    onPurchaseSuccess: async (purchase) => {
+      try {
+        console.log('Purchase successful:', purchase.productId);
+
+        // TODO: Verify the receipt on your backend before granting access
+        // const isValid = await verifyReceiptOnBackend(purchase);
+        // if (!isValid) {
+        //   throw new Error('Invalid receipt');
+        // }
+
+        await finishTransaction({
+          purchase,
+          isConsumable: true,
+        });
+      } catch (error) {
+        console.error('Failed to complete purchase:', error);
+      }
+    },
+    onPurchaseError: (error) => {
+      if (error.code !== 'E_USER_CANCELLED') {
+        console.error('Purchase error:', error.message);
+      }
+    },
+  });
 
   const productIds = ['com.example.coins.pack1', 'com.example.premium'];
 
@@ -170,23 +204,6 @@ export default function SimpleStore() {
       fetchProducts({skus: productIds, type: 'in-app'});
     }
   }, [connected]);
-
-  useEffect(() => {
-    if (currentPurchase) {
-      const completePurchase = async () => {
-        try {
-          console.log('Purchase completed:', currentPurchase.id);
-          await finishTransaction({
-            purchase: currentPurchase,
-            isConsumable: true,
-          });
-        } catch (error) {
-          console.error('Failed to complete purchase:', error);
-        }
-      };
-      completePurchase();
-    }
-  }, [currentPurchase]);
 
   const handlePurchase = async (productId: string) => {
     try {

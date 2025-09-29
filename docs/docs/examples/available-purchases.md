@@ -10,11 +10,11 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
 
 <AdFitTopFixed />
 
-This example shows how to list and restore previously purchased items (non‑consumables and active subscriptions) using `getAvailablePurchases()` and `getActiveSubscriptions()`.
+This guide demonstrates how to list and restore previously purchased items (non‑consumables and active subscriptions) using `getAvailablePurchases()` and `getActiveSubscriptions()`.
 
-View the full example source:
-
-- GitHub: https://github.com/hyochan/react-native-iap/blob/main/example/app/available-purchases.tsx
+:::note
+The complete working example can be found at [example/screens/AvailablePurchases.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/AvailablePurchases.tsx). Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only.
+:::
 
 ## Restore Flow
 

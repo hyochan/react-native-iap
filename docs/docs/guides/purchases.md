@@ -158,20 +158,70 @@ const bulbPackSkus = ['dev.hyo.martie.10bulbs', 'dev.hyo.martie.30bulbs'];
 const subscriptionSkus = ['dev.hyo.martie.premium'];
 
 export default function PurchaseScreen() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  const handlePurchaseUpdate = useCallback(async (purchase: any) => {
+    try {
+      setIsLoading(true);
+      console.log('Processing purchase:', purchase);
+
+      const productId = purchase.productId || purchase.id;
+
+      // Validate receipt on your server
+      const validationResult = await handleValidateReceipt(productId, purchase);
+
+      if (validationResult.isValid) {
+        // Determine if this is a consumable product
+        const isConsumable = bulbPackSkus.includes(productId);
+
+        // Complete the transaction
+        await finishTransaction({purchase, isConsumable});
+
+        // Grant the purchase benefits
+        if (isConsumable) {
+          await grantConsumable(productId);
+        } else {
+          await grantNonConsumable(productId);
+        }
+
+        Alert.alert('Purchase Complete', 'Thank you for your purchase!');
+      } else {
+        Alert.alert('Purchase Failed', 'Receipt validation failed');
+      }
+    } catch (error) {
+      console.error('Error processing purchase:', error);
+      Alert.alert('Error', 'Failed to process purchase');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [finishTransaction, handleValidateReceipt]);
+
   const {
     connected,
     products,
     subscriptions,
-    currentPurchase,
-    currentPurchaseError,
     fetchProducts,
     requestPurchase,
     finishTransaction,
     validateReceipt,
-  } = useIAP();
+  } = useIAP({
+    onPurchaseSuccess: handlePurchaseUpdate,
+    onPurchaseError: (error) => {
+      setIsLoading(false);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+      // Don't show error for user cancellation
+      if (error.code === 'E_USER_CANCELLED') {
+        return;
+      }
+
+      Alert.alert(
+        'Purchase Error',
+        'Failed to complete purchase. Please try again.',
+      );
+      console.error('Purchase error:', error);
+    },
+  });
 
   // Initialize products when IAP connection is established
   useEffect(() => {
@@ -218,72 +268,7 @@ export default function PurchaseScreen() {
     [validateReceipt],
   );
 
-  // Handle successful purchases
-  useEffect(() => {
-    if (currentPurchase) {
-      handlePurchaseUpdate(currentPurchase);
-    }
-  }, [currentPurchase]);
-
-  // Handle purchase errors
-  useEffect(() => {
-    if (currentPurchaseError) {
-      setIsLoading(false);
-
-      // Don't show error for user cancellation
-      if (currentPurchaseError.code === 'E_USER_CANCELLED') {
-        return;
-      }
-
-      Alert.alert(
-        'Purchase Error',
-        'Failed to complete purchase. Please try again.',
-      );
-      console.error('Purchase error:', currentPurchaseError);
-    }
-  }, [currentPurchaseError]);
-
-  const handlePurchaseUpdate = async (purchase: any) => {
-    try {
-      setIsLoading(true);
-      console.log('Processing purchase:', purchase);
-
-      const productId = purchase.id;
-
-      // Validate receipt on your server
-      const validationResult = await handleValidateReceipt(productId, purchase);
-
-      if (validationResult.isValid) {
-        // Determine if this is a consumable product
-        const isConsumable = bulbPackSkus.includes(productId);
-
-        // Finish the transaction
-        await finishTransaction({
-          purchase,
-          isConsumable, // Set to true for consumable products
-        });
-
-        // Record purchase in your database
-        await recordPurchaseInDatabase(purchase, productId);
-
-        // Update local state (e.g., add bulbs, enable premium features)
-        await updateLocalState(productId);
-
-        // Show success message
-        showSuccessMessage(productId);
-      } else {
-        Alert.alert(
-          'Validation Error',
-          'Purchase could not be validated. Please contact support.',
-        );
-      }
-    } catch (error) {
-      console.error('Error handling purchase:', error);
-      Alert.alert('Error', 'Failed to process purchase.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Purchase handlers are now in the useIAP callbacks above
 
   // Request purchase for products
   const handlePurchaseBulbs = async (productId: string) => {
@@ -889,12 +874,20 @@ const restorePurchases = async () => {
 Some purchases may be in a pending state (e.g., awaiting parental approval):
 
 ```tsx
-useEffect(() => {
-  if (currentPurchase?.purchaseState === 'pending') {
-    // Inform user that purchase is pending
-    showPendingPurchaseMessage();
-  }
-}, [currentPurchase]);
+// In onPurchaseSuccess callback:
+const {
+  // ... other props
+} = useIAP({
+  onPurchaseSuccess: async (purchase) => {
+    if (purchase.purchaseState === 'pending') {
+      // Inform user that purchase is pending
+      showPendingPurchaseMessage();
+      return;
+    }
+    // Handle completed purchase
+    await handlePurchaseUpdate(purchase);
+  },
+});
 ```
 
 ### Subscription Management

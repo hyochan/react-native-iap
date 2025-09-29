@@ -23,9 +23,8 @@ import {useIAP} from 'react-native-iap';
 The `useIAP` hook follows React Hooks conventions and differs from calling functions directly from `react-native-iap` (index exports):
 
 - **Automatic connection**: Automatically calls `initConnection` on mount and `endConnection` on unmount.
-- **Void-returning methods**: Methods like `fetchProducts`, `requestPurchase`, `getAvailablePurchases`, etc. return `Promise<void>` in the hook. They do not resolve to data. Instead, they update internal state exposed by the hook: `products`, `subscriptions`, `availablePurchases`, `currentPurchase`, etc.
-- **Don’t await for data**: When using the hook, do not write `const x = await fetchProducts(...)`. Call the method, then read the corresponding state from the hook.
-- **Prefer callbacks over `currentPurchase`**: `currentPurchase` was historically useful for debugging and migration, but for new code you should rely on `onPurchaseSuccess` and `onPurchaseError` options passed to `useIAP`.
+- **Void-returning methods**: Methods like `fetchProducts`, `requestPurchase`, `getAvailablePurchases`, etc. return `Promise<void>` in the hook. They do not resolve to data. Instead, they update internal state exposed by the hook: `products`, `subscriptions`, `availablePurchases`, etc.
+- **Don't await for data**: When using the hook, do not write `const x = await fetchProducts(...)`. Call the method, then read the corresponding state from the hook.
 
 ## Basic Usage
 
@@ -35,8 +34,6 @@ const {
   products,
   subscriptions,
   availablePurchases,
-  currentPurchase, // Debugging/migration friendly; prefer callbacks
-  currentPurchaseError, // Debugging/migration friendly; prefer callbacks
   fetchProducts,
   requestPurchase,
   validateReceipt,
@@ -144,19 +141,6 @@ interface UseIAPOptions {
   ));
   ```
 
-#### currentPurchase
-
-- **Type**: `Purchase | null`
-- **Description**: Last purchase event captured by the hook. This value is primarily helpful for debugging and migration. For production flows, prefer handling purchase results via `onPurchaseSuccess` and errors via `onPurchaseError` passed to `useIAP`.
-- **Example (debug logging only)**:
-
-  ```tsx
-  useEffect(() => {
-    if (currentPurchase) {
-      console.log('Debug purchase event:', currentPurchase.id);
-    }
-  }, [currentPurchase]);
-  ```
 
 #### currentPurchaseError
 
@@ -235,7 +219,7 @@ interface UseIAPOptions {
   ```tsx
   const buyProduct = async (productId: string) => {
     try {
-      // In hook: returns void. Listen via callbacks or `currentPurchase`.
+      // In hook: returns void. Listen via callbacks.
       await requestPurchase({
         request: {
           ios: {sku: productId},
