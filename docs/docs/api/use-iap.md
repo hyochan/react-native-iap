@@ -141,7 +141,6 @@ interface UseIAPOptions {
   ));
   ```
 
-
 #### currentPurchaseError
 
 - **Type**: `PurchaseError | null`

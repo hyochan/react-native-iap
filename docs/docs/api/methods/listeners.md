@@ -379,7 +379,9 @@ For simpler usage, consider using the `useIAP` hook which automatically manages 
 import {useIAP} from 'react-native-iap';
 
 export default function StoreComponent() {
-  const {/* other props */} = useIAP({
+  const {
+    /* other props */
+  } = useIAP({
     onPurchaseSuccess: async (purchase) => {
       await handlePurchaseUpdate(purchase);
     },

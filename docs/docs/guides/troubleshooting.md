@@ -391,16 +391,15 @@ if (__DEV__) {
 ### 2. Log purchase events
 
 ```tsx
-const {/* other props */} = useIAP({
+const {
+  /* other props */
+} = useIAP({
   onPurchaseSuccess: async (purchase) => {
     console.log('Purchase received:', JSON.stringify(purchase, null, 2));
     // Handle purchase...
   },
   onPurchaseError: (error) => {
-    console.error(
-      'Purchase error:',
-      JSON.stringify(error, null, 2),
-    );
+    console.error('Purchase error:', JSON.stringify(error, null, 2));
   },
 });
 ```

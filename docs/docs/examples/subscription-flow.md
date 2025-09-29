@@ -14,9 +14,7 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
 
 This guide demonstrates practical subscription scenarios with react-native-iap.
 
-:::note
-The complete working example can be found at [example/screens/SubscriptionFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx). Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only.
-:::
+:::note The complete working example can be found at [example/screens/SubscriptionFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx). Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only. :::
 
 ## 1. Purchasing a Subscription with `requestPurchase`
 
@@ -27,12 +25,7 @@ import {useIAP} from 'react-native-iap';
 import {Platform} from 'react-native';
 
 function SubscriptionPurchase() {
-  const {
-    connected,
-    subscriptions,
-    requestPurchase,
-    fetchProducts,
-  } = useIAP();
+  const {connected, subscriptions, requestPurchase, fetchProducts} = useIAP();
 
   useEffect(() => {
     // Load subscription products
@@ -52,7 +45,7 @@ function SubscriptionPurchase() {
 
     try {
       // Find the subscription product
-      const subscription = subscriptions.find(sub => sub.id === productId);
+      const subscription = subscriptions.find((sub) => sub.id === productId);
       if (!subscription) {
         throw new Error('Subscription not found');
       }
@@ -67,8 +60,8 @@ function SubscriptionPurchase() {
           android: {
             skus: [productId],
             // Android requires subscriptionOffers for subscriptions
-            subscriptionOffers: subscription.subscriptionOfferDetailsAndroid
-              ?.map(offer => ({
+            subscriptionOffers:
+              subscription.subscriptionOfferDetailsAndroid?.map((offer) => ({
                 sku: subscription.id,
                 offerToken: offer.offerToken,
               })) || [],
@@ -78,7 +71,6 @@ function SubscriptionPurchase() {
       });
 
       // Success handling is done in onPurchaseSuccess callback
-
     } catch (error) {
       console.error('Purchase failed:', error);
       Alert.alert('Error', 'Failed to purchase subscription');
@@ -87,12 +79,14 @@ function SubscriptionPurchase() {
 
   return (
     <View>
-      {subscriptions.map(sub => (
+      {subscriptions.map((sub) => (
         <TouchableOpacity
           key={sub.id}
           onPress={() => purchaseSubscription(sub.id)}
         >
-          <Text>{sub.title} - {sub.localizedPrice}</Text>
+          <Text>
+            {sub.title} - {sub.localizedPrice}
+          </Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -106,38 +100,35 @@ function SubscriptionPurchase() {
 function SubscriptionManager() {
   const [activeSubscription, setActiveSubscription] = useState(null);
 
-  const {
-    connected,
-    subscriptions,
-    requestPurchase,
-    finishTransaction,
-  } = useIAP({
-    onPurchaseSuccess: async (purchase) => {
-      console.log('Purchase successful:', purchase.productId);
+  const {connected, subscriptions, requestPurchase, finishTransaction} = useIAP(
+    {
+      onPurchaseSuccess: async (purchase) => {
+        console.log('Purchase successful:', purchase.productId);
 
-      // Validate with your server
-      const isValid = await validatePurchaseOnServer(purchase);
+        // Validate with your server
+        const isValid = await validatePurchaseOnServer(purchase);
 
-      if (isValid) {
-        // Update local state
-        setActiveSubscription(purchase.productId);
+        if (isValid) {
+          // Update local state
+          setActiveSubscription(purchase.productId);
 
-        // Finish the transaction
-        await finishTransaction({purchase});
+          // Finish the transaction
+          await finishTransaction({purchase});
 
-        Alert.alert('Success', 'Subscription activated!');
-      }
+          Alert.alert('Success', 'Subscription activated!');
+        }
+      },
+      onPurchaseError: (error) => {
+        if (error.code !== 'E_USER_CANCELLED') {
+          Alert.alert('Error', error.message);
+        }
+      },
     },
-    onPurchaseError: (error) => {
-      if (error.code !== 'E_USER_CANCELLED') {
-        Alert.alert('Error', error.message);
-      }
-    },
-  });
+  );
 
   // Purchase function remains simple
   const subscribe = async (productId: string) => {
-    const subscription = subscriptions.find(s => s.id === productId);
+    const subscription = subscriptions.find((s) => s.id === productId);
     if (!subscription) return;
 
     await requestPurchase({
@@ -148,8 +139,8 @@ function SubscriptionManager() {
         },
         android: {
           skus: [productId],
-          subscriptionOffers: subscription.subscriptionOfferDetailsAndroid
-            ?.map(offer => ({
+          subscriptionOffers:
+            subscription.subscriptionOfferDetailsAndroid?.map((offer) => ({
               sku: subscription.id,
               offerToken: offer.offerToken,
             })) || [],
@@ -236,19 +227,19 @@ async function getUserSubscriptionTier() {
 
     // Check for premium yearly first (highest tier)
     const yearlyPremium = activeSubscriptions.find(
-      sub => sub.productId === SUBSCRIPTION_SKUS.PREMIUM_YEARLY
+      (sub) => sub.productId === SUBSCRIPTION_SKUS.PREMIUM_YEARLY,
     );
     if (yearlyPremium) return 'PREMIUM_YEARLY';
 
     // Then check monthly premium
     const monthlyPremium = activeSubscriptions.find(
-      sub => sub.productId === SUBSCRIPTION_SKUS.PREMIUM
+      (sub) => sub.productId === SUBSCRIPTION_SKUS.PREMIUM,
     );
     if (monthlyPremium) return 'PREMIUM';
 
     // Finally check basic
     const basic = activeSubscriptions.find(
-      sub => sub.productId === SUBSCRIPTION_SKUS.BASIC
+      (sub) => sub.productId === SUBSCRIPTION_SKUS.BASIC,
     );
     if (basic) return 'BASIC';
 
@@ -278,9 +269,10 @@ async function handleIOSSubscriptionChange(newProductId: string) {
   try {
     // Check current subscription
     const currentSubs = await getActiveSubscriptions();
-    const currentSub = currentSubs.find(sub =>
-      sub.productId === 'com.app.premium_monthly' ||
-      sub.productId === 'com.app.premium_yearly'
+    const currentSub = currentSubs.find(
+      (sub) =>
+        sub.productId === 'com.app.premium_monthly' ||
+        sub.productId === 'com.app.premium_yearly',
     );
 
     if (currentSub) {
@@ -308,9 +300,8 @@ async function handleIOSSubscriptionChange(newProductId: string) {
 
     Alert.alert(
       'Subscription Updated',
-      'Your subscription will change at the end of the current billing period.'
+      'Your subscription will change at the end of the current billing period.',
     );
-
   } catch (error) {
     console.error('Subscription change failed:', error);
   }
@@ -343,7 +334,7 @@ On Android, you need to explicitly handle subscription upgrades/downgrades using
 ```tsx
 async function handleAndroidSubscriptionChange(
   newProductId: string,
-  changeType: 'upgrade' | 'downgrade'
+  changeType: 'upgrade' | 'downgrade',
 ) {
   const {requestPurchase, getAvailablePurchases, subscriptions} = useIAP();
 
@@ -351,8 +342,9 @@ async function handleAndroidSubscriptionChange(
     // Step 1: Get the current subscription's purchase token
     await getAvailablePurchases();
     const currentPurchase = availablePurchases.find(
-      p => p.productId === 'com.app.premium_monthly' ||
-           p.productId === 'com.app.premium_yearly'
+      (p) =>
+        p.productId === 'com.app.premium_monthly' ||
+        p.productId === 'com.app.premium_yearly',
     );
 
     if (!currentPurchase?.purchaseToken) {
@@ -360,7 +352,9 @@ async function handleAndroidSubscriptionChange(
     }
 
     // Step 2: Find the new subscription product
-    const newSubscription = subscriptions.find(sub => sub.id === newProductId);
+    const newSubscription = subscriptions.find(
+      (sub) => sub.id === newProductId,
+    );
     if (!newSubscription) {
       throw new Error('New subscription product not found');
     }
@@ -368,7 +362,7 @@ async function handleAndroidSubscriptionChange(
     // Step 3: Prepare subscription offers
     const subscriptionOffers = (
       newSubscription.subscriptionOfferDetailsAndroid ?? []
-    ).map(offer => ({
+    ).map((offer) => ({
       sku: newSubscription.id,
       offerToken: offer.offerToken,
     }));
@@ -385,20 +379,21 @@ async function handleAndroidSubscriptionChange(
           // IMPORTANT: Include purchase token for subscription replacement
           purchaseTokenAndroid: currentPurchase.purchaseToken,
           // Optional: Specify proration mode
-          replacementModeAndroid: changeType === 'upgrade'
-            ? 'IMMEDIATE_WITH_TIME_PRORATION'
-            : 'DEFERRED', // Downgrade happens at next renewal
+          replacementModeAndroid:
+            changeType === 'upgrade'
+              ? 'IMMEDIATE_WITH_TIME_PRORATION'
+              : 'DEFERRED', // Downgrade happens at next renewal
         },
       },
       type: 'subs',
     });
 
-    const message = changeType === 'upgrade'
-      ? 'Subscription upgraded immediately!'
-      : 'Subscription will change at the end of current period.';
+    const message =
+      changeType === 'upgrade'
+        ? 'Subscription upgraded immediately!'
+        : 'Subscription will change at the end of current period.';
 
     Alert.alert('Success', message);
-
   } catch (error) {
     console.error('Android subscription change failed:', error);
     Alert.alert('Error', 'Failed to change subscription plan');
@@ -418,8 +413,9 @@ function AndroidSubscriptionManager() {
     try {
       await getAvailablePurchases();
       const activeSub = availablePurchases.find(
-        p => p.productId === 'com.app.premium_monthly' ||
-             p.productId === 'com.app.premium_yearly'
+        (p) =>
+          p.productId === 'com.app.premium_monthly' ||
+          p.productId === 'com.app.premium_yearly',
       );
       setCurrentPlan(activeSub?.productId || null);
     } catch (error) {
@@ -431,12 +427,16 @@ function AndroidSubscriptionManager() {
     if (!currentPlan) {
       // New subscription
       purchaseNewSubscription(targetPlan);
-    } else if (currentPlan === 'com.app.premium_monthly' &&
-               targetPlan === 'com.app.premium_yearly') {
+    } else if (
+      currentPlan === 'com.app.premium_monthly' &&
+      targetPlan === 'com.app.premium_yearly'
+    ) {
       // Upgrade to yearly
       handleAndroidSubscriptionChange(targetPlan, 'upgrade');
-    } else if (currentPlan === 'com.app.premium_yearly' &&
-               targetPlan === 'com.app.premium_monthly') {
+    } else if (
+      currentPlan === 'com.app.premium_yearly' &&
+      targetPlan === 'com.app.premium_monthly'
+    ) {
       // Downgrade to monthly
       handleAndroidSubscriptionChange(targetPlan, 'downgrade');
     }
@@ -497,28 +497,28 @@ function SubscriptionPlanManager() {
 
         Alert.alert(
           'Subscription Updated',
-          'Your plan will change at the end of the current period.'
+          'Your plan will change at the end of the current period.',
         );
-
       } else {
         // Android: Need purchase token for replacement
         await getAvailablePurchases();
 
         // Find current subscription
-        const currentPurchase = availablePurchases.find(p =>
-          p.productId.includes('premium')
+        const currentPurchase = availablePurchases.find((p) =>
+          p.productId.includes('premium'),
         );
 
         // Find new subscription details
-        const newSub = subscriptions.find(s => s.id === newProductId);
+        const newSub = subscriptions.find((s) => s.id === newProductId);
 
         if (currentPurchase?.purchaseToken && newSub) {
           // Prepare offers
-          const offers = (newSub.subscriptionOfferDetailsAndroid ?? [])
-            .map(offer => ({
+          const offers = (newSub.subscriptionOfferDetailsAndroid ?? []).map(
+            (offer) => ({
               sku: newSub.id,
               offerToken: offer.offerToken,
-            }));
+            }),
+          );
 
           // Purchase with replacement
           await requestPurchase({
@@ -538,11 +538,12 @@ function SubscriptionPlanManager() {
           Alert.alert('Success', 'Subscription plan changed!');
         } else {
           // New subscription (no existing one)
-          const offers = (newSub?.subscriptionOfferDetailsAndroid ?? [])
-            .map(offer => ({
+          const offers = (newSub?.subscriptionOfferDetailsAndroid ?? []).map(
+            (offer) => ({
               sku: newSub.id,
               offerToken: offer.offerToken,
-            }));
+            }),
+          );
 
           await requestPurchase({
             request: {
@@ -561,7 +562,6 @@ function SubscriptionPlanManager() {
 
       // Refresh subscription status
       await getActiveSubscriptions();
-
     } catch (error) {
       console.error('Subscription change error:', error);
       Alert.alert('Error', 'Failed to change subscription');
@@ -599,6 +599,7 @@ function SubscriptionPlanManager() {
 ## Key Points Summary
 
 ### Purchase Flow
+
 1. **Always use hook callbacks** (`onPurchaseSuccess`, `onPurchaseError`) for handling results
 2. **Don't chain `.then()` on `requestPurchase` promise** - it can fire at the wrong time
 3. **Android requires `subscriptionOffers`** array with offer tokens for subscription purchases
@@ -606,7 +607,7 @@ function SubscriptionPlanManager() {
 ### Platform Differences
 
 | Feature | iOS | Android |
-|---------|-----|---------|
+| --- | --- | --- |
 | **Plan Changes** | Automatic within subscription group | Manual with purchaseToken |
 | **Proration** | Handled by App Store | Configurable via replacementModeAndroid |
 | **Status Check** | Check expirationDateIos | Check autoRenewingAndroid |

@@ -106,6 +106,7 @@ function App() {
 ```
 
 The hook automatically:
+
 - Initializes the connection to the store
 - Sets up event listeners for purchases and errors
 - Manages internal state for products, subscriptions, and purchases

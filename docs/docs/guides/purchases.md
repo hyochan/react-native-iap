@@ -161,41 +161,47 @@ export default function PurchaseScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  const handlePurchaseUpdate = useCallback(async (purchase: any) => {
-    try {
-      setIsLoading(true);
-      console.log('Processing purchase:', purchase);
+  const handlePurchaseUpdate = useCallback(
+    async (purchase: any) => {
+      try {
+        setIsLoading(true);
+        console.log('Processing purchase:', purchase);
 
-      const productId = purchase.productId || purchase.id;
+        const productId = purchase.productId || purchase.id;
 
-      // Validate receipt on your server
-      const validationResult = await handleValidateReceipt(productId, purchase);
+        // Validate receipt on your server
+        const validationResult = await handleValidateReceipt(
+          productId,
+          purchase,
+        );
 
-      if (validationResult.isValid) {
-        // Determine if this is a consumable product
-        const isConsumable = bulbPackSkus.includes(productId);
+        if (validationResult.isValid) {
+          // Determine if this is a consumable product
+          const isConsumable = bulbPackSkus.includes(productId);
 
-        // Complete the transaction
-        await finishTransaction({purchase, isConsumable});
+          // Complete the transaction
+          await finishTransaction({purchase, isConsumable});
 
-        // Grant the purchase benefits
-        if (isConsumable) {
-          await grantConsumable(productId);
+          // Grant the purchase benefits
+          if (isConsumable) {
+            await grantConsumable(productId);
+          } else {
+            await grantNonConsumable(productId);
+          }
+
+          Alert.alert('Purchase Complete', 'Thank you for your purchase!');
         } else {
-          await grantNonConsumable(productId);
+          Alert.alert('Purchase Failed', 'Receipt validation failed');
         }
-
-        Alert.alert('Purchase Complete', 'Thank you for your purchase!');
-      } else {
-        Alert.alert('Purchase Failed', 'Receipt validation failed');
+      } catch (error) {
+        console.error('Error processing purchase:', error);
+        Alert.alert('Error', 'Failed to process purchase');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error processing purchase:', error);
-      Alert.alert('Error', 'Failed to process purchase');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [finishTransaction, handleValidateReceipt]);
+    },
+    [finishTransaction, handleValidateReceipt],
+  );
 
   const {
     connected,
