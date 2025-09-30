@@ -291,8 +291,10 @@ The project uses a centralized error handling approach across all platforms:
 
 **TypeScript (`src/utils/error.ts` + `src/types.ts`)**
 
-- `parseErrorStringToJsonObj()` - Parses native error strings into structured objects
-- `isUserCancelledError()` - Helper to check for user cancellation
+- `parseErrorStringToJsonObj()` - **Internal utility** - Parses native error strings (used by library internals)
+- `normalizeErrorCodeFromNative()` - **Internal utility** - Converts native error codes to ErrorCode enum
+- `isUserCancelledError()` - **Public helper** - Check for user cancellation
+- `getUserFriendlyErrorMessage()` - **Public helper** - Get user-friendly error messages
 - `ErrorCode` enum (from types.ts) - Standardized error codes across platforms
 
 **Android (`android/src/main/java/com/margelo/nitro/iap/Types.kt`)**
@@ -309,55 +311,111 @@ The project uses a centralized error handling approach across all platforms:
 
 ### Error Format
 
-All native modules return errors as JSON strings:
+**Native Error Codes:**
+- **Android Native**: Uses `E_` prefix (e.g., `E_USER_CANCELLED`)
+- **iOS Native**: Uses OpenIAP ErrorCode enum (kebab-case: `user-cancelled`)
 
-```json
-{
-  "code": "E_USER_CANCELLED",
-  "message": "User cancelled the purchase",
-  "responseCode": 1,
-  "debugMessage": "User pressed cancel",
-  "productId": "dev.hyo.martie.10bulbs"
+**TypeScript Error Format:**
+
+All errors in TypeScript are automatically normalized to `ErrorCode` enum values:
+
+```typescript
+interface PurchaseError {
+  code: ErrorCode;        // Normalized enum value
+  message: string;
+  productId?: string;
+  responseCode?: number;
+  debugMessage?: string;
 }
 ```
 
-### Usage Example
+### Recommended Usage Pattern (useIAP Hook)
+
+**✅ The `useIAP` hook automatically normalizes all errors - this is the recommended approach:**
+
+```typescript
+import {useIAP, ErrorCode, isUserCancelledError, getUserFriendlyErrorMessage} from 'react-native-iap';
+
+const {requestPurchase} = useIAP({
+  onPurchaseError: (error) => {
+    // error is already a PurchaseError object with normalized ErrorCode
+    // No need to call parseErrorStringToJsonObj()!
+
+    // Option 1: Direct error code comparison
+    if (error.code === ErrorCode.UserCancelled) {
+      console.log('User cancelled purchase');
+      return;
+    }
+
+    // Option 2: Use helper function
+    if (isUserCancelledError(error)) {
+      return;
+    }
+
+    // Option 3: Get user-friendly message
+    const friendlyMessage = getUserFriendlyErrorMessage(error);
+    Alert.alert('Purchase Failed', friendlyMessage);
+
+    // Option 4: Handle specific errors
+    switch (error.code) {
+      case ErrorCode.NetworkError:
+        showRetryDialog();
+        break;
+      case ErrorCode.ItemUnavailable:
+        showProductUnavailableMessage();
+        break;
+      default:
+        console.error('Purchase failed:', error.message);
+    }
+  },
+});
+```
+
+### Advanced: Root API Usage (Not Recommended for Most Users)
+
+⚠️ **Only use root API methods directly if you have specific advanced needs. Most developers should use `useIAP` hook.**
+
+When using root API methods with event listeners, errors come through `purchaseErrorListener`:
 
 ```typescript
 import {
-  parseErrorStringToJsonObj,
+  purchaseErrorListener,
   isUserCancelledError,
-  getUserFriendlyErrorMessage
-} from 'react-native-iap'
+  getUserFriendlyErrorMessage,
+  ErrorCode
+} from 'react-native-iap';
 
-try {
-  await requestPurchase({ ... })
-} catch (error) {
-  // Check for user cancellation
+// Errors from purchaseErrorListener are already normalized
+const errorSubscription = purchaseErrorListener((error) => {
+  // error is already a PurchaseError object
+  // No need to parse!
+
   if (isUserCancelledError(error)) {
-    console.log('User cancelled purchase')
-    return
+    return;
   }
 
-  // Get user-friendly error message
-  const friendlyMessage = getUserFriendlyErrorMessage(error)
-  console.error('Purchase failed:', friendlyMessage)
+  const friendlyMessage = getUserFriendlyErrorMessage(error);
+  console.error('Purchase failed:', friendlyMessage);
+});
 
-  // Or parse error details manually
-  const parsedError = parseErrorStringToJsonObj(error)
-  console.error('Purchase failed:', parsedError.code, parsedError.message)
-}
+// Remember to clean up
+errorSubscription.remove();
 ```
+
+**Note:** `parseErrorStringToJsonObj()` is an internal utility used by the library to convert native error strings. As an end-user, you should never need to call it directly - errors are already parsed for you.
 
 ### Common Error Codes
 
-- `E_USER_CANCELLED` - User cancelled the operation
-- `E_ITEM_UNAVAILABLE` - Product not available in store
-- `E_NETWORK_ERROR` - Network connection issues
-- `E_SERVICE_ERROR` - Platform service issues
-- `E_DEVELOPER_ERROR` - Invalid API usage
-- `E_NOT_PREPARED` - Service not initialized
-- `E_UNKNOWN` - Unexpected error
+All error codes are defined in the `ErrorCode` enum:
+
+- `ErrorCode.UserCancelled` - User cancelled the operation
+- `ErrorCode.ItemUnavailable` - Product not available in store
+- `ErrorCode.NetworkError` - Network connection issues
+- `ErrorCode.ServiceError` - Platform service issues
+- `ErrorCode.DeveloperError` - Invalid API usage
+- `ErrorCode.NotPrepared` - Service not initialized
+- `ErrorCode.Unknown` - Unexpected error
+- `ErrorCode.SkuOfferMismatch` - Android subscription offer mismatch
 
 ## Development Guidelines
 
@@ -365,7 +423,9 @@ try {
 - Run `yarn typecheck` and `yarn lint` before committing
 - Regenerate Nitro files with `yarn specs` after modifying interfaces
 - Use Platform.OS checks for platform-specific code
-- Handle errors gracefully using `parseErrorStringToJsonObj()` utility
+- **Error Handling**: Use `useIAP` hook - errors are automatically normalized to `ErrorCode` enum
+- **Helper Functions**: Use `isUserCancelledError()` and `getUserFriendlyErrorMessage()` for common error checks
+- **Avoid Direct Parsing**: Never call `parseErrorStringToJsonObj()` in user code - it's handled internally
 - Test error scenarios on both platforms
 
 ## Troubleshooting

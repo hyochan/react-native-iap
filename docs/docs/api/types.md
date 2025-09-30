@@ -30,20 +30,53 @@ export type PurchaseState =
   | 'unknown';
 ```
 
-The `ErrorCode` enum now mirrors the OpenIAP schema without the legacy `E_` prefix:
+The `ErrorCode` enum uses kebab-case values for consistency:
 
 ```ts
 export enum ErrorCode {
-  ActivityUnavailable = 'ACTIVITY_UNAVAILABLE',
-  AlreadyOwned = 'ALREADY_OWNED',
-  ...
-  Unknown = 'UNKNOWN',
-  UserCancelled = 'USER_CANCELLED',
-  UserError = 'USER_ERROR',
+  ActivityUnavailable = 'activity-unavailable',
+  AlreadyOwned = 'already-owned',
+  AlreadyPrepared = 'already-prepared',
+  BillingResponseJsonParseError = 'billing-response-json-parse-error',
+  BillingUnavailable = 'billing-unavailable',
+  ConnectionClosed = 'connection-closed',
+  DeferredPayment = 'deferred-payment',
+  DeveloperError = 'developer-error',
+  EmptySkuList = 'empty-sku-list',
+  FeatureNotSupported = 'feature-not-supported',
+  IapNotAvailable = 'iap-not-available',
+  InitConnection = 'init-connection',
+  Interrupted = 'interrupted',
+  ItemNotOwned = 'item-not-owned',
+  ItemUnavailable = 'item-unavailable',
+  NetworkError = 'network-error',
+  NotEnded = 'not-ended',
+  NotPrepared = 'not-prepared',
+  Pending = 'pending',
+  PurchaseError = 'purchase-error',
+  QueryProduct = 'query-product',
+  ReceiptFailed = 'receipt-failed',
+  ReceiptFinished = 'receipt-finished',
+  ReceiptFinishedFailed = 'receipt-finished-failed',
+  RemoteError = 'remote-error',
+  ServiceDisconnected = 'service-disconnected',
+  ServiceError = 'service-error',
+  SkuNotFound = 'sku-not-found',
+  SkuOfferMismatch = 'sku-offer-mismatch',
+  SyncError = 'sync-error',
+  TransactionValidationFailed = 'transaction-validation-failed',
+  Unknown = 'unknown',
+  UserCancelled = 'user-cancelled',
+  UserError = 'user-error'
 }
 ```
 
-Use `createPurchaseError` from `src/utils/errorMapping.ts` to work with typed errors and platform mappings.
+**Note:** Native platforms use different formats:
+- **Android Native**: Uses `E_` prefix (e.g., `E_USER_CANCELLED`)
+- **iOS Native**: Uses kebab-case (e.g., `user-cancelled`)
+- **TypeScript**: Automatically normalized to `ErrorCode` enum values (kebab-case)
+
+Use `createPurchaseError` from `src/utils/errorMapping.ts` to work with typed errors and platform mappings. The `normalizeErrorCodeFromNative()` function automatically converts native error codes to the standardized `ErrorCode` enum format.
 
 ## Product Types
 

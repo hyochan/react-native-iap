@@ -83,26 +83,28 @@ const setupErrorListener = () => {
   };
 };
 
+import {ErrorCode} from 'react-native-iap';
+
 const handlePurchaseError = (error) => {
   switch (error.code) {
-    case 'E_USER_CANCELLED':
+    case ErrorCode.UserCancelled:
       // User cancelled the purchase
       console.log('Purchase cancelled by user');
       break;
 
-    case 'E_NETWORK_ERROR':
+    case ErrorCode.NetworkError:
       // Network error occurred
       showErrorMessage(
         'Network error. Please check your connection and try again.',
       );
       break;
 
-    case 'E_ITEM_UNAVAILABLE':
+    case ErrorCode.ItemUnavailable:
       // Product is not available
       showErrorMessage('This product is currently unavailable.');
       break;
 
-    case 'E_ALREADY_OWNED':
+    case ErrorCode.AlreadyOwned:
       // User already owns this product
       showErrorMessage('You already own this product.');
       break;
@@ -300,7 +302,7 @@ export const usePurchaseHandler = () => {
     console.error('Purchase error:', error);
 
     switch (error.code) {
-      case 'E_USER_CANCELLED':
+      case ErrorCode.UserCancelled:
         // Don't show error for user cancellation
         break;
       default:

@@ -43,7 +43,7 @@ npm install react-native-iap
 First, import and initialize the IAP hook:
 
 ```tsx
-import {useIAP} from 'react-native-iap';
+import {useIAP, ErrorCode} from 'react-native-iap';
 
 function MyStore() {
   const {
@@ -143,7 +143,7 @@ const {connected, products, fetchProducts, requestPurchase, finishTransaction} =
       }
     },
     onPurchaseError: (error) => {
-      if (error.code !== 'E_USER_CANCELLED') {
+      if (error.code !== ErrorCode.UserCancelled) {
         console.error('Purchase error:', error);
       }
     },
@@ -157,7 +157,7 @@ Here's a complete working example:
 ```tsx
 import React, {useEffect} from 'react';
 import {View, Text, Button, StyleSheet} from 'react-native';
-import {useIAP} from 'react-native-iap';
+import {useIAP, ErrorCode} from 'react-native-iap';
 
 export default function SimpleStore() {
   const {
@@ -186,7 +186,7 @@ export default function SimpleStore() {
       }
     },
     onPurchaseError: (error) => {
-      if (error.code !== 'E_USER_CANCELLED') {
+      if (error.code !== ErrorCode.UserCancelled) {
         console.error('Purchase error:', error.message);
       }
     },

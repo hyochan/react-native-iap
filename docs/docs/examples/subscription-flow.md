@@ -97,6 +97,8 @@ function SubscriptionPurchase() {
 ### Handling Purchase Success with Hook Callbacks
 
 ```tsx
+import {useIAP, ErrorCode} from 'react-native-iap';
+
 function SubscriptionManager() {
   const [activeSubscription, setActiveSubscription] = useState(null);
 
@@ -119,7 +121,7 @@ function SubscriptionManager() {
         }
       },
       onPurchaseError: (error) => {
-        if (error.code !== 'E_USER_CANCELLED') {
+        if (error.code !== ErrorCode.UserCancelled) {
           Alert.alert('Error', error.message);
         }
       },

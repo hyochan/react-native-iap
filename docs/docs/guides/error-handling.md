@@ -30,18 +30,16 @@ interface IapError {
 Handle network connectivity issues gracefully:
 
 ```typescript
-import {useIAP} from 'react-native-iap';
+import {useIAP, ErrorCode} from 'react-native-iap';
 
-const {purchaseProduct} = useIAP();
-
-try {
-  await purchaseProduct('product_id');
-} catch (error) {
-  if (error.code === 'E_NETWORK_ERROR') {
-    // Handle network issues
-    showRetryDialog();
-  }
-}
+const {requestPurchase} = useIAP({
+  onPurchaseError: (error) => {
+    if (error.code === ErrorCode.NetworkError) {
+      // Handle network issues
+      showRetryDialog();
+    }
+  },
+});
 ```
 
 ### User Cancellation
@@ -49,15 +47,17 @@ try {
 Gracefully handle when users cancel purchases:
 
 ```typescript
-try {
-  await purchaseProduct('product_id');
-} catch (error) {
-  if (error.code === 'E_USER_CANCELLED') {
-    // User cancelled the purchase
-    // Don't show error message, just continue
-    return;
-  }
-}
+import {useIAP, ErrorCode} from 'react-native-iap';
+
+const {requestPurchase} = useIAP({
+  onPurchaseError: (error) => {
+    if (error.code === ErrorCode.UserCancelled) {
+      // User cancelled the purchase
+      // Don't show error message, just continue
+      return;
+    }
+  },
+});
 ```
 
 ### Payment Issues
@@ -65,25 +65,24 @@ try {
 Handle various payment-related errors:
 
 ```typescript
-try {
-  await purchaseProduct('product_id');
-} catch (error) {
-  switch (error.code) {
-    case 'E_PAYMENT_INVALID':
-      showMessage(
-        'Invalid payment method. Please check your payment settings.',
-      );
-      break;
-    case 'E_PAYMENT_NOT_ALLOWED':
-      showMessage('Payments are not allowed on this device.');
-      break;
-    case 'E_INSUFFICIENT_FUNDS':
-      showMessage('Insufficient funds. Please add payment method.');
-      break;
-    default:
-      showMessage('Purchase failed. Please try again.');
-  }
-}
+import {useIAP, ErrorCode} from 'react-native-iap';
+
+const {requestPurchase} = useIAP({
+  onPurchaseError: (error) => {
+    switch (error.code) {
+      case ErrorCode.DeveloperError:
+        showMessage(
+          'Invalid payment method. Please check your payment settings.',
+        );
+        break;
+      case ErrorCode.Unknown:
+        showMessage('Purchase failed. Please try again.');
+        break;
+      default:
+        showMessage('Purchase failed. Please try again.');
+    }
+  },
+});
 ```
 
 ## Error Recovery Strategies
@@ -101,7 +100,7 @@ const retryWithBackoff = async (fn: () => Promise<any>, maxRetries = 3) => {
       if (i === maxRetries - 1) throw error;
 
       // Only retry on network or temporary errors
-      if (['E_NETWORK_ERROR', 'E_SERVICE_UNAVAILABLE'].includes(error.code)) {
+      if ([ErrorCode.NetworkError, ErrorCode.ServiceError].includes(error.code)) {
         await new Promise((resolve) =>
           setTimeout(resolve, Math.pow(2, i) * 1000),
         );
@@ -118,11 +117,13 @@ const retryWithBackoff = async (fn: () => Promise<any>, maxRetries = 3) => {
 Provide fallback experiences:
 
 ```typescript
+import {ErrorCode} from 'react-native-iap';
+
 const handlePurchase = async (productId: string) => {
   try {
     await purchaseProduct(productId);
   } catch (error) {
-    if (error.code === 'E_IAP_NOT_AVAILABLE') {
+    if (error.code === ErrorCode.IapNotAvailable) {
       // Redirect to web subscription
       redirectToWebPurchase(productId);
     } else {
@@ -173,13 +174,15 @@ try {
 Convert technical errors to user-friendly messages:
 
 ```typescript
+import {ErrorCode} from 'react-native-iap';
+
 const getUserFriendlyMessage = (error: IapError): string => {
   switch (error.code) {
-    case 'E_USER_CANCELLED':
+    case ErrorCode.UserCancelled:
       return null; // Don't show message
-    case 'E_NETWORK_ERROR':
+    case ErrorCode.NetworkError:
       return 'Please check your internet connection and try again.';
-    case 'E_PAYMENT_INVALID':
+    case ErrorCode.Unknown:
       return 'There was an issue with your payment method.';
     default:
       return 'Something went wrong. Please try again later.';
@@ -192,13 +195,15 @@ const getUserFriendlyMessage = (error: IapError): string => {
 Some errors may be platform-specific:
 
 ```typescript
+import {ErrorCode} from 'react-native-iap';
+
 const handlePlatformSpecificError = (error: IapError) => {
   if (
     Platform.OS === 'ios' &&
-    error.code === 'E_STOREFRONT_COUNTRY_NOT_SUPPORTED'
+    error.code === ErrorCode.ItemUnavailable
   ) {
     showMessage('This product is not available in your country.');
-  } else if (Platform.OS === 'android' && error.code === 'E_DEVELOPER_ERROR') {
+  } else if (Platform.OS === 'android' && error.code === ErrorCode.DeveloperError) {
     // Log for debugging but don't show to user
     console.error('Google Play configuration error:', error);
   }
