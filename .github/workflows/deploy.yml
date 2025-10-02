@@ -73,7 +73,7 @@ jobs:
         run: |
           yarn lint:tsc
           npx eslint --ext .ts,.tsx,.js,.jsx src plugin/src
-          npx prettier --check "**/*.{md,js,jsx,ts,tsx}"
+          npx prettier --check "**/*.{md,js,jsx,ts,tsx}" "!example-expo/**"
 
       - name: Configure Git user
         run: |

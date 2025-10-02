@@ -68,4 +68,11 @@ if [ $copied_files -eq 0 ]; then
     echo "⚠️  No screen files found to copy."
 else
     echo "✅ Successfully copied $copied_files screen files!"
+
+    # Run prettier on copied files to ensure consistent formatting
+    if command -v npx >/dev/null 2>&1; then
+        echo "🎨 Running prettier on copied files..."
+        npx prettier --write "app/available-purchases.tsx" "app/offer-code.tsx" "app/subscription-flow.tsx" "app/purchase-flow.tsx" 2>/dev/null || true
+        echo "✅ Prettier formatting complete!"
+    fi
 fi

@@ -80,115 +80,115 @@ const PlanChangeControls = React.memo(function PlanChangeControls({
   let currentBasePlan = 'unknown';
   let activeSub: ActiveSubscription | undefined = undefined;
 
-    if (Platform.OS === 'ios') {
-      // On iOS, find the most recent subscription (in case both exist during transition)
-      // Sort by transaction date to get the most recent one
-      const sortedSubs = [...premiumSubs].sort((a, b) => {
-        const dateA = a.transactionDate ?? 0;
-        const dateB = b.transactionDate ?? 0;
-        return dateB - dateA;
-      });
+  if (Platform.OS === 'ios') {
+    // On iOS, find the most recent subscription (in case both exist during transition)
+    // Sort by transaction date to get the most recent one
+    const sortedSubs = [...premiumSubs].sort((a, b) => {
+      const dateA = a.transactionDate ?? 0;
+      const dateB = b.transactionDate ?? 0;
+      return dateB - dateA;
+    });
 
-      activeSub = sortedSubs[0];
+    activeSub = sortedSubs[0];
 
-      // Check for the most recent purchase to determine actual plan
-      // First, check if both products exist (transition state)
-      const hasYearly = premiumSubs.some(
-        (s) => s.productId === 'dev.hyo.martie.premium_year',
-      );
-      const hasMonthly = premiumSubs.some(
-        (s) => s.productId === 'dev.hyo.martie.premium',
-      );
+    // Check for the most recent purchase to determine actual plan
+    // First, check if both products exist (transition state)
+    const hasYearly = premiumSubs.some(
+      (s) => s.productId === 'dev.hyo.martie.premium_year',
+    );
+    const hasMonthly = premiumSubs.some(
+      (s) => s.productId === 'dev.hyo.martie.premium',
+    );
 
-      if (lastPurchasedPlan) {
-        // If we have a recently purchased plan, use that
-        currentBasePlan = lastPurchasedPlan;
-        console.log('Using last purchased plan:', lastPurchasedPlan);
-      } else if (hasYearly && !hasMonthly) {
-        // Only yearly exists - user has yearly
+    if (lastPurchasedPlan) {
+      // If we have a recently purchased plan, use that
+      currentBasePlan = lastPurchasedPlan;
+      console.log('Using last purchased plan:', lastPurchasedPlan);
+    } else if (hasYearly && !hasMonthly) {
+      // Only yearly exists - user has yearly
+      currentBasePlan = 'premium-year';
+    } else if (!hasYearly && hasMonthly) {
+      // Only monthly exists - user has monthly
+      currentBasePlan = 'premium';
+    } else if (activeSub) {
+      // Both exist or transition state - use the most recent one
+      if (activeSub.productId === 'dev.hyo.martie.premium_year') {
         currentBasePlan = 'premium-year';
-      } else if (!hasYearly && hasMonthly) {
-        // Only monthly exists - user has monthly
+      } else if (activeSub.productId === 'dev.hyo.martie.premium') {
         currentBasePlan = 'premium';
-      } else if (activeSub) {
-        // Both exist or transition state - use the most recent one
-        if (activeSub.productId === 'dev.hyo.martie.premium_year') {
-          currentBasePlan = 'premium-year';
-        } else if (activeSub.productId === 'dev.hyo.martie.premium') {
-          currentBasePlan = 'premium';
-        }
       }
+    }
+  } else {
+    // Android uses base plans within the same product
+    activeSub = premiumSubs[0];
+    const extendedSub = activeSub as ExtendedActiveSubscription;
+    if (extendedSub.basePlanId) {
+      currentBasePlan = extendedSub.basePlanId;
+    } else if (lastPurchasedPlan) {
+      currentBasePlan = lastPurchasedPlan;
     } else {
-      // Android uses base plans within the same product
-      activeSub = premiumSubs[0];
-      const extendedSub = activeSub as ExtendedActiveSubscription;
-      if (extendedSub.basePlanId) {
-        currentBasePlan = extendedSub.basePlanId;
-      } else if (lastPurchasedPlan) {
-        currentBasePlan = lastPurchasedPlan;
-      } else {
-        // Default to monthly if we can't detect
-        currentBasePlan = 'premium';
-      }
+      // Default to monthly if we can't detect
+      currentBasePlan = 'premium';
     }
+  }
 
-    console.log(
-      'Button section - current base plan:',
-      currentBasePlan,
-      'Active sub:',
-      activeSub?.productId,
-    );
+  console.log(
+    'Button section - current base plan:',
+    currentBasePlan,
+    'Active sub:',
+    activeSub?.productId,
+  );
 
-    // iOS doesn't need upgrade/downgrade buttons as it's handled automatically by the App Store
-    if (Platform.OS === 'ios') {
-      return null;
-    }
+  // iOS doesn't need upgrade/downgrade buttons as it's handled automatically by the App Store
+  if (Platform.OS === 'ios') {
+    return null;
+  }
 
-    return (
-      <View style={styles.planChangeSection}>
-        {currentBasePlan === 'premium' && (
-          <TouchableOpacity
-            style={[styles.changePlanButton, styles.upgradeButton]}
-            onPress={() =>
-              handlePlanChange(
-                activeSub?.productId || 'dev.hyo.martie.premium',
-                'upgrade',
-                'premium',
-              )
-            }
-            disabled={isProcessing}
-          >
-            <Text style={styles.changePlanButtonText}>
-              ⬆️ Upgrade to Yearly Plan
-            </Text>
-            <Text style={styles.changePlanButtonSubtext}>
-              Save with annual billing
-            </Text>
-          </TouchableOpacity>
-        )}
+  return (
+    <View style={styles.planChangeSection}>
+      {currentBasePlan === 'premium' && (
+        <TouchableOpacity
+          style={[styles.changePlanButton, styles.upgradeButton]}
+          onPress={() =>
+            handlePlanChange(
+              activeSub?.productId || 'dev.hyo.martie.premium',
+              'upgrade',
+              'premium',
+            )
+          }
+          disabled={isProcessing}
+        >
+          <Text style={styles.changePlanButtonText}>
+            ⬆️ Upgrade to Yearly Plan
+          </Text>
+          <Text style={styles.changePlanButtonSubtext}>
+            Save with annual billing
+          </Text>
+        </TouchableOpacity>
+      )}
 
-        {currentBasePlan === 'premium-year' && (
-          <TouchableOpacity
-            style={[styles.changePlanButton, styles.downgradeButton]}
-            onPress={() =>
-              handlePlanChange(
-                activeSub?.productId || 'dev.hyo.martie.premium_year',
-                'downgrade',
-                'premium-year',
-              )
-            }
-            disabled={isProcessing}
-          >
-            <Text style={styles.changePlanButtonText}>
-              ⬇️ Downgrade to Monthly Plan
-            </Text>
-            <Text style={styles.changePlanButtonSubtext}>
-              More flexibility with monthly billing
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
+      {currentBasePlan === 'premium-year' && (
+        <TouchableOpacity
+          style={[styles.changePlanButton, styles.downgradeButton]}
+          onPress={() =>
+            handlePlanChange(
+              activeSub?.productId || 'dev.hyo.martie.premium_year',
+              'downgrade',
+              'premium-year',
+            )
+          }
+          disabled={isProcessing}
+        >
+          <Text style={styles.changePlanButtonText}>
+            ⬇️ Downgrade to Monthly Plan
+          </Text>
+          <Text style={styles.changePlanButtonSubtext}>
+            More flexibility with monthly billing
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 });
 
 /**

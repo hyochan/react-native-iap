@@ -155,15 +155,15 @@
     ]
   },
   "lint-staged": {
-    "!(docs|example-expo)/**/*.{ts,tsx}": [
+    "!(docs)/**/*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "!(docs|example-expo)/**/*.{js,jsx}": [
+    "!(docs)/**/*.{js,jsx}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "!(example-expo)/**/*.{json,md}": [
+    "**/*.{json,md}": [
       "prettier --write"
     ]
   },
