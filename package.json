@@ -164,7 +164,7 @@
       "prettier --write"
     ],
     "*.{json,md}": [
-      "node -p \"process.argv.slice(2).filter(f => { try { return !require('fs').lstatSync(f).isSymbolicLink(); } catch { return false; } }).join(' ')\" | xargs prettier --write"
+      "prettier --write"
     ]
   },
   "packageManager": "yarn@3.6.1"
