@@ -1,4 +1,11 @@
-import React, {createContext, useContext, useState, useCallback} from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+} from 'react';
 import {
   Modal,
   View,
@@ -24,8 +31,13 @@ export function DataModalProvider({children}: {children: React.ReactNode}) {
   const [visible, setVisible] = useState(false);
   const [data, setData] = useState<any>(null);
   const [title, setTitle] = useState('Data Details');
+  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showData = useCallback((newData: any, newTitle?: string) => {
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+      resetTimeoutRef.current = null;
+    }
     setData(newData);
     setTitle(newTitle || 'Data Details');
     setVisible(true);
@@ -33,10 +45,19 @@ export function DataModalProvider({children}: {children: React.ReactNode}) {
 
   const hideModal = useCallback(() => {
     setVisible(false);
-    setTimeout(() => {
+    resetTimeoutRef.current = setTimeout(() => {
       setData(null);
       setTitle('Data Details');
+      resetTimeoutRef.current = null;
     }, 300);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleCopy = useCallback(() => {

@@ -82,8 +82,8 @@ const PlanChangeControls = React.memo<PlanChangeControlsProps>(
       // On iOS, find the most recent subscription (in case both exist during transition)
       // Sort by transaction date to get the most recent one
       const sortedSubs = [...premiumSubs].sort((a, b) => {
-        const dateA = (a as any).transactionDate || 0;
-        const dateB = (b as any).transactionDate || 0;
+        const dateA = a.transactionDate ?? 0;
+        const dateB = b.transactionDate ?? 0;
         return dateB - dateA;
       });
 

@@ -227,13 +227,13 @@ export function convertNitroProductToProduct(
       subscriptionInfoIOS: undefined,
     };
 
-    iosProduct.introductoryPriceAsAmountIOS = toNullableNumber(
+    iosProduct.introductoryPriceAsAmountIOS = toNullableString(
       nitroProduct.introductoryPriceAsAmountIOS,
     );
     iosProduct.introductoryPriceIOS = toNullableString(
       nitroProduct.introductoryPriceIOS,
     );
-    iosProduct.introductoryPriceNumberOfPeriodsIOS = toNullableNumber(
+    iosProduct.introductoryPriceNumberOfPeriodsIOS = toNullableString(
       nitroProduct.introductoryPriceNumberOfPeriodsIOS,
     );
     iosProduct.introductoryPricePaymentModeIOS = normalizePaymentMode(
@@ -243,7 +243,7 @@ export function convertNitroProductToProduct(
       normalizeSubscriptionPeriod(
         nitroProduct.introductoryPriceSubscriptionPeriodIOS,
       );
-    iosProduct.subscriptionPeriodNumberIOS = toNullableNumber(
+    iosProduct.subscriptionPeriodNumberIOS = toNullableString(
       nitroProduct.subscriptionPeriodNumberIOS,
     );
     iosProduct.subscriptionPeriodUnitIOS = normalizeSubscriptionPeriod(
