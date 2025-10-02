@@ -52,7 +52,7 @@
     "clean": "rm -rf android/build node_modules/**/android/build lib nitrogen/generated",
     "lint": "eslint --ext .ts,.tsx,.js,.jsx src",
     "lint:eslint": "eslint --fix 'src/**/*.{ts,tsx}' 'plugin/src/**/*.{ts,tsx}'",
-    "lint:prettier": "prettier --write \"**/*.{md,js,jsx,ts,tsx}\"",
+    "lint:prettier": "prettier --write \"**/*.{md,js,jsx,ts,tsx}\" \"!example-expo/**\"",
     "lint:tsc": "tsc -p tsconfig.json --noEmit --skipLibCheck",
     "lint:ci": "yarn lint:tsc && yarn lint:eslint && yarn lint:prettier",
     "prepare": "npx tsx scripts/check-nitro-versions.ts && bob build && yarn nitrogen && yarn build:plugin",
@@ -155,15 +155,15 @@
     ]
   },
   "lint-staged": {
-    "!(docs)/**/*.{ts,tsx}": [
+    "!(docs|example-expo)/**/*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "!(docs)/**/*.{js,jsx}": [
+    "!(docs|example-expo)/**/*.{js,jsx}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,md}": [
+    "!(example-expo)/**/*.{json,md}": [
       "prettier --write"
     ]
   },
