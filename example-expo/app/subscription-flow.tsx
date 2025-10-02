@@ -22,6 +22,7 @@ import {
   getAvailablePurchases,
   type ActiveSubscription,
   type ProductSubscription,
+  type ProductSubscriptionAndroid,
   type Purchase,
   type PurchaseError,
   ErrorCode,
@@ -29,26 +30,6 @@ import {
 import Loading from '../components/Loading';
 import {SUBSCRIPTION_PRODUCT_IDS} from '../constants/products';
 import PurchaseSummaryRow from '../components/PurchaseSummaryRow';
-
-// Extended types for Android-specific properties
-type AndroidSubscriptionDetails = ProductSubscription & {
-  subscriptionOfferDetailsAndroid?: {
-    basePlanId: string;
-    offerToken: string;
-    offerId?: string;
-    offerTags: string[];
-    pricingPhases: {
-      pricingPhaseList: {
-        formattedPrice: string;
-        priceAmountMicros: string;
-        priceCurrencyCode: string;
-        billingPeriod: string;
-        billingCycleCount: number;
-        recurrenceMode: number;
-      }[];
-    };
-  }[];
-};
 
 type ExtendedPurchase = Purchase & {
   purchaseTokenAndroid?: string;
@@ -380,7 +361,7 @@ function SubscriptionFlow({
               if (Platform.OS === 'android') {
                 // Android subscription replacement
                 const targetSubWithDetails =
-                  targetSubscription as AndroidSubscriptionDetails;
+                  targetSubscription as ProductSubscriptionAndroid;
                 const androidOffers =
                   targetSubWithDetails.subscriptionOfferDetailsAndroid;
                 const targetOffer = androidOffers?.find(
@@ -1258,11 +1239,11 @@ function SubscriptionFlowContainer() {
             subscriptionOffers:
               subscription &&
               'subscriptionOfferDetailsAndroid' in subscription &&
-              (subscription as AndroidSubscriptionDetails)
+              (subscription as ProductSubscriptionAndroid)
                 .subscriptionOfferDetailsAndroid
                 ? (
-                    subscription as AndroidSubscriptionDetails
-                  ).subscriptionOfferDetailsAndroid!.map((offer) => ({
+                    subscription as ProductSubscriptionAndroid
+                  ).subscriptionOfferDetailsAndroid.map((offer) => ({
                     sku: itemId,
                     offerToken: offer.offerToken,
                   }))

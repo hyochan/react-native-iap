@@ -18,6 +18,7 @@ import {
   getAvailablePurchases,
   type ActiveSubscription,
   type ProductSubscription,
+  type ProductSubscriptionAndroid,
   type Purchase,
   type PurchaseError,
   ErrorCode,
@@ -25,26 +26,6 @@ import {
 import Loading from '../src/components/Loading';
 import {SUBSCRIPTION_PRODUCT_IDS} from '../src/utils/constants';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
-
-// Extended types for Android-specific properties
-type AndroidSubscriptionDetails = ProductSubscription & {
-  subscriptionOfferDetailsAndroid?: Array<{
-    basePlanId: string;
-    offerToken: string;
-    offerId?: string;
-    offerTags: string[];
-    pricingPhases: {
-      pricingPhaseList: Array<{
-        formattedPrice: string;
-        priceAmountMicros: string;
-        priceCurrencyCode: string;
-        billingPeriod: string;
-        billingCycleCount: number;
-        recurrenceMode: number;
-      }>;
-    };
-  }>;
-};
 
 type ExtendedPurchase = Purchase & {
   purchaseTokenAndroid?: string;
@@ -73,13 +54,13 @@ interface PlanChangeControlsProps {
   lastPurchasedPlan: string | null;
 }
 
-const PlanChangeControls = React.memo(
+const PlanChangeControls = React.memo<PlanChangeControlsProps>(
   ({
     activeSubscriptions,
     handlePlanChange,
     isProcessing,
     lastPurchasedPlan,
-  }: PlanChangeControlsProps) => {
+  }) => {
     // Find all premium subscriptions (both monthly and yearly)
     const premiumSubs = activeSubscriptions.filter(
       (sub) =>
@@ -204,6 +185,8 @@ const PlanChangeControls = React.memo(
     );
   },
 );
+
+PlanChangeControls.displayName = 'PlanChangeControls';
 
 /**
  * Subscription Flow Example - Subscription Products
@@ -374,7 +357,7 @@ function SubscriptionFlow({
               if (Platform.OS === 'android') {
                 // Android subscription replacement
                 const targetSubWithDetails =
-                  targetSubscription as AndroidSubscriptionDetails;
+                  targetSubscription as ProductSubscriptionAndroid;
                 const androidOffers =
                   targetSubWithDetails.subscriptionOfferDetailsAndroid;
                 const targetOffer = androidOffers?.find(
@@ -520,7 +503,14 @@ function SubscriptionFlow({
         ],
       );
     },
-    [subscriptions, activeSubscriptions, setIsProcessing, setPurchaseResult],
+    [
+      subscriptions,
+      activeSubscriptions,
+      setIsProcessing,
+      setPurchaseResult,
+      cachedAvailablePurchases,
+      setCachedAvailablePurchases,
+    ],
   );
 
   const copyToClipboard = (subscription: ProductSubscription) => {
@@ -1245,11 +1235,11 @@ function SubscriptionFlowContainer() {
             subscriptionOffers:
               subscription &&
               'subscriptionOfferDetailsAndroid' in subscription &&
-              (subscription as AndroidSubscriptionDetails)
+              (subscription as ProductSubscriptionAndroid)
                 .subscriptionOfferDetailsAndroid
                 ? (
-                    subscription as AndroidSubscriptionDetails
-                  ).subscriptionOfferDetailsAndroid!.map((offer) => ({
+                    subscription as ProductSubscriptionAndroid
+                  ).subscriptionOfferDetailsAndroid.map((offer) => ({
                     sku: itemId,
                     offerToken: offer.offerToken,
                   }))
