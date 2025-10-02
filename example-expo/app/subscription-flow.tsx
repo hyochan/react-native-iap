@@ -2,7 +2,7 @@
 // This file is automatically copied during postinstall
 // Do not edit directly - modify the source file instead
 
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   requestPurchase,
   useIAP,
   deepLinkToSubscriptions,
+  getAvailablePurchases,
   type ActiveSubscription,
   type ProductSubscription,
   type Purchase,
@@ -27,28 +28,188 @@ import {
 } from 'react-native-iap';
 import Loading from '../components/Loading';
 import {SUBSCRIPTION_PRODUCT_IDS} from '../constants/products';
-import PurchaseDetails from '../components/PurchaseDetails';
 import PurchaseSummaryRow from '../components/PurchaseSummaryRow';
 
-const deduplicatePurchases = (purchases: Purchase[]): Purchase[] => {
-  const uniquePurchases = new Map<string, Purchase>();
+// Extended types for Android-specific properties
+type AndroidSubscriptionDetails = ProductSubscription & {
+  subscriptionOfferDetailsAndroid?: {
+    basePlanId: string;
+    offerToken: string;
+    offerId?: string;
+    offerTags: string[];
+    pricingPhases: {
+      pricingPhaseList: {
+        formattedPrice: string;
+        priceAmountMicros: string;
+        priceCurrencyCode: string;
+        billingPeriod: string;
+        billingCycleCount: number;
+        recurrenceMode: number;
+      }[];
+    };
+  }[];
+};
 
-  for (const purchase of purchases) {
-    const existingPurchase = uniquePurchases.get(purchase.productId);
-    if (!existingPurchase) {
-      uniquePurchases.set(purchase.productId, purchase);
+type ExtendedPurchase = Purchase & {
+  purchaseTokenAndroid?: string;
+  dataAndroid?: {
+    purchaseToken?: string;
+  };
+  purchaseState?: string;
+  offerToken?: string;
+};
+
+type ExtendedActiveSubscription = ActiveSubscription & {
+  basePlanId?: string;
+  purchaseTokenAndroid?: string;
+  _detectedBasePlanId?: string;
+};
+
+// Component for plan change controls
+interface PlanChangeControlsProps {
+  activeSubscriptions: ActiveSubscription[];
+  handlePlanChange: (
+    productId: string,
+    changeType: 'upgrade' | 'downgrade' | 'yearly' | 'monthly',
+    currentBasePlanId: string,
+  ) => void;
+  isProcessing: boolean;
+  lastPurchasedPlan: string | null;
+}
+
+const PlanChangeControls = React.memo<PlanChangeControlsProps>(
+  ({
+    activeSubscriptions,
+    handlePlanChange,
+    isProcessing,
+    lastPurchasedPlan,
+  }) => {
+    // Find all premium subscriptions (both monthly and yearly)
+    const premiumSubs = activeSubscriptions.filter(
+      (sub) =>
+        sub.productId === 'dev.hyo.martie.premium' ||
+        sub.productId === 'dev.hyo.martie.premium_year',
+    );
+
+    if (premiumSubs.length === 0) return null;
+
+    // Detect the current plan based on product ID for iOS
+    let currentBasePlan = 'unknown';
+    let activeSub: ActiveSubscription | undefined = undefined;
+
+    if (Platform.OS === 'ios') {
+      // On iOS, find the most recent subscription (in case both exist during transition)
+      // Sort by transaction date to get the most recent one
+      const sortedSubs = [...premiumSubs].sort((a, b) => {
+        const dateA = (a as any).transactionDate || 0;
+        const dateB = (b as any).transactionDate || 0;
+        return dateB - dateA;
+      });
+
+      activeSub = sortedSubs[0];
+
+      // Check for the most recent purchase to determine actual plan
+      // First, check if both products exist (transition state)
+      const hasYearly = premiumSubs.some(
+        (s) => s.productId === 'dev.hyo.martie.premium_year',
+      );
+      const hasMonthly = premiumSubs.some(
+        (s) => s.productId === 'dev.hyo.martie.premium',
+      );
+
+      if (lastPurchasedPlan) {
+        // If we have a recently purchased plan, use that
+        currentBasePlan = lastPurchasedPlan;
+        console.log('Using last purchased plan:', lastPurchasedPlan);
+      } else if (hasYearly && !hasMonthly) {
+        // Only yearly exists - user has yearly
+        currentBasePlan = 'premium-year';
+      } else if (!hasYearly && hasMonthly) {
+        // Only monthly exists - user has monthly
+        currentBasePlan = 'premium';
+      } else if (activeSub) {
+        // Both exist or transition state - use the most recent one
+        if (activeSub.productId === 'dev.hyo.martie.premium_year') {
+          currentBasePlan = 'premium-year';
+        } else if (activeSub.productId === 'dev.hyo.martie.premium') {
+          currentBasePlan = 'premium';
+        }
+      }
     } else {
-      const existingTimestamp = existingPurchase.transactionDate || 0;
-      const newTimestamp = purchase.transactionDate || 0;
-
-      if (newTimestamp > existingTimestamp) {
-        uniquePurchases.set(purchase.productId, purchase);
+      // Android uses base plans within the same product
+      activeSub = premiumSubs[0];
+      const extendedSub = activeSub as ExtendedActiveSubscription;
+      if (extendedSub.basePlanId) {
+        currentBasePlan = extendedSub.basePlanId;
+      } else if (lastPurchasedPlan) {
+        currentBasePlan = lastPurchasedPlan;
+      } else {
+        // Default to monthly if we can't detect
+        currentBasePlan = 'premium';
       }
     }
-  }
 
-  return Array.from(uniquePurchases.values());
-};
+    console.log(
+      'Button section - current base plan:',
+      currentBasePlan,
+      'Active sub:',
+      activeSub?.productId,
+    );
+
+    // iOS doesn't need upgrade/downgrade buttons as it's handled automatically by the App Store
+    if (Platform.OS === 'ios') {
+      return null;
+    }
+
+    return (
+      <View style={styles.planChangeSection}>
+        {currentBasePlan === 'premium' && (
+          <TouchableOpacity
+            style={[styles.changePlanButton, styles.upgradeButton]}
+            onPress={() =>
+              handlePlanChange(
+                activeSub?.productId || 'dev.hyo.martie.premium',
+                'upgrade',
+                'premium',
+              )
+            }
+            disabled={isProcessing}
+          >
+            <Text style={styles.changePlanButtonText}>
+              ⬆️ Upgrade to Yearly Plan
+            </Text>
+            <Text style={styles.changePlanButtonSubtext}>
+              Save with annual billing
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {currentBasePlan === 'premium-year' && (
+          <TouchableOpacity
+            style={[styles.changePlanButton, styles.downgradeButton]}
+            onPress={() =>
+              handlePlanChange(
+                activeSub?.productId || 'dev.hyo.martie.premium_year',
+                'downgrade',
+                'premium-year',
+              )
+            }
+            disabled={isProcessing}
+          >
+            <Text style={styles.changePlanButtonText}>
+              ⬇️ Downgrade to Monthly Plan
+            </Text>
+            <Text style={styles.changePlanButtonSubtext}>
+              More flexibility with monthly billing
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  },
+);
+
+PlanChangeControls.displayName = 'PlanChangeControls';
 
 /**
  * Subscription Flow Example - Subscription Products
@@ -69,12 +230,17 @@ const deduplicatePurchases = (purchases: Purchase[]): Purchase[] => {
 type SubscriptionFlowProps = {
   connected: boolean;
   subscriptions: ProductSubscription[];
-  availablePurchases: Purchase[];
   activeSubscriptions: ActiveSubscription[];
   purchaseResult: string;
   isProcessing: boolean;
   isCheckingStatus: boolean;
   lastPurchase: Purchase | null;
+  lastPurchasedPlan: string | null;
+  cachedAvailablePurchases: Purchase[];
+  setCachedAvailablePurchases: (purchases: Purchase[]) => void;
+  setIsProcessing: (value: boolean) => void;
+  setPurchaseResult: (value: string) => void;
+  setLastPurchasedPlan: (value: string | null) => void;
   onSubscribe: (productId: string) => void;
   onRetryLoadSubscriptions: () => void;
   onRefreshStatus: () => void;
@@ -84,12 +250,16 @@ type SubscriptionFlowProps = {
 function SubscriptionFlow({
   connected,
   subscriptions,
-  availablePurchases,
   activeSubscriptions,
   purchaseResult,
   isProcessing,
   isCheckingStatus,
   lastPurchase,
+  lastPurchasedPlan,
+  cachedAvailablePurchases,
+  setCachedAvailablePurchases,
+  setIsProcessing,
+  setPurchaseResult,
   onSubscribe,
   onRetryLoadSubscriptions,
   onRefreshStatus,
@@ -98,15 +268,6 @@ function SubscriptionFlow({
   const [selectedSubscription, setSelectedSubscription] =
     useState<ProductSubscription | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(
-    null,
-  );
-  const [purchaseDetailsVisible, setPurchaseDetailsVisible] = useState(false);
-
-  const availablePurchaseRows = useMemo(
-    () => deduplicatePurchases(availablePurchases),
-    [availablePurchases],
-  );
 
   const ownedSubscriptions = useMemo(() => {
     return new Set(activeSubscriptions.map((sub) => sub.productId));
@@ -133,6 +294,247 @@ function SubscriptionFlow({
     setSelectedSubscription(subscription);
     setModalVisible(true);
   };
+
+  const handlePlanChange = useCallback(
+    (
+      currentProductId: string,
+      changeType: 'upgrade' | 'downgrade' | 'yearly' | 'monthly',
+      currentBasePlanId: string,
+    ) => {
+      // iOS doesn't use this function anymore as upgrade/downgrade is handled by App Store
+      if (Platform.OS === 'ios') {
+        return;
+      }
+
+      // Android uses the same product with different base plans
+      const targetProductId = 'dev.hyo.martie.premium';
+
+      // Find the subscription with the target base plan
+      const targetSubscription = subscriptions.find(
+        (s) => s.id === targetProductId,
+      );
+
+      if (!targetSubscription) {
+        Alert.alert('Error', 'Target subscription plan not found');
+        return;
+      }
+
+      // Determine target base plan based on current plan and change type
+      let targetBasePlanId = '';
+      let actionDescription = '';
+
+      if (currentBasePlanId === 'premium') {
+        // Currently on monthly, can only upgrade
+        if (changeType === 'upgrade' || changeType === 'yearly') {
+          targetBasePlanId = 'premium-year';
+          actionDescription = 'upgrade to Yearly';
+        } else {
+          Alert.alert('Info', 'You are already on the Monthly plan');
+          return;
+        }
+      } else if (currentBasePlanId === 'premium-year') {
+        // Currently on yearly, can only downgrade
+        if (changeType === 'downgrade' || changeType === 'monthly') {
+          targetBasePlanId = 'premium';
+          actionDescription = 'downgrade to Monthly';
+        } else {
+          Alert.alert('Info', 'You are already on the Yearly plan');
+          return;
+        }
+      } else {
+        // Can't detect current plan, allow switching to either
+        if (changeType === 'upgrade' || changeType === 'yearly') {
+          targetBasePlanId = 'premium-year';
+          actionDescription = 'switch to Yearly';
+        } else if (changeType === 'downgrade' || changeType === 'monthly') {
+          targetBasePlanId = 'premium';
+          actionDescription = 'switch to Monthly';
+        }
+      }
+
+      console.log('Plan change:', {
+        currentBasePlanId,
+        targetBasePlanId,
+        changeType,
+      });
+
+      Alert.alert(
+        'Change Subscription Plan',
+        `Do you want to ${actionDescription} plan?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Confirm',
+            onPress: async () => {
+              setIsProcessing(true);
+              setPurchaseResult('Processing plan change...');
+
+              // Get the current subscription to find purchase token
+              const currentSub = activeSubscriptions.find(
+                (s) => s.productId === currentProductId,
+              );
+
+              if (Platform.OS === 'android') {
+                // Android subscription replacement
+                const targetSubWithDetails =
+                  targetSubscription as AndroidSubscriptionDetails;
+                const androidOffers =
+                  targetSubWithDetails.subscriptionOfferDetailsAndroid;
+                const targetOffer = androidOffers?.find(
+                  (offer) => offer.basePlanId === targetBasePlanId,
+                );
+
+                if (!targetOffer) {
+                  Alert.alert('Error', 'Target plan not available');
+                  setIsProcessing(false);
+                  return;
+                }
+
+                // For Android, we need to get the purchase token from available purchases
+                // The activeSubscriptions might not have the purchase token
+                const getPurchaseToken = async () => {
+                  try {
+                    // Use cached purchases if available, otherwise fetch once
+                    let availablePurchases = cachedAvailablePurchases;
+                    if (availablePurchases.length === 0) {
+                      console.log('No cached purchases, fetching...');
+                      availablePurchases = await getAvailablePurchases();
+                      setCachedAvailablePurchases(availablePurchases);
+                    }
+
+                    const currentPurchase = availablePurchases.find(
+                      (p: Purchase) => p.productId === currentProductId,
+                    ) as ExtendedPurchase | undefined;
+
+                    // Check multiple possible token fields
+                    const extendedPurchase = currentPurchase as
+                      | ExtendedPurchase
+                      | undefined;
+                    const token =
+                      extendedPurchase?.purchaseToken ||
+                      extendedPurchase?.purchaseTokenAndroid ||
+                      extendedPurchase?.dataAndroid?.purchaseToken;
+
+                    console.log('Found purchase with token:', {
+                      productId: currentPurchase?.productId,
+                      hasToken: !!token,
+                      tokenLength: token?.length,
+                      purchaseState: currentPurchase?.purchaseState,
+                    });
+
+                    return token;
+                  } catch (e) {
+                    console.error('Failed to get purchase token:', e);
+                    const extendedSub = currentSub as
+                      | ExtendedActiveSubscription
+                      | undefined;
+                    return (
+                      extendedSub?.purchaseToken ||
+                      extendedSub?.purchaseTokenAndroid
+                    );
+                  }
+                };
+
+                const purchaseToken = await getPurchaseToken();
+
+                if (!purchaseToken) {
+                  Alert.alert(
+                    'Error',
+                    'Unable to find current subscription purchase token. Please try refreshing your subscription status.',
+                  );
+                  setIsProcessing(false);
+                  return;
+                }
+
+                // Make sure purchase token is a string
+                const tokenString =
+                  typeof purchaseToken === 'string'
+                    ? purchaseToken
+                    : String(purchaseToken);
+
+                // Use replacement mode for Android
+                // ProrationMode constants from Google Play Billing:
+                // 1 = IMMEDIATE_WITH_TIME_PRORATION
+                // 2 = IMMEDIATE_AND_CHARGE_PRORATED_PRICE
+                // 3 = IMMEDIATE_AND_CHARGE_FULL_PRICE
+                // 4 = DEFERRED
+                // 5 = IMMEDIATE_WITHOUT_PRORATION
+                // For same product with different offers, OpenIAP uses CHARGE_FULL_PRICE (5)
+                const replacementMode = 5; // IMMEDIATE_WITHOUT_PRORATION as per OpenIAP example
+
+                console.log('Plan change params:', {
+                  skus: [targetProductId],
+                  currentBasePlanId,
+                  targetBasePlanId,
+                  offerToken: targetOffer.offerToken,
+                  replacementMode,
+                  purchaseToken: tokenString
+                    ? `<${tokenString.substring(0, 10)}...>`
+                    : 'missing',
+                  allOffers: androidOffers?.map((o) => ({
+                    basePlanId: o.basePlanId,
+                    offerId: o.offerId,
+                    offerToken: o.offerToken?.substring(0, 20) + '...',
+                  })),
+                });
+
+                // Make the request with proper token
+                void requestPurchase({
+                  request: {
+                    android: {
+                      skus: [targetProductId],
+                      subscriptionOffers: [
+                        {
+                          sku: targetProductId,
+                          offerToken: targetOffer.offerToken,
+                        },
+                      ],
+                      replacementModeAndroid: replacementMode,
+                      purchaseTokenAndroid: tokenString,
+                    },
+                  },
+                  type: 'subs',
+                }).catch((err: PurchaseError) => {
+                  console.error('Plan change failed:', err);
+                  console.error('Full error:', JSON.stringify(err));
+
+                  // More helpful error messages
+                  let errorMessage = err.message;
+                  if (
+                    err.message?.includes('DEVELOPER_ERROR') ||
+                    err.message?.includes('Invalid arguments')
+                  ) {
+                    errorMessage =
+                      'Unable to change subscription plan. This may be due to:\n' +
+                      '• Subscriptions not being in the same group in Play Console\n' +
+                      '• Invalid offer configuration\n' +
+                      '• Missing purchase token\n\n' +
+                      'Original error: ' +
+                      err.message;
+                  }
+
+                  setIsProcessing(false);
+                  setPurchaseResult(`❌ Plan change failed: ${err.message}`);
+                  Alert.alert('Plan Change Failed', errorMessage);
+                });
+              }
+            },
+          },
+        ],
+      );
+    },
+    [
+      subscriptions,
+      activeSubscriptions,
+      setIsProcessing,
+      setPurchaseResult,
+      cachedAvailablePurchases,
+      setCachedAvailablePurchases,
+    ],
+  );
 
   const copyToClipboard = (subscription: ProductSubscription) => {
     const jsonString = JSON.stringify(subscription, null, 2);
@@ -275,43 +677,183 @@ function SubscriptionFlow({
               </Text>
             </View>
 
-            {activeSubscriptions.map((sub: any, index: number) => (
-              <View
-                key={sub.productId + index}
-                style={styles.subscriptionStatusItem}
-              >
-                <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Product:</Text>
-                  <Text style={styles.statusValue}>{sub.productId}</Text>
-                </View>
+            {(() => {
+              // For iOS, filter to show only the most recent subscription in the group
+              let subsToShow = [...activeSubscriptions];
 
-                {sub.expirationDateIOS && (
-                  <View style={styles.statusRow}>
-                    <Text style={styles.statusLabel}>Expires:</Text>
-                    <Text style={styles.statusValue}>
-                      {sub.expirationDateIOS?.toLocaleDateString()}
-                    </Text>
-                  </View>
-                )}
+              if (Platform.OS === 'ios') {
+                // Filter out duplicates for iOS subscription group
+                const premiumSubs = activeSubscriptions.filter(
+                  (sub) =>
+                    sub.productId === 'dev.hyo.martie.premium' ||
+                    sub.productId === 'dev.hyo.martie.premium_year',
+                );
 
-                {Platform.OS === 'android' && sub.isActive !== undefined && (
-                  <View style={styles.statusRow}>
-                    <Text style={styles.statusLabel}>Auto-Renew:</Text>
-                    <Text
-                      style={[
-                        styles.statusValue,
-                        sub.isActive
-                          ? styles.activeStatus
-                          : styles.cancelledStatus,
-                      ]}
-                    >
-                      {sub.isActive ? '✅ Enabled' : '⚠️ Cancelled'}
-                    </Text>
+                if (premiumSubs.length > 1) {
+                  // Sort by transaction date and keep only the most recent
+                  const sortedPremiumSubs = [...premiumSubs].sort((a, b) => {
+                    const dateA = (a as any).transactionDate || 0;
+                    const dateB = (b as any).transactionDate || 0;
+                    return dateB - dateA;
+                  });
+
+                  const mostRecentPremium = sortedPremiumSubs[0];
+
+                  // Filter out old premium subscriptions, keep only the most recent
+                  subsToShow = activeSubscriptions.filter((sub) => {
+                    if (
+                      sub.productId === 'dev.hyo.martie.premium' ||
+                      sub.productId === 'dev.hyo.martie.premium_year'
+                    ) {
+                      return sub === mostRecentPremium;
+                    }
+                    return true; // Keep all non-premium subscriptions
+                  });
+                }
+              }
+
+              return subsToShow.map((sub: any, index: number) => {
+                // Find the matching subscription to get offer details
+                const matchingSubscription = subscriptions.find(
+                  (s) => s.id === sub.productId,
+                );
+
+                // Plan detection for dev.hyo.martie.premium
+                let activeOfferLabel = '';
+                let detectedBasePlanId = '';
+
+                if (
+                  (sub.productId === 'dev.hyo.martie.premium' ||
+                    sub.productId === 'dev.hyo.martie.premium_year') &&
+                  matchingSubscription
+                ) {
+                  // Log the full data to understand what's available
+                  console.log(
+                    'ActiveSubscription data:',
+                    JSON.stringify(sub, null, 2),
+                  );
+                  console.log(
+                    'Product ID:',
+                    sub.productId,
+                    'Is Upgraded?:',
+                    (sub as any).isUpgradedIOS,
+                  );
+
+                  if (Platform.OS === 'ios') {
+                    // iOS: Detect based on product ID
+                    if (sub.productId === 'dev.hyo.martie.premium_year') {
+                      detectedBasePlanId = 'premium-year';
+                      activeOfferLabel = '📅 Yearly Plan';
+                    } else {
+                      detectedBasePlanId = 'premium';
+                      activeOfferLabel = '📆 Monthly Plan';
+                    }
+                  } else {
+                    // Android: Try to detect the base plan from various sources
+                    // Method 1: Check if basePlanId is directly available from native
+                    if ((sub as any).basePlanId) {
+                      detectedBasePlanId = (sub as any).basePlanId;
+                      activeOfferLabel =
+                        detectedBasePlanId === 'premium-year'
+                          ? '📅 Yearly Plan'
+                          : '📆 Monthly Plan';
+                    }
+                    // Method 2: Check localStorage for last purchased plan
+                    else {
+                      // Try to get from state
+                      const storedPlan = lastPurchasedPlan;
+
+                      if (storedPlan === 'premium-year') {
+                        detectedBasePlanId = 'premium-year';
+                        activeOfferLabel = '📅 Yearly Plan';
+                      } else {
+                        // Default to monthly
+                        detectedBasePlanId = 'premium';
+                        activeOfferLabel = '📆 Monthly Plan';
+                      }
+
+                      console.log(
+                        'Detected plan from state:',
+                        storedPlan || 'none (defaulting to monthly)',
+                      );
+                    }
+                  }
+
+                  // We'll use this detectedBasePlanId in the button section below
+                }
+
+                // No need for separate handling since we already check both products above
+
+                return (
+                  <View
+                    key={sub.productId + index}
+                    style={styles.subscriptionStatusItem}
+                  >
+                    <View style={styles.statusRow}>
+                      <Text style={styles.statusLabel}>Product:</Text>
+                      <Text style={styles.statusValue}>{sub.productId}</Text>
+                    </View>
+
+                    {activeOfferLabel &&
+                      (sub.productId === 'dev.hyo.martie.premium' ||
+                        sub.productId === 'dev.hyo.martie.premium_year') && (
+                        <View style={styles.statusRow}>
+                          <Text style={styles.statusLabel}>Current Plan:</Text>
+                          <Text style={[styles.statusValue, styles.offerLabel]}>
+                            {activeOfferLabel}
+                          </Text>
+                        </View>
+                      )}
+
+                    {sub.expirationDateIOS && (
+                      <View style={styles.statusRow}>
+                        <Text style={styles.statusLabel}>Expires:</Text>
+                        <Text style={styles.statusValue}>
+                          {new Date(sub.expirationDateIOS).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    )}
+
+                    {Platform.OS === 'android' &&
+                      sub.isActive !== undefined && (
+                        <View style={styles.statusRow}>
+                          <Text style={styles.statusLabel}>Auto-Renew:</Text>
+                          <Text
+                            style={[
+                              styles.statusValue,
+                              sub.isActive
+                                ? styles.activeStatus
+                                : styles.cancelledStatus,
+                            ]}
+                          >
+                            {sub.isActive ? '✅ Enabled' : '⚠️ Cancelled'}
+                          </Text>
+                        </View>
+                      )}
+
+                    {sub.transactionId && (
+                      <View style={styles.statusRow}>
+                        <Text style={styles.statusLabel}>Transaction ID:</Text>
+                        <Text
+                          style={[styles.statusValue, styles.transactionId]}
+                        >
+                          {sub.transactionId.substring(0, 10)}...
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
-            ))}
+                );
+              });
+            })()}
           </View>
+
+          {/* Upgrade/Downgrade button for Android only */}
+          <PlanChangeControls
+            activeSubscriptions={activeSubscriptions}
+            handlePlanChange={handlePlanChange}
+            isProcessing={isProcessing}
+            lastPurchasedPlan={lastPurchasedPlan}
+          />
 
           <TouchableOpacity
             style={styles.refreshButton}
@@ -419,37 +961,6 @@ function SubscriptionFlow({
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Stored Purchases</Text>
-        <Text style={styles.sectionSubtitle}>
-          {availablePurchaseRows.length > 0
-            ? `${availablePurchaseRows.length} saved purchases`
-            : 'No stored purchases yet'}
-        </Text>
-
-        {availablePurchaseRows.length > 0 ? (
-          availablePurchaseRows.map((purchase) => (
-            <PurchaseSummaryRow
-              key={`${purchase.productId}-${
-                purchase.transactionDate ?? purchase.id ?? 'na'
-              }`}
-              purchase={purchase}
-              onPress={() => {
-                setSelectedPurchase(purchase);
-                setPurchaseDetailsVisible(true);
-              }}
-            />
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>
-              No stored purchases yet. Complete a subscription purchase to see
-              it here.
-            </Text>
-          </View>
-        )}
-      </View>
-
       {purchaseResult || lastPurchase ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Latest Activity</Text>
@@ -461,13 +972,7 @@ function SubscriptionFlow({
           {lastPurchase ? (
             <View style={styles.latestPurchaseContainer}>
               <Text style={styles.latestPurchaseTitle}>Latest Purchase</Text>
-              <PurchaseSummaryRow
-                purchase={lastPurchase}
-                onPress={() => {
-                  setSelectedPurchase(lastPurchase);
-                  setPurchaseDetailsVisible(true);
-                }}
-              />
+              <PurchaseSummaryRow purchase={lastPurchase} onPress={() => {}} />
             </View>
           ) : null}
         </View>
@@ -491,38 +996,6 @@ function SubscriptionFlow({
               </TouchableOpacity>
             </View>
             {renderSubscriptionDetails}
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={purchaseDetailsVisible}
-        onRequestClose={() => setPurchaseDetailsVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Purchase Details</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setPurchaseDetailsVisible(false)}
-              >
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            {selectedPurchase ? (
-              <View style={styles.modalContent}>
-                <PurchaseDetails
-                  purchase={selectedPurchase}
-                  containerStyle={styles.purchaseDetailsContainer}
-                  rowStyle={styles.purchaseDetailRow}
-                  labelStyle={styles.modalLabel}
-                  valueStyle={styles.modalValue}
-                />
-              </View>
-            ) : null}
           </View>
         </View>
       </Modal>
@@ -551,25 +1024,75 @@ function SubscriptionFlowContainer() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [purchaseResult, setPurchaseResult] = useState('');
   const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
+  const [lastPurchasedPlan, setLastPurchasedPlan] = useState<string | null>(
+    null,
+  );
+  const [cachedAvailablePurchases, setCachedAvailablePurchases] = useState<
+    Purchase[]
+  >([]);
   const lastSuccessAtRef = useRef(0);
   const connectedRef = useRef(false);
   const fetchedProductsOnceRef = useRef(false);
-  const loadedPurchasesOnceRef = useRef(false);
   const statusAutoCheckedRef = useRef(false);
+  const fetchedAvailablePurchasesRef = useRef(false);
 
   const {
     connected,
     subscriptions,
-    availablePurchases,
     activeSubscriptions,
     fetchProducts,
     finishTransaction,
-    getAvailablePurchases,
     getActiveSubscriptions,
   } = useIAP({
     onPurchaseSuccess: async (purchase: Purchase) => {
       const {purchaseToken, ...safePurchase} = purchase || {};
       console.log('Purchase successful (redacted):', safePurchase);
+
+      // Try to detect which plan was purchased
+      if (Platform.OS === 'ios') {
+        // iOS uses separate products
+        if (purchase.productId === 'dev.hyo.martie.premium_year') {
+          setLastPurchasedPlan('premium-year');
+          console.log('Detected yearly plan from purchase (iOS)');
+        } else if (purchase.productId === 'dev.hyo.martie.premium') {
+          setLastPurchasedPlan('premium');
+          console.log('Detected monthly plan from purchase (iOS)');
+        }
+      } else if (purchase.productId === 'dev.hyo.martie.premium') {
+        // Android: Check if we have offerToken or other data to identify the plan
+        const purchaseData = purchase as any;
+
+        // Log full purchase data to understand what's available
+        console.log(
+          'Full purchase data for plan detection:',
+          JSON.stringify(purchaseData, null, 2),
+        );
+
+        // Map offerToken to basePlanId using fetched subscription data
+        if (purchaseData.offerToken) {
+          const premiumSub = subscriptions.find(
+            (s) => s.id === 'dev.hyo.martie.premium',
+          ) as any;
+          const matchingOffer =
+            premiumSub?.subscriptionOfferDetailsAndroid?.find(
+              (offer: any) => offer.offerToken === purchaseData.offerToken,
+            );
+          if (matchingOffer?.basePlanId) {
+            setLastPurchasedPlan(matchingOffer.basePlanId);
+            console.log(
+              'Detected plan from offerToken (Android):',
+              matchingOffer.basePlanId,
+            );
+          } else {
+            // Fallback if we can't find the matching offer
+            console.log(
+              'Could not map offerToken to basePlanId:',
+              purchaseData.offerToken,
+            );
+          }
+        }
+      }
+
       lastSuccessAtRef.current = Date.now();
       setLastPurchase(purchase);
       setIsProcessing(false);
@@ -607,14 +1130,14 @@ function SubscriptionFlowContainer() {
       }
 
       try {
-        await getActiveSubscriptions(SUBSCRIPTION_PRODUCT_IDS);
+        // Refresh both active subscriptions and available purchases after successful purchase
+        const [, purchases] = await Promise.all([
+          getActiveSubscriptions(SUBSCRIPTION_PRODUCT_IDS),
+          getAvailablePurchases(),
+        ]);
+        setCachedAvailablePurchases(purchases);
       } catch (e) {
-        console.warn('Failed to refresh active subscriptions:', e);
-      }
-      try {
-        await getAvailablePurchases();
-      } catch (e) {
-        console.warn('Failed to refresh available purchases:', e);
+        console.warn('Failed to refresh subscriptions:', e);
       }
 
       setPurchaseResult(
@@ -653,24 +1176,51 @@ function SubscriptionFlowContainer() {
         fetchedProductsOnceRef.current = true;
       }
 
-      if (!loadedPurchasesOnceRef.current) {
+      // Fetch available purchases once when connected
+      if (!fetchedAvailablePurchasesRef.current) {
         getAvailablePurchases()
-          .catch((error) => {
-            console.warn('Failed to load available purchases:', error);
+          .then((purchases) => {
+            setCachedAvailablePurchases(purchases);
+            fetchedAvailablePurchasesRef.current = true;
+            console.log('Cached available purchases:', purchases.length);
           })
-          .finally(() => {
-            loadedPurchasesOnceRef.current = true;
+          .catch((error) => {
+            console.error('Failed to fetch available purchases:', error);
           });
       }
     }
-  }, [connected, fetchProducts, getAvailablePurchases]);
+  }, [connected, fetchProducts]);
 
   const handleRefreshStatus = useCallback(async () => {
     if (!connected || isCheckingStatus) return;
 
     setIsCheckingStatus(true);
     try {
-      await getActiveSubscriptions();
+      // Refresh both active subscriptions and available purchases
+      const [activeSubs, purchases] = await Promise.all([
+        getActiveSubscriptions(),
+        getAvailablePurchases(),
+      ]);
+      setCachedAvailablePurchases(purchases);
+      console.log('Refreshed active subscriptions:', activeSubs);
+      console.log('Refreshed available purchases:', purchases);
+
+      // For iOS, check if there's a pending change
+      if (Platform.OS === 'ios') {
+        const premiumPurchases = purchases.filter(
+          (p) =>
+            p.productId === 'dev.hyo.martie.premium' ||
+            p.productId === 'dev.hyo.martie.premium_year',
+        );
+        console.log(
+          'Premium purchases found:',
+          premiumPurchases.map((p) => ({
+            productId: p.productId,
+            transactionDate: new Date(p.transactionDate).toISOString(),
+            isAutoRenewing: p.isAutoRenewing,
+          })),
+        );
+      }
     } catch (error) {
       console.error('Error checking subscription status:', error);
     } finally {
@@ -708,8 +1258,11 @@ function SubscriptionFlowContainer() {
             subscriptionOffers:
               subscription &&
               'subscriptionOfferDetailsAndroid' in subscription &&
-              subscription.subscriptionOfferDetailsAndroid
-                ? subscription.subscriptionOfferDetailsAndroid.map((offer) => ({
+              (subscription as AndroidSubscriptionDetails)
+                .subscriptionOfferDetailsAndroid
+                ? (
+                    subscription as AndroidSubscriptionDetails
+                  ).subscriptionOfferDetailsAndroid!.map((offer) => ({
                     sku: itemId,
                     offerToken: offer.offerToken,
                   }))
@@ -750,12 +1303,17 @@ function SubscriptionFlowContainer() {
     <SubscriptionFlow
       connected={connected}
       subscriptions={subscriptions}
-      availablePurchases={availablePurchases}
       activeSubscriptions={activeSubscriptions}
       purchaseResult={purchaseResult}
       isProcessing={isProcessing}
       isCheckingStatus={isCheckingStatus}
       lastPurchase={lastPurchase}
+      lastPurchasedPlan={lastPurchasedPlan}
+      cachedAvailablePurchases={cachedAvailablePurchases}
+      setCachedAvailablePurchases={setCachedAvailablePurchases}
+      setIsProcessing={setIsProcessing}
+      setPurchaseResult={setPurchaseResult}
+      setLastPurchasedPlan={setLastPurchasedPlan}
       onSubscribe={handleSubscription}
       onRetryLoadSubscriptions={handleRetryLoadSubscriptions}
       onRefreshStatus={handleRefreshStatus}
@@ -1116,5 +1674,65 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1a1f36',
     marginBottom: 6,
+  },
+  offerLabel: {
+    fontWeight: '600',
+    color: '#1f3c88',
+  },
+  transactionId: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontSize: 12,
+    color: '#5f6470',
+  },
+  planChangeSection: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  planChangeOptions: {
+    gap: 8,
+  },
+  changePlanButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  changePlanButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  changePlanButtonSubtext: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  upgradeButton: {
+    backgroundColor: '#4CAF50',
+  },
+  downgradeButton: {
+    backgroundColor: '#FF9800',
+  },
+  switchButton: {
+    backgroundColor: '#2196F3',
+  },
+  selectButton: {
+    backgroundColor: '#9C27B0',
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#FF9800',
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  questionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 12,
+    color: '#1a1f36',
   },
 });
