@@ -194,36 +194,15 @@ class HybridRnIap : HybridRnIapSpec() {
             val queryType = parseProductQueryType(type)
             val skusList = skus.toList()
 
-            val products: List<ProductCommon> = when (queryType) {
-                ProductQueryType.All -> {
-                    val collected = linkedMapOf<String, ProductCommon>()
-                    listOf(ProductQueryType.InApp, ProductQueryType.Subs).forEach { kind ->
-                        RnIapLog.payload(
-                            "fetchProducts.native",
-                            mapOf("skus" to skusList, "type" to kind.rawValue)
-                        )
-                        val fetched = openIap.fetchProducts(ProductRequest(skusList, kind)).productsOrEmpty()
-                        RnIapLog.result(
-                            "fetchProducts.native",
-                            fetched.map { mapOf("id" to it.id, "type" to it.type.rawValue) }
-                        )
-                        fetched.forEach { collected[it.id] = it }
-                    }
-                    collected.values.toList()
-                }
-                else -> {
-                    RnIapLog.payload(
-                        "fetchProducts.native",
-                        mapOf("skus" to skusList, "type" to queryType.rawValue)
-                    )
-                    val fetched = openIap.fetchProducts(ProductRequest(skusList, queryType)).productsOrEmpty()
-                    RnIapLog.result(
-                        "fetchProducts.native",
-                        fetched.map { mapOf("id" to it.id, "type" to it.type.rawValue) }
-                    )
-                    fetched
-                }
-            }
+            RnIapLog.payload(
+                "fetchProducts.native",
+                mapOf("skus" to skusList, "type" to queryType.rawValue)
+            )
+            val products = openIap.fetchProducts(ProductRequest(skusList, queryType)).productsOrEmpty()
+            RnIapLog.result(
+                "fetchProducts.native",
+                products.map { mapOf("id" to it.id, "type" to it.type.rawValue) }
+            )
 
             products.forEach { p -> productTypeBySku[p.id] = p.type.rawValue }
 
