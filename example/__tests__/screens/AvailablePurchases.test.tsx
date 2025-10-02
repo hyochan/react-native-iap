@@ -1,4 +1,4 @@
-import React from 'react';
+import {type ReactElement} from 'react';
 import {render, fireEvent, waitFor} from '@testing-library/react-native';
 import {Alert} from 'react-native';
 import AvailablePurchases from '../../screens/AvailablePurchases';
@@ -44,7 +44,7 @@ const mockFinishTransaction = jest.fn();
 jest.spyOn(Alert, 'alert');
 
 // Helper to render with providers
-const renderWithProviders = (component: React.ReactElement) => {
+const renderWithProviders = (component: ReactElement) => {
   return render(<DataModalProvider>{component}</DataModalProvider>);
 };
 
