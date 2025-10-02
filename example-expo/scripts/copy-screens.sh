@@ -32,6 +32,7 @@ add_generation_comment() {
             -e "s|from '\.\./src/utils/constants'|from '../constants/products'|g" \
             -e "s|from '\.\./src/components/PurchaseDetails'|from '../components/PurchaseDetails'|g" \
             -e "s|from '\.\./src/components/PurchaseSummaryRow'|from '../components/PurchaseSummaryRow'|g" \
+            -e "s|from '\.\./src/contexts/DataModalContext'|from '../contexts/DataModalContext'|g" \
             "$source_file"
     } > "$target_file"
 }

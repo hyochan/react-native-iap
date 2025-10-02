@@ -18,6 +18,7 @@ import {
   getAvailablePurchases,
   type ActiveSubscription,
   type ProductSubscription,
+  type ProductSubscriptionAndroid,
   type Purchase,
   type PurchaseError,
   ErrorCode,
@@ -25,26 +26,6 @@ import {
 import Loading from '../src/components/Loading';
 import {SUBSCRIPTION_PRODUCT_IDS} from '../src/utils/constants';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
-
-// Extended types for Android-specific properties
-type AndroidSubscriptionDetails = ProductSubscription & {
-  subscriptionOfferDetailsAndroid?: Array<{
-    basePlanId: string;
-    offerToken: string;
-    offerId?: string;
-    offerTags: string[];
-    pricingPhases: {
-      pricingPhaseList: Array<{
-        formattedPrice: string;
-        priceAmountMicros: string;
-        priceCurrencyCode: string;
-        billingPeriod: string;
-        billingCycleCount: number;
-        recurrenceMode: number;
-      }>;
-    };
-  }>;
-};
 
 type ExtendedPurchase = Purchase & {
   purchaseTokenAndroid?: string;
@@ -55,10 +36,17 @@ type ExtendedPurchase = Purchase & {
   offerToken?: string;
 };
 
+// Extended type for ActiveSubscription with additional fields that may be present
+// but are not officially part of the ActiveSubscription type definition.
+// These fields are either:
+// - Detected/computed locally (basePlanId, _detectedBasePlanId)
+// - Available in the underlying Purchase but not mapped to ActiveSubscription (isUpgradedIOS)
+// - Platform-specific fields (purchaseTokenAndroid)
 type ExtendedActiveSubscription = ActiveSubscription & {
-  basePlanId?: string;
-  purchaseTokenAndroid?: string;
-  _detectedBasePlanId?: string;
+  basePlanId?: string; // Android: detected from subscription offers
+  purchaseTokenAndroid?: string; // Android: purchase token
+  _detectedBasePlanId?: string; // Locally detected/cached base plan ID
+  isUpgradedIOS?: boolean; // iOS: from PurchaseIOS.isUpgradedIOS
 };
 
 // Component for plan change controls
@@ -73,32 +61,31 @@ interface PlanChangeControlsProps {
   lastPurchasedPlan: string | null;
 }
 
-const PlanChangeControls = React.memo(
-  ({
-    activeSubscriptions,
-    handlePlanChange,
-    isProcessing,
-    lastPurchasedPlan,
-  }: PlanChangeControlsProps) => {
-    // Find all premium subscriptions (both monthly and yearly)
-    const premiumSubs = activeSubscriptions.filter(
-      (sub) =>
-        sub.productId === 'dev.hyo.martie.premium' ||
-        sub.productId === 'dev.hyo.martie.premium_year',
-    );
+const PlanChangeControls = React.memo(function PlanChangeControls({
+  activeSubscriptions,
+  handlePlanChange,
+  isProcessing,
+  lastPurchasedPlan,
+}: PlanChangeControlsProps) {
+  // Find all premium subscriptions (both monthly and yearly)
+  const premiumSubs = activeSubscriptions.filter(
+    (sub) =>
+      sub.productId === 'dev.hyo.martie.premium' ||
+      sub.productId === 'dev.hyo.martie.premium_year',
+  );
 
-    if (premiumSubs.length === 0) return null;
+  if (premiumSubs.length === 0) return null;
 
-    // Detect the current plan based on product ID for iOS
-    let currentBasePlan = 'unknown';
-    let activeSub: ActiveSubscription | undefined = undefined;
+  // Detect the current plan based on product ID for iOS
+  let currentBasePlan = 'unknown';
+  let activeSub: ActiveSubscription | undefined = undefined;
 
     if (Platform.OS === 'ios') {
       // On iOS, find the most recent subscription (in case both exist during transition)
       // Sort by transaction date to get the most recent one
       const sortedSubs = [...premiumSubs].sort((a, b) => {
-        const dateA = (a as any).transactionDate || 0;
-        const dateB = (b as any).transactionDate || 0;
+        const dateA = a.transactionDate ?? 0;
+        const dateB = b.transactionDate ?? 0;
         return dateB - dateA;
       });
 
@@ -202,8 +189,7 @@ const PlanChangeControls = React.memo(
         )}
       </View>
     );
-  },
-);
+});
 
 /**
  * Subscription Flow Example - Subscription Products
@@ -374,7 +360,7 @@ function SubscriptionFlow({
               if (Platform.OS === 'android') {
                 // Android subscription replacement
                 const targetSubWithDetails =
-                  targetSubscription as AndroidSubscriptionDetails;
+                  targetSubscription as ProductSubscriptionAndroid;
                 const androidOffers =
                   targetSubWithDetails.subscriptionOfferDetailsAndroid;
                 const targetOffer = androidOffers?.find(
@@ -520,7 +506,14 @@ function SubscriptionFlow({
         ],
       );
     },
-    [subscriptions, activeSubscriptions, setIsProcessing, setPurchaseResult],
+    [
+      subscriptions,
+      activeSubscriptions,
+      setIsProcessing,
+      setPurchaseResult,
+      cachedAvailablePurchases,
+      setCachedAvailablePurchases,
+    ],
   );
 
   const copyToClipboard = (subscription: ProductSubscription) => {
@@ -679,8 +672,8 @@ function SubscriptionFlow({
                 if (premiumSubs.length > 1) {
                   // Sort by transaction date and keep only the most recent
                   const sortedPremiumSubs = [...premiumSubs].sort((a, b) => {
-                    const dateA = (a as any).transactionDate || 0;
-                    const dateB = (b as any).transactionDate || 0;
+                    const dateA = a.transactionDate ?? 0;
+                    const dateB = b.transactionDate ?? 0;
                     return dateB - dateA;
                   });
 
@@ -719,11 +712,12 @@ function SubscriptionFlow({
                     'ActiveSubscription data:',
                     JSON.stringify(sub, null, 2),
                   );
+                  const extendedSub = sub as ExtendedActiveSubscription;
                   console.log(
                     'Product ID:',
                     sub.productId,
                     'Is Upgraded?:',
-                    (sub as any).isUpgradedIOS,
+                    extendedSub.isUpgradedIOS,
                   );
 
                   if (Platform.OS === 'ios') {
@@ -738,8 +732,8 @@ function SubscriptionFlow({
                   } else {
                     // Android: Try to detect the base plan from various sources
                     // Method 1: Check if basePlanId is directly available from native
-                    if ((sub as any).basePlanId) {
-                      detectedBasePlanId = (sub as any).basePlanId;
+                    if (extendedSub.basePlanId) {
+                      detectedBasePlanId = extendedSub.basePlanId;
                       activeOfferLabel =
                         detectedBasePlanId === 'premium-year'
                           ? '📅 Yearly Plan'
@@ -1047,7 +1041,7 @@ function SubscriptionFlowContainer() {
         }
       } else if (purchase.productId === 'dev.hyo.martie.premium') {
         // Android: Check if we have offerToken or other data to identify the plan
-        const purchaseData = purchase as any;
+        const purchaseData = purchase as ExtendedPurchase;
 
         // Log full purchase data to understand what's available
         console.log(
@@ -1059,10 +1053,10 @@ function SubscriptionFlowContainer() {
         if (purchaseData.offerToken) {
           const premiumSub = subscriptions.find(
             (s) => s.id === 'dev.hyo.martie.premium',
-          ) as any;
+          ) as ProductSubscriptionAndroid;
           const matchingOffer =
             premiumSub?.subscriptionOfferDetailsAndroid?.find(
-              (offer: any) => offer.offerToken === purchaseData.offerToken,
+              (offer) => offer.offerToken === purchaseData.offerToken,
             );
           if (matchingOffer?.basePlanId) {
             setLastPurchasedPlan(matchingOffer.basePlanId);
@@ -1245,11 +1239,11 @@ function SubscriptionFlowContainer() {
             subscriptionOffers:
               subscription &&
               'subscriptionOfferDetailsAndroid' in subscription &&
-              (subscription as AndroidSubscriptionDetails)
+              (subscription as ProductSubscriptionAndroid)
                 .subscriptionOfferDetailsAndroid
                 ? (
-                    subscription as AndroidSubscriptionDetails
-                  ).subscriptionOfferDetailsAndroid!.map((offer) => ({
+                    subscription as ProductSubscriptionAndroid
+                  ).subscriptionOfferDetailsAndroid.map((offer) => ({
                     sku: itemId,
                     offerToken: offer.offerToken,
                   }))
