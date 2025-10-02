@@ -100,7 +100,9 @@ const retryWithBackoff = async (fn: () => Promise<any>, maxRetries = 3) => {
       if (i === maxRetries - 1) throw error;
 
       // Only retry on network or temporary errors
-      if ([ErrorCode.NetworkError, ErrorCode.ServiceError].includes(error.code)) {
+      if (
+        [ErrorCode.NetworkError, ErrorCode.ServiceError].includes(error.code)
+      ) {
         await new Promise((resolve) =>
           setTimeout(resolve, Math.pow(2, i) * 1000),
         );
@@ -198,12 +200,12 @@ Some errors may be platform-specific:
 import {ErrorCode} from 'react-native-iap';
 
 const handlePlatformSpecificError = (error: IapError) => {
-  if (
-    Platform.OS === 'ios' &&
-    error.code === ErrorCode.ItemUnavailable
-  ) {
+  if (Platform.OS === 'ios' && error.code === ErrorCode.ItemUnavailable) {
     showMessage('This product is not available in your country.');
-  } else if (Platform.OS === 'android' && error.code === ErrorCode.DeveloperError) {
+  } else if (
+    Platform.OS === 'android' &&
+    error.code === ErrorCode.DeveloperError
+  ) {
     // Log for debugging but don't show to user
     console.error('Google Play configuration error:', error);
   }

@@ -15,6 +15,7 @@ import {
   useIAP,
   getAppTransactionIOS,
   getStorefront,
+  ErrorCode,
 } from 'react-native-iap';
 import Loading from '../src/components/Loading';
 import {
@@ -413,8 +414,23 @@ function PurchaseFlowContainer() {
     },
     onPurchaseError: (error: PurchaseError) => {
       console.error('Purchase failed:', error);
+      console.error('Error code:', error.code);
+      console.error(
+        'Is user cancelled:',
+        error.code === ErrorCode.UserCancelled,
+      );
+
       setIsProcessing(false);
-      setPurchaseResult(`Purchase failed: ${error.message}`);
+
+      // Check for user cancellation
+      if (error.code === ErrorCode.UserCancelled) {
+        setPurchaseResult('Purchase cancelled by user');
+        return;
+      }
+
+      setPurchaseResult(
+        `Purchase failed: ${error.message} (code: ${error.code})`,
+      );
     },
   });
 

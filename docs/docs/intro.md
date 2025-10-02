@@ -38,9 +38,7 @@ Install the package using your favorite package manager:
 npm install react-native-iap react-native-nitro-modules
 ```
 
-:::info Nitro Modules Dependency
-Starting from v14.4.0, react-native-iap uses [Nitro Modules](https://github.com/margelo/nitro) for native bridging. For more details, see the [announcement discussion](https://github.com/hyochan/react-native-iap/discussions/2985).
-:::
+:::info Nitro Modules Dependency Starting from v14.4.0, react-native-iap uses [Nitro Modules](https://github.com/margelo/nitro) for native bridging. For more details, see the [announcement discussion](https://github.com/hyochan/react-native-iap/discussions/2985). :::
 
 ### 1. Basic Setup
 

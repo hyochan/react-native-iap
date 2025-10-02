@@ -67,11 +67,12 @@ export enum ErrorCode {
   TransactionValidationFailed = 'transaction-validation-failed',
   Unknown = 'unknown',
   UserCancelled = 'user-cancelled',
-  UserError = 'user-error'
+  UserError = 'user-error',
 }
 ```
 
 **Note:** Native platforms use different formats:
+
 - **Android Native**: Uses `E_` prefix (e.g., `E_USER_CANCELLED`)
 - **iOS Native**: Uses kebab-case (e.g., `user-cancelled`)
 - **TypeScript**: Automatically normalized to `ErrorCode` enum values (kebab-case)

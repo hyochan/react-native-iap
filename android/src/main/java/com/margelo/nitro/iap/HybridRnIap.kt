@@ -1002,13 +1002,30 @@ class HybridRnIap : HybridRnIapSpec() {
         val message = messageOverride?.takeIf { it.isNotBlank() }
             ?: error.message?.takeIf { it.isNotBlank() }
             ?: OpenIAPError.Companion.defaultMessage(code)
-        return BillingUtils.createErrorJson(
-            code = code,
-            message = message,
-            responseCode = -1,
-            debugMessage = debugMessage ?: error.message,
-            productId = productId
+
+        val errorMap = mutableMapOf<String, Any>(
+            "code" to code,
+            "message" to message
         )
+
+        errorMap["responseCode"] = -1
+        debugMessage?.let { errorMap["debugMessage"] = it } ?: error.message?.let { errorMap["debugMessage"] = it }
+        productId?.let { errorMap["productId"] = it }
+
+        return try {
+            val jsonPairs = errorMap.map { (key, value) ->
+                val valueStr = when (value) {
+                    is String -> "\"${value.replace("\"", "\\\"")}\""
+                    is Number -> value.toString()
+                    is Boolean -> value.toString()
+                    else -> "\"$value\""
+                }
+                "\"$key\":$valueStr"
+            }
+            "{${jsonPairs.joinToString(",")}}"
+        } catch (e: Exception) {
+            "$code: $message"
+        }
     }
 
     private fun toErrorResult(

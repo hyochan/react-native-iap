@@ -3,6 +3,7 @@ import {Alert} from 'react-native';
 import PurchaseFlow from '../../screens/PurchaseFlow';
 import * as RNIap from 'react-native-iap';
 import {PRODUCT_IDS} from '../../src/utils/constants';
+import {ErrorCode} from 'react-native-iap';
 
 describe('PurchaseFlow Screen', () => {
   const requestPurchaseMock = RNIap.requestPurchase as jest.Mock;
@@ -145,11 +146,35 @@ describe('PurchaseFlow Screen', () => {
     const {getByText} = render(<PurchaseFlow />);
 
     await act(async () => {
-      onPurchaseError?.({message: 'Something went wrong'});
+      onPurchaseError?.({
+        code: ErrorCode.NetworkError,
+        message: 'Something went wrong',
+      });
     });
 
     await waitFor(() => {
-      expect(getByText('Purchase failed: Something went wrong')).toBeTruthy();
+      expect(
+        getByText(
+          `Purchase failed: Something went wrong (code: ${ErrorCode.NetworkError})`,
+        ),
+      ).toBeTruthy();
+    });
+  });
+
+  it('handles user cancelled error correctly', async () => {
+    mockIapState();
+
+    const {getByText} = render(<PurchaseFlow />);
+
+    await act(async () => {
+      onPurchaseError?.({
+        code: ErrorCode.UserCancelled,
+        message: 'User cancelled the purchase',
+      });
+    });
+
+    await waitFor(() => {
+      expect(getByText('Purchase cancelled by user')).toBeTruthy();
     });
   });
 });

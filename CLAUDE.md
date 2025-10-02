@@ -297,23 +297,21 @@ The project uses a centralized error handling approach across all platforms:
 - `getUserFriendlyErrorMessage()` - **Public helper** - Get user-friendly error messages
 - `ErrorCode` enum (from types.ts) - Standardized error codes across platforms
 
-**Android (`android/src/main/java/com/margelo/nitro/iap/Types.kt`)**
+**Android & iOS (OpenIAP)**
 
-- `IapErrorCode` object - Centralized error codes
-- `BillingUtils.getBillingErrorData()` - Maps Android billing codes to error objects
-- `BillingUtils.createErrorJson()` - Serializes errors to JSON strings
-
-**iOS (`ios/ErrorUtils.swift`)**
-
-- `IapErrorCode` struct - iOS error code constants (matches Android)
-- `ErrorUtils.getStoreKitErrorData()` - Maps StoreKit errors to error objects
-- `ErrorUtils.createErrorJson()` - Serializes errors to JSON strings
+Both platforms use the OpenIAP library's error handling:
+- **OpenIAPError** - Unified error types across Android and iOS
+- `OpenIAPError.toCode()` - Converts error to kebab-case string code
+- `OpenIAPError.defaultMessage()` - Gets default error messages
+- Error codes defined in OpenIAP package: `dev.hyo.openiap.OpenIapError` (Android) and OpenIAP framework (iOS)
 
 ### Error Format
 
 **Native Error Codes:**
-- **Android Native**: Uses `E_` prefix (e.g., `E_USER_CANCELLED`)
-- **iOS Native**: Uses OpenIAP ErrorCode enum (kebab-case: `user-cancelled`)
+
+Both Android and iOS now use **OpenIAP's unified error codes** (kebab-case format):
+- Examples: `user-cancelled`, `item-unavailable`, `network-error`, `developer-error`
+- See [OpenIAP Error Handling](https://www.openiap.dev/api/error-handling) for complete list
 
 **TypeScript Error Format:**
 
@@ -321,7 +319,7 @@ All errors in TypeScript are automatically normalized to `ErrorCode` enum values
 
 ```typescript
 interface PurchaseError {
-  code: ErrorCode;        // Normalized enum value
+  code: ErrorCode; // Normalized enum value
   message: string;
   productId?: string;
   responseCode?: number;
@@ -334,7 +332,12 @@ interface PurchaseError {
 **✅ The `useIAP` hook automatically normalizes all errors - this is the recommended approach:**
 
 ```typescript
-import {useIAP, ErrorCode, isUserCancelledError, getUserFriendlyErrorMessage} from 'react-native-iap';
+import {
+  useIAP,
+  ErrorCode,
+  isUserCancelledError,
+  getUserFriendlyErrorMessage,
+} from 'react-native-iap';
 
 const {requestPurchase} = useIAP({
   onPurchaseError: (error) => {
@@ -382,7 +385,7 @@ import {
   purchaseErrorListener,
   isUserCancelledError,
   getUserFriendlyErrorMessage,
-  ErrorCode
+  ErrorCode,
 } from 'react-native-iap';
 
 // Errors from purchaseErrorListener are already normalized
