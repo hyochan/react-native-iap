@@ -657,6 +657,13 @@ class HybridRnIap : HybridRnIapSpec() {
         }
 
         val subscriptionOffersJson = subscriptionOffers.takeIf { it.isNotEmpty() }?.let { serializeSubscriptionOffers(it) }
+        val oneTimeOfferNitro = oneTimeOffer?.let { otp ->
+            NitroOneTimePurchaseOfferDetail(
+                formattedPrice = otp.formattedPrice,
+                priceAmountMicros = otp.priceAmountMicros,
+                priceCurrencyCode = otp.priceCurrencyCode
+            )
+        }
 
         var originalPriceAndroid: String? = null
         var originalPriceAmountMicrosAndroid: Double? = null
@@ -695,6 +702,12 @@ class HybridRnIap : HybridRnIapSpec() {
             }
         }
 
+        val nameAndroid = when (product) {
+            is ProductAndroid -> product.nameAndroid
+            is ProductSubscriptionAndroid -> product.nameAndroid
+            else -> null
+        }
+
         return NitroProduct(
             id = product.id,
             title = product.title,
@@ -708,6 +721,7 @@ class HybridRnIap : HybridRnIapSpec() {
             typeIOS = null,
             isFamilyShareableIOS = null,
             jsonRepresentationIOS = null,
+            discountsIOS = null,
             subscriptionPeriodUnitIOS = null,
             subscriptionPeriodNumberIOS = null,
             introductoryPriceIOS = null,
@@ -715,6 +729,7 @@ class HybridRnIap : HybridRnIapSpec() {
             introductoryPricePaymentModeIOS = null,
             introductoryPriceNumberOfPeriodsIOS = null,
             introductoryPriceSubscriptionPeriodIOS = null,
+            nameAndroid = nameAndroid,
             originalPriceAndroid = originalPriceAndroid,
             originalPriceAmountMicrosAndroid = originalPriceAmountMicrosAndroid,
             introductoryPriceValueAndroid = introductoryPriceValueAndroid,
@@ -722,7 +737,8 @@ class HybridRnIap : HybridRnIapSpec() {
             introductoryPricePeriodAndroid = introductoryPricePeriodAndroid,
             subscriptionPeriodAndroid = subscriptionPeriodAndroid,
             freeTrialPeriodAndroid = freeTrialPeriodAndroid,
-            subscriptionOfferDetailsAndroid = subscriptionOffersJson
+            subscriptionOfferDetailsAndroid = subscriptionOffersJson,
+            oneTimePurchaseOfferDetailsAndroid = oneTimeOfferNitro
         )
     }
     
@@ -748,6 +764,23 @@ class HybridRnIap : HybridRnIapSpec() {
             originalTransactionDateIOS = null,
             originalTransactionIdentifierIOS = null,
             appAccountToken = null,
+            appBundleIdIOS = null,
+            countryCodeIOS = null,
+            currencyCodeIOS = null,
+            currencySymbolIOS = null,
+            environmentIOS = null,
+            expirationDateIOS = null,
+            isUpgradedIOS = null,
+            offerIOS = null,
+            ownershipTypeIOS = null,
+            reasonIOS = null,
+            reasonStringRepresentationIOS = null,
+            revocationDateIOS = null,
+            revocationReasonIOS = null,
+            storefrontCountryCodeIOS = null,
+            subscriptionGroupIdIOS = null,
+            transactionReasonIOS = null,
+            webOrderLineItemIdIOS = null,
             purchaseTokenAndroid = androidPurchase?.purchaseToken,
             dataAndroid = androidPurchase?.dataAndroid,
             signatureAndroid = androidPurchase?.signatureAndroid,
@@ -756,7 +789,8 @@ class HybridRnIap : HybridRnIapSpec() {
             isAcknowledgedAndroid = androidPurchase?.isAcknowledgedAndroid,
             packageNameAndroid = androidPurchase?.packageNameAndroid,
             obfuscatedAccountIdAndroid = androidPurchase?.obfuscatedAccountIdAndroid,
-            obfuscatedProfileIdAndroid = androidPurchase?.obfuscatedProfileIdAndroid
+            obfuscatedProfileIdAndroid = androidPurchase?.obfuscatedProfileIdAndroid,
+            developerPayloadAndroid = androidPurchase?.developerPayloadAndroid
         )
     }
 

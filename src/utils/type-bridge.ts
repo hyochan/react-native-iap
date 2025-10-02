@@ -220,48 +220,57 @@ export function convertNitroProductToProduct(
     const iosProduct: any = {
       ...base,
       displayNameIOS: nitroProduct.displayName ?? nitroProduct.title,
-      isFamilyShareableIOS: Boolean(
-        (nitroProduct as any).isFamilyShareableIOS ?? false,
-      ),
+      isFamilyShareableIOS: Boolean(nitroProduct.isFamilyShareableIOS ?? false),
       jsonRepresentationIOS:
-        (nitroProduct as any).jsonRepresentationIOS ?? DEFAULT_JSON_REPR,
-      typeIOS: normalizeProductTypeIOS((nitroProduct as any).typeIOS),
+        nitroProduct.jsonRepresentationIOS ?? DEFAULT_JSON_REPR,
+      typeIOS: normalizeProductTypeIOS(nitroProduct.typeIOS),
       subscriptionInfoIOS: undefined,
     };
 
-    iosProduct.introductoryPriceAsAmountIOS = toNullableString(
-      (nitroProduct as any).introductoryPriceAsAmountIOS,
+    iosProduct.introductoryPriceAsAmountIOS = toNullableNumber(
+      nitroProduct.introductoryPriceAsAmountIOS,
     );
     iosProduct.introductoryPriceIOS = toNullableString(
-      (nitroProduct as any).introductoryPriceIOS,
+      nitroProduct.introductoryPriceIOS,
     );
-    iosProduct.introductoryPriceNumberOfPeriodsIOS = toNullableString(
-      (nitroProduct as any).introductoryPriceNumberOfPeriodsIOS,
+    iosProduct.introductoryPriceNumberOfPeriodsIOS = toNullableNumber(
+      nitroProduct.introductoryPriceNumberOfPeriodsIOS,
     );
     iosProduct.introductoryPricePaymentModeIOS = normalizePaymentMode(
-      (nitroProduct as any).introductoryPricePaymentModeIOS,
+      nitroProduct.introductoryPricePaymentModeIOS,
     );
     iosProduct.introductoryPriceSubscriptionPeriodIOS =
       normalizeSubscriptionPeriod(
-        (nitroProduct as any).introductoryPriceSubscriptionPeriodIOS,
+        nitroProduct.introductoryPriceSubscriptionPeriodIOS,
       );
-    iosProduct.subscriptionPeriodNumberIOS = toNullableString(
-      (nitroProduct as any).subscriptionPeriodNumberIOS,
+    iosProduct.subscriptionPeriodNumberIOS = toNullableNumber(
+      nitroProduct.subscriptionPeriodNumberIOS,
     );
     iosProduct.subscriptionPeriodUnitIOS = normalizeSubscriptionPeriod(
-      (nitroProduct as any).subscriptionPeriodUnitIOS,
+      nitroProduct.subscriptionPeriodUnitIOS,
     );
+
+    // Parse discountsIOS from JSON string if present
+    if (nitroProduct.discountsIOS) {
+      try {
+        iosProduct.discountsIOS = JSON.parse(nitroProduct.discountsIOS);
+      } catch {
+        iosProduct.discountsIOS = null;
+      }
+    } else {
+      iosProduct.discountsIOS = null;
+    }
 
     return iosProduct as Product;
   }
 
   const androidProduct: any = {
     ...base,
-    nameAndroid: (nitroProduct as any).nameAndroid ?? nitroProduct.title,
-    oneTimePurchaseOfferDetailsAndroid: (nitroProduct as any)
-      .oneTimePurchaseOfferDetailsAndroid,
+    nameAndroid: nitroProduct.nameAndroid ?? nitroProduct.title,
+    oneTimePurchaseOfferDetailsAndroid:
+      nitroProduct.oneTimePurchaseOfferDetailsAndroid ?? null,
     subscriptionOfferDetailsAndroid: parseSubscriptionOffers(
-      (nitroProduct as any).subscriptionOfferDetailsAndroid,
+      nitroProduct.subscriptionOfferDetailsAndroid,
     ),
   };
 
@@ -340,6 +349,54 @@ export function convertNitroPurchaseToPurchase(
     iosPurchase.appAccountToken = toNullableString(
       nitroPurchase.appAccountToken,
     );
+    iosPurchase.appBundleIdIOS = toNullableString(nitroPurchase.appBundleIdIOS);
+    iosPurchase.countryCodeIOS = toNullableString(nitroPurchase.countryCodeIOS);
+    iosPurchase.currencyCodeIOS = toNullableString(
+      nitroPurchase.currencyCodeIOS,
+    );
+    iosPurchase.currencySymbolIOS = toNullableString(
+      nitroPurchase.currencySymbolIOS,
+    );
+    iosPurchase.environmentIOS = toNullableString(nitroPurchase.environmentIOS);
+    iosPurchase.expirationDateIOS = toNullableNumber(
+      nitroPurchase.expirationDateIOS,
+    );
+    iosPurchase.isUpgradedIOS = toNullableBoolean(nitroPurchase.isUpgradedIOS);
+    // Parse offerIOS from JSON string if present
+    if (nitroPurchase.offerIOS) {
+      try {
+        iosPurchase.offerIOS = JSON.parse(nitroPurchase.offerIOS);
+      } catch {
+        iosPurchase.offerIOS = null;
+      }
+    } else {
+      iosPurchase.offerIOS = null;
+    }
+    iosPurchase.ownershipTypeIOS = toNullableString(
+      nitroPurchase.ownershipTypeIOS,
+    );
+    iosPurchase.reasonIOS = toNullableString(nitroPurchase.reasonIOS);
+    iosPurchase.reasonStringRepresentationIOS = toNullableString(
+      nitroPurchase.reasonStringRepresentationIOS,
+    );
+    iosPurchase.revocationDateIOS = toNullableNumber(
+      nitroPurchase.revocationDateIOS,
+    );
+    iosPurchase.revocationReasonIOS = toNullableString(
+      nitroPurchase.revocationReasonIOS,
+    );
+    iosPurchase.storefrontCountryCodeIOS = toNullableString(
+      nitroPurchase.storefrontCountryCodeIOS,
+    );
+    iosPurchase.subscriptionGroupIdIOS = toNullableString(
+      nitroPurchase.subscriptionGroupIdIOS,
+    );
+    iosPurchase.transactionReasonIOS = toNullableString(
+      nitroPurchase.transactionReasonIOS,
+    );
+    iosPurchase.webOrderLineItemIdIOS = toNullableString(
+      nitroPurchase.webOrderLineItemIdIOS,
+    );
     return iosPurchase as Purchase;
   }
 
@@ -362,6 +419,9 @@ export function convertNitroPurchaseToPurchase(
   );
   androidPurchase.obfuscatedProfileIdAndroid = toNullableString(
     nitroPurchase.obfuscatedProfileIdAndroid,
+  );
+  androidPurchase.developerPayloadAndroid = toNullableString(
+    nitroPurchase.developerPayloadAndroid,
   );
 
   return androidPurchase as Purchase;

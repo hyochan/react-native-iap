@@ -65,6 +65,12 @@ enum RnIapHelper {
         if let typeIOS = dictionary["typeIOS"] as? String { product.typeIOS = typeIOS }
         if let familyShareable = boolValue(dictionary["isFamilyShareableIOS"]) { product.isFamilyShareableIOS = familyShareable }
         if let jsonRepresentation = dictionary["jsonRepresentationIOS"] as? String { product.jsonRepresentationIOS = jsonRepresentation }
+        if let discounts = dictionary["discountsIOS"] as? [[String: Any]] {
+            if let jsonData = try? JSONSerialization.data(withJSONObject: discounts, options: []),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                product.discountsIOS = jsonString
+            }
+        }
         if let subscriptionUnit = dictionary["subscriptionPeriodUnitIOS"] as? String { product.subscriptionPeriodUnitIOS = subscriptionUnit }
         if let subscriptionNumber = doubleValue(dictionary["subscriptionPeriodNumberIOS"]) { product.subscriptionPeriodNumberIOS = subscriptionNumber }
         if let introductoryPrice = dictionary["introductoryPriceIOS"] as? String { product.introductoryPriceIOS = introductoryPrice }
@@ -98,11 +104,36 @@ enum RnIapHelper {
             purchase.purchaseState = state
         }
         if let isAutoRenewing = boolValue(dictionary["isAutoRenewing"]) { purchase.isAutoRenewing = isAutoRenewing }
+
+        // iOS specific fields
         if let quantityIOS = doubleValue(dictionary["quantityIOS"]) { purchase.quantityIOS = quantityIOS }
         if let originalDate = doubleValue(dictionary["originalTransactionDateIOS"]) { purchase.originalTransactionDateIOS = originalDate }
         if let originalIdentifier = dictionary["originalTransactionIdentifierIOS"] as? String { purchase.originalTransactionIdentifierIOS = originalIdentifier }
         if let appAccountToken = dictionary["appAccountToken"] as? String { purchase.appAccountToken = appAccountToken }
+        if let appBundleId = dictionary["appBundleIdIOS"] as? String { purchase.appBundleIdIOS = appBundleId }
+        if let countryCode = dictionary["countryCodeIOS"] as? String { purchase.countryCodeIOS = countryCode }
+        if let currencyCode = dictionary["currencyCodeIOS"] as? String { purchase.currencyCodeIOS = currencyCode }
+        if let currencySymbol = dictionary["currencySymbolIOS"] as? String { purchase.currencySymbolIOS = currencySymbol }
+        if let environment = dictionary["environmentIOS"] as? String { purchase.environmentIOS = environment }
+        if let expirationDate = doubleValue(dictionary["expirationDateIOS"]) { purchase.expirationDateIOS = expirationDate }
+        if let isUpgraded = boolValue(dictionary["isUpgradedIOS"]) { purchase.isUpgradedIOS = isUpgraded }
+        if let offer = dictionary["offerIOS"] as? [String: Any] {
+            if let jsonData = try? JSONSerialization.data(withJSONObject: offer, options: []),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                purchase.offerIOS = jsonString
+            }
+        }
+        if let ownershipType = dictionary["ownershipTypeIOS"] as? String { purchase.ownershipTypeIOS = ownershipType }
+        if let reason = dictionary["reasonIOS"] as? String { purchase.reasonIOS = reason }
+        if let reasonString = dictionary["reasonStringRepresentationIOS"] as? String { purchase.reasonStringRepresentationIOS = reasonString }
+        if let revocationDate = doubleValue(dictionary["revocationDateIOS"]) { purchase.revocationDateIOS = revocationDate }
+        if let revocationReason = dictionary["revocationReasonIOS"] as? String { purchase.revocationReasonIOS = revocationReason }
+        if let storefrontCountryCode = dictionary["storefrontCountryCodeIOS"] as? String { purchase.storefrontCountryCodeIOS = storefrontCountryCode }
+        if let subscriptionGroupId = dictionary["subscriptionGroupIdIOS"] as? String { purchase.subscriptionGroupIdIOS = subscriptionGroupId }
+        if let transactionReason = dictionary["transactionReasonIOS"] as? String { purchase.transactionReasonIOS = transactionReason }
+        if let webOrderLineItemId = dictionary["webOrderLineItemIdIOS"] as? String { purchase.webOrderLineItemIdIOS = webOrderLineItemId }
 
+        // Android specific fields
         if let purchaseTokenAndroid = dictionary["purchaseTokenAndroid"] as? String { purchase.purchaseTokenAndroid = purchaseTokenAndroid }
         if let dataAndroid = dictionary["dataAndroid"] as? String { purchase.dataAndroid = dataAndroid }
         if let signatureAndroid = dictionary["signatureAndroid"] as? String { purchase.signatureAndroid = signatureAndroid }

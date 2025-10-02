@@ -179,6 +179,15 @@ export interface NitroReceiptValidationResultAndroid {
   testTransaction: ReceiptValidationResultAndroid['testTransaction'];
 }
 
+/**
+ * Android one-time purchase offer details
+ */
+export interface NitroOneTimePurchaseOfferDetail {
+  formattedPrice: string;
+  priceAmountMicros: string;
+  priceCurrencyCode: string;
+}
+
 export interface NitroPurchase {
   id: PurchaseCommon['id'];
   productId: PurchaseCommon['productId'];
@@ -188,10 +197,29 @@ export interface NitroPurchase {
   quantity: PurchaseCommon['quantity'];
   purchaseState: PurchaseCommon['purchaseState'];
   isAutoRenewing: PurchaseCommon['isAutoRenewing'];
+  // iOS specific fields
   quantityIOS?: number | null;
   originalTransactionDateIOS?: number | null;
   originalTransactionIdentifierIOS?: string | null;
   appAccountToken?: string | null;
+  appBundleIdIOS?: string | null;
+  countryCodeIOS?: string | null;
+  currencyCodeIOS?: string | null;
+  currencySymbolIOS?: string | null;
+  environmentIOS?: string | null;
+  expirationDateIOS?: number | null;
+  isUpgradedIOS?: boolean | null;
+  offerIOS?: string | null;
+  ownershipTypeIOS?: string | null;
+  reasonIOS?: string | null;
+  reasonStringRepresentationIOS?: string | null;
+  revocationDateIOS?: number | null;
+  revocationReasonIOS?: string | null;
+  storefrontCountryCodeIOS?: string | null;
+  subscriptionGroupIdIOS?: string | null;
+  transactionReasonIOS?: string | null;
+  webOrderLineItemIdIOS?: string | null;
+  // Android specific fields
   purchaseTokenAndroid?: string | null;
   dataAndroid?: string | null;
   signatureAndroid?: string | null;
@@ -201,6 +229,7 @@ export interface NitroPurchase {
   packageNameAndroid?: string | null;
   obfuscatedAccountIdAndroid?: string | null;
   obfuscatedProfileIdAndroid?: string | null;
+  developerPayloadAndroid?: string | null;
 }
 
 export interface NitroProduct {
@@ -217,6 +246,7 @@ export interface NitroProduct {
   typeIOS?: string | null;
   isFamilyShareableIOS?: boolean | null;
   jsonRepresentationIOS?: string | null;
+  discountsIOS?: string | null;
   introductoryPriceIOS?: string | null;
   introductoryPriceAsAmountIOS?: number | null;
   introductoryPriceNumberOfPeriodsIOS?: number | null;
@@ -225,6 +255,7 @@ export interface NitroProduct {
   subscriptionPeriodNumberIOS?: number | null;
   subscriptionPeriodUnitIOS?: string | null;
   // Android specific fields
+  nameAndroid?: string | null;
   originalPriceAndroid?: string | null;
   originalPriceAmountMicrosAndroid?: number | null;
   introductoryPriceCyclesAndroid?: number | null;
@@ -233,6 +264,7 @@ export interface NitroProduct {
   subscriptionPeriodAndroid?: string | null;
   freeTrialPeriodAndroid?: string | null;
   subscriptionOfferDetailsAndroid?: string | null;
+  oneTimePurchaseOfferDetailsAndroid?: NitroOneTimePurchaseOfferDetail | null;
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
