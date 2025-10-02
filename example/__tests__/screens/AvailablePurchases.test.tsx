@@ -2,6 +2,7 @@ import {render, fireEvent, waitFor} from '@testing-library/react-native';
 import {Alert} from 'react-native';
 import AvailablePurchases from '../../screens/AvailablePurchases';
 import * as RNIap from 'react-native-iap';
+import {DataModalProvider} from '../../src/contexts/DataModalContext';
 
 // Mock functions for testing
 const mockGetAvailablePurchases = jest.fn();
@@ -41,6 +42,11 @@ const mockFinishTransaction = jest.fn();
 
 jest.spyOn(Alert, 'alert');
 
+// Helper to render with providers
+const renderWithProviders = (component: React.ReactElement) => {
+  return render(<DataModalProvider>{component}</DataModalProvider>);
+};
+
 describe('AvailablePurchases Screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -55,21 +61,21 @@ describe('AvailablePurchases Screen', () => {
   });
 
   it.skip('renders the screen title', async () => {
-    const {getByText} = render(<AvailablePurchases />);
+    const {getByText} = renderWithProviders(<AvailablePurchases />);
     await waitFor(() => {
       expect(getByText(/Available Purchases/)).toBeTruthy();
     });
   });
 
   it('shows connection status when connected', async () => {
-    const {getByText} = render(<AvailablePurchases />);
+    const {getByText} = renderWithProviders(<AvailablePurchases />);
     await waitFor(() => {
       expect(getByText('Store Connection: ✅ Connected')).toBeTruthy();
     });
   });
 
   it('loads subscription products on mount', async () => {
-    render(<AvailablePurchases />);
+    renderWithProviders(<AvailablePurchases />);
 
     await waitFor(() => {
       expect(mockRequestProducts).toHaveBeenCalled();
@@ -77,7 +83,7 @@ describe('AvailablePurchases Screen', () => {
   });
 
   it('refreshes purchases when refresh button is pressed', async () => {
-    const {getByText} = render(<AvailablePurchases />);
+    const {getByText} = renderWithProviders(<AvailablePurchases />);
 
     const refreshButton = getByText('🔄 Refresh Purchases');
     fireEvent.press(refreshButton);
@@ -89,14 +95,14 @@ describe('AvailablePurchases Screen', () => {
   });
 
   it('displays purchase history section', () => {
-    const {getByText} = render(<AvailablePurchases />);
+    const {getByText} = renderWithProviders(<AvailablePurchases />);
 
     expect(getByText('📋 Purchase History')).toBeTruthy();
     expect(getByText('dev.hyo.martie.premium')).toBeTruthy();
   });
 
   it('displays active subscriptions section', () => {
-    const {getByText} = render(<AvailablePurchases />);
+    const {getByText} = renderWithProviders(<AvailablePurchases />);
 
     expect(getByText('🔄 Active Subscriptions')).toBeTruthy();
   });
@@ -106,7 +112,7 @@ describe('AvailablePurchases Screen', () => {
       new Error('Failed to fetch purchases'),
     );
 
-    const {getByText} = render(<AvailablePurchases />);
+    const {getByText} = renderWithProviders(<AvailablePurchases />);
 
     const refreshButton = getByText('🔄 Refresh Purchases');
     fireEvent.press(refreshButton);
@@ -132,14 +138,14 @@ describe('AvailablePurchases Screen', () => {
       finishTransaction: mockFinishTransaction,
     });
 
-    const {getByText} = render(<AvailablePurchases />);
+    const {getByText} = renderWithProviders(<AvailablePurchases />);
     await waitFor(() => {
       expect(getByText('No purchase history found')).toBeTruthy();
     });
   });
 
   it('shows transaction details for purchases', async () => {
-    const {getByText} = render(<AvailablePurchases />);
+    const {getByText} = renderWithProviders(<AvailablePurchases />);
 
     // Check if transaction ID is displayed
     await waitFor(() => {
