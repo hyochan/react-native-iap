@@ -19,6 +19,10 @@ import {
   restorePurchases as restorePurchasesTopLevel,
   getPromotedProductIOS,
   requestPurchaseOnPromotedProductIOS,
+  checkAlternativeBillingAvailabilityAndroid,
+  showAlternativeBillingDialogAndroid,
+  createAlternativeBillingTokenAndroid,
+  userChoiceBillingListenerAndroid,
 } from '../';
 
 // Types
@@ -27,6 +31,8 @@ import type {
   ProductQueryType,
   RequestPurchaseProps,
   RequestPurchaseResult,
+  AlternativeBillingModeAndroid,
+  UserChoiceBillingDetails,
 } from '../types';
 import type {
   ActiveSubscription,
@@ -75,12 +81,20 @@ type UseIap = {
     subscriptionIds?: string[],
   ) => Promise<ActiveSubscription[]>;
   hasActiveSubscriptions: (subscriptionIds?: string[]) => Promise<boolean>;
+  // Alternative billing (Android)
+  checkAlternativeBillingAvailabilityAndroid?: () => Promise<boolean>;
+  showAlternativeBillingDialogAndroid?: () => Promise<boolean>;
+  createAlternativeBillingTokenAndroid?: (
+    sku?: string,
+  ) => Promise<string | null>;
 };
 
 export interface UseIapOptions {
   onPurchaseSuccess?: (purchase: Purchase) => void;
   onPurchaseError?: (error: PurchaseError) => void;
   onPromotedProductIOS?: (product: Product) => void;
+  onUserChoiceBillingAndroid?: (details: UserChoiceBillingDetails) => void;
+  alternativeBillingModeAndroid?: AlternativeBillingModeAndroid;
 }
 
 /**
@@ -133,6 +147,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
     purchaseUpdate?: EventSubscription;
     purchaseError?: EventSubscription;
     promotedProductIOS?: EventSubscription;
+    userChoiceBillingAndroid?: EventSubscription;
   }>({});
 
   const subscriptionsRefState = useRef<ProductSubscription[]>([]);
@@ -346,7 +361,29 @@ export function useIAP(options?: UseIapOptions): UseIap {
       );
     }
 
-    const result = await initConnection();
+    // Add user choice billing listener for Android (if provided)
+    if (
+      Platform.OS === 'android' &&
+      optionsRef.current?.onUserChoiceBillingAndroid
+    ) {
+      subscriptionsRef.current.userChoiceBillingAndroid =
+        userChoiceBillingListenerAndroid((details) => {
+          if (optionsRef.current?.onUserChoiceBillingAndroid) {
+            optionsRef.current.onUserChoiceBillingAndroid(details);
+          }
+        });
+    }
+
+    // Initialize connection with config
+    const config =
+      Platform.OS === 'android' &&
+      optionsRef.current?.alternativeBillingModeAndroid
+        ? {
+            alternativeBillingModeAndroid:
+              optionsRef.current.alternativeBillingModeAndroid,
+          }
+        : undefined;
+    const result = await initConnection(config);
     setConnected(result);
     if (!result) {
       // Clean up some listeners but leave purchaseError for potential retries
@@ -364,6 +401,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       currentSubscriptions.purchaseUpdate?.remove();
       currentSubscriptions.purchaseError?.remove();
       currentSubscriptions.promotedProductIOS?.remove();
+      currentSubscriptions.userChoiceBillingAndroid?.remove();
       // Keep connection alive across screens to avoid race conditions
       setConnected(false);
     };
@@ -393,5 +431,13 @@ export function useIAP(options?: UseIapOptions): UseIap {
     requestPurchaseOnPromotedProductIOS,
     getActiveSubscriptions: getActiveSubscriptionsInternal,
     hasActiveSubscriptions: hasActiveSubscriptionsInternal,
+    // Alternative billing (Android only)
+    ...(Platform.OS === 'android'
+      ? {
+          checkAlternativeBillingAvailabilityAndroid,
+          showAlternativeBillingDialogAndroid,
+          createAlternativeBillingTokenAndroid,
+        }
+      : {}),
   };
 }

@@ -292,6 +292,82 @@ export const promotedProductListenerIOS = (
   };
 };
 
+/**
+ * Add a listener for user choice billing events (Android only).
+ * Fires when a user selects alternative billing in the User Choice Billing dialog.
+ *
+ * @param listener - Function to call when user chooses alternative billing
+ * @returns EventSubscription with remove() method to unsubscribe
+ * @platform Android
+ *
+ * @example
+ * ```typescript
+ * const subscription = userChoiceBillingListenerAndroid((details) => {
+ *   console.log('User chose alternative billing');
+ *   console.log('Products:', details.products);
+ *   console.log('Token:', details.externalTransactionToken);
+ *
+ *   // Send token to backend for Google Play reporting
+ *   await reportToGooglePlay(details.externalTransactionToken);
+ * });
+ *
+ * // Later, remove the listener
+ * subscription.remove();
+ * ```
+ */
+type NitroUserChoiceBillingListener = Parameters<
+  RnIap['addUserChoiceBillingListenerAndroid']
+>[0];
+const userChoiceBillingListenerMap = new WeakMap<
+  (details: any) => void,
+  NitroUserChoiceBillingListener
+>();
+
+export const userChoiceBillingListenerAndroid = (
+  listener: (details: any) => void,
+): EventSubscription => {
+  if (Platform.OS !== 'android') {
+    RnIapConsole.warn(
+      'userChoiceBillingListenerAndroid: This listener is only available on Android',
+    );
+    return {remove: () => {}};
+  }
+
+  const wrappedListener: NitroUserChoiceBillingListener = (details) => {
+    listener(details);
+  };
+
+  userChoiceBillingListenerMap.set(listener, wrappedListener);
+  let attached = false;
+  try {
+    IAP.instance.addUserChoiceBillingListenerAndroid(wrappedListener);
+    attached = true;
+  } catch (e) {
+    const msg = toErrorMessage(e);
+    if (msg.includes('Nitro runtime not installed')) {
+      RnIapConsole.warn(
+        '[userChoiceBillingListenerAndroid] Nitro not ready yet; listener inert until initConnection()',
+      );
+    } else {
+      throw e;
+    }
+  }
+
+  return {
+    remove: () => {
+      const wrapped = userChoiceBillingListenerMap.get(listener);
+      if (wrapped) {
+        if (attached) {
+          try {
+            IAP.instance.removeUserChoiceBillingListenerAndroid(wrapped);
+          } catch {}
+        }
+        userChoiceBillingListenerMap.delete(listener);
+      }
+    },
+  };
+};
+
 // ------------------------------
 // Query API
 // ------------------------------
@@ -832,10 +908,32 @@ export const getTransactionJwsIOS: QueryField<'getTransactionJwsIOS'> = async (
 
 /**
  * Initialize connection to the store
+ * @param config - Optional configuration including alternative billing mode for Android
+ * @param config.alternativeBillingModeAndroid - Alternative billing mode: 'none', 'user-choice', or 'alternative-only'
+ *
+ * @example
+ * ```typescript
+ * // Standard billing (default)
+ * await initConnection();
+ *
+ * // User choice billing (Android)
+ * await initConnection({
+ *   alternativeBillingModeAndroid: 'user-choice'
+ * });
+ *
+ * // Alternative billing only (Android)
+ * await initConnection({
+ *   alternativeBillingModeAndroid: 'alternative-only'
+ * });
+ * ```
  */
-export const initConnection: MutationField<'initConnection'> = async () => {
+export const initConnection: MutationField<'initConnection'> = async (
+  config,
+) => {
   try {
-    return await IAP.instance.initConnection();
+    return await IAP.instance.initConnection(
+      config as Record<string, unknown> | undefined,
+    );
   } catch (error) {
     RnIapConsole.error('Failed to initialize IAP connection:', error);
     throw error;
@@ -1647,4 +1745,217 @@ const normalizeProductQueryType = (
     }
   }
   return 'in-app';
+};
+
+// ============================================================================
+// ALTERNATIVE BILLING APIs
+// ============================================================================
+
+// ------------------------------
+// Android Alternative Billing
+// ------------------------------
+
+/**
+ * Check if alternative billing is available for this user/device (Android only).
+ * Step 1 of alternative billing flow.
+ *
+ * @returns Promise<boolean> - true if available, false otherwise
+ * @throws Error if billing client not ready
+ * @platform Android
+ *
+ * @example
+ * ```typescript
+ * const isAvailable = await checkAlternativeBillingAvailabilityAndroid();
+ * if (isAvailable) {
+ *   // Proceed with alternative billing flow
+ * }
+ * ```
+ */
+export const checkAlternativeBillingAvailabilityAndroid: MutationField<
+  'checkAlternativeBillingAvailabilityAndroid'
+> = async () => {
+  if (Platform.OS !== 'android') {
+    throw new Error('Alternative billing is only supported on Android');
+  }
+  try {
+    return await IAP.instance.checkAlternativeBillingAvailabilityAndroid();
+  } catch (error) {
+    RnIapConsole.error(
+      'Failed to check alternative billing availability:',
+      error,
+    );
+    throw error;
+  }
+};
+
+/**
+ * Show alternative billing information dialog to user (Android only).
+ * Step 2 of alternative billing flow.
+ * Must be called BEFORE processing payment in your payment system.
+ *
+ * @returns Promise<boolean> - true if user accepted, false if user canceled
+ * @throws Error if billing client not ready
+ * @platform Android
+ *
+ * @example
+ * ```typescript
+ * const userAccepted = await showAlternativeBillingDialogAndroid();
+ * if (userAccepted) {
+ *   // Process payment in your payment system
+ *   const success = await processCustomPayment();
+ *   if (success) {
+ *     // Create reporting token
+ *     const token = await createAlternativeBillingTokenAndroid();
+ *     // Send token to your backend for Google Play reporting
+ *   }
+ * }
+ * ```
+ */
+export const showAlternativeBillingDialogAndroid: MutationField<
+  'showAlternativeBillingDialogAndroid'
+> = async () => {
+  if (Platform.OS !== 'android') {
+    throw new Error('Alternative billing is only supported on Android');
+  }
+  try {
+    return await IAP.instance.showAlternativeBillingDialogAndroid();
+  } catch (error) {
+    RnIapConsole.error('Failed to show alternative billing dialog:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create external transaction token for Google Play reporting (Android only).
+ * Step 3 of alternative billing flow.
+ * Must be called AFTER successful payment in your payment system.
+ * Token must be reported to Google Play backend within 24 hours.
+ *
+ * @param sku - Optional product SKU that was purchased
+ * @returns Promise<string | null> - Token string or null if creation failed
+ * @throws Error if billing client not ready
+ * @platform Android
+ *
+ * @example
+ * ```typescript
+ * const token = await createAlternativeBillingTokenAndroid('premium_subscription');
+ * if (token) {
+ *   // Send token to your backend
+ *   await fetch('/api/report-transaction', {
+ *     method: 'POST',
+ *     body: JSON.stringify({ token, sku: 'premium_subscription' })
+ *   });
+ * }
+ * ```
+ */
+export const createAlternativeBillingTokenAndroid: MutationField<
+  'createAlternativeBillingTokenAndroid'
+> = async (sku?: string) => {
+  if (Platform.OS !== 'android') {
+    throw new Error('Alternative billing is only supported on Android');
+  }
+  try {
+    return await IAP.instance.createAlternativeBillingTokenAndroid(sku ?? null);
+  } catch (error) {
+    RnIapConsole.error('Failed to create alternative billing token:', error);
+    throw error;
+  }
+};
+
+// ------------------------------
+// iOS External Purchase
+// ------------------------------
+
+/**
+ * Check if the device can present an external purchase notice sheet (iOS 18.2+).
+ *
+ * @returns Promise<boolean> - true if notice sheet can be presented
+ * @platform iOS
+ *
+ * @example
+ * ```typescript
+ * const canPresent = await canPresentExternalPurchaseNoticeIOS();
+ * if (canPresent) {
+ *   // Present notice before external purchase
+ *   const result = await presentExternalPurchaseNoticeSheetIOS();
+ * }
+ * ```
+ */
+export const canPresentExternalPurchaseNoticeIOS: QueryField<
+  'canPresentExternalPurchaseNoticeIOS'
+> = async () => {
+  if (Platform.OS !== 'ios') {
+    return false;
+  }
+  try {
+    return await IAP.instance.canPresentExternalPurchaseNoticeIOS();
+  } catch (error) {
+    RnIapConsole.error(
+      'Failed to check external purchase notice availability:',
+      error,
+    );
+    return false;
+  }
+};
+
+/**
+ * Present an external purchase notice sheet to inform users about external purchases (iOS 18.2+).
+ * This must be called before opening an external purchase link.
+ *
+ * @returns Promise<ExternalPurchaseNoticeResultIOS> - Result with action and error if any
+ * @platform iOS
+ *
+ * @example
+ * ```typescript
+ * const result = await presentExternalPurchaseNoticeSheetIOS();
+ * if (result.result === 'continue') {
+ *   // User chose to continue, open external purchase link
+ *   await presentExternalPurchaseLinkIOS('https://your-website.com/purchase');
+ * }
+ * ```
+ */
+export const presentExternalPurchaseNoticeSheetIOS: MutationField<
+  'presentExternalPurchaseNoticeSheetIOS'
+> = async () => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('External purchase is only supported on iOS');
+  }
+  try {
+    return (await IAP.instance.presentExternalPurchaseNoticeSheetIOS()) as any;
+  } catch (error) {
+    RnIapConsole.error(
+      'Failed to present external purchase notice sheet:',
+      error,
+    );
+    throw error;
+  }
+};
+
+/**
+ * Present an external purchase link to redirect users to your website (iOS 16.0+).
+ *
+ * @param url - The external purchase URL to open
+ * @returns Promise<ExternalPurchaseLinkResultIOS> - Result with success status and error if any
+ * @platform iOS
+ *
+ * @example
+ * ```typescript
+ * const result = await presentExternalPurchaseLinkIOS('https://your-website.com/purchase');
+ * if (result.success) {
+ *   console.log('User completed external purchase');
+ * }
+ * ```
+ */
+export const presentExternalPurchaseLinkIOS: MutationField<
+  'presentExternalPurchaseLinkIOS'
+> = async (url) => {
+  if (Platform.OS !== 'ios') {
+    throw new Error('External purchase is only supported on iOS');
+  }
+  try {
+    return (await IAP.instance.presentExternalPurchaseLinkIOS(url)) as any;
+  } catch (error) {
+    RnIapConsole.error('Failed to present external purchase link:', error);
+    throw error;
+  }
 };

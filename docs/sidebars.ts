@@ -25,11 +25,31 @@ const sidebars: SidebarsConfig = {
         'guides/subscription-offers',
         'guides/subscription-validation',
         'guides/offer-code-redemption',
+        'guides/alternative-billing',
         'guides/error-handling',
         'guides/expo-plugin',
         'guides/troubleshooting',
         'guides/faq',
         'guides/support',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'API Reference',
+      items: [
+        'api/index',
+        'api/use-iap',
+        {
+          type: 'category',
+          label: 'Methods',
+          items: [
+            'api/methods/core-methods',
+            'api/methods/listeners',
+          ],
+        },
+        'api/types',
+        'api/error-codes',
+        'api/error-handling',
       ],
     },
     {
@@ -40,6 +60,7 @@ const sidebars: SidebarsConfig = {
         'examples/subscription-flow',
         'examples/available-purchases',
         'examples/offer-code',
+        'examples/alternative-billing',
       ],
     },
     {

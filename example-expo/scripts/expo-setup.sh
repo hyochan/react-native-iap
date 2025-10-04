@@ -28,6 +28,7 @@ echo "📄 Copying configuration files..."
 cp package.json example-expo/node_modules/react-native-iap/
 cp nitro.json example-expo/node_modules/react-native-iap/
 cp NitroIap.podspec example-expo/node_modules/react-native-iap/
+cp openiap-versions.json example-expo/node_modules/react-native-iap/
 cp react-native.config.js example-expo/node_modules/react-native-iap/ 2>/dev/null || true
 cp README.md example-expo/node_modules/react-native-iap/ 2>/dev/null || true
 cp tsconfig.json example-expo/node_modules/react-native-iap/ 2>/dev/null || true

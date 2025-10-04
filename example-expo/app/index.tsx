@@ -70,6 +70,22 @@ export default function Home() {
             <Text style={styles.buttonSubtext}>Redeem promo codes</Text>
           </TouchableOpacity>
         </Link>
+
+        <Link href="/alternative-billing" asChild>
+          <TouchableOpacity
+            style={[styles.button, styles.alternativeBillingButton]}
+          >
+            <Text style={styles.buttonText}>💳 Alternative Billing</Text>
+            <Text style={styles.buttonSubtext}>External payment options</Text>
+          </TouchableOpacity>
+        </Link>
+
+        <Link href="/all-products" asChild>
+          <TouchableOpacity style={[styles.button, styles.allProductsButton]}>
+            <Text style={styles.buttonText}>🛍️ All Products</Text>
+            <Text style={styles.buttonSubtext}>Browse all available items</Text>
+          </TouchableOpacity>
+        </Link>
       </View>
     </View>
   );
@@ -131,6 +147,12 @@ const styles = StyleSheet.create({
   },
   quaternaryButton: {
     backgroundColor: '#9c27b0',
+  },
+  alternativeBillingButton: {
+    backgroundColor: '#ff9800',
+  },
+  allProductsButton: {
+    backgroundColor: '#00bcd4',
   },
   buttonText: {
     color: 'black',

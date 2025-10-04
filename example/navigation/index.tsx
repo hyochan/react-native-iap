@@ -7,6 +7,7 @@ import PurchaseFlow from '../screens/PurchaseFlow';
 import SubscriptionFlow from '../screens/SubscriptionFlow';
 import AvailablePurchases from '../screens/AvailablePurchases';
 import OfferCode from '../screens/OfferCode';
+import AlternativeBilling from '../screens/AlternativeBilling';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -15,6 +16,7 @@ export type RootStackParamList = {
   SubscriptionFlow: undefined;
   AvailablePurchases: undefined;
   OfferCode: undefined;
+  AlternativeBilling: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -52,6 +54,11 @@ export default function AppNavigator() {
           name="OfferCode"
           component={OfferCode}
           options={{title: 'Offer Code Redemption'}}
+        />
+        <Stack.Screen
+          name="AlternativeBilling"
+          component={AlternativeBilling}
+          options={{title: 'Alternative Billing'}}
         />
       </Stack.Navigator>
     </NavigationContainer>

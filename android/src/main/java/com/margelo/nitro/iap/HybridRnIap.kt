@@ -26,8 +26,10 @@ import dev.hyo.openiap.RequestPurchaseResultPurchase
 import dev.hyo.openiap.RequestPurchaseResultPurchases
 import dev.hyo.openiap.RequestSubscriptionAndroidProps
 import dev.hyo.openiap.RequestSubscriptionPropsByPlatforms
+import dev.hyo.openiap.InitConnectionConfig as OpenIapInitConnectionConfig
 import dev.hyo.openiap.listener.OpenIapPurchaseErrorListener
 import dev.hyo.openiap.listener.OpenIapPurchaseUpdateListener
+import dev.hyo.openiap.listener.OpenIapUserChoiceBillingListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CompletableDeferred
@@ -50,15 +52,16 @@ class HybridRnIap : HybridRnIapSpec() {
     private val purchaseUpdatedListeners = mutableListOf<(NitroPurchase) -> Unit>()
     private val purchaseErrorListeners = mutableListOf<(NitroPurchaseResult) -> Unit>()
     private val promotedProductListenersIOS = mutableListOf<(NitroProduct) -> Unit>()
+    private val userChoiceBillingListenersAndroid = mutableListOf<(UserChoiceBillingDetails) -> Unit>()
     private var listenersAttached = false
     private var isInitialized = false
     private var initDeferred: CompletableDeferred<Boolean>? = null
     private val initLock = Any()
     
     // Connection methods
-    override fun initConnection(): Promise<Boolean> {
+    override fun initConnection(config: InitConnectionConfig?): Promise<Boolean> {
         return Promise.async {
-            RnIapLog.payload("initConnection", null)
+            RnIapLog.payload("initConnection", config)
             // Fast-path: if already initialized, return immediately
             if (isInitialized) {
                 RnIapLog.result("initConnection", true)
@@ -114,16 +117,39 @@ class HybridRnIap : HybridRnIapSpec() {
                         )
                     }.onFailure { RnIapLog.failure("purchaseErrorListener", it) }
                 })
+                openIap.addUserChoiceBillingListener(OpenIapUserChoiceBillingListener { details ->
+                    runCatching {
+                        RnIapLog.result(
+                            "userChoiceBillingListener",
+                            mapOf("products" to details.products, "token" to details.externalTransactionToken)
+                        )
+                        val nitroDetails = UserChoiceBillingDetails(
+                            externalTransactionToken = details.externalTransactionToken,
+                            products = details.products.toTypedArray()
+                        )
+                        sendUserChoiceBilling(nitroDetails)
+                    }.onFailure { RnIapLog.failure("userChoiceBillingListener", it) }
+                })
                 RnIapLog.result("listeners.attach", "attached")
             }
 
             // We created it above; reuse the shared instance
             val deferred = initDeferred!!
             try {
+                // Convert Nitro config to OpenIAP config
+                val openIapConfig = config?.let {
+                    OpenIapInitConnectionConfig(
+                        alternativeBillingModeAndroid = when (it.alternativeBillingModeAndroid) {
+                            com.margelo.nitro.iap.AlternativeBillingModeAndroid.USER_CHOICE -> dev.hyo.openiap.AlternativeBillingModeAndroid.UserChoice
+                            com.margelo.nitro.iap.AlternativeBillingModeAndroid.ALTERNATIVE_ONLY -> dev.hyo.openiap.AlternativeBillingModeAndroid.AlternativeOnly
+                            else -> null
+                        }
+                    )
+                }
                 val ok = try {
-                    RnIapLog.payload("initConnection.native", null)
+                    RnIapLog.payload("initConnection.native", openIapConfig)
                     withContext(Dispatchers.Main) {
-                        openIap.initConnection()
+                        openIap.initConnection(openIapConfig)
                     }
                 } catch (err: Throwable) {
                     val error = OpenIAPError.InitConnection
@@ -189,7 +215,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 throw Exception(toErrorJson(OpenIAPError.EmptySkuList))
             }
 
-            initConnection().await()
+            initConnection(null).await()
 
             val queryType = parseProductQueryType(type)
             val skusList = skus.toList()
@@ -262,7 +288,7 @@ class HybridRnIap : HybridRnIapSpec() {
             }
 
             try {
-                initConnection().await()
+                initConnection(null).await()
                 withContext(Dispatchers.Main) { runCatching { openIap.setActivity(context.currentActivity) } }
 
                 val missingSkus = androidRequest.skus.filterNot { productTypeBySku.containsKey(it) }
@@ -377,7 +403,7 @@ class HybridRnIap : HybridRnIapSpec() {
     override fun getAvailablePurchases(options: NitroAvailablePurchasesOptions?): Promise<Array<NitroPurchase>> {
         return Promise.async {
             val androidOptions = options?.android
-            initConnection().await()
+            initConnection(null).await()
 
             RnIapLog.payload(
                 "getAvailablePurchases",
@@ -444,7 +470,7 @@ class HybridRnIap : HybridRnIapSpec() {
 
             // Ensure connection; if it fails, return an error result instead of throwing
             try {
-                initConnection().await()
+                initConnection(null).await()
             } catch (e: Exception) {
                 val err = OpenIAPError.InitConnection
                 return@async Variant_Boolean_NitroPurchaseResult.Second(
@@ -494,7 +520,7 @@ class HybridRnIap : HybridRnIapSpec() {
     override fun getStorefront(): Promise<String> {
         return Promise.async {
             try {
-                initConnection().await()
+                initConnection(null).await()
                 RnIapLog.payload("getStorefront", null)
                 val value = openIap.getStorefront()
                 RnIapLog.result("getStorefront", value)
@@ -825,7 +851,7 @@ class HybridRnIap : HybridRnIapSpec() {
     override fun deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid): Promise<Unit> {
         return Promise.async {
             try {
-                initConnection().await()
+                initConnection(null).await()
                 OpenIapDeepLinkOptions(
                     skuAndroid = options.skuAndroid,
                     packageNameAndroid = options.packageNameAndroid
@@ -1023,9 +1049,132 @@ class HybridRnIap : HybridRnIapSpec() {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Alternative Billing (Android)
+    // -------------------------------------------------------------------------
+
+    override fun checkAlternativeBillingAvailabilityAndroid(): Promise<Boolean> {
+        return Promise.async {
+            RnIapLog.payload("checkAlternativeBillingAvailabilityAndroid", null)
+            try {
+                val isAvailable = withContext(Dispatchers.Main) {
+                    openIap.checkAlternativeBillingAvailability()
+                }
+                RnIapLog.result("checkAlternativeBillingAvailabilityAndroid", isAvailable)
+                isAvailable
+            } catch (err: Throwable) {
+                RnIapLog.failure("checkAlternativeBillingAvailabilityAndroid", err)
+                val errorType = parseOpenIapError(err)
+                throw Exception(toErrorJson(errorType, debugMessage = err.message))
+            }
+        }
+    }
+
+    override fun showAlternativeBillingDialogAndroid(): Promise<Boolean> {
+        return Promise.async {
+            RnIapLog.payload("showAlternativeBillingDialogAndroid", null)
+            try {
+                val activity = context.currentActivity
+                    ?: throw Exception(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Activity not available"))
+
+                val userAccepted = withContext(Dispatchers.Main) {
+                    openIap.setActivity(activity)
+                    openIap.showAlternativeBillingInformationDialog(activity)
+                }
+                RnIapLog.result("showAlternativeBillingDialogAndroid", userAccepted)
+                userAccepted
+            } catch (err: Throwable) {
+                RnIapLog.failure("showAlternativeBillingDialogAndroid", err)
+                val errorType = parseOpenIapError(err)
+                throw Exception(toErrorJson(errorType, debugMessage = err.message))
+            }
+        }
+    }
+
+    override fun createAlternativeBillingTokenAndroid(sku: String?): Promise<String?> {
+        return Promise.async {
+            RnIapLog.payload("createAlternativeBillingTokenAndroid", mapOf("sku" to sku))
+            try {
+                // Note: OpenIapModule.createAlternativeBillingReportingToken() doesn't accept sku parameter
+                // The sku parameter is ignored for now - may be used in future versions
+                val token = withContext(Dispatchers.Main) {
+                    openIap.createAlternativeBillingReportingToken()
+                }
+                RnIapLog.result("createAlternativeBillingTokenAndroid", token)
+                token
+            } catch (err: Throwable) {
+                RnIapLog.failure("createAlternativeBillingTokenAndroid", err)
+                val errorType = parseOpenIapError(err)
+                throw Exception(toErrorJson(errorType, debugMessage = err.message))
+            }
+        }
+    }
+
+    // User Choice Billing listener
+    override fun addUserChoiceBillingListenerAndroid(listener: (UserChoiceBillingDetails) -> Unit) {
+        synchronized(userChoiceBillingListenersAndroid) {
+            userChoiceBillingListenersAndroid.add(listener)
+        }
+    }
+
+    override fun removeUserChoiceBillingListenerAndroid(listener: (UserChoiceBillingDetails) -> Unit) {
+        synchronized(userChoiceBillingListenersAndroid) {
+            userChoiceBillingListenersAndroid.remove(listener)
+        }
+    }
+
+    private fun sendUserChoiceBilling(details: UserChoiceBillingDetails) {
+        synchronized(userChoiceBillingListenersAndroid) {
+            userChoiceBillingListenersAndroid.forEach { it(details) }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // External Purchase (iOS) - Not supported on Android
+    // -------------------------------------------------------------------------
+
+    override fun canPresentExternalPurchaseNoticeIOS(): Promise<Boolean> {
+        return Promise.async {
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+        }
+    }
+
+    override fun presentExternalPurchaseNoticeSheetIOS(): Promise<ExternalPurchaseNoticeResultIOS> {
+        return Promise.async {
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+        }
+    }
+
+    override fun presentExternalPurchaseLinkIOS(url: String): Promise<ExternalPurchaseLinkResultIOS> {
+        return Promise.async {
+            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+        }
+    }
+
     // ---------------------------------------------------------------------
     // OpenIAP error helpers: unify error codes/messages from library
     // ---------------------------------------------------------------------
+    private fun parseOpenIapError(err: Throwable): OpenIAPError {
+        // Try to extract OpenIAPError from the exception chain
+        var cause: Throwable? = err
+        while (cause != null) {
+            val message = cause.message ?: ""
+            // Check if message contains OpenIAP error patterns
+            when {
+                message.contains("not prepared", ignoreCase = true) ||
+                message.contains("not initialized", ignoreCase = true) -> return OpenIAPError.NotPrepared
+                message.contains("developer error", ignoreCase = true) ||
+                message.contains("activity not available", ignoreCase = true) -> return OpenIAPError.DeveloperError
+                message.contains("network", ignoreCase = true) -> return OpenIAPError.NetworkError
+                message.contains("service unavailable", ignoreCase = true) ||
+                message.contains("billing unavailable", ignoreCase = true) -> return OpenIAPError.ServiceUnavailable
+            }
+            cause = cause.cause
+        }
+        // Default to ServiceUnavailable if we can't determine the error type
+        return OpenIAPError.ServiceUnavailable
+    }
+
     private fun toErrorJson(
         error: OpenIAPError,
         productId: String? = null,

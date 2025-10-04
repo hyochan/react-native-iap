@@ -4,6 +4,8 @@ import {
   withAndroidManifest,
   withAppBuildGradle,
   withPodfile,
+  withEntitlementsPlist,
+  withInfoPlist,
 } from 'expo/config-plugins';
 import type {ConfigPlugin} from 'expo/config-plugins';
 import type {ExpoConfig} from '@expo/config-types';
@@ -165,6 +167,154 @@ const withIapAndroid: ConfigPlugin = (config) => {
   return config;
 };
 
+export interface IosAlternativeBillingConfig {
+  /** Country codes where external purchases are supported (ISO 3166-1 alpha-2) */
+  countries?: string[];
+  /** External purchase URLs per country (iOS 15.4+) */
+  links?: Record<string, string>;
+  /** Multiple external purchase URLs per country (iOS 17.5+, up to 5 per country) */
+  multiLinks?: Record<string, string[]>;
+  /** Custom link regions (iOS 18.1+) */
+  customLinkRegions?: string[];
+  /** Streaming link regions for music apps (iOS 18.2+) */
+  streamingLinkRegions?: string[];
+  /** Enable external purchase link entitlement */
+  enableExternalPurchaseLink?: boolean;
+  /** Enable external purchase link streaming entitlement (music apps only) */
+  enableExternalPurchaseLinkStreaming?: boolean;
+}
+
+/** Add external purchase entitlements and Info.plist configuration */
+const withIosAlternativeBilling: ConfigPlugin<
+  IosAlternativeBillingConfig | undefined
+> = (config, options) => {
+  if (!options || !options.countries || options.countries.length === 0) {
+    return config;
+  }
+
+  // Add entitlements
+  config = withEntitlementsPlist(config, (config) => {
+    // Always add basic external purchase entitlement when countries are specified
+    config.modResults['com.apple.developer.storekit.external-purchase'] = true;
+    if (!hasLoggedPluginExecution) {
+      console.log(
+        '✅ Added com.apple.developer.storekit.external-purchase to entitlements',
+      );
+    }
+
+    // Add external purchase link entitlement if enabled
+    if (options.enableExternalPurchaseLink) {
+      config.modResults['com.apple.developer.storekit.external-purchase-link'] =
+        true;
+      if (!hasLoggedPluginExecution) {
+        console.log(
+          '✅ Added com.apple.developer.storekit.external-purchase-link to entitlements',
+        );
+      }
+    }
+
+    // Add streaming entitlement if enabled
+    if (options.enableExternalPurchaseLinkStreaming) {
+      config.modResults[
+        'com.apple.developer.storekit.external-purchase-link-streaming'
+      ] = true;
+      if (!hasLoggedPluginExecution) {
+        console.log(
+          '✅ Added com.apple.developer.storekit.external-purchase-link-streaming to entitlements',
+        );
+      }
+    }
+
+    return config;
+  });
+
+  // Add Info.plist configuration
+  config = withInfoPlist(config, (config) => {
+    const plist = config.modResults;
+
+    // Helper function to normalize country codes to uppercase
+    const normalize = (code: string) => code.trim().toUpperCase();
+
+    // 1. SKExternalPurchase (Required)
+    const normalizedCountries = options.countries?.map(normalize);
+    plist.SKExternalPurchase = normalizedCountries;
+    if (!hasLoggedPluginExecution) {
+      console.log(
+        `✅ Added SKExternalPurchase with countries: ${normalizedCountries?.join(
+          ', ',
+        )}`,
+      );
+    }
+
+    // 2. SKExternalPurchaseLink (Optional - iOS 15.4+)
+    if (options.links && Object.keys(options.links).length > 0) {
+      plist.SKExternalPurchaseLink = Object.fromEntries(
+        Object.entries(options.links).map(([code, url]) => [
+          normalize(code),
+          url,
+        ]),
+      );
+      if (!hasLoggedPluginExecution) {
+        console.log(
+          `✅ Added SKExternalPurchaseLink for ${
+            Object.keys(options.links).length
+          } countries`,
+        );
+      }
+    }
+
+    // 3. SKExternalPurchaseMultiLink (iOS 17.5+)
+    if (options.multiLinks && Object.keys(options.multiLinks).length > 0) {
+      plist.SKExternalPurchaseMultiLink = Object.fromEntries(
+        Object.entries(options.multiLinks).map(([code, urls]) => [
+          normalize(code),
+          urls,
+        ]),
+      );
+      if (!hasLoggedPluginExecution) {
+        console.log(
+          `✅ Added SKExternalPurchaseMultiLink for ${
+            Object.keys(options.multiLinks).length
+          } countries`,
+        );
+      }
+    }
+
+    // 4. SKExternalPurchaseCustomLinkRegions (iOS 18.1+)
+    if (options.customLinkRegions && options.customLinkRegions.length > 0) {
+      plist.SKExternalPurchaseCustomLinkRegions =
+        options.customLinkRegions.map(normalize);
+      if (!hasLoggedPluginExecution) {
+        console.log(
+          `✅ Added SKExternalPurchaseCustomLinkRegions: ${options.customLinkRegions
+            .map(normalize)
+            .join(', ')}`,
+        );
+      }
+    }
+
+    // 5. SKExternalPurchaseLinkStreamingRegions (iOS 18.2+)
+    if (
+      options.streamingLinkRegions &&
+      options.streamingLinkRegions.length > 0
+    ) {
+      plist.SKExternalPurchaseLinkStreamingRegions =
+        options.streamingLinkRegions.map(normalize);
+      if (!hasLoggedPluginExecution) {
+        console.log(
+          `✅ Added SKExternalPurchaseLinkStreamingRegions: ${options.streamingLinkRegions
+            .map(normalize)
+            .join(', ')}`,
+        );
+      }
+    }
+
+    return config;
+  });
+
+  return config;
+};
+
 type IapPluginProps = {
   ios?: {
     // Enable to inject Folly coroutine-disabling macros into Podfile during prebuild
@@ -172,6 +322,13 @@ type IapPluginProps = {
     // @deprecated Use 'with-folly-no-coroutines'. Kept for backward compatibility.
     'with-folly-no-couroutines'?: boolean;
   };
+  /**
+   * iOS Alternative Billing configuration.
+   * Configure external purchase countries, links, and entitlements.
+   * Requires approval from Apple.
+   * @platform ios
+   */
+  iosAlternativeBilling?: IosAlternativeBillingConfig;
 };
 
 const withIapIosFollyWorkaround: ConfigPlugin<IapPluginProps | undefined> = (
@@ -236,6 +393,10 @@ const withIAP: ConfigPlugin<IapPluginProps | undefined> = (config, props) => {
   try {
     let result = withIapAndroid(config);
     result = withIapIosFollyWorkaround(result, props);
+    // Add iOS alternative billing configuration if provided
+    if (props?.iosAlternativeBilling) {
+      result = withIosAlternativeBilling(result, props.iosAlternativeBilling);
+    }
     // Set flag after first execution to prevent duplicate logs
     hasLoggedPluginExecution = true;
     return result;
@@ -270,4 +431,5 @@ const pluginExport: IapPluginCallable = ((
   props?: IapPluginProps,
 ) => _wrapped(config, props)) as unknown as IapPluginCallable;
 
+export {withIosAlternativeBilling};
 export {pluginExport as default};
