@@ -6,6 +6,9 @@ import type {HybridObject} from 'react-native-nitro-modules';
 import type {
   AndroidSubscriptionOfferInput,
   DeepLinkOptions,
+  InitConnectionConfig,
+  ExternalPurchaseLinkResultIOS,
+  ExternalPurchaseNoticeResultIOS,
   MutationFinishTransactionArgs,
   ProductCommon,
   PurchaseCommon,
@@ -16,6 +19,7 @@ import type {
   RequestPurchaseIosProps,
   RequestPurchaseResult,
   RequestSubscriptionAndroidProps,
+  UserChoiceBillingDetails,
 } from '../types';
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
@@ -279,9 +283,10 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
 
   /**
    * Initialize connection to the store
+   * @param config - Optional configuration including alternative billing mode for Android
    * @returns Promise<boolean> - true if connection successful
    */
-  initConnection(): Promise<boolean>;
+  initConnection(config?: InitConnectionConfig | null): Promise<boolean>;
 
   /**
    * End connection to the store
@@ -559,4 +564,97 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   deepLinkToSubscriptionsAndroid?(
     options: NitroDeepLinkOptionsAndroid,
   ): Promise<void>;
+
+  // ╔════════════════════════════════════════════════════════════════════════╗
+  // ║                    ALTERNATIVE BILLING (Android)                       ║
+  // ╚════════════════════════════════════════════════════════════════════════╝
+
+  /**
+   * Check if alternative billing is available for this user/device (Android only).
+   * Step 1 of alternative billing flow.
+   *
+   * @returns Promise<boolean> - true if available, false otherwise
+   * @throws Error if billing client not ready
+   * @platform Android
+   */
+  checkAlternativeBillingAvailabilityAndroid(): Promise<boolean>;
+
+  /**
+   * Show alternative billing information dialog to user (Android only).
+   * Step 2 of alternative billing flow.
+   * Must be called BEFORE processing payment in your payment system.
+   *
+   * @returns Promise<boolean> - true if user accepted, false if user canceled
+   * @throws Error if billing client not ready
+   * @platform Android
+   */
+  showAlternativeBillingDialogAndroid(): Promise<boolean>;
+
+  /**
+   * Create external transaction token for Google Play reporting (Android only).
+   * Step 3 of alternative billing flow.
+   * Must be called AFTER successful payment in your payment system.
+   * Token must be reported to Google Play backend within 24 hours.
+   *
+   * @param sku - Optional product SKU that was purchased
+   * @returns Promise<string | null> - Token string or null if creation failed
+   * @throws Error if billing client not ready
+   * @platform Android
+   */
+  createAlternativeBillingTokenAndroid(
+    sku?: string | null,
+  ): Promise<string | null>;
+
+  /**
+   * Add a listener for user choice billing events (Android only).
+   * Fires when a user selects alternative billing in the User Choice Billing dialog.
+   *
+   * @param listener - Function to call when user chooses alternative billing
+   * @platform Android
+   */
+  addUserChoiceBillingListenerAndroid(
+    listener: (details: UserChoiceBillingDetails) => void,
+  ): void;
+
+  /**
+   * Remove a user choice billing listener (Android only).
+   *
+   * @param listener - Function to remove from listeners
+   * @platform Android
+   */
+  removeUserChoiceBillingListenerAndroid(
+    listener: (details: UserChoiceBillingDetails) => void,
+  ): void;
+
+  // ╔════════════════════════════════════════════════════════════════════════╗
+  // ║                EXTERNAL PURCHASE LINKS (iOS 16.0+)                     ║
+  // ╚════════════════════════════════════════════════════════════════════════╝
+
+  /**
+   * Check if the device can present an external purchase notice sheet (iOS 18.2+).
+   *
+   * @returns Promise<boolean> - true if notice sheet can be presented
+   * @platform iOS
+   */
+  canPresentExternalPurchaseNoticeIOS(): Promise<boolean>;
+
+  /**
+   * Present an external purchase notice sheet to inform users about external purchases (iOS 18.2+).
+   * This must be called before opening an external purchase link.
+   *
+   * @returns Promise<ExternalPurchaseNoticeResultIOS> - Result with action and error if any
+   * @platform iOS
+   */
+  presentExternalPurchaseNoticeSheetIOS(): Promise<ExternalPurchaseNoticeResultIOS>;
+
+  /**
+   * Present an external purchase link to redirect users to your website (iOS 16.0+).
+   *
+   * @param url - The external purchase URL to open
+   * @returns Promise<ExternalPurchaseLinkResultIOS> - Result with success status and error if any
+   * @platform iOS
+   */
+  presentExternalPurchaseLinkIOS(
+    url: string,
+  ): Promise<ExternalPurchaseLinkResultIOS>;
 }

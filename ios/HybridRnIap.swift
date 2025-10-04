@@ -38,9 +38,9 @@ class HybridRnIap: HybridRnIapSpec {
 
     
     
-    func initConnection() throws -> Promise<Bool> {
+    func initConnection(config: InitConnectionConfig?) throws -> Promise<Bool> {
         return Promise.async {
-            RnIapLog.payload("initConnection", nil)
+            RnIapLog.payload("initConnection", config?.alternativeBillingModeAndroid)
             self.attachListenersIfNeeded()
 
             if self.isInitialized || self.isInitializing {
@@ -51,6 +51,8 @@ class HybridRnIap: HybridRnIapSpec {
             self.isInitializing = true
 
             do {
+                // Note: iOS doesn't support alternative billing config parameter
+                // Config is ignored on iOS platform
                 let ok = try await OpenIapModule.shared.initConnection()
                 RnIapLog.result("initConnection", ok)
                 self.isInitialized = ok
@@ -926,6 +928,117 @@ class HybridRnIap: HybridRnIapSpec {
     func deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid) throws -> Promise<Void> {
         return Promise.async {
             throw PurchaseError.make(code: .featureNotSupported)
+        }
+    }
+
+    // MARK: - Alternative Billing (Android) - Not supported on iOS
+
+    func checkAlternativeBillingAvailabilityAndroid() throws -> Promise<Bool> {
+        return Promise.async {
+            throw PurchaseError.make(code: .featureNotSupported)
+        }
+    }
+
+    func showAlternativeBillingDialogAndroid() throws -> Promise<Bool> {
+        return Promise.async {
+            throw PurchaseError.make(code: .featureNotSupported)
+        }
+    }
+
+    func createAlternativeBillingTokenAndroid(sku: String?) throws -> Promise<String?> {
+        return Promise.async {
+            throw PurchaseError.make(code: .featureNotSupported)
+        }
+    }
+
+    func addUserChoiceBillingListenerAndroid(listener: @escaping (UserChoiceBillingDetails) -> Void) throws {
+        // No-op on iOS
+    }
+
+    func removeUserChoiceBillingListenerAndroid(listener: @escaping (UserChoiceBillingDetails) -> Void) throws {
+        // No-op on iOS
+    }
+
+    // MARK: - External Purchase (iOS 16.0+)
+
+    func canPresentExternalPurchaseNoticeIOS() throws -> Promise<Bool> {
+        return Promise.async {
+            RnIapLog.payload("canPresentExternalPurchaseNoticeIOS", nil)
+
+            if #available(iOS 16.0, *) {
+                try self.ensureConnection()
+                do {
+                    let canPresent = try await OpenIapModule.shared.canPresentExternalPurchaseNoticeIOS()
+                    RnIapLog.result("canPresentExternalPurchaseNoticeIOS", canPresent)
+                    return canPresent
+                } catch {
+                    RnIapLog.failure("canPresentExternalPurchaseNoticeIOS", error: error)
+                    throw PurchaseError.make(code: .serviceError, message: error.localizedDescription)
+                }
+            } else {
+                let err = PurchaseError.make(code: .featureNotSupported, message: "External purchase notice requires iOS 16.0 or later")
+                RnIapLog.failure("canPresentExternalPurchaseNoticeIOS", error: err)
+                throw err
+            }
+        }
+    }
+
+    func presentExternalPurchaseNoticeSheetIOS() throws -> Promise<ExternalPurchaseNoticeResultIOS> {
+        return Promise.async {
+            RnIapLog.payload("presentExternalPurchaseNoticeSheetIOS", nil)
+
+            if #available(iOS 16.0, *) {
+                try self.ensureConnection()
+                do {
+                    let result = try await OpenIapModule.shared.presentExternalPurchaseNoticeSheetIOS()
+
+                    // Convert OpenIAP action to Nitro action via raw value
+                    let actionString = result.result.rawValue
+                    guard let nitroAction = ExternalPurchaseNoticeAction(fromString: actionString) else {
+                        throw PurchaseError.make(code: .serviceError, message: "Invalid action: \(actionString)")
+                    }
+
+                    let nitroResult = ExternalPurchaseNoticeResultIOS(
+                        error: result.error,
+                        result: nitroAction
+                    )
+                    RnIapLog.result("presentExternalPurchaseNoticeSheetIOS", result)
+                    return nitroResult
+                } catch {
+                    RnIapLog.failure("presentExternalPurchaseNoticeSheetIOS", error: error)
+                    throw PurchaseError.make(code: .serviceError, message: error.localizedDescription)
+                }
+            } else {
+                let err = PurchaseError.make(code: .featureNotSupported, message: "External purchase notice requires iOS 16.0 or later")
+                RnIapLog.failure("presentExternalPurchaseNoticeSheetIOS", error: err)
+                throw err
+            }
+        }
+    }
+
+    func presentExternalPurchaseLinkIOS(url: String) throws -> Promise<ExternalPurchaseLinkResultIOS> {
+        return Promise.async {
+            RnIapLog.payload("presentExternalPurchaseLinkIOS", ["url": url])
+
+            if #available(iOS 16.0, *) {
+                try self.ensureConnection()
+                do {
+                    let result = try await OpenIapModule.shared.presentExternalPurchaseLinkIOS(url)
+                    let nitroResult = ExternalPurchaseLinkResultIOS(
+                        error: result.error,
+                        success: result.success
+                    )
+                    RnIapLog.result("presentExternalPurchaseLinkIOS", result)
+                    return nitroResult
+                } catch {
+                    RnIapLog.failure("presentExternalPurchaseLinkIOS", error: error)
+                    throw PurchaseError.make(code: .serviceError, message: error.localizedDescription)
+                }
+            } else {
+                let err = PurchaseError.make(code: .featureNotSupported, message: "External purchase link requires iOS 16.0 or later")
+                RnIapLog.failure("presentExternalPurchaseLinkIOS", error: err)
+                throw err
+            }
         }
     }
 }
