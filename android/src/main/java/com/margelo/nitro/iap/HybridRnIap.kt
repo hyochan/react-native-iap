@@ -1064,7 +1064,8 @@ class HybridRnIap : HybridRnIapSpec() {
                 isAvailable
             } catch (err: Throwable) {
                 RnIapLog.failure("checkAlternativeBillingAvailabilityAndroid", err)
-                throw Exception(toErrorJson(OpenIAPError.ServiceUnavailable, debugMessage = err.message))
+                val errorType = parseOpenIapError(err)
+                throw Exception(toErrorJson(errorType, debugMessage = err.message))
             }
         }
     }
@@ -1084,7 +1085,8 @@ class HybridRnIap : HybridRnIapSpec() {
                 userAccepted
             } catch (err: Throwable) {
                 RnIapLog.failure("showAlternativeBillingDialogAndroid", err)
-                throw Exception(toErrorJson(OpenIAPError.ServiceUnavailable, debugMessage = err.message))
+                val errorType = parseOpenIapError(err)
+                throw Exception(toErrorJson(errorType, debugMessage = err.message))
             }
         }
     }
@@ -1102,7 +1104,8 @@ class HybridRnIap : HybridRnIapSpec() {
                 token
             } catch (err: Throwable) {
                 RnIapLog.failure("createAlternativeBillingTokenAndroid", err)
-                throw Exception(toErrorJson(OpenIAPError.ServiceUnavailable, debugMessage = err.message))
+                val errorType = parseOpenIapError(err)
+                throw Exception(toErrorJson(errorType, debugMessage = err.message))
             }
         }
     }
@@ -1151,6 +1154,27 @@ class HybridRnIap : HybridRnIapSpec() {
     // ---------------------------------------------------------------------
     // OpenIAP error helpers: unify error codes/messages from library
     // ---------------------------------------------------------------------
+    private fun parseOpenIapError(err: Throwable): OpenIAPError {
+        // Try to extract OpenIAPError from the exception chain
+        var cause: Throwable? = err
+        while (cause != null) {
+            val message = cause.message ?: ""
+            // Check if message contains OpenIAP error patterns
+            when {
+                message.contains("not prepared", ignoreCase = true) ||
+                message.contains("not initialized", ignoreCase = true) -> return OpenIAPError.NotPrepared
+                message.contains("developer error", ignoreCase = true) ||
+                message.contains("activity not available", ignoreCase = true) -> return OpenIAPError.DeveloperError
+                message.contains("network", ignoreCase = true) -> return OpenIAPError.NetworkError
+                message.contains("service unavailable", ignoreCase = true) ||
+                message.contains("billing unavailable", ignoreCase = true) -> return OpenIAPError.ServiceUnavailable
+            }
+            cause = cause.cause
+        }
+        // Default to ServiceUnavailable if we can't determine the error type
+        return OpenIAPError.ServiceUnavailable
+    }
+
     private fun toErrorJson(
         error: OpenIAPError,
         productId: String? = null,

@@ -35,6 +35,25 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'API Reference',
+      items: [
+        'api/index',
+        'api/use-iap',
+        {
+          type: 'category',
+          label: 'Methods',
+          items: [
+            'api/methods/core-methods',
+            'api/methods/listeners',
+          ],
+        },
+        'api/types',
+        'api/error-codes',
+        'api/error-handling',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Examples',
       items: [
         'examples/purchase-flow',

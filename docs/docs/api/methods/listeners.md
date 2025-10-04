@@ -177,6 +177,126 @@ const handlePromotedProduct = async (product) => {
 
 **Note:** This listener only works on iOS devices and is used for handling App Store promoted products.
 
+## userChoiceBillingListenerAndroid() (Android only)
+
+Android-only listener for User Choice Billing events. This fires when a user selects alternative billing instead of Google Play billing in the User Choice Billing dialog (only in `user-choice` mode).
+
+```tsx
+import {
+  initConnection,
+  userChoiceBillingListenerAndroid,
+} from 'react-native-iap';
+import {Platform} from 'react-native';
+
+const setupUserChoiceBillingListener = async () => {
+  if (Platform.OS !== 'android') return;
+
+  // Initialize with user-choice mode
+  await initConnection({
+    alternativeBillingModeAndroid: 'user-choice',
+  });
+
+  const subscription = userChoiceBillingListenerAndroid((details) => {
+    console.log('User selected alternative billing');
+    console.log('Token:', details.externalTransactionToken);
+    console.log('Products:', details.products);
+
+    handleUserChoiceBilling(details);
+  });
+
+  // Clean up listener when component unmounts
+  return () => {
+    if (subscription) {
+      subscription.remove();
+    }
+  };
+};
+
+const handleUserChoiceBilling = async (details) => {
+  try {
+    // Step 1: Process payment in your payment system
+    const paymentResult = await processPaymentInYourSystem(details.products);
+
+    if (!paymentResult.success) {
+      console.error('Payment failed');
+      return;
+    }
+
+    // Step 2: Report token to Google Play backend within 24 hours
+    await reportTokenToGooglePlay({
+      token: details.externalTransactionToken,
+      products: details.products,
+      paymentResult,
+    });
+
+    console.log('Alternative billing completed successfully');
+  } catch (error) {
+    console.error('Error handling user choice billing:', error);
+  }
+};
+```
+
+**Parameters:**
+
+- `callback` (function): Function to call when user selects alternative billing
+  - `details` (UserChoiceBillingDetails): The user choice billing details
+    - `externalTransactionToken` (string): Token that must be reported to Google within 24 hours
+    - `products` (string[]): List of product IDs selected by the user
+
+**Returns:** Subscription object with `remove()` method
+
+**Platform:** Android only (requires `user-choice` mode)
+
+**Important:**
+
+- Only fires when using `alternativeBillingModeAndroid: 'user-choice'`
+- Token must be reported to Google Play backend within 24 hours
+- If user selects Google Play billing instead, `purchaseUpdatedListener` will fire as normal
+
+### Example with React
+
+```tsx
+import {useEffect} from 'react';
+import {
+  initConnection,
+  userChoiceBillingListenerAndroid,
+} from 'react-native-iap';
+import {Platform} from 'react-native';
+
+export default function AlternativeBillingComponent() {
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const initialize = async () => {
+      // Initialize with user-choice mode
+      await initConnection({
+        alternativeBillingModeAndroid: 'user-choice',
+      });
+
+      // Set up listener
+      const subscription = userChoiceBillingListenerAndroid(async (details) => {
+        console.log('User chose alternative billing');
+
+        // Process payment and report to Google
+        await handleAlternativeBilling(details);
+      });
+
+      return () => {
+        subscription.remove();
+      };
+    };
+
+    const cleanup = initialize();
+
+    return () => {
+      cleanup.then((fn) => fn?.());
+    };
+  }, []);
+
+  // Rest of component
+}
+```
+
 ## Using Listeners with React Hooks
 
 ### Functional Components

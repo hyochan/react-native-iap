@@ -22,7 +22,6 @@ import {PRODUCT_IDS} from '../constants/products';
 
 export default function AlternativeBillingScreen() {
   const [externalUrl, setExternalUrl] = useState('https://openiap.dev');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [billingMode, setBillingMode] =
     useState<AlternativeBillingModeAndroid>('alternative-only');
   const [purchaseResult, setPurchaseResult] = useState<string>('');
@@ -180,8 +179,6 @@ export default function AlternativeBillingScreen() {
   );
 
   const handlePurchase = (product: Product) => {
-    setSelectedProduct(product);
-
     if (Platform.OS === 'ios') {
       handleIOSPurchase(product);
     } else if (billingMode === 'alternative-only') {
@@ -198,7 +195,19 @@ export default function AlternativeBillingScreen() {
         },
         type: 'in-app',
         useAlternativeBilling: true,
-      });
+      })
+        .then(() => {
+          setPurchaseResult(
+            `🔄 User choice dialog shown\n\nProduct: ${product.id}\n\nIf user selects:\n- Google Play: onPurchaseUpdated callback\n- Alternative: Manual flow required`,
+          );
+          setIsProcessing(false);
+        })
+        .catch((error) => {
+          console.error('[Android] User choice billing error:', error);
+          setPurchaseResult(`❌ Error: ${error.message}`);
+          Alert.alert('Error', error.message);
+          setIsProcessing(false);
+        });
     }
   };
 

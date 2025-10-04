@@ -26,9 +26,16 @@ export default function AllProductsScreen() {
       Alert.alert('Success', `Purchased: ${purchase.productId}`);
 
       try {
+        // Determine if the product is consumable
+        const allProducts = [...(products || []), ...(subscriptions || [])];
+        const product = allProducts.find((p) => p.id === purchase.productId);
+        const isConsumable =
+          product?.type === 'in-app' &&
+          PRODUCT_IDS.includes(purchase.productId);
+
         await finishTransaction({
           purchase,
-          isConsumable: true,
+          isConsumable,
         });
         console.log('Transaction finished');
       } catch (error) {

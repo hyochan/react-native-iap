@@ -307,11 +307,13 @@ function AlternativeBillingScreen() {
         setPurchaseResult(
           `🔄 User choice dialog shown\n\nProduct: ${product.id}\n\nIf user selects:\n- Google Play: onPurchaseUpdated callback\n- Alternative: Manual flow required`,
         );
+        setIsProcessing(false);
       })
       .catch((error) => {
         console.error('[Android] User choice billing error:', error);
         setPurchaseResult(`❌ Error: ${error.message}`);
         Alert.alert('Error', error.message);
+        setIsProcessing(false);
       });
   }, []);
 

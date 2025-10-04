@@ -232,11 +232,15 @@ const withIosAlternativeBilling: ConfigPlugin<
   config = withInfoPlist(config, (config) => {
     const plist = config.modResults;
 
+    // Helper function to normalize country codes to uppercase
+    const normalize = (code: string) => code.trim().toUpperCase();
+
     // 1. SKExternalPurchase (Required)
-    plist.SKExternalPurchase = options.countries;
+    const normalizedCountries = options.countries?.map(normalize);
+    plist.SKExternalPurchase = normalizedCountries;
     if (!hasLoggedPluginExecution) {
       console.log(
-        `✅ Added SKExternalPurchase with countries: ${options.countries?.join(
+        `✅ Added SKExternalPurchase with countries: ${normalizedCountries?.join(
           ', ',
         )}`,
       );
@@ -244,7 +248,12 @@ const withIosAlternativeBilling: ConfigPlugin<
 
     // 2. SKExternalPurchaseLink (Optional - iOS 15.4+)
     if (options.links && Object.keys(options.links).length > 0) {
-      plist.SKExternalPurchaseLink = options.links;
+      plist.SKExternalPurchaseLink = Object.fromEntries(
+        Object.entries(options.links).map(([code, url]) => [
+          normalize(code),
+          url,
+        ]),
+      );
       if (!hasLoggedPluginExecution) {
         console.log(
           `✅ Added SKExternalPurchaseLink for ${
@@ -256,7 +265,12 @@ const withIosAlternativeBilling: ConfigPlugin<
 
     // 3. SKExternalPurchaseMultiLink (iOS 17.5+)
     if (options.multiLinks && Object.keys(options.multiLinks).length > 0) {
-      plist.SKExternalPurchaseMultiLink = options.multiLinks;
+      plist.SKExternalPurchaseMultiLink = Object.fromEntries(
+        Object.entries(options.multiLinks).map(([code, urls]) => [
+          normalize(code),
+          urls,
+        ]),
+      );
       if (!hasLoggedPluginExecution) {
         console.log(
           `✅ Added SKExternalPurchaseMultiLink for ${
@@ -268,12 +282,13 @@ const withIosAlternativeBilling: ConfigPlugin<
 
     // 4. SKExternalPurchaseCustomLinkRegions (iOS 18.1+)
     if (options.customLinkRegions && options.customLinkRegions.length > 0) {
-      plist.SKExternalPurchaseCustomLinkRegions = options.customLinkRegions;
+      plist.SKExternalPurchaseCustomLinkRegions =
+        options.customLinkRegions.map(normalize);
       if (!hasLoggedPluginExecution) {
         console.log(
-          `✅ Added SKExternalPurchaseCustomLinkRegions: ${options.customLinkRegions.join(
-            ', ',
-          )}`,
+          `✅ Added SKExternalPurchaseCustomLinkRegions: ${options.customLinkRegions
+            .map(normalize)
+            .join(', ')}`,
         );
       }
     }
@@ -284,12 +299,12 @@ const withIosAlternativeBilling: ConfigPlugin<
       options.streamingLinkRegions.length > 0
     ) {
       plist.SKExternalPurchaseLinkStreamingRegions =
-        options.streamingLinkRegions;
+        options.streamingLinkRegions.map(normalize);
       if (!hasLoggedPluginExecution) {
         console.log(
-          `✅ Added SKExternalPurchaseLinkStreamingRegions: ${options.streamingLinkRegions.join(
-            ', ',
-          )}`,
+          `✅ Added SKExternalPurchaseLinkStreamingRegions: ${options.streamingLinkRegions
+            .map(normalize)
+            .join(', ')}`,
         );
       }
     }

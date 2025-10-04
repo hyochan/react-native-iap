@@ -236,7 +236,7 @@ if (result.success) {
 
 ### Complete iOS Example
 
-See [AlternativeBilling.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/src/components/AlternativeBilling.tsx) for a complete working example that includes:
+See [AlternativeBilling.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/AlternativeBilling.tsx) for a complete working example that includes:
 
 - Notice sheet handling (iOS 18.2+)
 - External purchase link presentation
@@ -286,7 +286,7 @@ const {connected} = useIAP({
 
 ### Mode 1: Alternative Billing Only
 
-This mode requires a manual 3-step flow. See [AlternativeBilling.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/src/components/AlternativeBilling.tsx) for a complete example that demonstrates:
+This mode requires a manual 3-step flow. See [AlternativeBilling.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/AlternativeBilling.tsx) for a complete example that demonstrates:
 
 1. Checking alternative billing availability
 2. Showing the information dialog to users
@@ -295,7 +295,7 @@ This mode requires a manual 3-step flow. See [AlternativeBilling.tsx](https://gi
 
 ### Mode 2: User Choice Billing
 
-With user choice, Google automatically shows a selection dialog. See [AlternativeBilling.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/src/components/AlternativeBilling.tsx) for a complete example that shows:
+With user choice, Google automatically shows a selection dialog. See [AlternativeBilling.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/AlternativeBilling.tsx) for a complete example that shows:
 
 - Setting up user choice mode with `useIAP` hook
 - Handling both Google Play and alternative billing selections
@@ -324,7 +324,7 @@ subscription.remove();
 
 ## Complete Cross-Platform Example
 
-For a complete working example with full implementation details, see the [AlternativeBilling.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/src/components/AlternativeBilling.tsx) component in the example app.
+For a complete working example with full implementation details, see the [AlternativeBilling.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/AlternativeBilling.tsx) component in the example app.
 
 The example demonstrates:
 
@@ -340,8 +340,6 @@ The example demonstrates:
 
 1. **Backend Validation**: Always validate purchases on your backend server
 2. **Clear Communication**: Inform users they're leaving the app for external payment
-3. **Deep Linking**: Implement deep links to return users to your app (iOS)
-4. **Error Handling**: Handle all error cases gracefully
 
 ### iOS Specific
 
