@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
         'guides/subscription-offers',
         'guides/subscription-validation',
         'guides/offer-code-redemption',
+        'guides/alternative-billing',
         'guides/error-handling',
         'guides/expo-plugin',
         'guides/troubleshooting',
@@ -40,6 +41,7 @@ const sidebars: SidebarsConfig = {
         'examples/subscription-flow',
         'examples/available-purchases',
         'examples/offer-code',
+        'examples/alternative-billing',
       ],
     },
     {

@@ -167,7 +167,7 @@ const withIapAndroid: ConfigPlugin = (config) => {
   return config;
 };
 
-export interface IOSAlternativeBillingConfig {
+export interface IosAlternativeBillingConfig {
   /** Country codes where external purchases are supported (ISO 3166-1 alpha-2) */
   countries?: string[];
   /** External purchase URLs per country (iOS 15.4+) */
@@ -186,7 +186,7 @@ export interface IOSAlternativeBillingConfig {
 
 /** Add external purchase entitlements and Info.plist configuration */
 const withIosAlternativeBilling: ConfigPlugin<
-  IOSAlternativeBillingConfig | undefined
+  IosAlternativeBillingConfig | undefined
 > = (config, options) => {
   if (!options || !options.countries || options.countries.length === 0) {
     return config;
@@ -313,7 +313,7 @@ type IapPluginProps = {
    * Requires approval from Apple.
    * @platform ios
    */
-  iosAlternativeBilling?: IOSAlternativeBillingConfig;
+  iosAlternativeBilling?: IosAlternativeBillingConfig;
 };
 
 const withIapIosFollyWorkaround: ConfigPlugin<IapPluginProps | undefined> = (

@@ -822,6 +822,307 @@ for (const p of purchases) {
 
 This ensures pending transactions are surfaced and properly resolved without a separate “flush” API.
 
+## Alternative Billing APIs
+
+Alternative billing enables developers to offer payment options outside of the platform's standard billing systems. Both platforms require special approval.
+
+### Android Alternative Billing
+
+Android supports two modes:
+
+- **Alternative Billing Only**: Only your payment system is available
+- **User Choice Billing**: Users choose between Google Play and your payment system
+
+#### Initialize with Alternative Billing
+
+```tsx
+import {initConnection} from 'react-native-iap';
+
+// Alternative Billing Only mode
+await initConnection({
+  alternativeBillingModeAndroid: 'alternative-only',
+});
+
+// User Choice Billing mode
+await initConnection({
+  alternativeBillingModeAndroid: 'user-choice',
+});
+```
+
+**Parameters:**
+
+- `alternativeBillingModeAndroid`: `'none'` | `'alternative-only'` | `'user-choice'`
+
+#### checkAlternativeBillingAvailabilityAndroid()
+
+Check if alternative billing is available for the current user/device.
+
+```tsx
+import {checkAlternativeBillingAvailabilityAndroid} from 'react-native-iap';
+
+const isAvailable = await checkAlternativeBillingAvailabilityAndroid();
+if (isAvailable) {
+  // Proceed with alternative billing flow
+}
+```
+
+**Returns:** `Promise<boolean>`
+
+**Platform:** Android only
+
+#### showAlternativeBillingDialogAndroid()
+
+Show the alternative billing information dialog to the user. Must be called **before** processing payment in your payment system.
+
+```tsx
+import {showAlternativeBillingDialogAndroid} from 'react-native-iap';
+
+const userAccepted = await showAlternativeBillingDialogAndroid();
+if (userAccepted) {
+  // User accepted - process payment in your system
+  const success = await processCustomPayment();
+
+  if (success) {
+    // Create token for Google Play reporting
+    const token = await createAlternativeBillingTokenAndroid();
+  }
+}
+```
+
+**Returns:** `Promise<boolean>` - `true` if user accepted, `false` if cancelled
+
+**Platform:** Android only
+
+#### createAlternativeBillingTokenAndroid()
+
+Create an external transaction token for Google Play reporting. Must be called **after** successful payment in your payment system. Token must be reported to Google Play backend within 24 hours.
+
+```tsx
+import {createAlternativeBillingTokenAndroid} from 'react-native-iap';
+
+// After successful payment in your system
+const token = await createAlternativeBillingTokenAndroid(
+  'premium_subscription',
+);
+
+if (token) {
+  // Send token to your backend for Google Play reporting
+  await fetch('/api/report-transaction', {
+    method: 'POST',
+    body: JSON.stringify({token, productId: 'premium_subscription'}),
+  });
+}
+```
+
+**Parameters:**
+
+- `sku?: string` - Optional product SKU that was purchased
+
+**Returns:** `Promise<string | null>` - Token string or null if creation failed
+
+**Platform:** Android only
+
+#### Complete Alternative Billing Flow (Android)
+
+```tsx
+// Step 1: Check availability
+const isAvailable = await checkAlternativeBillingAvailabilityAndroid();
+if (!isAvailable) {
+  console.log('Alternative billing not available');
+  return;
+}
+
+// Step 2: Show information dialog
+const userAccepted = await showAlternativeBillingDialogAndroid();
+if (!userAccepted) {
+  console.log('User cancelled');
+  return;
+}
+
+// Step 3: Process payment in your payment system
+const paymentSuccess = await yourPaymentSystem.processPayment({
+  productId: 'premium_subscription',
+  amount: 9.99,
+});
+
+if (!paymentSuccess) {
+  console.log('Payment failed');
+  return;
+}
+
+// Step 4: Create token for Google Play reporting
+const token = await createAlternativeBillingTokenAndroid(
+  'premium_subscription',
+);
+
+if (token) {
+  // Step 5: Report to Google Play backend (within 24 hours)
+  await yourBackend.reportToGooglePlay({
+    token,
+    productId: 'premium_subscription',
+    userId: currentUser.id,
+  });
+
+  console.log('Alternative billing completed successfully');
+}
+```
+
+### iOS External Purchase
+
+iOS alternative billing works by redirecting users to an external website where they complete the purchase.
+
+#### canPresentExternalPurchaseNoticeIOS()
+
+Check if the device can present an external purchase notice sheet.
+
+```tsx
+import {canPresentExternalPurchaseNoticeIOS} from 'react-native-iap';
+
+const canPresent = await canPresentExternalPurchaseNoticeIOS();
+if (canPresent) {
+  // Present notice before external purchase
+}
+```
+
+**Returns:** `Promise<boolean>`
+
+**Platform:** iOS 18.2+ only
+
+**Requires:** `com.apple.developer.storekit.external-purchase` entitlement
+
+#### presentExternalPurchaseNoticeSheetIOS()
+
+Present an external purchase notice sheet to inform users about external purchases. This must be called before opening an external purchase link.
+
+```tsx
+import {presentExternalPurchaseNoticeSheetIOS} from 'react-native-iap';
+
+const result = await presentExternalPurchaseNoticeSheetIOS();
+
+if (result.result === 'continue') {
+  // User chose to continue, open external purchase link
+  await presentExternalPurchaseLinkIOS('https://your-website.com/purchase');
+} else if (result.result === 'cancel') {
+  console.log('User cancelled');
+}
+```
+
+**Returns:** `Promise<ExternalPurchaseNoticeResultIOS>`
+
+```tsx
+interface ExternalPurchaseNoticeResultIOS {
+  result: 'continue' | 'cancel';
+  error?: string;
+}
+```
+
+**Platform:** iOS 18.2+ only
+
+**Requires:** `com.apple.developer.storekit.external-purchase` entitlement
+
+#### presentExternalPurchaseLinkIOS()
+
+Present an external purchase link to redirect users to your website.
+
+```tsx
+import {presentExternalPurchaseLinkIOS} from 'react-native-iap';
+
+const result = await presentExternalPurchaseLinkIOS(
+  'https://your-website.com/purchase',
+);
+
+if (result.success) {
+  console.log('User was redirected to external website');
+  // Complete purchase on your website
+  // Implement deep link to return to app
+} else if (result.error) {
+  console.error('Error:', result.error);
+}
+```
+
+**Parameters:**
+
+- `url: string` - The external purchase URL to open
+
+**Returns:** `Promise<ExternalPurchaseLinkResultIOS>`
+
+```tsx
+interface ExternalPurchaseLinkResultIOS {
+  success: boolean;
+  error?: string;
+}
+```
+
+**Platform:** iOS 16.0+ only
+
+**Requires:**
+
+- `com.apple.developer.storekit.external-purchase` entitlement
+- URL must be configured in Info.plist
+
+#### iOS Configuration
+
+For iOS alternative billing, you need to configure your app with the Expo config plugin:
+
+```tsx
+// app.config.ts
+export default {
+  plugins: [
+    [
+      'react-native-iap',
+      {
+        iosAlternativeBilling: {
+          // Required: Countries where external purchases are supported
+          countries: ['kr', 'nl', 'de', 'fr'], // ISO 3166-1 alpha-2
+
+          // Optional: External purchase URLs per country (iOS 15.4+)
+          links: {
+            kr: 'https://your-site.com/kr/checkout',
+            nl: 'https://your-site.com/nl/checkout',
+          },
+
+          // Optional: Multiple URLs per country (iOS 17.5+, up to 5)
+          multiLinks: {
+            de: [
+              'https://your-site.com/de/checkout',
+              'https://your-site.com/de/special-offer',
+            ],
+          },
+
+          // Optional: Custom link regions (iOS 18.1+)
+          customLinkRegions: ['de', 'fr', 'nl'],
+
+          // Optional: Streaming regions for music apps (iOS 18.2+)
+          streamingLinkRegions: ['at', 'de', 'fr', 'nl'],
+
+          // Enable external purchase link entitlement
+          enableExternalPurchaseLink: true,
+
+          // Enable streaming entitlement (music apps only)
+          enableExternalPurchaseLinkStreaming: false,
+        },
+      },
+    ],
+  ],
+};
+```
+
+This automatically adds the required entitlements and Info.plist configuration.
+
+:::warning Requirements
+
+- **Approval Required**: You must obtain approval from Apple/Google to use alternative billing
+- **iOS URL Format**: URLs must use HTTPS, have no query parameters, and be 1,000 characters or fewer
+- **Android Reporting**: External transaction tokens must be reported to Google Play within 24 hours
+- **Service Fees**: Reduced fees apply when using alternative billing (varies by platform and region) :::
+
+For complete guides, see:
+
+- [Alternative Billing Guide](/docs/guides/alternative-billing) (coming soon)
+- [OpenIAP Alternative Billing](https://www.openiap.dev/docs/alternative-billing)
+- [Apple External Purchase](https://developer.apple.com/documentation/storekit/external-purchase)
+- [Google Alternative Billing](https://developer.android.com/google/play/billing/alternative)
+
 ## Removed APIs
 
 - `requestProducts()` — Removed in v3.0.0. Use `fetchProducts({ skus, type })` instead.

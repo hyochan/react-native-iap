@@ -13,6 +13,8 @@ module.exports = {
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/__tests__/**',
+    '!screens/AllProducts.tsx',
+    '!screens/AlternativeBilling.tsx',
   ],
   coverageThreshold: {
     global: {

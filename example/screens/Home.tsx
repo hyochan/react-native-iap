@@ -50,6 +50,12 @@ const Home: React.FC<Props> = ({navigation}) => {
       route: 'OfferCode' as keyof RootStackParamList,
       enabled: true,
     },
+    {
+      title: 'Alternative Billing',
+      subtitle: 'External purchase links & alternative billing',
+      route: 'AlternativeBilling' as keyof RootStackParamList,
+      enabled: true,
+    },
   ];
 
   return (

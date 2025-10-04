@@ -22,6 +22,11 @@ export default function RootLayout() {
           options={{title: 'Available Purchases'}}
         />
         <Stack.Screen name="offer-code" options={{title: 'Offer Code'}} />
+        <Stack.Screen
+          name="alternative-billing"
+          options={{title: 'Alternative Billing'}}
+        />
+        <Stack.Screen name="all-products" options={{title: 'All Products'}} />
       </Stack>
     </DataModalProvider>
   );
