@@ -231,55 +231,6 @@ const handleAndroidError = (error: PurchaseError) => {
 4. **Test with multiple accounts** - verify behavior for new and existing users
 5. **Implement proper retry logic** - for transient failures
 
-## Android-Specific Features
-
-### Proration for Subscription Changes
-
-```tsx
-const upgradeSubscription = async (
-  newSkuId: string,
-  oldPurchaseToken: string,
-) => {
-  try {
-    await requestPurchase({
-      request: {
-        skus: [newSkuId],
-        subscriptionOffers: [
-          {
-            sku: newSkuId,
-            offerToken: 'new_offer_token',
-          },
-        ],
-        replacementMode: 'IMMEDIATE_WITH_TIME_PRORATION',
-        oldPurchaseToken: oldPurchaseToken,
-      },
-      type: 'subs',
-    });
-  } catch (error) {
-    console.error('Subscription upgrade failed:', error);
-  }
-};
-```
-
-### Pending Purchases
-
-Handle purchases that require additional verification:
-
-```tsx
-const handlePendingPurchase = (purchase: Purchase) => {
-  if (purchase.purchaseState === 'pending') {
-    // Show pending message to user
-    Alert.alert(
-      'Purchase Pending',
-      'Your purchase is being processed. You will receive access once payment is confirmed.',
-    );
-
-    // Store pending purchase for later verification
-    storePendingPurchase(purchase);
-  }
-};
-```
-
 ## Next Steps
 
 - [Learn about getting started guide](../guides/getting-started)
