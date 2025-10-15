@@ -1619,7 +1619,8 @@ export const getActiveSubscriptions: QueryField<
         // Android specific fields
         autoRenewingAndroid: sub.autoRenewingAndroid ?? null,
         basePlanIdAndroid: sub.basePlanIdAndroid ?? null,
-        currentPlanId: sub.currentPlanId ?? null,
+        currentPlanId:
+          sub.currentPlanId ?? (Platform.OS === 'ios' ? sub.productId : null),
         purchaseTokenAndroid: sub.purchaseTokenAndroid ?? null,
       }),
     );
