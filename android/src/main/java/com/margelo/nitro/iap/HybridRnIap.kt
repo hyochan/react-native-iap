@@ -438,6 +438,61 @@ class HybridRnIap : HybridRnIapSpec() {
             result.map { convertToNitroPurchase(it) }.toTypedArray()
         }
     }
+
+    override fun getActiveSubscriptions(subscriptionIds: Array<String>?): Promise<Array<NitroActiveSubscription>> {
+        return Promise.async {
+            initConnection(null).await()
+
+            RnIapLog.payload(
+                "getActiveSubscriptions",
+                mapOf("subscriptionIds" to (subscriptionIds?.toList() ?: "all"))
+            )
+
+            try {
+                // Use OpenIapModule's native getActiveSubscriptions method
+                RnIapLog.payload("getActiveSubscriptions.native", mapOf("type" to "subs"))
+                val activeSubscriptions = openIap.getActiveSubscriptions(subscriptionIds?.toList())
+
+                val nitroSubscriptions = activeSubscriptions.map { sub ->
+                    NitroActiveSubscription(
+                        productId = sub.productId,
+                        isActive = sub.isActive,
+                        transactionId = sub.transactionId,
+                        purchaseToken = sub.purchaseToken,
+                        transactionDate = sub.transactionDate,
+                        // Android specific fields
+                        autoRenewingAndroid = sub.autoRenewingAndroid,
+                        basePlanIdAndroid = sub.basePlanIdAndroid,
+                        currentPlanId = sub.currentPlanId,
+                        purchaseTokenAndroid = sub.purchaseTokenAndroid,
+                        // iOS specific fields (null on Android)
+                        expirationDateIOS = null,
+                        environmentIOS = null,
+                        willExpireSoon = null,
+                        daysUntilExpirationIOS = null,
+                        renewalInfoIOS = null
+                    )
+                }
+
+                RnIapLog.result(
+                    "getActiveSubscriptions",
+                    nitroSubscriptions.map { mapOf("productId" to it.productId, "isActive" to it.isActive) }
+                )
+
+                nitroSubscriptions.toTypedArray()
+            } catch (e: Exception) {
+                RnIapLog.failure("getActiveSubscriptions", e)
+                val error = OpenIAPError.ServiceUnavailable
+                throw Exception(
+                    toErrorJson(
+                        error = error,
+                        debugMessage = e.message,
+                        messageOverride = "Failed to get active subscriptions: ${e.message}"
+                    )
+                )
+            }
+        }
+    }
     
     // Transaction management methods (Unified)
     override fun finishTransaction(params: NitroFinishTransactionParams): Promise<Variant_Boolean_NitroPurchaseResult> {

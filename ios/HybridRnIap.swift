@@ -248,6 +248,23 @@ class HybridRnIap: HybridRnIapSpec {
             }
         }
     }
+
+    func getActiveSubscriptions(subscriptionIds: [String]?) throws -> Promise<[NitroActiveSubscription]> {
+        return Promise.async {
+            try self.ensureConnection()
+            do {
+                RnIapLog.payload("getActiveSubscriptions", subscriptionIds ?? [])
+                // Call OpenIAP's native getActiveSubscriptions - includes renewalInfoIOS!
+                let subscriptions = try await OpenIapModule.shared.getActiveSubscriptions(subscriptionIds)
+                let payloads = RnIapHelper.sanitizeArray(subscriptions.map { OpenIapSerialization.encode($0) })
+                RnIapLog.result("getActiveSubscriptions", payloads)
+                return payloads.map { RnIapHelper.convertActiveSubscriptionDictionary($0) }
+            } catch {
+                RnIapLog.failure("getActiveSubscriptions", error: error)
+                throw error
+            }
+        }
+    }
     
     func finishTransaction(params: NitroFinishTransactionParams) throws -> Promise<Variant_Bool_NitroPurchaseResult> {
         return Promise.async {

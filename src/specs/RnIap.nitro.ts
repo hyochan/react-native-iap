@@ -4,6 +4,7 @@ import type {HybridObject} from 'react-native-nitro-modules';
 // canonical `Nitro*` names defined here, so we keep the aliases rather than
 // removing the types entirely.
 import type {
+  ActiveSubscription,
   AndroidSubscriptionOfferInput,
   DeepLinkOptions,
   InitConnectionConfig,
@@ -236,6 +237,44 @@ export interface NitroPurchase {
   developerPayloadAndroid?: string | null;
 }
 
+/**
+ * Active subscription with renewalInfoIOS included
+ */
+export interface NitroActiveSubscription {
+  productId: ActiveSubscription['productId'];
+  isActive: ActiveSubscription['isActive'];
+  transactionId: ActiveSubscription['transactionId'];
+  purchaseToken?: ActiveSubscription['purchaseToken'];
+  transactionDate: ActiveSubscription['transactionDate'];
+  // iOS specific fields
+  expirationDateIOS?: ActiveSubscription['expirationDateIOS'];
+  environmentIOS?: ActiveSubscription['environmentIOS'];
+  willExpireSoon?: ActiveSubscription['willExpireSoon'];
+  daysUntilExpirationIOS?: ActiveSubscription['daysUntilExpirationIOS'];
+  renewalInfoIOS?: NitroRenewalInfoIOS | null; // 🆕 Key field for upgrade/downgrade detection
+  // Android specific fields
+  autoRenewingAndroid?: ActiveSubscription['autoRenewingAndroid'];
+  basePlanIdAndroid?: ActiveSubscription['basePlanIdAndroid'];
+  currentPlanId?: ActiveSubscription['currentPlanId'];
+  purchaseTokenAndroid?: ActiveSubscription['purchaseTokenAndroid'];
+}
+
+/**
+ * Renewal information from StoreKit 2 (iOS only)
+ */
+export interface NitroRenewalInfoIOS {
+  willAutoRenew?: boolean | null;
+  autoRenewPreference?: string | null;
+  pendingUpgradeProductId?: string | null;
+  renewalDate?: number | null;
+  expirationReason?: string | null;
+  isInBillingRetry?: boolean | null;
+  gracePeriodExpirationDate?: number | null;
+  priceIncreaseStatus?: string | null;
+  offerType?: string | null;
+  offerIdentifier?: string | null;
+}
+
 export interface NitroProduct {
   id: ProductCommon['id'];
   title: ProductCommon['title'];
@@ -325,6 +364,15 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   getAvailablePurchases(
     options?: NitroAvailablePurchasesOptions,
   ): Promise<NitroPurchase[]>;
+
+  /**
+   * Get active subscriptions with renewalInfoIOS included
+   * @param subscriptionIds - Optional array of subscription IDs to filter
+   * @returns Promise<NitroActiveSubscription[]> - Array of active subscriptions with renewalInfoIOS
+   */
+  getActiveSubscriptions(
+    subscriptionIds?: string[],
+  ): Promise<NitroActiveSubscription[]>;
 
   /**
    * Finish a transaction (unified method for both platforms)

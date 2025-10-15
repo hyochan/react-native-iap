@@ -147,6 +147,51 @@ enum RnIapHelper {
         return purchase
     }
 
+    static func convertActiveSubscriptionDictionary(_ dictionary: [String: Any]) -> NitroActiveSubscription {
+        var subscription = NitroActiveSubscription()
+
+        // Core fields
+        if let productId = dictionary["productId"] as? String { subscription.productId = productId }
+        if let isActive = boolValue(dictionary["isActive"]) { subscription.isActive = isActive }
+        if let transactionId = dictionary["transactionId"] as? String { subscription.transactionId = transactionId }
+        if let purchaseToken = dictionary["purchaseToken"] as? String { subscription.purchaseToken = purchaseToken }
+        if let transactionDate = doubleValue(dictionary["transactionDate"]) { subscription.transactionDate = transactionDate }
+
+        // iOS specific fields
+        if let expirationDateIOS = doubleValue(dictionary["expirationDateIOS"]) { subscription.expirationDateIOS = expirationDateIOS }
+        if let environmentIOS = dictionary["environmentIOS"] as? String { subscription.environmentIOS = environmentIOS }
+        if let willExpireSoon = boolValue(dictionary["willExpireSoon"]) { subscription.willExpireSoon = willExpireSoon }
+        if let daysUntilExpirationIOS = doubleValue(dictionary["daysUntilExpirationIOS"]) { subscription.daysUntilExpirationIOS = daysUntilExpirationIOS }
+
+        // 🆕 renewalInfoIOS - the key field for upgrade/downgrade/cancellation detection!
+        if let renewalInfoDict = dictionary["renewalInfoIOS"] as? [String: Any] {
+            subscription.renewalInfoIOS = convertRenewalInfoFromOpenIAP(renewalInfoDict)
+        }
+
+        // Android specific fields
+        if let autoRenewingAndroid = boolValue(dictionary["autoRenewingAndroid"]) { subscription.autoRenewingAndroid = autoRenewingAndroid }
+
+        return subscription
+    }
+
+    static func convertRenewalInfoFromOpenIAP(_ dictionary: [String: Any]) -> NitroRenewalInfoIOS? {
+        var renewalInfo = NitroRenewalInfoIOS()
+
+        // Extract all fields from OpenIAP's RenewalInfo
+        if let willAutoRenew = boolValue(dictionary["willAutoRenew"]) { renewalInfo.willAutoRenew = willAutoRenew }
+        if let autoRenewPreference = dictionary["autoRenewPreference"] as? String { renewalInfo.autoRenewPreference = autoRenewPreference }
+        if let pendingUpgradeProductId = dictionary["pendingUpgradeProductId"] as? String { renewalInfo.pendingUpgradeProductId = pendingUpgradeProductId }
+        if let renewalDate = doubleValue(dictionary["renewalDate"]) { renewalInfo.renewalDate = renewalDate }
+        if let expirationReason = dictionary["expirationReason"] as? String { renewalInfo.expirationReason = expirationReason }
+        if let isInBillingRetry = boolValue(dictionary["isInBillingRetry"]) { renewalInfo.isInBillingRetry = isInBillingRetry }
+        if let gracePeriodExpirationDate = doubleValue(dictionary["gracePeriodExpirationDate"]) { renewalInfo.gracePeriodExpirationDate = gracePeriodExpirationDate }
+        if let priceIncreaseStatus = dictionary["priceIncreaseStatus"] as? String { renewalInfo.priceIncreaseStatus = priceIncreaseStatus }
+        if let offerType = dictionary["offerType"] as? String { renewalInfo.offerType = offerType }
+        if let offerIdentifier = dictionary["offerIdentifier"] as? String { renewalInfo.offerIdentifier = offerIdentifier }
+
+        return renewalInfo
+    }
+
     static func convertRenewalInfo(_ dictionary: [String: Any]) -> NitroSubscriptionRenewalInfo? {
         guard let autoRenewStatus = boolValue(dictionary["autoRenewStatus"]) else {
             return nil

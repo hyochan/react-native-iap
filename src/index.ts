@@ -6,6 +6,7 @@ import {NitroModules} from 'react-native-nitro-modules';
 
 // Internal modules
 import type {
+  NitroActiveSubscription,
   NitroReceiptValidationParams,
   NitroReceiptValidationResultIOS,
   NitroReceiptValidationResultAndroid,
@@ -1561,11 +1562,129 @@ export const deepLinkToSubscriptionsIOS = async (): Promise<boolean> => {
  * ```
  */
 /**
- * Get active subscriptions
+ * Get all active subscriptions with detailed information (OpenIAP compliant)
+ * Returns an array of active subscriptions. If subscriptionIds is not provided,
+ * returns all active subscriptions. Platform-specific fields are populated based
+ * on the current platform.
+ *
+ * On iOS, this uses the native getActiveSubscriptions method which includes
+ * renewalInfoIOS with details about subscription renewal status, pending
+ * upgrades/downgrades, and auto-renewal preferences.
+ *
  * @param subscriptionIds - Optional array of subscription IDs to filter by
  * @returns Promise<ActiveSubscription[]> - Array of active subscriptions
  */
 export const getActiveSubscriptions: QueryField<
+  'getActiveSubscriptions'
+> = async (subscriptionIds) => {
+  try {
+    if (Platform.OS === 'ios') {
+      // On iOS, use native getActiveSubscriptions which includes renewalInfoIOS
+      const activeSubscriptions = await IAP.instance.getActiveSubscriptions(
+        subscriptionIds ?? undefined,
+      );
+
+      // Convert NitroActiveSubscription to ActiveSubscription
+      return activeSubscriptions.map(
+        (sub: NitroActiveSubscription): ActiveSubscription => ({
+          productId: sub.productId,
+          isActive: sub.isActive,
+          transactionId: sub.transactionId,
+          purchaseToken: sub.purchaseToken ?? null,
+          transactionDate: sub.transactionDate,
+          // iOS specific fields
+          expirationDateIOS: sub.expirationDateIOS ?? null,
+          environmentIOS: sub.environmentIOS ?? null,
+          willExpireSoon: sub.willExpireSoon ?? null,
+          daysUntilExpirationIOS: sub.daysUntilExpirationIOS ?? null,
+          // 🆕 renewalInfoIOS - properly populated from OpenIAP!
+          renewalInfoIOS: sub.renewalInfoIOS
+            ? {
+                willAutoRenew: sub.renewalInfoIOS.willAutoRenew ?? false,
+                autoRenewPreference:
+                  sub.renewalInfoIOS.autoRenewPreference ?? null,
+                pendingUpgradeProductId:
+                  sub.renewalInfoIOS.pendingUpgradeProductId ?? null,
+                renewalDate: sub.renewalInfoIOS.renewalDate ?? null,
+                expirationReason: sub.renewalInfoIOS.expirationReason ?? null,
+                isInBillingRetry: sub.renewalInfoIOS.isInBillingRetry ?? null,
+                gracePeriodExpirationDate:
+                  sub.renewalInfoIOS.gracePeriodExpirationDate ?? null,
+                priceIncreaseStatus:
+                  sub.renewalInfoIOS.priceIncreaseStatus ?? null,
+                renewalOfferType: sub.renewalInfoIOS.offerType ?? null,
+                renewalOfferId: sub.renewalInfoIOS.offerIdentifier ?? null,
+              }
+            : null,
+          // Android specific fields
+          autoRenewingAndroid: sub.autoRenewingAndroid ?? null,
+          basePlanIdAndroid: sub.basePlanIdAndroid ?? null,
+          currentPlanId: sub.currentPlanId ?? null,
+          purchaseTokenAndroid: sub.purchaseTokenAndroid ?? null,
+        }),
+      );
+    }
+
+    // On Android, fallback to manual construction from getAvailablePurchases
+    // since Android uses Google Play Billing which doesn't have a native
+    // getActiveSubscriptions equivalent
+    const purchases = await getAvailablePurchases();
+
+    // Filter to only active subscriptions
+    const activeSubscriptions: ActiveSubscription[] = [];
+
+    for (const purchase of purchases) {
+      if (subscriptionIds && !subscriptionIds.includes(purchase.productId)) {
+        continue;
+      }
+
+      if (purchase.platform === 'android') {
+        // A purchase is an active subscription if it's in Purchased state
+        // Note: We don't check isAcknowledgedAndroid because:
+        // 1. The purchase might have just been acknowledged but not yet refreshed
+        // 2. autoRenewingAndroid can be false for test purchases or non-renewing subs
+        // 3. If it's in our purchase list and state is Purchased, it's valid
+        const isActive = purchase.purchaseState === 'purchased';
+
+        if (isActive) {
+          const androidPurchase = purchase as PurchaseAndroid;
+          activeSubscriptions.push({
+            productId: purchase.productId,
+            isActive: true,
+            autoRenewingAndroid: androidPurchase.autoRenewingAndroid ?? false,
+            transactionDate: purchase.transactionDate,
+            transactionId: purchase.id,
+            purchaseToken: purchase.purchaseToken,
+            // iOS specific fields (null on Android)
+            expirationDateIOS: null,
+            environmentIOS: null,
+            willExpireSoon: null,
+            daysUntilExpirationIOS: null,
+            renewalInfoIOS: null,
+            // Other Android specific fields
+            basePlanIdAndroid: null,
+            currentPlanId: null,
+            purchaseTokenAndroid: purchase.purchaseToken,
+          });
+        }
+      }
+    }
+
+    return activeSubscriptions;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('NotPrepared')) {
+      RnIapConsole.error('IAP connection not initialized:', error);
+      throw error;
+    }
+    RnIapConsole.error('Failed to get active subscriptions:', error);
+    const errorJson = parseErrorStringToJsonObj(error);
+    throw new Error(errorJson.message);
+  }
+};
+
+// OLD IMPLEMENTATION - REPLACED WITH NATIVE CALL
+/*
+export const getActiveSubscriptions_OLD: QueryField<
   'getActiveSubscriptions'
 > = async (subscriptionIds) => {
   try {
@@ -1610,6 +1729,12 @@ export const getActiveSubscriptions: QueryField<
               (purchase as PurchaseAndroid).isAutoRenewing) // deprecated - use isAutoRenewing instead
             : null;
 
+        // 🆕 Extract renewalInfoIOS if available
+        const renewalInfoIOS =
+          'renewalInfoIOS' in purchase
+            ? ((purchase as PurchaseIOS).renewalInfoIOS ?? null)
+            : null;
+
         return {
           productId: purchase.productId,
           isActive: true, // If it's in availablePurchases, it's active
@@ -1621,6 +1746,7 @@ export const getActiveSubscriptions: QueryField<
           expirationDateIOS,
           autoRenewingAndroid,
           environmentIOS,
+          renewalInfoIOS,
           // Convenience fields
           willExpireSoon: false, // Would need to calculate based on expiration date
           daysUntilExpirationIOS:
@@ -1641,7 +1767,10 @@ export const getActiveSubscriptions: QueryField<
 };
 
 /**
- * Check if there are any active subscriptions
+ * Check if the user has any active subscriptions (OpenIAP compliant)
+ * Returns true if the user has at least one active subscription, false otherwise.
+ * If subscriptionIds is provided, only checks for those specific subscriptions.
+ *
  * @param subscriptionIds - Optional array of subscription IDs to check
  * @returns Promise<boolean> - True if there are active subscriptions
  */
@@ -1652,7 +1781,8 @@ export const hasActiveSubscriptions: QueryField<
     const activeSubscriptions = await getActiveSubscriptions(subscriptionIds);
     return activeSubscriptions.length > 0;
   } catch (error) {
-    RnIapConsole.error('Failed to check active subscriptions:', error);
+    // If there's an error getting subscriptions, return false
+    RnIapConsole.warn('Error checking active subscriptions:', error);
     return false;
   }
 };

@@ -21,6 +21,11 @@ export interface ActiveSubscription {
   purchaseToken?: (string | null);
   /** Required for subscription upgrade/downgrade on Android */
   purchaseTokenAndroid?: (string | null);
+  /**
+   * Renewal information from StoreKit 2 (iOS only). Contains details about subscription renewal status,
+   * pending upgrades/downgrades, and auto-renewal preferences.
+   */
+  renewalInfoIOS?: (RenewalInfoIOS | null);
   transactionDate: number;
   transactionId: string;
   willExpireSoon?: (boolean | null);
@@ -487,6 +492,7 @@ export interface PurchaseIOS extends PurchaseCommon {
   quantityIOS?: (number | null);
   reasonIOS?: (string | null);
   reasonStringRepresentationIOS?: (string | null);
+  renewalInfoIOS?: (RenewalInfoIOS | null);
   revocationDateIOS?: (number | null);
   revocationReasonIOS?: (string | null);
   storefrontCountryCodeIOS?: (string | null);
@@ -633,9 +639,50 @@ export interface RefundResultIOS {
   status: string;
 }
 
+/**
+ * Subscription renewal information from Product.SubscriptionInfo.RenewalInfo
+ * https://developer.apple.com/documentation/storekit/product/subscriptioninfo/renewalinfo
+ */
 export interface RenewalInfoIOS {
   autoRenewPreference?: (string | null);
+  /**
+   * When subscription expires due to cancellation/billing issue
+   * Possible values: "VOLUNTARY", "BILLING_ERROR", "DID_NOT_AGREE_TO_PRICE_INCREASE", "PRODUCT_NOT_AVAILABLE", "UNKNOWN"
+   */
+  expirationReason?: (string | null);
+  /**
+   * Grace period expiration date (milliseconds since epoch)
+   * When set, subscription is in grace period (billing issue but still has access)
+   */
+  gracePeriodExpirationDate?: (number | null);
+  /**
+   * True if subscription failed to renew due to billing issue and is retrying
+   * Note: Not directly available in RenewalInfo, available in Status
+   */
+  isInBillingRetry?: (boolean | null);
   jsonRepresentation?: (string | null);
+  /**
+   * Product ID that will be used on next renewal (when user upgrades/downgrades)
+   * If set and different from current productId, subscription will change on expiration
+   */
+  pendingUpgradeProductId?: (string | null);
+  /**
+   * User's response to subscription price increase
+   * Possible values: "AGREED", "PENDING", null (no price increase)
+   */
+  priceIncreaseStatus?: (string | null);
+  /**
+   * Expected renewal date (milliseconds since epoch)
+   * For active subscriptions, when the next renewal/charge will occur
+   */
+  renewalDate?: (number | null);
+  /** Offer ID applied to next renewal (promotional offer, subscription offer code, etc.) */
+  renewalOfferId?: (string | null);
+  /**
+   * Type of offer applied to next renewal
+   * Possible values: "PROMOTIONAL", "SUBSCRIPTION_OFFER_CODE", "WIN_BACK", etc.
+   */
+  renewalOfferType?: (string | null);
   willAutoRenew: boolean;
 }
 
