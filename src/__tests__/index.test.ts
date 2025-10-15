@@ -4,7 +4,7 @@
 
 import {Platform} from 'react-native';
 import {ErrorCode} from '../types';
-import type {DiscountOfferInputIOS, Purchase} from '../types';
+import type {DiscountOfferInputIOS} from '../types';
 
 const PLATFORM_IOS = 'ios';
 
@@ -1022,82 +1022,62 @@ describe('Public API (src/index.ts)', () => {
         ]);
       });
 
-      it('Android: should filter active subscriptions from available purchases', async () => {
+      it('Android: should call native getActiveSubscriptions with Android fields', async () => {
         (Platform as any).OS = 'android';
 
-        const mockPurchases: Purchase[] = [
+        const mockActiveSubscriptions = [
           {
             productId: 'subscription1',
-            id: 'trans1',
+            isActive: true,
             transactionId: 'trans1',
             purchaseToken: 'token1',
             transactionDate: Date.now(),
-            platform: 'android',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
             autoRenewingAndroid: true,
-          } as any,
+            basePlanIdAndroid: 'monthly-base',
+            currentPlanId: 'monthly-base',
+            purchaseTokenAndroid: 'token1',
+          },
         ];
 
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if (options?.android?.type === 'inapp') {
-              return [];
-            }
-            return mockPurchases;
-          },
+        mockIap.getActiveSubscriptions.mockResolvedValueOnce(
+          mockActiveSubscriptions,
         );
 
         const result = await IAP.getActiveSubscriptions();
 
+        expect(mockIap.getActiveSubscriptions).toHaveBeenCalledWith(undefined);
         expect(result).toHaveLength(1);
         expect(result[0]).toEqual(
           expect.objectContaining({
             productId: 'subscription1',
             isActive: true,
             autoRenewingAndroid: true,
+            basePlanIdAndroid: 'monthly-base',
           }),
         );
       });
 
-      it('Android: should filter by subscription IDs', async () => {
-        (Platform as any).OS = 'android';
-
-        const mockPurchases: Purchase[] = [
+      it('should pass subscription IDs for filtering', async () => {
+        const mockActiveSubscriptions = [
           {
             productId: 'sub1',
-            id: 'trans1',
+            isActive: true,
             transactionId: 'trans1',
             purchaseToken: 'token1',
             transactionDate: Date.now(),
-            platform: 'android',
-            quantity: 1,
-            purchaseState: 'purchased',
-          } as any,
-          {
-            productId: 'sub2',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'android',
-            quantity: 1,
-            purchaseState: 'purchased',
-          } as any,
+          },
         ];
 
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if (options?.android?.type === 'inapp') {
-              return [];
-            }
-            return mockPurchases;
-          },
+        mockIap.getActiveSubscriptions.mockResolvedValueOnce(
+          mockActiveSubscriptions,
         );
 
-        const result = await IAP.getActiveSubscriptions(['sub1']);
+        const result = await IAP.getActiveSubscriptions(['sub1', 'sub2']);
 
+        expect(mockIap.getActiveSubscriptions).toHaveBeenCalledWith([
+          'sub1',
+          'sub2',
+        ]);
         expect(result).toHaveLength(1);
         expect(result[0]?.productId).toBe('sub1');
       });

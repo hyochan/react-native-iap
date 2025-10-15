@@ -35,7 +35,6 @@ import type {
   RequestSubscriptionIosProps,
   RequestSubscriptionPropsByPlatforms,
   ActiveSubscription,
-  PurchaseAndroid,
   ProductAndroid,
   ProductSubscriptionAndroid,
 } from './types';
@@ -1578,99 +1577,52 @@ export const getActiveSubscriptions: QueryField<
   'getActiveSubscriptions'
 > = async (subscriptionIds) => {
   try {
-    if (Platform.OS === 'ios') {
-      // On iOS, use native getActiveSubscriptions which includes renewalInfoIOS
-      const activeSubscriptions = await IAP.instance.getActiveSubscriptions(
-        subscriptionIds ?? undefined,
-      );
+    // Use native getActiveSubscriptions on both platforms
+    // iOS: includes renewalInfoIOS with subscription lifecycle info
+    // Android: uses OpenIAP which calls Google Play Billing's getActiveSubscriptions
+    const activeSubscriptions = await IAP.instance.getActiveSubscriptions(
+      subscriptionIds ?? undefined,
+    );
 
-      // Convert NitroActiveSubscription to ActiveSubscription
-      return activeSubscriptions.map(
-        (sub: NitroActiveSubscription): ActiveSubscription => ({
-          productId: sub.productId,
-          isActive: sub.isActive,
-          transactionId: sub.transactionId,
-          purchaseToken: sub.purchaseToken ?? null,
-          transactionDate: sub.transactionDate,
-          // iOS specific fields
-          expirationDateIOS: sub.expirationDateIOS ?? null,
-          environmentIOS: sub.environmentIOS ?? null,
-          willExpireSoon: sub.willExpireSoon ?? null,
-          daysUntilExpirationIOS: sub.daysUntilExpirationIOS ?? null,
-          // 🆕 renewalInfoIOS - properly populated from OpenIAP!
-          renewalInfoIOS: sub.renewalInfoIOS
-            ? {
-                willAutoRenew: sub.renewalInfoIOS.willAutoRenew ?? false,
-                autoRenewPreference:
-                  sub.renewalInfoIOS.autoRenewPreference ?? null,
-                pendingUpgradeProductId:
-                  sub.renewalInfoIOS.pendingUpgradeProductId ?? null,
-                renewalDate: sub.renewalInfoIOS.renewalDate ?? null,
-                expirationReason: sub.renewalInfoIOS.expirationReason ?? null,
-                isInBillingRetry: sub.renewalInfoIOS.isInBillingRetry ?? null,
-                gracePeriodExpirationDate:
-                  sub.renewalInfoIOS.gracePeriodExpirationDate ?? null,
-                priceIncreaseStatus:
-                  sub.renewalInfoIOS.priceIncreaseStatus ?? null,
-                renewalOfferType: sub.renewalInfoIOS.offerType ?? null,
-                renewalOfferId: sub.renewalInfoIOS.offerIdentifier ?? null,
-              }
-            : null,
-          // Android specific fields
-          autoRenewingAndroid: sub.autoRenewingAndroid ?? null,
-          basePlanIdAndroid: sub.basePlanIdAndroid ?? null,
-          currentPlanId: sub.currentPlanId ?? null,
-          purchaseTokenAndroid: sub.purchaseTokenAndroid ?? null,
-        }),
-      );
-    }
-
-    // On Android, fallback to manual construction from getAvailablePurchases
-    // since Android uses Google Play Billing which doesn't have a native
-    // getActiveSubscriptions equivalent
-    const purchases = await getAvailablePurchases();
-
-    // Filter to only active subscriptions
-    const activeSubscriptions: ActiveSubscription[] = [];
-
-    for (const purchase of purchases) {
-      if (subscriptionIds && !subscriptionIds.includes(purchase.productId)) {
-        continue;
-      }
-
-      if (purchase.platform === 'android') {
-        // A purchase is an active subscription if it's in Purchased state
-        // Note: We don't check isAcknowledgedAndroid because:
-        // 1. The purchase might have just been acknowledged but not yet refreshed
-        // 2. autoRenewingAndroid can be false for test purchases or non-renewing subs
-        // 3. If it's in our purchase list and state is Purchased, it's valid
-        const isActive = purchase.purchaseState === 'purchased';
-
-        if (isActive) {
-          const androidPurchase = purchase as PurchaseAndroid;
-          activeSubscriptions.push({
-            productId: purchase.productId,
-            isActive: true,
-            autoRenewingAndroid: androidPurchase.autoRenewingAndroid ?? false,
-            transactionDate: purchase.transactionDate,
-            transactionId: purchase.id,
-            purchaseToken: purchase.purchaseToken,
-            // iOS specific fields (null on Android)
-            expirationDateIOS: null,
-            environmentIOS: null,
-            willExpireSoon: null,
-            daysUntilExpirationIOS: null,
-            renewalInfoIOS: null,
-            // Other Android specific fields
-            basePlanIdAndroid: null,
-            currentPlanId: null,
-            purchaseTokenAndroid: purchase.purchaseToken,
-          });
-        }
-      }
-    }
-
-    return activeSubscriptions;
+    // Convert NitroActiveSubscription to ActiveSubscription
+    return activeSubscriptions.map(
+      (sub: NitroActiveSubscription): ActiveSubscription => ({
+        productId: sub.productId,
+        isActive: sub.isActive,
+        transactionId: sub.transactionId,
+        purchaseToken: sub.purchaseToken ?? null,
+        transactionDate: sub.transactionDate,
+        // iOS specific fields
+        expirationDateIOS: sub.expirationDateIOS ?? null,
+        environmentIOS: sub.environmentIOS ?? null,
+        willExpireSoon: sub.willExpireSoon ?? null,
+        daysUntilExpirationIOS: sub.daysUntilExpirationIOS ?? null,
+        // 🆕 renewalInfoIOS - subscription lifecycle information (iOS only)
+        renewalInfoIOS: sub.renewalInfoIOS
+          ? {
+              willAutoRenew: sub.renewalInfoIOS.willAutoRenew ?? false,
+              autoRenewPreference:
+                sub.renewalInfoIOS.autoRenewPreference ?? null,
+              pendingUpgradeProductId:
+                sub.renewalInfoIOS.pendingUpgradeProductId ?? null,
+              renewalDate: sub.renewalInfoIOS.renewalDate ?? null,
+              expirationReason: sub.renewalInfoIOS.expirationReason ?? null,
+              isInBillingRetry: sub.renewalInfoIOS.isInBillingRetry ?? null,
+              gracePeriodExpirationDate:
+                sub.renewalInfoIOS.gracePeriodExpirationDate ?? null,
+              priceIncreaseStatus:
+                sub.renewalInfoIOS.priceIncreaseStatus ?? null,
+              renewalOfferType: sub.renewalInfoIOS.offerType ?? null,
+              renewalOfferId: sub.renewalInfoIOS.offerIdentifier ?? null,
+            }
+          : null,
+        // Android specific fields
+        autoRenewingAndroid: sub.autoRenewingAndroid ?? null,
+        basePlanIdAndroid: sub.basePlanIdAndroid ?? null,
+        currentPlanId: sub.currentPlanId ?? null,
+        purchaseTokenAndroid: sub.purchaseTokenAndroid ?? null,
+      }),
+    );
   } catch (error) {
     if (error instanceof Error && error.message.includes('NotPrepared')) {
       RnIapConsole.error('IAP connection not initialized:', error);
