@@ -4,7 +4,7 @@
 
 import {Platform} from 'react-native';
 import {ErrorCode} from '../types';
-import type {DiscountOfferInputIOS, Purchase} from '../types';
+import type {DiscountOfferInputIOS} from '../types';
 
 const PLATFORM_IOS = 'ios';
 
@@ -91,6 +91,8 @@ describe('Public API (src/index.ts)', () => {
     mockIap.getReceiptIOS = undefined;
     mockIap.requestReceiptRefreshIOS = undefined;
     mockIap.getStorefront = jest.fn(async () => 'USA');
+    // Ensure getAvailablePurchases always returns an empty array by default
+    mockIap.getAvailablePurchases = jest.fn(async () => []);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     IAP = require('../index');
   });
@@ -951,6 +953,10 @@ describe('Public API (src/index.ts)', () => {
     beforeEach(() => {
       jest.clearAllMocks();
       jest.spyOn(console, 'error').mockImplementation(() => {});
+      // Mock getActiveSubscriptions for iOS - returns empty array by default
+      mockIap.getActiveSubscriptions = jest.fn(async () => []);
+      // Ensure getAvailablePurchases returns empty array by default
+      mockIap.getAvailablePurchases = jest.fn(async () => []);
     });
 
     afterEach(() => {
@@ -958,696 +964,150 @@ describe('Public API (src/index.ts)', () => {
     });
 
     describe('getActiveSubscriptions', () => {
-      it('should return active subscriptions from available purchases', async () => {
-        // Set Platform to iOS (getAvailablePurchases behaves differently per platform)
+      it('iOS: should call native getActiveSubscriptions and map results', async () => {
         (Platform as any).OS = 'ios';
 
-        const mockPurchases: Purchase[] = [
+        const mockActiveSubscriptions = [
           {
             productId: 'subscription1',
-            id: 'trans1',
+            isActive: true,
             transactionId: 'trans1',
             purchaseToken: 'token1',
             transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // 1 day from now
+            expirationDateIOS: Date.now() + 86400000,
             environmentIOS: 'Production',
-          } as any,
-          {
-            productId: 'subscription2',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'ios', // Changed to iOS (purchases can only be from one platform)
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            subscriptionGroupIdIOS: 'group1', // Add iOS subscription field
-          } as any,
+            renewalInfoIOS: {
+              willAutoRenew: true,
+              autoRenewPreference: 'subscription1',
+              expirationIntent: null,
+              gracePeriodExpiresAt: null,
+              offerType: null,
+              originalTransactionId: 'trans1',
+              priceIncreaseStatus: null,
+              renewalDate: Date.now() + 86400000,
+              signedDate: Date.now(),
+            },
+          },
         ];
 
-        // Mock returns data as NitroPurchase format (raw from native)
-        // For iOS, getAvailablePurchases is called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if (options?.ios) {
-              return mockPurchases;
-            }
-            return [];
-          },
+        mockIap.getActiveSubscriptions.mockResolvedValueOnce(
+          mockActiveSubscriptions,
         );
 
         const result = await IAP.getActiveSubscriptions();
 
-        expect(result).toHaveLength(2);
+        expect(mockIap.getActiveSubscriptions).toHaveBeenCalledWith(undefined);
+        expect(result).toHaveLength(1);
         expect(result[0]).toEqual(
           expect.objectContaining({
             productId: 'subscription1',
             isActive: true,
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: expect.any(Number),
-          }),
-        );
-        expect(result[1]).toEqual(
-          expect.objectContaining({
-            productId: 'subscription2',
-            isActive: true,
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: expect.any(Number),
+            renewalInfoIOS: expect.objectContaining({
+              willAutoRenew: true,
+            }),
           }),
         );
       });
 
-      it('should calculate days until expiration correctly for iOS subscriptions', async () => {
+      it('iOS: should pass subscription IDs to native method', async () => {
         (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 3 * 86400000, // 3 days from now
-            environmentIOS: 'Production',
-          } as any,
-          {
-            productId: 'subscription2',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 10 * 86400000, // 10 days from now
-          } as any,
-        ];
 
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
+        mockIap.getActiveSubscriptions.mockResolvedValueOnce([]);
 
-        const result = await IAP.getActiveSubscriptions();
+        await IAP.getActiveSubscriptions(['sub1', 'sub2']);
 
-        // Note: Platform-specific fields may not be properly set in mocked tests
-        expect(result).toHaveLength(2);
-        expect(result[0]?.isActive).toBe(true);
-        expect(result[1]?.isActive).toBe(true);
-      });
-
-      it('should handle expired iOS subscriptions', async () => {
-        (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now() - 86400000,
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() - 3600000, // 1 hour ago
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        const result = await IAP.getActiveSubscriptions();
-
-        expect(result).toHaveLength(1);
-        // Note: isActive is always true if purchase is in available purchases
-        expect(result[0]?.isActive).toBe(true);
-      });
-
-      it('should handle Android subscriptions with various states', async () => {
-        (Platform as any).OS = 'android';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'android',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            autoRenewingAndroid: true,
-          } as any,
-          {
-            productId: 'subscription2',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'android',
-            isAutoRenewing: false,
-            quantity: 1,
-            purchaseState: 'purchased',
-            autoRenewingAndroid: false,
-          } as any,
-          {
-            productId: 'subscription3',
-            id: 'trans3',
-            transactionId: 'trans3',
-            purchaseToken: 'token3',
-            transactionDate: Date.now(),
-            platform: 'android',
-            isAutoRenewing: false, // Has the field but is false
-            quantity: 1,
-            purchaseState: 'purchased',
-          } as any,
-        ];
-
-        // For Android, getAvailablePurchases is called twice (inapp and subs)
-        // Return empty for inapp, and mockPurchases for subs
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if (options?.android?.type === 'inapp') {
-              return [];
-            }
-            return mockPurchases;
-          },
-        );
-
-        const result = await IAP.getActiveSubscriptions();
-
-        expect(result).toHaveLength(3);
-        expect(result[0]?.isActive).toBe(true);
-        expect(result[1]?.isActive).toBe(true);
-        expect(result[2]?.isActive).toBe(true);
-      });
-
-      it('should handle mixed platform subscriptions', async () => {
-        (Platform as any).OS = 'ios';
-        // iOS platform can only have iOS purchases
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'ios_sub',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            expirationDateIOS: Date.now() + 86400000,
-            environmentIOS: 'Sandbox',
-          } as any,
-          {
-            productId: 'ios_sub2',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            subscriptionGroupIdIOS: 'group1',
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        const result = await IAP.getActiveSubscriptions();
-
-        expect(result).toHaveLength(2);
-        expect(
-          result.find((s: any) => s.productId === 'ios_sub'),
-        ).toBeDefined();
-        expect(
-          result.find((s: any) => s.productId === 'ios_sub2'),
-        ).toBeDefined();
-      });
-
-      it('should filter subscriptions by provided IDs', async () => {
-        (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-          {
-            productId: 'subscription2',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            subscriptionGroupIdIOS: 'group1', // Add subscription field
-          } as any,
-          {
-            productId: 'subscription3',
-            id: 'trans3',
-            transactionId: 'trans3',
-            purchaseToken: 'token3',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        const result = await IAP.getActiveSubscriptions([
-          'subscription1',
-          'subscription3',
+        expect(mockIap.getActiveSubscriptions).toHaveBeenCalledWith([
+          'sub1',
+          'sub2',
         ]);
-
-        expect(result).toHaveLength(2);
-        expect(result[0]?.productId).toBe('subscription1');
-        expect(result[1]?.productId).toBe('subscription3');
       });
 
-      it('should calculate days until expiration for iOS subscriptions', async () => {
-        (Platform as any).OS = 'ios';
-        const futureDate = Date.now() + 5 * 86400000; // 5 days from now
-        const mockPurchases: Purchase[] = [
+      it('Android: should call native getActiveSubscriptions with Android fields', async () => {
+        (Platform as any).OS = 'android';
+
+        const mockActiveSubscriptions = [
           {
             productId: 'subscription1',
-            id: 'trans1',
+            isActive: true,
             transactionId: 'trans1',
             purchaseToken: 'token1',
             transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            expirationDateIOS: futureDate,
-          } as any,
+            autoRenewingAndroid: true,
+            basePlanIdAndroid: 'monthly-base',
+            currentPlanId: 'monthly-base',
+            purchaseTokenAndroid: 'token1',
+          },
         ];
 
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
+        mockIap.getActiveSubscriptions.mockResolvedValueOnce(
+          mockActiveSubscriptions,
         );
 
         const result = await IAP.getActiveSubscriptions();
 
-        expect(result[0]?.isActive).toBe(true);
-      });
-
-      it('should handle errors and rethrow them', async () => {
-        const error = new Error('Failed to fetch purchases');
-        mockIap.getAvailablePurchases.mockImplementation(async () => {
-          throw error;
-        });
-
-        await expect(IAP.getActiveSubscriptions()).rejects.toThrow(
-          'Failed to fetch purchases',
-        );
-        // RnIapConsole.error adds "[RN-IAP]" prefix
-        expect(console.error).toHaveBeenCalledWith(
-          '[RN-IAP]',
-          'Failed to get active subscriptions:',
-          error,
+        expect(mockIap.getActiveSubscriptions).toHaveBeenCalledWith(undefined);
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual(
+          expect.objectContaining({
+            productId: 'subscription1',
+            isActive: true,
+            autoRenewingAndroid: true,
+            basePlanIdAndroid: 'monthly-base',
+          }),
         );
       });
 
-      it('should return empty array when no purchases available', async () => {
-        mockIap.getAvailablePurchases.mockImplementation(async () => []);
+      it('should pass subscription IDs for filtering', async () => {
+        const mockActiveSubscriptions = [
+          {
+            productId: 'sub1',
+            isActive: true,
+            transactionId: 'trans1',
+            purchaseToken: 'token1',
+            transactionDate: Date.now(),
+          },
+        ];
+
+        mockIap.getActiveSubscriptions.mockResolvedValueOnce(
+          mockActiveSubscriptions,
+        );
+
+        const result = await IAP.getActiveSubscriptions(['sub1', 'sub2']);
+
+        expect(mockIap.getActiveSubscriptions).toHaveBeenCalledWith([
+          'sub1',
+          'sub2',
+        ]);
+        expect(result).toHaveLength(1);
+        expect(result[0]?.productId).toBe('sub1');
+      });
+
+      it('should return empty array when no subscriptions available', async () => {
+        (Platform as any).OS = 'ios';
+        mockIap.getActiveSubscriptions.mockResolvedValueOnce([]);
 
         const result = await IAP.getActiveSubscriptions();
 
         expect(result).toEqual([]);
       });
 
-      it('should handle duplicate subscription IDs in purchases', async () => {
+      it('should handle errors and rethrow them', async () => {
         (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now() - 86400000,
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-          {
-            productId: 'subscription1', // Duplicate ID
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(), // Newer transaction
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            subscriptionGroupIdIOS: 'group1', // Add subscription field
-          } as any,
-        ];
+        const error = new Error('Failed to fetch');
+        mockIap.getActiveSubscriptions.mockRejectedValueOnce(error);
 
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
+        await expect(IAP.getActiveSubscriptions()).rejects.toThrow(
+          'Failed to fetch',
         );
-
-        const result = await IAP.getActiveSubscriptions();
-
-        // Should return both even if they have the same productId
-        expect(result).toHaveLength(2);
-        expect(result.every((s: any) => s.productId === 'subscription1')).toBe(
-          true,
-        );
-      });
-
-      it('should handle null or undefined expiration dates', async () => {
-        (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: null,
-            subscriptionGroupIdIOS: 'group1', // Has subscription group, so it's a subscription
-          } as any,
-          {
-            productId: 'subscription2',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: undefined,
-            subscriptionGroupIdIOS: 'group2', // Has subscription group, so it's a subscription
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        const result = await IAP.getActiveSubscriptions();
-
-        expect(result).toHaveLength(2);
-        expect(result[0]?.isActive).toBe(true);
-        expect(result[1]?.isActive).toBe(true);
-      });
-
-      it('should handle purchases with missing platform field', async () => {
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            quantity: 1,
-            purchaseState: 'purchased',
-            // platform field missing
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        const result = await IAP.getActiveSubscriptions();
-
-        // Platform field missing means it might not be recognized as a subscription
-        expect(result).toHaveLength(0);
-      });
-
-      it('should handle very large subscription lists efficiently', async () => {
-        (Platform as any).OS = 'ios';
-        const largeNumberOfPurchases = Array.from(
-          {length: 1000},
-          (_, i) =>
-            ({
-              productId: `subscription${i}`,
-              id: `trans${i}`,
-              transactionId: `trans${i}`,
-              purchaseToken: `token${i}`,
-              transactionDate: Date.now(),
-              platform: i % 2 === 0 ? 'ios' : 'android',
-              quantity: 1,
-              purchaseState: 'purchased',
-              expirationDateIOS:
-                i % 2 === 0 ? Date.now() + i * 86400000 : undefined,
-              autoRenewingAndroid: i % 2 === 1 ? true : undefined,
-            }) as any,
-        );
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if (options?.ios) {
-              return largeNumberOfPurchases;
-            }
-            return [];
-          },
-        );
-
-        const startTime = Date.now();
-        const result = await IAP.getActiveSubscriptions();
-        const endTime = Date.now();
-
-        expect(result).toHaveLength(1000);
-        expect(endTime - startTime).toBeLessThan(1000); // Should complete within 1 second
-      });
-
-      it('should handle case-sensitive subscription ID filtering', async () => {
-        (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'Subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-          {
-            productId: 'subscription1',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            subscriptionGroupIdIOS: 'group1', // Add subscription field
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        const result = await IAP.getActiveSubscriptions(['subscription1']);
-
-        // Should only match exact case
-        expect(result).toHaveLength(1);
-        expect(result[0]?.productId).toBe('subscription1');
       });
     });
 
     describe('hasActiveSubscriptions', () => {
       it('should return true when there are active subscriptions', async () => {
         (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
+        mockIap.getActiveSubscriptions.mockResolvedValueOnce([
+          {productId: 'sub1', isActive: true},
+        ]);
 
         const result = await IAP.hasActiveSubscriptions();
 
@@ -1655,415 +1115,22 @@ describe('Public API (src/index.ts)', () => {
       });
 
       it('should return false when there are no active subscriptions', async () => {
-        mockIap.getAvailablePurchases.mockImplementation(async () => []);
+        (Platform as any).OS = 'ios';
+        mockIap.getActiveSubscriptions.mockResolvedValueOnce([]);
 
         const result = await IAP.hasActiveSubscriptions();
 
         expect(result).toBe(false);
       });
 
-      it('should filter by subscription IDs when checking', async () => {
+      it('should return false on error', async () => {
         (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-          {
-            productId: 'subscription2',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            subscriptionGroupIdIOS: 'group1', // Add subscription field
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        const result1 = await IAP.hasActiveSubscriptions(['subscription1']);
-        expect(result1).toBe(true);
-
-        const result2 = await IAP.hasActiveSubscriptions(['subscription3']);
-        expect(result2).toBe(false);
-      });
-
-      it('should return false and log error when getActiveSubscriptions fails', async () => {
         const error = new Error('Failed to fetch');
-        mockIap.getAvailablePurchases.mockImplementation(async () => {
-          throw error;
-        });
+        mockIap.getActiveSubscriptions.mockRejectedValueOnce(error);
 
         const result = await IAP.hasActiveSubscriptions();
 
         expect(result).toBe(false);
-        // RnIapConsole.error adds "[RN-IAP]" prefix
-        expect(console.error).toHaveBeenCalledWith(
-          '[RN-IAP]',
-          'Failed to check active subscriptions:',
-          error,
-        );
-      });
-
-      it('should handle empty subscription ID array', async () => {
-        (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        // Empty array means no filter, so returns all subscriptions
-        const result = await IAP.hasActiveSubscriptions([]);
-
-        expect(result).toBe(true);
-      });
-
-      it('should return true for expired iOS subscription if purchase exists', async () => {
-        (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() - 86400000, // Expired 1 day ago
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        // Should return true even if expired (presence check)
-        const result = await IAP.hasActiveSubscriptions();
-
-        expect(result).toBe(true);
-      });
-
-      it('should handle mixed array of valid and invalid subscription IDs', async () => {
-        (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'valid_sub',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        const result = await IAP.hasActiveSubscriptions([
-          'valid_sub',
-          'invalid_sub',
-          'another_invalid',
-        ]);
-
-        expect(result).toBe(true); // At least one match found
-      });
-
-      it('should handle concurrent calls correctly', async () => {
-        (Platform as any).OS = 'ios';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        // Make concurrent calls
-        const results = await Promise.all([
-          IAP.hasActiveSubscriptions(),
-          IAP.hasActiveSubscriptions(['subscription1']),
-          IAP.hasActiveSubscriptions(['subscription2']),
-        ]);
-
-        expect(results[0]).toBe(true);
-        expect(results[1]).toBe(true);
-        expect(results[2]).toBe(false);
-      });
-
-      it('should handle special characters in subscription IDs', async () => {
-        (Platform as any).OS = 'android';
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'sub.premium.monthly',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'android',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            autoRenewingAndroid: true, // Add subscription field
-          } as any,
-          {
-            productId: 'sub-basic-yearly',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'android',
-            isAutoRenewing: true, // Add subscription field
-            quantity: 1,
-            purchaseState: 'purchased',
-          } as any,
-          {
-            productId: 'sub_pro_lifetime',
-            id: 'trans3',
-            transactionId: 'trans3',
-            purchaseToken: 'token3',
-            transactionDate: Date.now(),
-            platform: 'android',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            autoRenewingAndroid: true, // Add subscription field
-          } as any,
-        ];
-
-        // For Android, getAvailablePurchases is called twice (inapp and subs)
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if (options?.android?.type === 'inapp') {
-              return [];
-            }
-            return mockPurchases;
-          },
-        );
-
-        const result1 = await IAP.hasActiveSubscriptions([
-          'sub.premium.monthly',
-        ]);
-        const result2 = await IAP.hasActiveSubscriptions(['sub-basic-yearly']);
-        const result3 = await IAP.hasActiveSubscriptions(['sub_pro_lifetime']);
-
-        expect(result1).toBe(true);
-        expect(result2).toBe(true);
-        expect(result3).toBe(true);
-      });
-
-      it('should handle undefined subscription ID parameter', async () => {
-        // Ensure Platform.OS is set to 'ios' for this test
-        (Platform as any).OS = 'ios';
-
-        const mockPurchases: Purchase[] = [
-          {
-            productId: 'subscription1',
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Add subscription field
-          } as any,
-        ];
-
-        // Mock getAvailablePurchases to return purchases in NitroPurchase format
-        // getAvailablePurchases in the implementation expects raw NitroPurchase objects from native
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        // Undefined should check all subscriptions
-        const result = await IAP.hasActiveSubscriptions(undefined);
-
-        expect(result).toBe(true);
-      });
-
-      it('should handle purchases with null productId', async () => {
-        // Ensure Platform.OS is set to 'ios' for this test
-        (Platform as any).OS = 'ios';
-
-        const mockPurchases: Purchase[] = [
-          {
-            productId: null,
-            id: 'trans1',
-            transactionId: 'trans1',
-            purchaseToken: 'token1',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            expirationDateIOS: Date.now() + 86400000, // Has subscription field
-          } as any,
-          {
-            productId: 'valid_sub',
-            id: 'trans2',
-            transactionId: 'trans2',
-            purchaseToken: 'token2',
-            transactionDate: Date.now(),
-            platform: 'ios',
-            isAutoRenewing: true,
-            quantity: 1,
-            purchaseState: 'purchased',
-            subscriptionGroupIdIOS: 'group1', // Add subscription field
-          } as any,
-        ];
-
-        // For iOS, check if called with ios options
-        mockIap.getAvailablePurchases.mockImplementation(
-          async (options: any) => {
-            if ((Platform as any).OS === 'ios' && options?.ios) {
-              return mockPurchases;
-            }
-            if ((Platform as any).OS === 'android' && options?.android) {
-              // For Android, return based on type
-              if (options.android.type === 'inapp') {
-                return [];
-              }
-              return mockPurchases;
-            }
-            // Fallback for tests without platform check
-            return mockPurchases;
-          },
-        );
-
-        const result = await IAP.hasActiveSubscriptions();
-
-        expect(result).toBe(true); // Should still find valid subscription
       });
     });
   });
