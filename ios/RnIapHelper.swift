@@ -133,6 +133,11 @@ enum RnIapHelper {
         if let transactionReason = dictionary["transactionReasonIOS"] as? String { purchase.transactionReasonIOS = transactionReason }
         if let webOrderLineItemId = dictionary["webOrderLineItemIdIOS"] as? String { purchase.webOrderLineItemIdIOS = webOrderLineItemId }
 
+        // 🆕 renewalInfoIOS - critical for detecting subscription upgrades/downgrades/cancellations
+        if let renewalInfoDict = dictionary["renewalInfoIOS"] as? [String: Any] {
+            purchase.renewalInfoIOS = convertRenewalInfoFromOpenIAP(renewalInfoDict)
+        }
+
         // Android specific fields
         if let purchaseTokenAndroid = dictionary["purchaseTokenAndroid"] as? String { purchase.purchaseTokenAndroid = purchaseTokenAndroid }
         if let dataAndroid = dictionary["dataAndroid"] as? String { purchase.dataAndroid = dataAndroid }

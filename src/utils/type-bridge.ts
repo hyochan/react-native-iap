@@ -397,6 +397,40 @@ export function convertNitroPurchaseToPurchase(
     iosPurchase.webOrderLineItemIdIOS = toNullableString(
       nitroPurchase.webOrderLineItemIdIOS,
     );
+    // Convert renewalInfoIOS from Nitro type to JS type
+    if (nitroPurchase.renewalInfoIOS) {
+      iosPurchase.renewalInfoIOS = {
+        autoRenewPreference: toNullableString(
+          nitroPurchase.renewalInfoIOS.autoRenewPreference,
+        ),
+        expirationReason: toNullableString(
+          nitroPurchase.renewalInfoIOS.expirationReason,
+        ),
+        gracePeriodExpirationDate: toNullableNumber(
+          nitroPurchase.renewalInfoIOS.gracePeriodExpirationDate,
+        ),
+        isInBillingRetry: toNullableBoolean(
+          nitroPurchase.renewalInfoIOS.isInBillingRetry,
+        ),
+        jsonRepresentation: null, // Not available in Nitro bridge
+        pendingUpgradeProductId: toNullableString(
+          nitroPurchase.renewalInfoIOS.pendingUpgradeProductId,
+        ),
+        priceIncreaseStatus: toNullableString(
+          nitroPurchase.renewalInfoIOS.priceIncreaseStatus,
+        ),
+        renewalDate: toNullableNumber(nitroPurchase.renewalInfoIOS.renewalDate),
+        renewalOfferId: toNullableString(
+          nitroPurchase.renewalInfoIOS.offerIdentifier,
+        ),
+        renewalOfferType: toNullableString(
+          nitroPurchase.renewalInfoIOS.offerType,
+        ),
+        willAutoRenew: nitroPurchase.renewalInfoIOS.willAutoRenew ?? false,
+      };
+    } else {
+      iosPurchase.renewalInfoIOS = null;
+    }
     return iosPurchase as Purchase;
   }
 

@@ -224,6 +224,7 @@ export interface NitroPurchase {
   subscriptionGroupIdIOS?: string | null;
   transactionReasonIOS?: string | null;
   webOrderLineItemIdIOS?: string | null;
+  renewalInfoIOS?: NitroRenewalInfoIOS | null;
   // Android specific fields
   purchaseTokenAndroid?: string | null;
   dataAndroid?: string | null;
