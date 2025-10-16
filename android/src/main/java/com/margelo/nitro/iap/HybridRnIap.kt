@@ -862,6 +862,7 @@ class HybridRnIap : HybridRnIapSpec() {
             subscriptionGroupIdIOS = null,
             transactionReasonIOS = null,
             webOrderLineItemIdIOS = null,
+            renewalInfoIOS = null,
             purchaseTokenAndroid = androidPurchase?.purchaseToken,
             dataAndroid = androidPurchase?.dataAndroid,
             signatureAndroid = androidPurchase?.signatureAndroid,
