@@ -894,6 +894,42 @@ function SubscriptionFlow({
                               </Text>
                             </View>
                           )}
+
+                        {/* 🆕 NEW: Renewal offer type */}
+                        {sub.renewalInfoIOS.renewalOfferType && (
+                          <View style={styles.statusRow}>
+                            <Text style={styles.statusLabel}>
+                              🆕 Offer Type:
+                            </Text>
+                            <Text style={styles.statusValue}>
+                              {sub.renewalInfoIOS.renewalOfferType}
+                            </Text>
+                          </View>
+                        )}
+
+                        {/* 🆕 NEW: Renewal offer ID */}
+                        {sub.renewalInfoIOS.renewalOfferId && (
+                          <View style={styles.statusRow}>
+                            <Text style={styles.statusLabel}>🆕 Offer ID:</Text>
+                            <Text style={styles.statusValue}>
+                              {sub.renewalInfoIOS.renewalOfferId}
+                            </Text>
+                          </View>
+                        )}
+
+                        {/* 🆕 NEW: JSON Representation availability */}
+                        {sub.renewalInfoIOS.jsonRepresentation && (
+                          <View style={styles.statusRow}>
+                            <Text style={styles.statusLabel}>
+                              🆕 JSON Available:
+                            </Text>
+                            <Text
+                              style={[styles.statusValue, styles.activeStatus]}
+                            >
+                              ✅ Yes
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     )}
                   </View>
@@ -1488,6 +1524,21 @@ function SubscriptionFlowContainer() {
             console.log(
               '    priceIncreaseStatus:',
               sub.renewalInfoIOS.priceIncreaseStatus,
+            );
+            // 🆕 NEW FIELDS - Check if they're coming through correctly
+            console.log(
+              '    🆕 renewalOfferType:',
+              sub.renewalInfoIOS.renewalOfferType,
+            );
+            console.log(
+              '    🆕 renewalOfferId:',
+              sub.renewalInfoIOS.renewalOfferId,
+            );
+            console.log(
+              '    🆕 jsonRepresentation:',
+              sub.renewalInfoIOS.jsonRepresentation
+                ? `<${sub.renewalInfoIOS.jsonRepresentation.substring(0, 50)}...>`
+                : 'null/undefined',
             );
             console.log(
               '    Full renewalInfoIOS:',

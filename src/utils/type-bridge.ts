@@ -412,7 +412,9 @@ export function convertNitroPurchaseToPurchase(
         isInBillingRetry: toNullableBoolean(
           nitroPurchase.renewalInfoIOS.isInBillingRetry,
         ),
-        jsonRepresentation: null, // Not available in Nitro bridge
+        jsonRepresentation: toNullableString(
+          nitroPurchase.renewalInfoIOS.jsonRepresentation,
+        ),
         pendingUpgradeProductId: toNullableString(
           nitroPurchase.renewalInfoIOS.pendingUpgradeProductId,
         ),
@@ -421,10 +423,10 @@ export function convertNitroPurchaseToPurchase(
         ),
         renewalDate: toNullableNumber(nitroPurchase.renewalInfoIOS.renewalDate),
         renewalOfferId: toNullableString(
-          nitroPurchase.renewalInfoIOS.offerIdentifier,
+          nitroPurchase.renewalInfoIOS.renewalOfferId,
         ),
         renewalOfferType: toNullableString(
-          nitroPurchase.renewalInfoIOS.offerType,
+          nitroPurchase.renewalInfoIOS.renewalOfferType,
         ),
         willAutoRenew: nitroPurchase.renewalInfoIOS.willAutoRenew ?? false,
       };

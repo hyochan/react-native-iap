@@ -262,9 +262,10 @@ export interface NitroActiveSubscription {
 
 /**
  * Renewal information from StoreKit 2 (iOS only)
+ * Must match RenewalInfoIOS from types.ts
  */
 export interface NitroRenewalInfoIOS {
-  willAutoRenew?: boolean | null;
+  willAutoRenew: boolean;
   autoRenewPreference?: string | null;
   pendingUpgradeProductId?: string | null;
   renewalDate?: number | null;
@@ -272,8 +273,9 @@ export interface NitroRenewalInfoIOS {
   isInBillingRetry?: boolean | null;
   gracePeriodExpirationDate?: number | null;
   priceIncreaseStatus?: string | null;
-  offerType?: string | null;
-  offerIdentifier?: string | null;
+  renewalOfferType?: string | null;
+  renewalOfferId?: string | null;
+  jsonRepresentation?: string | null;
 }
 
 export interface NitroProduct {

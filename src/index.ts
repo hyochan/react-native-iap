@@ -1612,8 +1612,8 @@ export const getActiveSubscriptions: QueryField<
                 sub.renewalInfoIOS.gracePeriodExpirationDate ?? null,
               priceIncreaseStatus:
                 sub.renewalInfoIOS.priceIncreaseStatus ?? null,
-              renewalOfferType: sub.renewalInfoIOS.offerType ?? null,
-              renewalOfferId: sub.renewalInfoIOS.offerIdentifier ?? null,
+              renewalOfferType: sub.renewalInfoIOS.renewalOfferType ?? null,
+              renewalOfferId: sub.renewalInfoIOS.renewalOfferId ?? null,
             }
           : null,
         // Android specific fields

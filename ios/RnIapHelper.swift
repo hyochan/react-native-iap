@@ -183,7 +183,8 @@ enum RnIapHelper {
         var renewalInfo = NitroRenewalInfoIOS()
 
         // Extract all fields from OpenIAP's RenewalInfo
-        if let willAutoRenew = boolValue(dictionary["willAutoRenew"]) { renewalInfo.willAutoRenew = willAutoRenew }
+        // Note: willAutoRenew is required in NitroRenewalInfoIOS
+        renewalInfo.willAutoRenew = boolValue(dictionary["willAutoRenew"]) ?? false
         if let autoRenewPreference = dictionary["autoRenewPreference"] as? String { renewalInfo.autoRenewPreference = autoRenewPreference }
         if let pendingUpgradeProductId = dictionary["pendingUpgradeProductId"] as? String { renewalInfo.pendingUpgradeProductId = pendingUpgradeProductId }
         if let renewalDate = doubleValue(dictionary["renewalDate"]) { renewalInfo.renewalDate = renewalDate }
@@ -191,8 +192,10 @@ enum RnIapHelper {
         if let isInBillingRetry = boolValue(dictionary["isInBillingRetry"]) { renewalInfo.isInBillingRetry = isInBillingRetry }
         if let gracePeriodExpirationDate = doubleValue(dictionary["gracePeriodExpirationDate"]) { renewalInfo.gracePeriodExpirationDate = gracePeriodExpirationDate }
         if let priceIncreaseStatus = dictionary["priceIncreaseStatus"] as? String { renewalInfo.priceIncreaseStatus = priceIncreaseStatus }
-        if let offerType = dictionary["offerType"] as? String { renewalInfo.offerType = offerType }
-        if let offerIdentifier = dictionary["offerIdentifier"] as? String { renewalInfo.offerIdentifier = offerIdentifier }
+        // Map OpenIAP's field names to Nitro's expected names
+        if let offerType = dictionary["offerType"] as? String { renewalInfo.renewalOfferType = offerType }
+        if let offerIdentifier = dictionary["offerIdentifier"] as? String { renewalInfo.renewalOfferId = offerIdentifier }
+        if let jsonRepresentation = dictionary["jsonRepresentation"] as? String { renewalInfo.jsonRepresentation = jsonRepresentation }
 
         return renewalInfo
     }
