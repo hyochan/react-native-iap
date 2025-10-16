@@ -150,9 +150,9 @@ iOS supports promotional offers through the `withOffer` parameter. These are con
 interface DiscountOfferInputIOS {
   offerIdentifier: string;    // From App Store Connect
   keyIdentifier: string;      // From App Store Connect
-  nonce: string;              // UUID string
-  signature: string;          // From App Store Connect
-  timestamp: number;          // Unix timestamp
+  nonce: string;              // UUID v4 (lowercase)
+  signature: string;          // Base64-encoded signature from your server
+  timestamp: number;          // Unix timestamp in milliseconds
 }
 
 const purchaseWithPromotionalOffer = async (
@@ -171,6 +171,91 @@ const purchaseWithPromotionalOffer = async (
   });
 };
 ```
+
+##### Server-Side Signature Generation
+
+Promotional offer signatures must be generated on your server and **must be base64-encoded**. Here's a complete example:
+
+```javascript
+// Node.js server example
+const crypto = require('crypto');
+const {v4: uuidv4} = require('uuid');
+
+function generatePromotionalOfferSignature(
+  bundleId, // Your app's bundle identifier (e.g., "com.example.app")
+  productId, // Product identifier (e.g., "premium_monthly")
+  offerId, // Offer identifier from App Store Connect
+  applicationUsername, // User identifier (appAccountToken)
+  privateKey, // PKCS#8 PEM-formatted private key from App Store Connect
+  keyId, // Key ID from App Store Connect
+) {
+  // Generate nonce and timestamp
+  const nonce = uuidv4().toLowerCase(); // MUST be lowercase UUID
+  const timestamp = Date.now(); // Milliseconds since Unix epoch
+
+  // ⭐ CRITICAL: Data must be joined in this exact order
+  const dataToSign = [
+    bundleId, // 1. App Bundle ID
+    keyId, // 2. Key Identifier
+    productId, // 3. Product Identifier
+    offerId, // 4. Offer Identifier
+    applicationUsername, // 5. Application Username (appAccountToken)
+    nonce, // 6. Nonce (lowercase UUID)
+    timestamp.toString(), // 7. Timestamp (milliseconds)
+  ].join('\u2063'); // Join with invisible separator (U+2063)
+
+  // Sign the data with SHA-256
+  const sign = crypto.createSign('sha256');
+  sign.update(dataToSign);
+  const signatureBuffer = sign.sign({
+    key: privateKey,
+    format: 'pem',
+    type: 'pkcs8',
+  });
+
+  // ⭐ CRITICAL: Signature MUST be base64-encoded
+  const base64Signature = signatureBuffer.toString('base64');
+
+  return {
+    identifier: offerId,
+    keyIdentifier: keyId,
+    nonce: nonce, // Lowercase UUID
+    signature: base64Signature, // Base64-encoded signature
+    timestamp: timestamp, // Milliseconds
+  };
+}
+
+// Usage example
+app.post('/generate-offer-signature', (req, res) => {
+  const {productId, offerId, applicationUsername} = req.body;
+
+  const signature = generatePromotionalOfferSignature(
+    process.env.APP_BUNDLE_ID, // From environment
+    productId,
+    offerId,
+    applicationUsername,
+    process.env.APPLE_PRIVATE_KEY, // PKCS#8 PEM private key
+    process.env.APPLE_KEY_ID, // From App Store Connect
+  );
+
+  res.json(signature);
+});
+```
+
+**Important Notes:**
+
+1. **Data Order**: The 7 fields MUST be joined in the exact order shown above (as per [Apple's documentation](https://developer.apple.com/documentation/storekit/original_api_for_in-app_purchase/subscriptions_and_offers/generating_a_signature_for_promotional_offers))
+2. **Nonce**: Must be a lowercase UUID v4 string
+3. **Timestamp**: Must be in milliseconds (not seconds)
+4. **Signature**: Must be base64-encoded (not hex or raw)
+5. **Private Key**: Must be PKCS#8 PEM format from App Store Connect
+6. **Separator**: Use Unicode character U+2063 (invisible separator)
+
+**Common Errors:**
+
+- "The data couldn't be read because it isn't in the correct format" → Signature is not base64-encoded
+- "Invalid signature" → Incorrect data order or wrong separator
+- "Signature verification failed" → Wrong private key or key ID
 
 ## Common Patterns
 
