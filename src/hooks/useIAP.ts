@@ -279,8 +279,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
 
   const finishTransaction = useCallback(
     async (args: MutationFinishTransactionArgs): Promise<void> => {
-      // Directly use root API finishTransaction which includes proper error handling
-      // for already-finished transactions (iOS) and other edge cases
+      // Directly delegate to root API finishTransaction without catching errors.
+      // This allows the root API's error handling logic to work correctly, including:
+      // - iOS: treating "Transaction not found" as success (already-finished transactions)
+      // - Proper validation and error messages for required fields
+      // Users should handle errors in their onPurchaseSuccess callback if needed.
       await finishTransactionInternal(args);
     },
     [],
