@@ -1,6 +1,6 @@
 // Generated from example/screens/SubscriptionFlow.tsx
-// This file is synchronized during development
-// Modifications should be made to the source file
+// This file is automatically copied during postinstall
+// Do not edit directly - modify the source file instead
 
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
@@ -898,6 +898,42 @@ function SubscriptionFlow({
                               </Text>
                             </View>
                           )}
+
+                        {/* 🆕 NEW: Renewal offer type */}
+                        {sub.renewalInfoIOS.renewalOfferType && (
+                          <View style={styles.statusRow}>
+                            <Text style={styles.statusLabel}>
+                              🆕 Offer Type:
+                            </Text>
+                            <Text style={styles.statusValue}>
+                              {sub.renewalInfoIOS.renewalOfferType}
+                            </Text>
+                          </View>
+                        )}
+
+                        {/* 🆕 NEW: Renewal offer ID */}
+                        {sub.renewalInfoIOS.renewalOfferId && (
+                          <View style={styles.statusRow}>
+                            <Text style={styles.statusLabel}>🆕 Offer ID:</Text>
+                            <Text style={styles.statusValue}>
+                              {sub.renewalInfoIOS.renewalOfferId}
+                            </Text>
+                          </View>
+                        )}
+
+                        {/* 🆕 NEW: JSON Representation availability */}
+                        {sub.renewalInfoIOS.jsonRepresentation && (
+                          <View style={styles.statusRow}>
+                            <Text style={styles.statusLabel}>
+                              🆕 JSON Available:
+                            </Text>
+                            <Text
+                              style={[styles.statusValue, styles.activeStatus]}
+                            >
+                              ✅ Yes
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     )}
                   </View>
@@ -1436,7 +1472,9 @@ function SubscriptionFlowContainer() {
     try {
       // Refresh active subscriptions
       const activeSubs = await getActiveSubscriptions();
-      console.log('Refreshed active subscriptions:', activeSubs);
+      console.log('\n===== Active Subscriptions Check =====');
+      console.log('Total subscriptions:', activeSubs.length);
+      console.log('Full data:', JSON.stringify(activeSubs, null, 2));
 
       // For iOS, check if there's a pending change in renewalInfo
       if (Platform.OS === 'ios') {
@@ -1445,14 +1483,76 @@ function SubscriptionFlowContainer() {
             sub.productId === 'dev.hyo.martie.premium' ||
             sub.productId === 'dev.hyo.martie.premium_year',
         );
-        console.log(
-          'Premium subscriptions found:',
-          premiumSubs.map((sub) => ({
-            productId: sub.productId,
-            transactionDate: new Date(sub.transactionDate ?? 0).toISOString(),
-            renewalInfo: sub.renewalInfoIOS,
-          })),
-        );
+
+        console.log('\n===== iOS Subscription Analysis =====');
+        console.log('Premium subscriptions found:', premiumSubs.length);
+
+        premiumSubs.forEach((sub, index) => {
+          console.log(`\n[Subscription ${index + 1}]`);
+          console.log('  productId:', sub.productId);
+          console.log(
+            '  transactionDate:',
+            sub.transactionDate
+              ? new Date(sub.transactionDate).toISOString()
+              : 'N/A',
+          );
+          console.log('  transactionId:', sub.transactionId);
+          console.log('  expirationDateIOS:', sub.expirationDateIOS);
+          console.log('  environmentIOS:', sub.environmentIOS);
+
+          // 🔍 Check if renewalInfoIOS exists and log all fields
+          if (sub.renewalInfoIOS) {
+            console.log('  ✅ renewalInfoIOS EXISTS:');
+            console.log('    willAutoRenew:', sub.renewalInfoIOS.willAutoRenew);
+            console.log(
+              '    pendingUpgradeProductId:',
+              sub.renewalInfoIOS.pendingUpgradeProductId,
+            );
+            console.log(
+              '    autoRenewPreference:',
+              sub.renewalInfoIOS.autoRenewPreference,
+            );
+            console.log('    renewalDate:', sub.renewalInfoIOS.renewalDate);
+            console.log(
+              '    expirationReason:',
+              sub.renewalInfoIOS.expirationReason,
+            );
+            console.log(
+              '    isInBillingRetry:',
+              sub.renewalInfoIOS.isInBillingRetry,
+            );
+            console.log(
+              '    gracePeriodExpirationDate:',
+              sub.renewalInfoIOS.gracePeriodExpirationDate,
+            );
+            console.log(
+              '    priceIncreaseStatus:',
+              sub.renewalInfoIOS.priceIncreaseStatus,
+            );
+            // 🆕 NEW FIELDS - Check if they're coming through correctly
+            console.log(
+              '    🆕 renewalOfferType:',
+              sub.renewalInfoIOS.renewalOfferType,
+            );
+            console.log(
+              '    🆕 renewalOfferId:',
+              sub.renewalInfoIOS.renewalOfferId,
+            );
+            console.log(
+              '    🆕 jsonRepresentation:',
+              sub.renewalInfoIOS.jsonRepresentation
+                ? `<${sub.renewalInfoIOS.jsonRepresentation.substring(0, 50)}...>`
+                : 'null/undefined',
+            );
+            console.log(
+              '    Full renewalInfoIOS:',
+              JSON.stringify(sub.renewalInfoIOS, null, 2),
+            );
+          } else {
+            console.log('  ❌ renewalInfoIOS is NULL/UNDEFINED');
+          }
+        });
+        console.log('===================================\n');
       }
     } catch (error) {
       console.error('Error checking subscription status:', error);
