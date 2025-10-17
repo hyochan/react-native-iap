@@ -279,11 +279,9 @@ export function useIAP(options?: UseIapOptions): UseIap {
 
   const finishTransaction = useCallback(
     async (args: MutationFinishTransactionArgs): Promise<void> => {
-      try {
-        await finishTransactionInternal(args);
-      } catch (err) {
-        throw err;
-      }
+      // Directly use root API finishTransaction which includes proper error handling
+      // for already-finished transactions (iOS) and other edge cases
+      await finishTransactionInternal(args);
     },
     [],
   );
