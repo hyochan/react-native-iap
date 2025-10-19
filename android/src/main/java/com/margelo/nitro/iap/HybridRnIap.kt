@@ -892,14 +892,14 @@ class HybridRnIap : HybridRnIapSpec() {
     // iOS-specific method - not supported on Android
     override fun getStorefrontIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     // iOS-specific method - not supported on Android
     override fun getAppTransactionIOS(): Promise<String?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
@@ -1039,31 +1039,31 @@ class HybridRnIap : HybridRnIapSpec() {
     // iOS-specific methods - Not applicable on Android, return appropriate defaults
     override fun subscriptionStatusIOS(sku: String): Promise<Array<NitroSubscriptionStatus>?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun currentEntitlementIOS(sku: String): Promise<NitroPurchase?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun latestTransactionIOS(sku: String): Promise<NitroPurchase?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun getPendingTransactionsIOS(): Promise<Array<NitroPurchase>> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun syncIOS(): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
@@ -1071,37 +1071,37 @@ class HybridRnIap : HybridRnIapSpec() {
     
     override fun isEligibleForIntroOfferIOS(groupID: String): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun getReceiptDataIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun getReceiptIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun requestReceiptRefreshIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun isTransactionVerifiedIOS(sku: String): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun getTransactionJwsIOS(sku: String): Promise<String?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
@@ -1191,19 +1191,19 @@ class HybridRnIap : HybridRnIapSpec() {
 
     override fun canPresentExternalPurchaseNoticeIOS(): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun presentExternalPurchaseNoticeSheetIOS(): Promise<ExternalPurchaseNoticeResultIOS> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun presentExternalPurchaseLinkIOS(url: String): Promise<ExternalPurchaseLinkResultIOS> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.NotSupported))
+            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
