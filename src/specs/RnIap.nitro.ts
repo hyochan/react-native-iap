@@ -21,6 +21,7 @@ import type {
   RequestPurchaseResult,
   RequestSubscriptionAndroidProps,
   UserChoiceBillingDetails,
+  PaymentModeIOS,
 } from '../types';
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
@@ -296,7 +297,7 @@ export interface NitroProduct {
   introductoryPriceIOS?: string | null;
   introductoryPriceAsAmountIOS?: number | null;
   introductoryPriceNumberOfPeriodsIOS?: number | null;
-  introductoryPricePaymentModeIOS?: string | null;
+  introductoryPricePaymentModeIOS: PaymentModeIOS;
   introductoryPriceSubscriptionPeriodIOS?: string | null;
   subscriptionPeriodNumberIOS?: number | null;
   subscriptionPeriodUnitIOS?: string | null;

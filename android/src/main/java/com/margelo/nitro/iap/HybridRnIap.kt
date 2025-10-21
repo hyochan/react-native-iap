@@ -807,7 +807,7 @@ class HybridRnIap : HybridRnIapSpec() {
             subscriptionPeriodNumberIOS = null,
             introductoryPriceIOS = null,
             introductoryPriceAsAmountIOS = null,
-            introductoryPricePaymentModeIOS = null,
+            introductoryPricePaymentModeIOS = PaymentModeIOS.EMPTY,
             introductoryPriceNumberOfPeriodsIOS = null,
             introductoryPriceSubscriptionPeriodIOS = null,
             nameAndroid = nameAndroid,
