@@ -77,7 +77,12 @@ enum RnIapHelper {
         if let introductoryAmount = doubleValue(dictionary["introductoryPriceAsAmountIOS"]) { product.introductoryPriceAsAmountIOS = introductoryAmount }
         if let introductoryPeriods = doubleValue(dictionary["introductoryPriceNumberOfPeriodsIOS"]) { product.introductoryPriceNumberOfPeriodsIOS = introductoryPeriods }
         // Always set introductoryPricePaymentModeIOS - OpenIAP guarantees this field (defaults to .empty)
-        product.introductoryPricePaymentModeIOS = dictionary["introductoryPricePaymentModeIOS"] as? String ?? PaymentModeIOS.empty.rawValue
+        if let modeString = dictionary["introductoryPricePaymentModeIOS"] as? String,
+           let mode = PaymentModeIOS(fromString: modeString) {
+            product.introductoryPricePaymentModeIOS = mode
+        } else {
+            product.introductoryPricePaymentModeIOS = PaymentModeIOS.empty
+        }
         if let introductoryPeriod = dictionary["introductoryPriceSubscriptionPeriodIOS"] as? String { product.introductoryPriceSubscriptionPeriodIOS = introductoryPeriod }
         if let displayNameIOS = dictionary["displayNameIOS"] as? String { product.displayName = displayNameIOS }
 
