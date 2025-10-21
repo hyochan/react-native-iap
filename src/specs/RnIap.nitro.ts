@@ -556,22 +556,49 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
 
   /**
    * Get receipt data (iOS only)
-   * @returns Promise<string> - Base64 encoded receipt data
+   *
+   * ⚠️ **IMPORTANT**: iOS receipts are cumulative and contain ALL transactions for the app,
+   * not just the most recent one. The receipt data does not change between purchases.
+   *
+   * **For individual purchase validation, use `getTransactionJwsIOS(productId)` instead.**
+   *
+   * This returns the App Store Receipt, which:
+   * - Contains all purchase history for the app
+   * - Does not update immediately after finishTransaction()
+   * - May be unavailable immediately after purchase (throws receipt-failed error)
+   * - Requires parsing to extract specific transactions
+   *
+   * @returns Promise<string> - Base64 encoded receipt data containing all app transactions
+   * @throws {Error} receipt-failed if receipt is not available (e.g., immediately after purchase)
    * @platform iOS
+   * @see getTransactionJwsIOS for validating individual transactions (recommended)
    */
   getReceiptDataIOS(): Promise<string>;
 
   /**
    * Alias for getReceiptDataIOS maintained for compatibility (iOS only)
-   * @returns Promise<string> - Base64 encoded receipt data
+   *
+   * ⚠️ **IMPORTANT**: iOS receipts are cumulative and contain ALL transactions.
+   * For individual purchase validation, use `getTransactionJwsIOS(productId)` instead.
+   *
+   * @returns Promise<string> - Base64 encoded receipt data containing all app transactions
    * @platform iOS
+   * @see getReceiptDataIOS for full documentation
+   * @see getTransactionJwsIOS for validating individual transactions (recommended)
    */
   getReceiptIOS(): Promise<string>;
 
   /**
    * Request a refreshed receipt from the App Store (iOS only)
-   * @returns Promise<string> - Updated Base64 encoded receipt data
+   *
+   * This calls syncIOS() to refresh the receipt from Apple's servers, then returns it.
+   *
+   * ⚠️ **IMPORTANT**: iOS receipts are cumulative and contain ALL transactions.
+   * For individual purchase validation, use `getTransactionJwsIOS(productId)` instead.
+   *
+   * @returns Promise<string> - Updated Base64 encoded receipt data containing all app transactions
    * @platform iOS
+   * @see getTransactionJwsIOS for validating individual transactions (recommended)
    */
   requestReceiptRefreshIOS(): Promise<string>;
 
@@ -584,10 +611,27 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   isTransactionVerifiedIOS(sku: string): Promise<boolean>;
 
   /**
-   * Get transaction JWS representation (iOS only)
-   * @param sku - The product SKU
-   * @returns Promise<string | null> - JWS representation or null
+   * Get transaction JWS (JSON Web Signature) representation for a specific product (iOS only)
+   *
+   * ✅ **RECOMMENDED** for validating individual purchases with your backend.
+   *
+   * This returns a unique, cryptographically signed token for the specific transaction,
+   * unlike `getReceiptDataIOS()` which returns ALL transactions.
+   *
+   * Benefits:
+   * - Contains ONLY the requested transaction (not all historical purchases)
+   * - Cryptographically signed by Apple (can be verified)
+   * - Available immediately after purchase
+   * - Simpler to validate on your backend
+   *
+   * @param sku - The product SKU/ID to get the transaction JWS for
+   * @returns Promise<string | null> - JWS string for the transaction, or null if not found
    * @platform iOS
+   * @example
+   * ```typescript
+   * const jws = await getTransactionJwsIOS('com.example.product');
+   * // Send jws to your backend for validation
+   * ```
    */
   getTransactionJwsIOS(sku: string): Promise<string | null>;
 

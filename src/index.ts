@@ -827,6 +827,12 @@ export const getReceiptDataIOS: QueryField<'getReceiptDataIOS'> = async () => {
     throw new Error('getReceiptDataIOS is only available on iOS');
   }
 
+  RnIapConsole.warn(
+    '[getReceiptDataIOS] ⚠️ iOS receipts contain ALL transactions, not just the latest one. ' +
+      'For individual purchase validation, use getTransactionJwsIOS(productId) instead. ' +
+      'See: https://react-native-iap.hyo.dev/docs/guides/receipt-validation',
+  );
+
   try {
     return await IAP.instance.getReceiptDataIOS();
   } catch (error) {
@@ -840,6 +846,12 @@ export const getReceiptIOS = async (): Promise<string> => {
   if (Platform.OS !== 'ios') {
     throw new Error('getReceiptIOS is only available on iOS');
   }
+
+  RnIapConsole.warn(
+    '[getReceiptIOS] ⚠️ iOS receipts contain ALL transactions, not just the latest one. ' +
+      'For individual purchase validation, use getTransactionJwsIOS(productId) instead. ' +
+      'See: https://react-native-iap.hyo.dev/docs/guides/receipt-validation',
+  );
 
   try {
     if (typeof IAP.instance.getReceiptIOS === 'function') {
@@ -857,6 +869,12 @@ export const requestReceiptRefreshIOS = async (): Promise<string> => {
   if (Platform.OS !== 'ios') {
     throw new Error('requestReceiptRefreshIOS is only available on iOS');
   }
+
+  RnIapConsole.warn(
+    '[requestReceiptRefreshIOS] ⚠️ iOS receipts contain ALL transactions, not just the latest one. ' +
+      'For individual purchase validation, use getTransactionJwsIOS(productId) instead. ' +
+      'See: https://react-native-iap.hyo.dev/docs/guides/receipt-validation',
+  );
 
   try {
     if (typeof IAP.instance.requestReceiptRefreshIOS === 'function') {
