@@ -399,7 +399,7 @@ export interface ProductSubscriptionIOS extends ProductCommon {
   introductoryPriceAsAmountIOS?: (string | null);
   introductoryPriceIOS?: (string | null);
   introductoryPriceNumberOfPeriodsIOS?: (string | null);
-  introductoryPricePaymentModeIOS?: (PaymentModeIOS | null);
+  introductoryPricePaymentModeIOS: PaymentModeIOS;
   introductoryPriceSubscriptionPeriodIOS?: (SubscriptionPeriodIOS | null);
   isFamilyShareableIOS: boolean;
   jsonRepresentationIOS: string;

@@ -87,7 +87,7 @@ function normalizeProductTypeIOS(value?: Nullable<string>): ProductTypeIOS {
   }
 }
 
-function normalizePaymentMode(value?: Nullable<string>): PaymentModeIOS | null {
+function normalizePaymentMode(value?: Nullable<string>): PaymentModeIOS {
   switch ((value ?? '').toUpperCase()) {
     case 'FREE_TRIAL':
     case 'FREETRIAL':
@@ -552,6 +552,7 @@ export function checkTypeSynchronization(): {
       displayPrice: '$1.00',
       currency: 'USD',
       price: 1,
+      introductoryPricePaymentModeIOS: PAYMENT_MODE_EMPTY,
     };
 
     const converted = convertNitroProductToProduct(testNitroProduct);
