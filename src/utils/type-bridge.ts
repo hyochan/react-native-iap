@@ -91,12 +91,15 @@ function normalizePaymentMode(value?: Nullable<string>): PaymentModeIOS {
   switch ((value ?? '').toUpperCase()) {
     case 'FREE_TRIAL':
     case 'FREETRIAL':
+    case 'FREE-TRIAL':
       return PAYMENT_MODE_FREE_TRIAL;
     case 'PAY_AS_YOU_GO':
     case 'PAYASYOUGO':
+    case 'PAY-AS-YOU-GO':
       return PAYMENT_MODE_PAY_AS_YOU_GO;
     case 'PAY_UP_FRONT':
     case 'PAYUPFRONT':
+    case 'PAY-UP-FRONT':
       return PAYMENT_MODE_PAY_UP_FRONT;
     default:
       return PAYMENT_MODE_EMPTY;
