@@ -65,10 +65,15 @@ enum RnIapHelper {
         if let typeIOS = dictionary["typeIOS"] as? String { product.typeIOS = typeIOS }
         if let familyShareable = boolValue(dictionary["isFamilyShareableIOS"]) { product.isFamilyShareableIOS = familyShareable }
         if let jsonRepresentation = dictionary["jsonRepresentationIOS"] as? String { product.jsonRepresentationIOS = jsonRepresentation }
-        if let discounts = dictionary["discountsIOS"] as? [[String: Any]] {
-            if let jsonData = try? JSONSerialization.data(withJSONObject: discounts, options: []),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                product.discountsIOS = jsonString
+        // Handle discountsIOS - OpenIAP 1.2.30+ returns [[String: Any]] (non-nullable)
+        if let discountsArray = dictionary["discountsIOS"] as? [[String: Any]] {
+            do {
+                let jsonData = try JSONSerialization.data(withJSONObject: discountsArray, options: [])
+                if let jsonString = String(data: jsonData, encoding: .utf8) {
+                    product.discountsIOS = jsonString
+                }
+            } catch {
+                NSLog("⚠️ [RnIapHelper] Failed to serialize discountsIOS: \(error)")
             }
         }
         if let subscriptionUnit = dictionary["subscriptionPeriodUnitIOS"] as? String { product.subscriptionPeriodUnitIOS = subscriptionUnit }

@@ -42,7 +42,8 @@ Pod::Spec.new do |s|
   s.dependency 'React-jsi'
   s.dependency 'React-callinvoker'
   # OpenIAP Apple for StoreKit 2 integration
-  s.dependency 'openiap', apple_version
+  # Use ~> to allow patch updates (e.g., 1.2.30 -> 1.2.31, but not 1.3.0)
+  s.dependency 'openiap', "~> #{apple_version}"
 
   install_modules_dependencies(s)
 end
