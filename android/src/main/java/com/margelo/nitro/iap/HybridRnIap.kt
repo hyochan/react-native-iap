@@ -222,7 +222,9 @@ class HybridRnIap : HybridRnIapSpec() {
 
             val products: List<ProductCommon> = when (queryType) {
                 ProductQueryType.All -> {
-                    val collected = linkedMapOf<String, ProductCommon>()
+                    // Fetch both InApp and Subs products
+                    val byId = mutableMapOf<String, ProductCommon>()
+
                     listOf(ProductQueryType.InApp, ProductQueryType.Subs).forEach { kind ->
                         RnIapLog.payload(
                             "fetchProducts.native",
@@ -233,9 +235,15 @@ class HybridRnIap : HybridRnIapSpec() {
                             "fetchProducts.native",
                             fetched.map { mapOf("id" to it.id, "type" to it.type.rawValue) }
                         )
-                        fetched.forEach { collected[it.id] = it }
+
+                        // Collect products by ID (no duplicates possible in Play Billing)
+                        fetched.forEach { product ->
+                            byId.putIfAbsent(product.id, product)
+                        }
                     }
-                    collected.values.toList()
+
+                    // Return products in the same order as input skusList
+                    skusList.mapNotNull { byId[it] }
                 }
                 else -> {
                     RnIapLog.payload(
@@ -247,7 +255,10 @@ class HybridRnIap : HybridRnIapSpec() {
                         "fetchProducts.native",
                         fetched.map { mapOf("id" to it.id, "type" to it.type.rawValue) }
                     )
-                    fetched
+
+                    // Preserve input order for non-All queries
+                    val byId = fetched.associateBy { it.id }
+                    skusList.mapNotNull { byId[it] }
                 }
             }
 
