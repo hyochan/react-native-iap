@@ -452,9 +452,24 @@ class HybridRnIap : HybridRnIapSpec() {
                 // OpenIAP's getAvailablePurchases doesn't support type filtering
                 // Get all purchases and filter manually
                 val allPurchases = openIap.getAvailablePurchases(null)
+
+                // Partition purchases to handle cases where product type is not yet cached
+                val (knownTypePurchases, unknownTypePurchases) = allPurchases.partition {
+                    productTypeBySku.containsKey(it.productId)
+                }
+
+                if (unknownTypePurchases.isNotEmpty()) {
+                    RnIapLog.warn(
+                        "getAvailablePurchases: Could not determine type for product IDs: " +
+                        "${unknownTypePurchases.map { it.productId }.joinToString()}. " +
+                        "These will be excluded from '$normalizedType' filtered lists. " +
+                        "Call fetchProducts first to populate product type cache."
+                    )
+                }
+
                 when (normalizedType) {
-                    "in-app" -> allPurchases.filter { productTypeBySku[it.productId] == "in-app" }
-                    "subs" -> allPurchases.filter { productTypeBySku[it.productId] == "subs" }
+                    "in-app" -> knownTypePurchases.filter { productTypeBySku[it.productId] == "in-app" }
+                    "subs" -> knownTypePurchases.filter { productTypeBySku[it.productId] == "subs" }
                     else -> allPurchases
                 }
             } else {
