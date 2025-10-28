@@ -2,9 +2,7 @@
 sidebar_position: 4
 ---
 
-# Horizon OS Setup
-
-![Horizon OS Support](/img/horizon-support.png)
+# Horizon OS
 
 This guide covers setting up react-native-iap for Meta Quest devices running Horizon OS. Horizon OS uses Meta's Platform SDK for in-app purchases instead of Google Play Billing.
 
@@ -15,6 +13,11 @@ This guide covers setting up react-native-iap for Meta Quest devices running Hor
 - Quest device or Quest Link for testing
 
 ## Configuration
+
+:::tip You can refer to the example app for a working configuration. See the commented sections in:
+
+- [`example/android/gradle.properties`](https://github.com/hyochan/react-native-iap/blob/main/example/android/gradle.properties)
+- [`example/android/app/src/main/AndroidManifest.xml`](https://github.com/hyochan/react-native-iap/blob/main/example/android/app/src/main/AndroidManifest.xml) :::
 
 ### 1. Enable Horizon Mode
 
@@ -277,17 +280,9 @@ The `android/build.gradle` in react-native-iap automatically:
 - Selects the appropriate flavor (`horizon` vs `play`)
 - Uses the correct OpenIAP artifact (`openiap-google-horizon` vs `openiap-google`)
 
-## Best Practices
-
-1. **Test on Real Devices**: Always test on actual Quest devices, not Android emulators
-2. **Handle Platform Differences**: While the API is unified, test thoroughly on Horizon OS
-3. **Error Handling**: Implement proper error handling for all purchase flows
-4. **Receipt Validation**: Verify purchases on your backend server
-5. **Graceful Degradation**: Handle cases where Horizon SDK may not be available
-
 ## Next Steps
 
 - [Review the installation guide](./installation)
-- [Explore the useIAP hook](../guides/use-iap)
+- [Explore the useIAP hook](../guides/purchases)
 - [Understand error codes](../api/error-codes)
-- [Learn about purchase verification](../guides/purchase-verification)
+- [Learn about purchase verification](../guides/subscription-validation)

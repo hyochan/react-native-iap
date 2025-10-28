@@ -13,8 +13,12 @@ const sidebars: SidebarsConfig = {
       items: [
         'getting-started/installation',
         'getting-started/setup-ios',
-        'getting-started/setup-android',
-        'getting-started/setup-horizon',
+        {
+          type: 'category',
+          label: 'Android Setup',
+          link: {type: 'doc', id: 'getting-started/setup-android'},
+          items: ['getting-started/setup-horizon'],
+        },
       ],
     },
     {
