@@ -10,6 +10,12 @@
       android:allowBackup="false"
       android:theme="@style/AppTheme"
       android:supportsRtl="true">
+
+      <!-- Horizon OS (Meta Quest) Configuration -->
+      <!-- <meta-data
+        android:name="com.meta.horizon.platform.ovr.OCULUS_APP_ID"
+        android:value="31705015229097839" /> -->
+
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
