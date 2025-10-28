@@ -14,6 +14,7 @@ const sidebars: SidebarsConfig = {
         'getting-started/installation',
         'getting-started/setup-ios',
         'getting-started/setup-android',
+        'getting-started/setup-horizon',
       ],
     },
     {

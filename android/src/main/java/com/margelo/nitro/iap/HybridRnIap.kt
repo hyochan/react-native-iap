@@ -68,9 +68,22 @@ class HybridRnIap : HybridRnIapSpec() {
                 return@async true
             }
 
-            // Set current activity best-effort; don't fail init if missing
+            // CRITICAL: Set Activity BEFORE calling initConnection
+            // Horizon SDK needs Activity to initialize OVRPlatform with proper returnComponent
+            // https://github.com/meta-quest/Meta-Spatial-SDK-Samples/issues/82#issuecomment-3452577530
             withContext(Dispatchers.Main) {
-                runCatching { openIap.setActivity(context.currentActivity) }
+                runCatching { context.currentActivity }
+                    .onSuccess { activity ->
+                        if (activity != null) {
+                            RnIapLog.debug("Activity available: ${activity.javaClass.name}")
+                            openIap.setActivity(activity)
+                        } else {
+                            RnIapLog.warn("Activity is null during initConnection")
+                        }
+                    }
+                    .onFailure {
+                        RnIapLog.warn("Activity not available during initConnection - OpenIAP will use Context")
+                    }
             }
 
             // Single-flight: capture or create the shared Deferred atomically
@@ -432,12 +445,18 @@ class HybridRnIap : HybridRnIapSpec() {
             }
 
             val result: List<OpenIapPurchase> = if (normalizedType != null) {
-                val typeEnum = parseProductQueryType(normalizedType)
                 RnIapLog.payload(
                     "getAvailablePurchases.native",
-                    mapOf("type" to typeEnum.rawValue)
+                    mapOf("type" to normalizedType)
                 )
-                openIap.getAvailableItems(typeEnum)
+                // OpenIAP's getAvailablePurchases doesn't support type filtering
+                // Get all purchases and filter manually
+                val allPurchases = openIap.getAvailablePurchases(null)
+                when (normalizedType) {
+                    "in-app" -> allPurchases.filter { productTypeBySku[it.productId] == "in-app" }
+                    "subs" -> allPurchases.filter { productTypeBySku[it.productId] == "subs" }
+                    else -> allPurchases
+                }
             } else {
                 RnIapLog.payload("getAvailablePurchases.native", mapOf("type" to "all"))
                 openIap.getAvailablePurchases(null)

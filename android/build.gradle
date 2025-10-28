@@ -83,6 +83,11 @@ android {
     // Ship consumer keep rules so Nitro HybridObjects aren't stripped in app release builds
     consumerProguardFiles 'consumer-rules.pro'
 
+    // Read horizonEnabled from gradle.properties, default to play
+    def horizonEnabled = project.findProperty('horizonEnabled')?.toBoolean() ?: false
+    def flavor = horizonEnabled ? 'horizon' : 'play'
+    missingDimensionStrategy "platform", flavor
+
     externalNativeBuild {
       cmake {
         cppFlags "-frtti -fexceptions -Wall -Wextra -fstack-protector-all"
@@ -172,13 +177,23 @@ dependencies {
   if (findProject(':react-native-nitro-modules') != null) {
     implementation project(":react-native-nitro-modules")
   }
-  
+
   // Google Play Services
   implementation 'com.google.android.gms:play-services-base:18.5.0'
-  
+
   // Kotlin coroutines
   implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
-  implementation "io.github.hyochan.openiap:openiap-google:${googleVersionString}"
+
+  // Determine which OpenIAP dependency to use based on horizonEnabled flag
+  def horizonEnabled = project.findProperty('horizonEnabled')?.toBoolean() ?: false
+
+  if (horizonEnabled) {
+    // Use openiap-google-horizon for Meta Quest when horizonEnabled is true
+    implementation "io.github.hyochan.openiap:openiap-google-horizon:${googleVersionString}"
+  } else {
+    // Use standard Google Play Billing
+    implementation "io.github.hyochan.openiap:openiap-google:${googleVersionString}"
+  }
 }
 
 configurations.all {
