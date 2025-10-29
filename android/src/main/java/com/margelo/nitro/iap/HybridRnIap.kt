@@ -37,6 +37,22 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
 
+/**
+ * Custom exception for OpenIAP errors that only includes the error JSON without stack traces.
+ * This ensures clean error messages are passed to JavaScript without Java/Kotlin stack traces.
+ */
+class OpenIapException(private val errorJson: String) : Exception() {
+    override val message: String
+        get() = errorJson
+
+    override fun toString(): String = errorJson
+
+    override fun fillInStackTrace(): Throwable {
+        // Don't fill in stack trace to avoid it being serialized
+        return this
+    }
+}
+
 class HybridRnIap : HybridRnIapSpec() {
     
     // Get ReactApplicationContext lazily from NitroModules
@@ -167,7 +183,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 } catch (err: Throwable) {
                     val error = OpenIAPError.InitConnection
                     RnIapLog.failure("initConnection.native", err)
-                    throw Exception(
+                    throw OpenIapException(
                         toErrorJson(
                             error = error,
                             debugMessage = err.message,
@@ -178,7 +194,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 if (!ok) {
                     val error = OpenIAPError.InitConnection
                     RnIapLog.failure("initConnection.native", Exception(error.message))
-                    throw Exception(
+                    throw OpenIapException(
                         toErrorJson(
                             error = error,
                             messageOverride = "Failed to initialize connection"
@@ -225,7 +241,7 @@ class HybridRnIap : HybridRnIapSpec() {
             )
 
             if (skus.isEmpty()) {
-                throw Exception(toErrorJson(OpenIAPError.EmptySkuList))
+                throw OpenIapException(toErrorJson(OpenIAPError.EmptySkuList))
             }
 
             initConnection(null).await()
@@ -528,7 +544,7 @@ class HybridRnIap : HybridRnIapSpec() {
             } catch (e: Exception) {
                 RnIapLog.failure("getActiveSubscriptions", e)
                 val error = OpenIAPError.ServiceUnavailable
-                throw Exception(
+                throw OpenIapException(
                     toErrorJson(
                         error = error,
                         debugMessage = e.message,
@@ -937,14 +953,14 @@ class HybridRnIap : HybridRnIapSpec() {
     // iOS-specific method - not supported on Android
     override fun getStorefrontIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     // iOS-specific method - not supported on Android
     override fun getAppTransactionIOS(): Promise<String?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
@@ -1031,7 +1047,7 @@ class HybridRnIap : HybridRnIapSpec() {
             try {
                 // For Android, we need the androidOptions to be provided
                 val androidOptions = params.androidOptions
-                    ?: throw Exception(toErrorJson(OpenIAPError.DeveloperError))
+                    ?: throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError))
 
                 // Android receipt validation would typically involve server-side validation
                 // using Google Play Developer API. Here we provide a simplified implementation
@@ -1070,7 +1086,7 @@ class HybridRnIap : HybridRnIapSpec() {
             } catch (e: Exception) {
                 val debugMessage = e.message
                 val error = OpenIAPError.InvalidReceipt
-                throw Exception(
+                throw OpenIapException(
                     toErrorJson(
                         error = error,
                         debugMessage = debugMessage,
@@ -1084,31 +1100,31 @@ class HybridRnIap : HybridRnIapSpec() {
     // iOS-specific methods - Not applicable on Android, return appropriate defaults
     override fun subscriptionStatusIOS(sku: String): Promise<Array<NitroSubscriptionStatus>?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun currentEntitlementIOS(sku: String): Promise<NitroPurchase?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun latestTransactionIOS(sku: String): Promise<NitroPurchase?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun getPendingTransactionsIOS(): Promise<Array<NitroPurchase>> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun syncIOS(): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
@@ -1116,37 +1132,37 @@ class HybridRnIap : HybridRnIapSpec() {
     
     override fun isEligibleForIntroOfferIOS(groupID: String): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun getReceiptDataIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun getReceiptIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun requestReceiptRefreshIOS(): Promise<String> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun isTransactionVerifiedIOS(sku: String): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
     override fun getTransactionJwsIOS(sku: String): Promise<String?> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
@@ -1166,7 +1182,7 @@ class HybridRnIap : HybridRnIapSpec() {
             } catch (err: Throwable) {
                 RnIapLog.failure("checkAlternativeBillingAvailabilityAndroid", err)
                 val errorType = parseOpenIapError(err)
-                throw Exception(toErrorJson(errorType, debugMessage = err.message))
+                throw OpenIapException(toErrorJson(errorType, debugMessage = err.message))
             }
         }
     }
@@ -1176,7 +1192,7 @@ class HybridRnIap : HybridRnIapSpec() {
             RnIapLog.payload("showAlternativeBillingDialogAndroid", null)
             try {
                 val activity = context.currentActivity
-                    ?: throw Exception(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Activity not available"))
+                    ?: throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Activity not available"))
 
                 val userAccepted = withContext(Dispatchers.Main) {
                     openIap.setActivity(activity)
@@ -1187,7 +1203,7 @@ class HybridRnIap : HybridRnIapSpec() {
             } catch (err: Throwable) {
                 RnIapLog.failure("showAlternativeBillingDialogAndroid", err)
                 val errorType = parseOpenIapError(err)
-                throw Exception(toErrorJson(errorType, debugMessage = err.message))
+                throw OpenIapException(toErrorJson(errorType, debugMessage = err.message))
             }
         }
     }
@@ -1206,7 +1222,7 @@ class HybridRnIap : HybridRnIapSpec() {
             } catch (err: Throwable) {
                 RnIapLog.failure("createAlternativeBillingTokenAndroid", err)
                 val errorType = parseOpenIapError(err)
-                throw Exception(toErrorJson(errorType, debugMessage = err.message))
+                throw OpenIapException(toErrorJson(errorType, debugMessage = err.message))
             }
         }
     }
@@ -1236,19 +1252,19 @@ class HybridRnIap : HybridRnIapSpec() {
 
     override fun canPresentExternalPurchaseNoticeIOS(): Promise<Boolean> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun presentExternalPurchaseNoticeSheetIOS(): Promise<ExternalPurchaseNoticeResultIOS> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 
     override fun presentExternalPurchaseLinkIOS(url: String): Promise<ExternalPurchaseLinkResultIOS> {
         return Promise.async {
-            throw Exception(toErrorJson(OpenIAPError.FeatureNotSupported))
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
 

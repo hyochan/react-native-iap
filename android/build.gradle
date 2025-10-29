@@ -194,6 +194,11 @@ dependencies {
     // Use standard Google Play Billing
     implementation "io.github.hyochan.openiap:openiap-google:${googleVersionString}"
   }
+
+  // Test dependencies
+  testImplementation 'junit:junit:4.13.2'
+  testImplementation 'org.jetbrains.kotlin:kotlin-test'
+  testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }
 
 configurations.all {
