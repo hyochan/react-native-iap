@@ -47,7 +47,10 @@ import {
   convertNitroSubscriptionStatusToSubscriptionStatusIOS,
 } from './utils/type-bridge';
 import {parseErrorStringToJsonObj} from './utils/error';
-import {normalizeErrorCodeFromNative} from './utils/errorMapping';
+import {
+  normalizeErrorCodeFromNative,
+  createPurchaseError,
+} from './utils/errorMapping';
 import {RnIapConsole} from './utils/debug';
 import {getSuccessFromPurchaseVariant} from './utils/purchase';
 import {parseAppTransactionPayload} from './utils';
@@ -616,8 +619,13 @@ export const getPromotedProductIOS: QueryField<
     return converted.platform === 'ios' ? (converted as ProductIOS) : null;
   } catch (error) {
     RnIapConsole.error('[getPromotedProductIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -717,8 +725,13 @@ export const subscriptionStatusIOS: QueryField<
       .map(convertNitroSubscriptionStatusToSubscriptionStatusIOS);
   } catch (error) {
     RnIapConsole.error('[subscriptionStatusIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -738,8 +751,13 @@ export const currentEntitlementIOS: QueryField<
     return null;
   } catch (error) {
     RnIapConsole.error('[currentEntitlementIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -759,8 +777,13 @@ export const latestTransactionIOS: QueryField<'latestTransactionIOS'> = async (
     return null;
   } catch (error) {
     RnIapConsole.error('[latestTransactionIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -780,8 +803,13 @@ export const getPendingTransactionsIOS: QueryField<
       );
   } catch (error) {
     RnIapConsole.error('[getPendingTransactionsIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -801,8 +829,13 @@ export const showManageSubscriptionsIOS: MutationField<
       );
   } catch (error) {
     RnIapConsole.error('[showManageSubscriptionsIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -817,8 +850,13 @@ export const isEligibleForIntroOfferIOS: QueryField<
     return await IAP.instance.isEligibleForIntroOfferIOS(groupID);
   } catch (error) {
     RnIapConsole.error('[isEligibleForIntroOfferIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -837,8 +875,13 @@ export const getReceiptDataIOS: QueryField<'getReceiptDataIOS'> = async () => {
     return await IAP.instance.getReceiptDataIOS();
   } catch (error) {
     RnIapConsole.error('[getReceiptDataIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -860,8 +903,13 @@ export const getReceiptIOS = async (): Promise<string> => {
     return await IAP.instance.getReceiptDataIOS();
   } catch (error) {
     RnIapConsole.error('[getReceiptIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -883,8 +931,13 @@ export const requestReceiptRefreshIOS = async (): Promise<string> => {
     return await IAP.instance.getReceiptDataIOS();
   } catch (error) {
     RnIapConsole.error('[requestReceiptRefreshIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -899,8 +952,13 @@ export const isTransactionVerifiedIOS: QueryField<
     return await IAP.instance.isTransactionVerifiedIOS(sku);
   } catch (error) {
     RnIapConsole.error('[isTransactionVerifiedIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -915,8 +973,13 @@ export const getTransactionJwsIOS: QueryField<'getTransactionJwsIOS'> = async (
     return await IAP.instance.getTransactionJwsIOS(sku);
   } catch (error) {
     RnIapConsole.error('[getTransactionJwsIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -954,7 +1017,13 @@ export const initConnection: MutationField<'initConnection'> = async (
     );
   } catch (error) {
     RnIapConsole.error('Failed to initialize IAP connection:', error);
-    throw error;
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -967,7 +1036,13 @@ export const endConnection: MutationField<'endConnection'> = async () => {
     return await IAP.instance.endConnection();
   } catch (error) {
     RnIapConsole.error('Failed to end IAP connection:', error);
-    throw error;
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -983,7 +1058,13 @@ export const restorePurchases: MutationField<'restorePurchases'> = async () => {
     });
   } catch (error) {
     RnIapConsole.error('Failed to restore purchases:', error);
-    throw error;
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1111,7 +1192,14 @@ export const requestPurchase: MutationField<'requestPurchase'> = async (
     return await IAP.instance.requestPurchase(unifiedRequest);
   } catch (error) {
     RnIapConsole.error('Failed to request purchase:', error);
-    throw error;
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+      productId: parsedError.productId,
+    });
   }
 };
 
@@ -1216,7 +1304,13 @@ export const acknowledgePurchaseAndroid: MutationField<
     return getSuccessFromPurchaseVariant(result, 'acknowledgePurchaseAndroid');
   } catch (error) {
     RnIapConsole.error('Failed to acknowledge purchase Android:', error);
-    throw error;
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1247,7 +1341,13 @@ export const consumePurchaseAndroid: MutationField<
     return getSuccessFromPurchaseVariant(result, 'consumePurchaseAndroid');
   } catch (error) {
     RnIapConsole.error('Failed to consume purchase Android:', error);
-    throw error;
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1323,8 +1423,13 @@ export const validateReceipt: MutationField<'validateReceipt'> = async (
     }
   } catch (error) {
     RnIapConsole.error('[validateReceipt] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1343,8 +1448,13 @@ export const syncIOS: MutationField<'syncIOS'> = async () => {
     return Boolean(result);
   } catch (error) {
     RnIapConsole.error('[syncIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1365,8 +1475,13 @@ export const presentCodeRedemptionSheetIOS: MutationField<
     return Boolean(result);
   } catch (error) {
     RnIapConsole.error('[presentCodeRedemptionSheetIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1400,7 +1515,13 @@ export const requestPurchaseOnPromotedProductIOS: MutationField<
     return true;
   } catch (error) {
     RnIapConsole.error('[requestPurchaseOnPromotedProductIOS] Failed:', error);
-    throw error;
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1421,8 +1542,13 @@ export const clearTransactionIOS: MutationField<
     return true;
   } catch (error) {
     RnIapConsole.error('[clearTransactionIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1444,8 +1570,13 @@ export const beginRefundRequestIOS: MutationField<
     return status ?? null;
   } catch (error) {
     RnIapConsole.error('[beginRefundRequestIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1554,8 +1685,13 @@ export const deepLinkToSubscriptionsIOS = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     RnIapConsole.error('[deepLinkToSubscriptionsIOS] Failed:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
@@ -1648,8 +1784,13 @@ export const getActiveSubscriptions: QueryField<
       throw error;
     }
     RnIapConsole.error('Failed to get active subscriptions:', error);
-    const errorJson = parseErrorStringToJsonObj(error);
-    throw new Error(errorJson.message);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
   }
 };
 
