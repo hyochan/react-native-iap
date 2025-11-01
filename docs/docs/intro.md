@@ -8,9 +8,26 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed"; import SponsorSection f
 
 <AdFitTopFixed />
 
+---
+
 **React Native IAP** is a powerful in-app purchase solution for Expo and React Native applications that **conforms to the [Open IAP specification](https://openiap.dev)**. It provides a unified API for handling in-app purchases across iOS and Android platforms with comprehensive error handling and modern TypeScript support.
 
 If you're shipping an app with react-native-iap, we’d love to hear about it—please share your product and feedback in [Who’s using React Native IAP?](https://github.com/hyochan/react-native-iap/discussions/1343). Community stories help us keep improving the ecosystem.
+
+## Promotion
+
+<div align="center">
+  <a href="https://hyodotdev.github.io/kstyled" target="_blank" rel="noopener noreferrer">
+    <img src="https://hyodotdev.github.io/kstyled/img/logo.png" alt="kstyled Logo" width="120" />
+  </a>
+
+**Compile-time CSS-in-JS for React Native**
+
+✨ Banishing runtime overhead, one style at a time with **[kstyled](https://hyodotdev.github.io/kstyled)** - fully type-safe styling that compiles away.
+
+🚀 **[Explore kstyled →](https://hyodotdev.github.io/kstyled)**
+
+</div>
 
 ## Sponsors & Community Support
 

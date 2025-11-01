@@ -69,6 +69,7 @@ const config: Config = {
           },
         },
         blog: {
+          routeBasePath: 'blog', // Explicitly set blog route
           showReadingTime: true,
           feedOptions: {
             type: ['rss', 'atom'],
