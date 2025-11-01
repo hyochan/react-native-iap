@@ -14,7 +14,11 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
 
 This guide demonstrates practical subscription scenarios with react-native-iap.
 
-:::note The complete working example can be found at [example/screens/SubscriptionFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx). Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only. :::
+:::tip
+The complete working example can be found at [example/screens/SubscriptionFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx).
+
+Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only.
+:::
 
 ## 1. Purchasing a Subscription with `requestPurchase`
 

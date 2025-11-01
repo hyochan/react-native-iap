@@ -11,14 +11,18 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
 This guide will help you install and configure React Native IAP in your React Native or Expo project.
 
 :::warning Compatibility (Nitro 14.x)
+`react-native-iap@14.x` is Nitro-based and requires **React Native 0.79+**.
 
-- `react-native-iap@14.x` is Nitro-based and requires **React Native 0.79+**.
-- If you must stay on **RN 0.75.x or lower**, install the last pre‑Nitro version: `npm i react-native-iap@13.1.0`.
-- Hitting Swift 6 C++ interop errors in Nitro (e.g. `AnyMap.swift` using `cppPart.pointee.*`)? Pin Swift 5.10 for the `NitroModules` pod (see snippet below) as a temporary workaround.
-- Recommended path: Upgrade to RN 0.79+, update `react-native-nitro-modules` and `nitro-codegen` to latest, then `pod install` and do a clean build.
-- If you're using React Native version 0.78 or using Expo, consider using [expo-iap](https://expo-iap.hyo.dev/docs/installation) instead (easier configuration by installing `expo-modules-core` first).
+If you must stay on **RN 0.75.x or lower**, install the last pre‑Nitro version: `npm i react-native-iap@13.1.0`.
 
-If issues persist after upgrading or applying the Swift pin, please share a minimal repro (fresh app + `package.json` + `Podfile`). :::
+Hitting Swift 6 C++ interop errors in Nitro (e.g. `AnyMap.swift` using `cppPart.pointee.*`)? Pin Swift 5.10 for the `NitroModules` pod (see snippet below) as a temporary workaround.
+
+Recommended path: Upgrade to RN 0.79+, update `react-native-nitro-modules` and `nitro-codegen` to latest, then `pod install` and do a clean build.
+
+If you're using React Native version 0.78 or using Expo, consider using [expo-iap](https://expo-iap.hyo.dev/docs/installation) instead (easier configuration by installing `expo-modules-core` first).
+
+If issues persist after upgrading or applying the Swift pin, please share a minimal repro (fresh app + `package.json` + `Podfile`).
+:::
 
 ## Prerequisites
 
