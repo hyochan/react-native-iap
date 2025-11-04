@@ -166,7 +166,7 @@ export interface ExternalPurchaseNoticeResultIOS {
   result: ExternalPurchaseNoticeAction;
 }
 
-export type FetchProductsResult = Product[] | ProductSubscription[] | null;
+export type FetchProductsResult = ProductOrSubscription[] | Product[] | ProductSubscription[] | null;
 
 export type IapEvent = 'purchase-updated' | 'purchase-error' | 'promoted-product-ios' | 'user-choice-billing-android';
 
@@ -354,6 +354,8 @@ export interface ProductIOS extends ProductCommon {
   typeIOS: ProductTypeIOS;
 }
 
+export type ProductOrSubscription = Product | ProductSubscription;
+
 export type ProductQueryType = 'in-app' | 'subs' | 'all';
 
 export interface ProductRequest {
@@ -526,7 +528,7 @@ export interface Query {
   /** Get current StoreKit 2 entitlements (iOS 15+) */
   currentEntitlementIOS?: Promise<(PurchaseIOS | null)>;
   /** Retrieve products or subscriptions from the store */
-  fetchProducts: Promise<(Product[] | ProductSubscription[] | null)>;
+  fetchProducts: Promise<(ProductOrSubscription[] | Product[] | ProductSubscription[] | null)>;
   /** Get active subscriptions (filters by subscriptionIds when provided) */
   getActiveSubscriptions: Promise<ActiveSubscription[]>;
   /** Fetch the current app transaction (iOS 16+) */
