@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version or semver (e.g., 3.2.0 | patch | minor | major)'
+        description: 'Choose version bump type'
         required: true
-        type: string
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
       tag:
         description: 'npm dist-tag to publish under'
         required: true
@@ -18,18 +23,8 @@ on:
       create_release:
         description: 'Also create a GitHub Release from the tag'
         required: false
-        default: false
+        default: true
         type: boolean
-      git_user_name:
-        description: 'Git author name for release commit'
-        required: false
-        default: 'react-native-iap bot'
-        type: string
-      git_user_email:
-        description: 'Git author email for release commit'
-        required: false
-        default: 'github-actions[bot]@users.noreply.github.com'
-        type: string
 
 permissions:
   contents: write
@@ -76,8 +71,8 @@ jobs:
 
       - name: Configure Git user
         run: |
-          git config user.name "${{ github.event.inputs.git_user_name }}"
-          git config user.email "${{ github.event.inputs.git_user_email }}"
+          git config user.name "react-native-iap bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump version and tag
         id: bump
@@ -96,12 +91,15 @@ jobs:
         run: |
           git push --follow-tags
 
-      - name: Publish to npm with provenance
+      - name: Ensure npm CLI v11.5.1 or later (required for OIDC)
+        run: npm install -g npm@latest
+
+      - name: Publish to npm with OIDC trusted publishing
         run: |
           if [ "${{ github.event.inputs.tag }}" = "latest" ]; then
-            npm publish --provenance --access public
+            npm publish --access public --provenance
           else
-            npm publish --tag ${{ github.event.inputs.tag }} --provenance --access public
+            npm publish --tag ${{ github.event.inputs.tag }} --access public --provenance
           fi
 
       - name: Create GitHub Release
