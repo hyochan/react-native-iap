@@ -310,11 +310,11 @@ export interface ProductAndroid extends ProductCommon {
   id: string;
   nameAndroid: string;
   oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail | null);
-  platform: IapPlatform;
+  platform: 'android';
   price?: (number | null);
   subscriptionOfferDetailsAndroid?: (ProductSubscriptionAndroidOfferDetails[] | null);
   title: string;
-  type: ProductType;
+  type: 'in-app';
 }
 
 export interface ProductAndroidOneTimePurchaseOfferDetail {
@@ -346,11 +346,11 @@ export interface ProductIOS extends ProductCommon {
   id: string;
   isFamilyShareableIOS: boolean;
   jsonRepresentationIOS: string;
-  platform: IapPlatform;
+  platform: 'ios';
   price?: (number | null);
   subscriptionInfoIOS?: (SubscriptionInfoIOS | null);
   title: string;
-  type: ProductType;
+  type: 'in-app';
   typeIOS: ProductTypeIOS;
 }
 
@@ -372,11 +372,11 @@ export interface ProductSubscriptionAndroid extends ProductCommon {
   id: string;
   nameAndroid: string;
   oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail | null);
-  platform: IapPlatform;
+  platform: 'android';
   price?: (number | null);
   subscriptionOfferDetailsAndroid: ProductSubscriptionAndroidOfferDetails[];
   title: string;
-  type: ProductType;
+  type: 'subs';
 }
 
 export interface ProductSubscriptionAndroidOfferDetails {
@@ -403,13 +403,13 @@ export interface ProductSubscriptionIOS extends ProductCommon {
   introductoryPriceSubscriptionPeriodIOS?: (SubscriptionPeriodIOS | null);
   isFamilyShareableIOS: boolean;
   jsonRepresentationIOS: string;
-  platform: IapPlatform;
+  platform: 'ios';
   price?: (number | null);
   subscriptionInfoIOS?: (SubscriptionInfoIOS | null);
   subscriptionPeriodNumberIOS?: (string | null);
   subscriptionPeriodUnitIOS?: (SubscriptionPeriodIOS | null);
   title: string;
-  type: ProductType;
+  type: 'subs';
   typeIOS: ProductTypeIOS;
 }
 

@@ -1465,6 +1465,58 @@ function SubscriptionFlowContainer() {
     }
   }, [connected, fetchProducts]);
 
+  // 🔍 LOG: Check discount and promotional offer data
+  useEffect(() => {
+    if (subscriptions.length > 0) {
+      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔍 [SubscriptionFlow] DISCOUNT DATA CHECK:');
+      console.log(`   Total subscriptions: ${subscriptions.length}`);
+
+      subscriptions.forEach((sub) => {
+        console.log(`\n   📦 Subscription: ${sub.id}`);
+        console.log(`      • Title: ${sub.title}`);
+        const price = 'localizedPrice' in sub ? sub.localizedPrice : sub.price;
+        console.log(`      • Price: ${price}`);
+
+        // iOS specific fields
+        if (Platform.OS === 'ios' && 'introductoryPricePaymentModeIOS' in sub) {
+          console.log(
+            `      • introductoryPricePaymentModeIOS: ${sub.introductoryPricePaymentModeIOS || 'null'}`,
+          );
+          console.log(
+            `      • introductoryPriceIOS: ${sub.introductoryPriceIOS || 'null'}`,
+          );
+
+          // Log discountsIOS (already parsed as DiscountIOS[])
+          if (sub.discountsIOS && sub.discountsIOS.length > 0) {
+            console.log(
+              `      • discountsIOS: ${sub.discountsIOS.length} discount(s)`,
+            );
+            sub.discountsIOS.forEach((discount, idx) => {
+              console.log(
+                `         [${idx}] type: ${discount.type}, paymentMode: ${discount.paymentMode}, price: ${discount.price}`,
+              );
+            });
+          } else {
+            console.log('      • discountsIOS: empty or null ⚠️');
+          }
+        }
+
+        // Android specific fields
+        if (
+          Platform.OS === 'android' &&
+          'subscriptionOfferDetailsAndroid' in sub
+        ) {
+          console.log(
+            `      • subscriptionOfferDetailsAndroid: ${sub.subscriptionOfferDetailsAndroid?.length || 0} offer(s)`,
+          );
+        }
+      });
+
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    }
+  }, [subscriptions]);
+
   const handleRefreshStatus = useCallback(async () => {
     if (!connected || isCheckingStatus) return;
 
