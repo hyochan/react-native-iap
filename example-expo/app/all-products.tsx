@@ -9,7 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import {router} from 'expo-router';
-import {useIAP, type Product} from 'react-native-iap';
+import {useIAP, type Product, type ProductSubscription} from 'react-native-iap';
 import {PRODUCT_IDS, SUBSCRIPTION_PRODUCT_IDS} from '../constants/products';
 
 export default function AllProductsScreen() {
@@ -73,7 +73,7 @@ export default function AllProductsScreen() {
   }, [connected, handleFetchProducts]);
 
   const handlePurchase = useCallback(
-    (product: Product, type: 'in-app' | 'subs') => {
+    (product: Product | ProductSubscription, type: 'in-app' | 'subs') => {
       if (!connected) {
         Alert.alert('Error', 'Not connected to store');
         return;
@@ -95,7 +95,10 @@ export default function AllProductsScreen() {
     [connected, requestPurchase],
   );
 
-  const renderProduct = (product: Product, type: 'in-app' | 'subs') => (
+  const renderProduct = (
+    product: Product | ProductSubscription,
+    type: 'in-app' | 'subs',
+  ) => (
     <View key={product.id} style={styles.productCard}>
       <View style={styles.productInfo}>
         <Text style={styles.productTitle}>{product.title}</Text>

@@ -21,6 +21,7 @@ import type {
   Product,
   ProductIOS,
   ProductQueryType,
+  ProductSubscription,
   Purchase,
   PurchaseError,
   PurchaseIOS,
@@ -35,8 +36,6 @@ import type {
   RequestSubscriptionIosProps,
   RequestSubscriptionPropsByPlatforms,
   ActiveSubscription,
-  ProductAndroid,
-  ProductSubscriptionAndroid,
 } from './types';
 import {
   convertNitroProductToProduct,
@@ -415,88 +414,66 @@ export const fetchProducts: QueryField<'fetchProducts'> = async (request) => {
     };
 
     if (normalizedType === 'all') {
-      const converted = await fetchAndConvert('all');
+      const converted = (await fetchAndConvert('all')) as (
+        | Product
+        | ProductSubscription
+      )[];
 
       RnIapConsole.debug(
         '[fetchProducts] Converted items before filtering:',
         converted.map((item) => ({
           id: item.id,
           type: item.type,
-          offers: (item as ProductSubscriptionAndroid)
-            .subscriptionOfferDetailsAndroid,
+          platform: item.platform,
         })),
       );
 
       // For 'all' type, need to properly distinguish between products and subscriptions
       // On Android, check subscriptionOfferDetailsAndroid to determine if it's a real subscription
-      const productItems = converted
-        .filter((item): item is Product => {
-          // iOS: check type
-          if (Platform.OS === 'ios') {
-            return item.type === 'in-app';
-          }
-          // Android: if subscriptionOfferDetailsAndroid has content, it's a subscription
-          // Empty array or undefined means it's an in-app product (default)
-          const androidItem = item as ProductAndroid;
+      const productItems: Product[] = [];
+      const subscriptionItems: ProductSubscription[] = [];
+
+      converted.forEach((item) => {
+        // With discriminated unions, type field is now reliable
+        if (item.type === 'in-app') {
+          productItems.push(item);
+          return;
+        }
+
+        // item.type === 'subs' case
+        // For Android, check if subscription items have actual offers
+        if (
+          Platform.OS === 'android' &&
+          item.platform === 'android' &&
+          item.type === 'subs'
+        ) {
+          // TypeScript now knows this is ProductSubscriptionAndroid
           const hasSubscriptionOffers =
-            androidItem.subscriptionOfferDetailsAndroid &&
-            Array.isArray(androidItem.subscriptionOfferDetailsAndroid) &&
-            androidItem.subscriptionOfferDetailsAndroid.length > 0;
+            item.subscriptionOfferDetailsAndroid &&
+            Array.isArray(item.subscriptionOfferDetailsAndroid) &&
+            item.subscriptionOfferDetailsAndroid.length > 0;
 
           RnIapConsole.debug(
-            `[fetchProducts] ${item.id}: type=${item.type}, subscriptionOfferDetailsAndroid=${
-              androidItem.subscriptionOfferDetailsAndroid === undefined
-                ? 'undefined'
-                : Array.isArray(androidItem.subscriptionOfferDetailsAndroid)
-                  ? `array(${androidItem.subscriptionOfferDetailsAndroid.length})`
-                  : 'not-array'
-            }, isProduct=${!hasSubscriptionOffers}`,
+            `[fetchProducts] ${item.id}: type=${item.type}, hasOffers=${hasSubscriptionOffers}`,
           );
-          return !hasSubscriptionOffers; // Default is in-app product
-        })
-        .map((item) => {
-          // Fix the type field for Android products that were incorrectly marked as 'subs'
-          if (Platform.OS === 'android' && item.type === 'subs') {
-            return {
-              ...item,
+
+          if (hasSubscriptionOffers) {
+            subscriptionItems.push(item);
+          } else {
+            // Treat as product if no offers - convert type
+            const {subscriptionOfferDetailsAndroid: _, ...productFields} =
+              item as any;
+            productItems.push({
+              ...productFields,
               type: 'in-app' as const,
-            };
+            } as Product);
           }
-          return item;
-        });
-
-      const subscriptionItems = converted
-        .filter((item) => {
-          // iOS: check type
-          if (Platform.OS === 'ios') {
-            return item.type === 'subs';
-          }
-          // Android: only consider it a subscription if it has actual offers
-          const androidItem = item as ProductAndroid;
-          const hasSubscriptionOffers =
-            androidItem.subscriptionOfferDetailsAndroid &&
-            Array.isArray(androidItem.subscriptionOfferDetailsAndroid) &&
-            androidItem.subscriptionOfferDetailsAndroid.length > 0;
-
-          RnIapConsole.debug(
-            `[fetchProducts-sub] ${item.id}: type=${item.type}, subscriptionOfferDetailsAndroid=${
-              androidItem.subscriptionOfferDetailsAndroid === undefined
-                ? 'undefined'
-                : Array.isArray(androidItem.subscriptionOfferDetailsAndroid)
-                  ? `array(${androidItem.subscriptionOfferDetailsAndroid.length})`
-                  : 'not-array'
-            }, isSub=${hasSubscriptionOffers}`,
-          );
-          return hasSubscriptionOffers;
-        })
-        .map((item) => {
-          // Ensure subscription items have the correct type
-          const subscription = convertProductToProductSubscription(item);
-          return {
-            ...subscription,
-            type: 'subs' as const,
-          };
-        });
+        } else if (item.platform === 'ios' && item.type === 'subs') {
+          // iOS: type field is reliable with discriminated unions
+          // TypeScript now knows this is ProductSubscriptionIOS
+          subscriptionItems.push(item);
+        }
+      });
 
       RnIapConsole.debug(
         '[fetchProducts] After filtering - products:',
