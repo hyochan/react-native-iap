@@ -6,6 +6,7 @@ import com.margelo.nitro.core.Promise
 import dev.hyo.openiap.AndroidSubscriptionOfferInput
 import dev.hyo.openiap.DeepLinkOptions as OpenIapDeepLinkOptions
 import dev.hyo.openiap.FetchProductsResult
+import dev.hyo.openiap.FetchProductsResultAll
 import dev.hyo.openiap.FetchProductsResultProducts
 import dev.hyo.openiap.FetchProductsResultSubscriptions
 import dev.hyo.openiap.OpenIapError as OpenIAPError
@@ -727,6 +728,7 @@ class HybridRnIap : HybridRnIapSpec() {
     private fun FetchProductsResult.productsOrEmpty(): List<ProductCommon> = when (this) {
         is FetchProductsResultProducts -> this.value.orEmpty().filterIsInstance<ProductCommon>()
         is FetchProductsResultSubscriptions -> this.value.orEmpty().filterIsInstance<ProductCommon>()
+        is FetchProductsResultAll -> this.value.orEmpty().filterIsInstance<ProductCommon>()
     }
 
     private fun dev.hyo.openiap.RequestPurchaseResult?.purchasesOrEmpty(): List<OpenIapPurchase> = when (this) {
