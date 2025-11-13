@@ -31,7 +31,93 @@ permissions:
   id-token: write # Required for OIDC trusted publishing
 
 jobs:
+  # Pre-release validation jobs
+  validate-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRADLE_OPTS: '-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.configureondemand=true -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError"'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Enable Corepack (Yarn 3)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Generate nitrogen code
+        run: yarn nitrogen
+
+      - name: Install JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Accept Android SDK licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Build Android library
+        working-directory: example/android
+        run: ./gradlew :react-native-iap:assembleDebug --stacktrace
+
+  validate-ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      XCODE_VERSION: 16.4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Enable Corepack (Yarn 3)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Generate nitrogen code
+        run: yarn nitrogen
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install Ruby dependencies
+        working-directory: example
+        run: bundle install
+
+      - name: Install CocoaPods dependencies
+        working-directory: example/ios
+        run: bundle exec pod install
+
+      - name: Build iOS library
+        working-directory: example/ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -workspace example.xcworkspace \
+            -scheme example \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
   deploy:
+    needs: [validate-android, validate-ios]
     runs-on: ubuntu-latest
 
     steps:

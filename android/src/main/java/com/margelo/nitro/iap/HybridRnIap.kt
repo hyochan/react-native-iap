@@ -339,7 +339,7 @@ class HybridRnIap : HybridRnIapSpec() {
 
                 if (activity == null) {
                     RnIapLog.warn("requestPurchase: Activity is null - cannot start purchase flow")
-                    sendPurchaseError(toErrorResult(OpenIAPError.ActivityUnavailable))
+                    sendPurchaseError(toErrorResult(OpenIAPError.MissingCurrentActivity))
                     return@async defaultResult
                 }
 
