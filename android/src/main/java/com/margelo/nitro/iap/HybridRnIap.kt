@@ -330,7 +330,22 @@ class HybridRnIap : HybridRnIapSpec() {
 
             try {
                 initConnection(null).await()
-                withContext(Dispatchers.Main) { runCatching { openIap.setActivity(context.currentActivity) } }
+
+                // Ensure Activity is available for purchase flow
+                val activity = withContext(Dispatchers.Main) {
+                    runCatching { context.currentActivity }
+                        .getOrNull()
+                }
+
+                if (activity == null) {
+                    RnIapLog.warn("requestPurchase: Activity is null - cannot start purchase flow")
+                    sendPurchaseError(toErrorResult(OpenIAPError.ActivityUnavailable))
+                    return@async defaultResult
+                }
+
+                withContext(Dispatchers.Main) {
+                    openIap.setActivity(activity)
+                }
 
                 val missingSkus = androidRequest.skus.filterNot { productTypeBySku.containsKey(it) }
                 if (missingSkus.isNotEmpty()) {
