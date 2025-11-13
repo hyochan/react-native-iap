@@ -369,66 +369,39 @@ export const normalizeErrorCodeFromNative = (code: unknown): ErrorCode => {
     // Handle E_ prefixed codes
     if (upper.startsWith('E_')) {
       const trimmed = upper.slice(2);
-      // Try direct match first
-      if ((ErrorCode as any)[trimmed]) {
-        return (ErrorCode as any)[trimmed];
-      }
 
-      // Try camelCase conversion
-      const camel = trimmed
-        .toLowerCase()
-        .split('_')
-        .map((segment) => {
-          if (!segment) return segment;
-          return segment.charAt(0).toUpperCase() + segment.slice(1);
-        })
-        .join('');
-      if ((ErrorCode as any)[camel]) {
-        return (ErrorCode as any)[camel];
-      }
-
-      // Try kebab-case conversion
+      // Try kebab-case conversion (most common format)
       const kebab = trimmed.toLowerCase().replace(/_/g, '-');
-      if ((ErrorCode as any)[kebab]) {
-        return (ErrorCode as any)[kebab];
+      if (OPENIAP_ERROR_CODE_SET.has(kebab)) {
+        return kebab as ErrorCode;
       }
     }
 
-    // Handle direct kebab-case codes
+    // Handle direct kebab-case codes (check against enum values, not keys)
     if (code.includes('-')) {
-      if ((ErrorCode as any)[code]) {
-        return (ErrorCode as any)[code];
+      // Check if the code is already a valid ErrorCode value
+      if (OPENIAP_ERROR_CODE_SET.has(code)) {
+        return code as ErrorCode;
       }
     }
 
     // Handle snake_case codes
     if (code.includes('_')) {
-      const camel = code
-        .toLowerCase()
-        .split('_')
-        .map((segment) => {
-          if (!segment) return segment;
-          return segment.charAt(0).toUpperCase() + segment.slice(1);
-        })
-        .join('');
-      if ((ErrorCode as any)[camel]) {
-        return (ErrorCode as any)[camel];
-      }
-
       const kebab = code.toLowerCase().replace(/_/g, '-');
-      if ((ErrorCode as any)[kebab]) {
-        return (ErrorCode as any)[kebab];
+      if (OPENIAP_ERROR_CODE_SET.has(kebab)) {
+        return kebab as ErrorCode;
       }
     }
 
-    // Try direct match with ErrorCode enum
-    if ((ErrorCode as any)[code]) {
-      return (ErrorCode as any)[code];
+    // Try direct match with ErrorCode enum values
+    if (OPENIAP_ERROR_CODE_SET.has(code)) {
+      return code as ErrorCode;
     }
 
-    // Try uppercase match
-    if ((ErrorCode as any)[upper]) {
-      return (ErrorCode as any)[upper];
+    // Try lowercase match
+    const lower = code.toLowerCase();
+    if (OPENIAP_ERROR_CODE_SET.has(lower)) {
+      return lower as ErrorCode;
     }
   }
 
