@@ -9,6 +9,11 @@ runs:
       with:
         node-version-file: .nvmrc
 
+    # Disable Corepack to prevent online Yarn downloads
+    - name: Disable Corepack
+      run: corepack disable
+      shell: bash
+
     # Avoid Corepack online fetch; use vendored Yarn from .yarn/releases
     - name: Print Yarn version (vendored)
       run: node .yarn/releases/yarn-3.6.1.cjs -v
