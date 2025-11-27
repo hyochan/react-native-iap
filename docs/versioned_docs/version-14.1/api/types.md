@@ -1,8 +1,8 @@
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Types
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 ## OpenIAP Type Definitions
 

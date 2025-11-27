@@ -4,11 +4,11 @@ sidebar_label: FAQ
 sidebar_position: 6
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Frequently Asked Questions
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 ## General Questions
 

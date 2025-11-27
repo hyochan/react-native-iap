@@ -4,11 +4,11 @@ sidebar_label: Alternative Billing
 sidebar_position: 3.5
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Alternative Billing
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This guide explains how to implement alternative billing functionality in your app using react-native-iap, allowing you to use external payment systems alongside or instead of the App Store/Google Play billing.
 

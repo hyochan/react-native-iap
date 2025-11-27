@@ -2,11 +2,11 @@
 sidebar_position: 2
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Error Codes
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 React Native IAP provides a centralized error handling system with platform-specific error code mapping. This ensures consistent error handling across iOS and Android platforms.
 

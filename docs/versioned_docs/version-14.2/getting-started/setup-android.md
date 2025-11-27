@@ -2,11 +2,11 @@
 sidebar_position: 2
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Android Setup
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 For complete Android setup instructions including Google Play Console configuration, app setup, and testing guidelines, please visit:
 

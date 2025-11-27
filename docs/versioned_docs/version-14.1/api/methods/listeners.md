@@ -4,11 +4,11 @@ sidebar_label: Listeners
 sidebar_position: 2
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Purchase Listeners
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 react-native-iap provides event listeners to handle purchase updates and errors. These listeners are essential for handling the asynchronous nature of in-app purchases.
 

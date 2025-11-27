@@ -3,11 +3,11 @@ title: Offer Code Redemption
 sidebar_label: Offer Code Redemption
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Offer Code Redemption
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This guide explains how to implement offer code redemption functionality in your app using react-native-iap.
 

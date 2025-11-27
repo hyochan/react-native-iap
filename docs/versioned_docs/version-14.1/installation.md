@@ -2,11 +2,11 @@
 sidebar_position: 2
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Installation
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This guide will help you install and configure React Native IAP in your React Native or Expo project.
 

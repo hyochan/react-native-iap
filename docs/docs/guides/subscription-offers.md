@@ -4,11 +4,11 @@ sidebar_label: Subscription Offers
 sidebar_position: 3
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Subscription Offers
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This guide explains how to handle subscription offers (pricing plans) when purchasing subscriptions on iOS and Android platforms.
 

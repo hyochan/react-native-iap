@@ -4,11 +4,11 @@ sidebar_label: Support
 sidebar_position: 8
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Support & Contributing
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 We welcome contributions and are here to help you succeed with react-native-iap!
 

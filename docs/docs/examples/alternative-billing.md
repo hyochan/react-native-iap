@@ -4,11 +4,11 @@ sidebar_label: Alternative Billing
 sidebar_position: 4.5
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Alternative Billing
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 Use alternative billing to redirect users to external payment systems or offer payment choices alongside platform billing.
 

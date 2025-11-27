@@ -2,11 +2,11 @@
 sidebar_position: 3
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Complete Purchase
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This example shows how to properly complete a purchase transaction with validation and finishTransaction.
 

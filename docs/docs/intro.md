@@ -2,11 +2,11 @@
 sidebar_position: 1
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed"; import SponsorSection from '@site/src/components/SponsorSection';
+import GreatFrontEndBanner from "@site/src/uis/GreatFrontEndBanner"; import SponsorSection from '@site/src/components/SponsorSection';
 
 # React Native IAP
 
-<AdFitTopFixed />
+<GreatFrontEndBanner type="default" />
 
 ---
 
@@ -55,9 +55,7 @@ Install the package using your favorite package manager:
 npm install react-native-iap react-native-nitro-modules
 ```
 
-:::tip Nitro Modules Dependency
-Starting from v14.4.0, react-native-iap uses [Nitro Modules](https://github.com/margelo/nitro) for native bridging. For more details, see the [announcement discussion](https://github.com/hyochan/react-native-iap/discussions/2985).
-:::
+:::tip Nitro Modules Dependency Starting from v14.4.0, react-native-iap uses [Nitro Modules](https://github.com/margelo/nitro) for native bridging. For more details, see the [announcement discussion](https://github.com/hyochan/react-native-iap/discussions/2985). :::
 
 ### 1. Basic Setup
 

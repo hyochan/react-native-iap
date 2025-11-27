@@ -3,11 +3,11 @@ title: Error Handling
 sidebar_label: Error Handling
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Error Handling
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 All methods can throw errors that should be handled appropriately. Use the `PurchaseError` type and helper functions for consistent, cross‑platform error information.
 

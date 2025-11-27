@@ -6,19 +6,17 @@ sidebar_position: 2
 
 <!-- This document was renamed from subscription-manager.md to subscription-flow.md -->
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Subscriptions Flow
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This guide demonstrates practical subscription scenarios with react-native-iap.
 
-:::tip
-The complete working example can be found at [example/screens/SubscriptionFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx).
+:::tip The complete working example can be found at [example/screens/SubscriptionFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx).
 
-Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only.
-:::
+Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only. :::
 
 ## 1. Purchasing a Subscription with `requestPurchase`
 

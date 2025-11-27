@@ -4,11 +4,11 @@ sidebar_label: Troubleshooting
 sidebar_position: 5
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Troubleshooting
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This guide covers common issues you might encounter when implementing in-app purchases with react-native-iap and how to resolve them.
 

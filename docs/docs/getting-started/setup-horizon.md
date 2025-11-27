@@ -2,7 +2,11 @@
 sidebar_position: 4
 ---
 
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+
 # Horizon OS
+
+<GreatFrontEndTopFixed />
 
 This guide covers setting up react-native-iap for Meta Quest devices running Horizon OS. Horizon OS uses Meta's Platform SDK for in-app purchases instead of Google Play Billing.
 

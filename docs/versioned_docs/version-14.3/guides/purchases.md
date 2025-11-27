@@ -4,11 +4,11 @@ sidebar_label: Purchases
 sidebar_position: 2
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Purchases
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 > :warning: **Purchase Flow Redesign** :warning:
 >

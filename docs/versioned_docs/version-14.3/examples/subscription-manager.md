@@ -4,11 +4,11 @@ sidebar_label: Subscriptions
 sidebar_position: 2
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Subscription Management Example
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This guide demonstrates how to implement subscription management with React Native IAP, including subscription status checking, renewal handling, and subscription management UI.
 

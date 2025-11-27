@@ -2,7 +2,11 @@
 sidebar_position: 4
 ---
 
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+
 # Error Handling
+
+<GreatFrontEndTopFixed />
 
 This guide covers best practices for handling errors in your react-native-iap implementation.
 

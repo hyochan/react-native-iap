@@ -1,8 +1,8 @@
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # API Reference
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 Welcome to the React Native IAP API documentation. Here you'll find comprehensive guides and references for all the features and functionality available in React Native IAP.
 

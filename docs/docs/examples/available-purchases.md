@@ -4,19 +4,17 @@ sidebar_label: Available Purchases
 sidebar_position: 3
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Available Purchases
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This guide demonstrates how to list and restore previously purchased items (non‑consumables and active subscriptions) using `getAvailablePurchases()` and `getActiveSubscriptions()`.
 
-:::tip
-The complete working example can be found at [example/screens/AvailablePurchases.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/AvailablePurchases.tsx).
+:::tip The complete working example can be found at [example/screens/AvailablePurchases.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/AvailablePurchases.tsx).
 
-Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only.
-:::
+Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only. :::
 
 ## Restore Flow
 

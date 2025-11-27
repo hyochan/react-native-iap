@@ -2,6 +2,10 @@
 title: Support
 ---
 
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+
+<GreatFrontEndTopFixed />
+
 ## Need Help?
 
 We are committed to providing the best possible support to our community. If you're facing any issues or have questions, here are the best ways to get help:

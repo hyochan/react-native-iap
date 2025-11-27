@@ -2,16 +2,15 @@
 sidebar_position: 2
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Installation
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 This guide will help you install and configure React Native IAP in your React Native or Expo project.
 
-:::warning Compatibility (Nitro 14.x)
-`react-native-iap@14.x` is Nitro-based and requires **React Native 0.79+**.
+:::warning Compatibility (Nitro 14.x) `react-native-iap@14.x` is Nitro-based and requires **React Native 0.79+**.
 
 If you must stay on **RN 0.75.x or lower**, install the last pre‑Nitro version: `npm i react-native-iap@13.1.0`.
 
@@ -21,8 +20,7 @@ Recommended path: Upgrade to RN 0.79+, update `react-native-nitro-modules` and `
 
 If you're using React Native version 0.78 or using Expo, consider using [expo-iap](https://expo-iap.hyo.dev/docs/installation) instead (easier configuration by installing `expo-modules-core` first).
 
-If issues persist after upgrading or applying the Swift pin, please share a minimal repro (fresh app + `package.json` + `Podfile`).
-:::
+If issues persist after upgrading or applying the Swift pin, please share a minimal repro (fresh app + `package.json` + `Podfile`). :::
 
 ## Prerequisites
 

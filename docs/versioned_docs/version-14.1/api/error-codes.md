@@ -2,11 +2,11 @@
 sidebar_position: 2
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 # Error Codes
 
-<AdFitTopFixed />
+<GreatFrontEndTopFixed />
 
 React Native IAP uses standardized error codes that conform to the OpenIAP specification.
 
