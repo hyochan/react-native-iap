@@ -13,6 +13,7 @@ import type {
   NitroSubscriptionStatus,
   RnIap,
 } from './specs/RnIap.nitro';
+import {ErrorCode} from './types';
 import type {
   AndroidSubscriptionOfferInput,
   DiscountOfferInputIOS,
@@ -1451,8 +1452,15 @@ export const verifyPurchaseWithProvider: MutationField<
       provider: options.provider,
       iapkit: options.iapkit ?? null,
     });
+    // Validate provider - Nitro spec allows 'none' for compatibility, but this function only supports 'iapkit'
+    if (result.provider !== 'iapkit') {
+      throw createPurchaseError({
+        code: ErrorCode.DeveloperError,
+        message: `Unsupported provider: ${result.provider}. Only 'iapkit' is supported.`,
+      });
+    }
     return {
-      provider: result.provider as 'iapkit',
+      provider: result.provider,
       iapkit: result.iapkit.map((item) => ({
         isValid: item.isValid,
         state: item.state,
