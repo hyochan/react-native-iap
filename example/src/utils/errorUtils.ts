@@ -14,6 +14,9 @@ export function getErrorMessage(error: unknown): string {
     Array.isArray((error as {errors: unknown[]}).errors)
   ) {
     const errors = (error as {errors: {message?: string}[]}).errors;
+    if (errors.length === 0) {
+      return 'Unknown error';
+    }
     return errors[0]?.message || JSON.stringify(errors[0]) || 'Unknown error';
   }
 
