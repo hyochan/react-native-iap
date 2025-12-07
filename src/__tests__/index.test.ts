@@ -1290,5 +1290,96 @@ describe('Public API (src/index.ts)', () => {
         iapkit: null,
       });
     });
+
+    it('should handle various IAPKit purchase states', async () => {
+      (Platform as any).OS = 'ios';
+      const states = [
+        'entitled',
+        'pending-acknowledgment',
+        'pending',
+        'canceled',
+        'expired',
+        'ready-to-consume',
+        'consumed',
+        'unknown',
+        'inauthentic',
+      ];
+
+      for (const state of states) {
+        const mockResult = {
+          provider: 'iapkit',
+          iapkit: [{isValid: state !== 'inauthentic', state, store: 'apple'}],
+        };
+        mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
+
+        const result = await IAP.verifyPurchaseWithProvider({
+          provider: 'iapkit',
+          iapkit: {
+            apiKey: 'key',
+            apple: {jws: 'jws'},
+          },
+        });
+
+        expect(result.iapkit[0].state).toBe(state);
+      }
+    });
+
+    it('should handle inauthentic verification response', async () => {
+      (Platform as any).OS = 'ios';
+      const mockResult = {
+        provider: 'iapkit',
+        iapkit: [{isValid: false, state: 'inauthentic', store: 'apple'}],
+      };
+      mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
+
+      const result = await IAP.verifyPurchaseWithProvider({
+        provider: 'iapkit',
+        iapkit: {
+          apiKey: 'key',
+          apple: {jws: 'invalid-jws'},
+        },
+      });
+
+      expect(result.iapkit[0].isValid).toBe(false);
+      expect(result.iapkit[0].state).toBe('inauthentic');
+    });
+
+    it('should handle ready-to-consume state for consumables', async () => {
+      (Platform as any).OS = 'android';
+      const mockResult = {
+        provider: 'iapkit',
+        iapkit: [{isValid: true, state: 'ready-to-consume', store: 'google'}],
+      };
+      mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
+
+      const result = await IAP.verifyPurchaseWithProvider({
+        provider: 'iapkit',
+        iapkit: {
+          apiKey: 'key',
+          google: {purchaseToken: 'token', packageName: 'com.app', productId: 'consumable'},
+        },
+      });
+
+      expect(result.iapkit[0].state).toBe('ready-to-consume');
+    });
+
+    it('should handle pending-acknowledgment state for subscriptions', async () => {
+      (Platform as any).OS = 'android';
+      const mockResult = {
+        provider: 'iapkit',
+        iapkit: [{isValid: true, state: 'pending-acknowledgment', store: 'google'}],
+      };
+      mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
+
+      const result = await IAP.verifyPurchaseWithProvider({
+        provider: 'iapkit',
+        iapkit: {
+          apiKey: 'key',
+          google: {purchaseToken: 'token', packageName: 'com.app', productId: 'subscription'},
+        },
+      });
+
+      expect(result.iapkit[0].state).toBe('pending-acknowledgment');
+    });
   });
 });
