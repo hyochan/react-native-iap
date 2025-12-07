@@ -1452,7 +1452,6 @@ export const verifyPurchaseWithProvider: MutationField<
       iapkit: options.iapkit ?? null,
     });
     return {
-      // Cast provider to match the types.ts definition (Nitro uses 'iapkit' | 'none' for compatibility)
       provider: result.provider as 'iapkit',
       iapkit: result.iapkit.map((item) => ({
         isValid: item.isValid,

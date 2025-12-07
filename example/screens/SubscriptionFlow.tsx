@@ -9,7 +9,6 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
-  ActionSheetIOS,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
@@ -27,9 +26,12 @@ import {
 import {IAPKIT_API_KEY} from '@env';
 import Loading from '../src/components/Loading';
 import {SUBSCRIPTION_PRODUCT_IDS} from '../src/utils/constants';
+import {getErrorMessage} from '../src/utils/errorUtils';
+import {
+  useVerificationMethod,
+  type VerificationMethod,
+} from '../src/hooks/useVerificationMethod';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
-
-type VerificationMethod = 'ignore' | 'local' | 'iapkit';
 
 type ExtendedPurchase = Purchase & {
   purchaseTokenAndroid?: string;
@@ -1345,14 +1347,12 @@ function SubscriptionFlowContainer() {
   const [lastPurchasedPlan, setLastPurchasedPlan] = useState<string | null>(
     null,
   );
-  const [verificationMethod, setVerificationMethod] =
-    useState<VerificationMethod>('ignore');
-  const verificationMethodRef = useRef<VerificationMethod>(verificationMethod);
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    verificationMethodRef.current = verificationMethod;
-  }, [verificationMethod]);
+  const {
+    verificationMethod,
+    verificationMethodRef,
+    showVerificationMethodSelector,
+  } = useVerificationMethod('ignore');
 
   const lastSuccessAtRef = useRef(0);
   const connectedRef = useRef(false);
@@ -1537,25 +1537,9 @@ function SubscriptionFlowContainer() {
           }
         } catch (error) {
           console.warn('[SubscriptionFlow] Verification failed:', error);
-          // Extract error message from various formats
-          let errorMessage = 'Unknown error';
-          if (error instanceof Error) {
-            errorMessage = error.message;
-          } else if (
-            error &&
-            typeof error === 'object' &&
-            'errors' in error &&
-            Array.isArray((error as {errors: unknown[]}).errors)
-          ) {
-            const errors = (error as {errors: {message?: string}[]}).errors;
-            errorMessage =
-              errors[0]?.message ||
-              JSON.stringify(errors[0]) ||
-              'Unknown error';
-          }
           Alert.alert(
             'Verification Failed',
-            `Purchase verification failed: ${errorMessage}`,
+            `Purchase verification failed: ${getErrorMessage(error)}`,
           );
         } finally {
           setIsProcessing(false);
@@ -1851,54 +1835,6 @@ function SubscriptionFlowContainer() {
     }
   }, []);
 
-  const handleChangeVerificationMethod = useCallback(() => {
-    const options = [
-      'None (Skip)',
-      'Local (Device)',
-      'IAPKit (Server)',
-      'Cancel',
-    ];
-    const cancelButtonIndex = 3;
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options,
-          cancelButtonIndex,
-          title: 'Select Verification Method',
-          message: 'Choose how to verify purchases after completion',
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 0) {
-            setVerificationMethod('ignore');
-          } else if (buttonIndex === 1) {
-            setVerificationMethod('local');
-          } else if (buttonIndex === 2) {
-            setVerificationMethod('iapkit');
-          }
-        },
-      );
-    } else {
-      // For Android, use simple Alert with buttons
-      Alert.alert(
-        'Select Verification Method',
-        'Choose how to verify purchases after completion',
-        [
-          {text: 'None (Skip)', onPress: () => setVerificationMethod('ignore')},
-          {
-            text: 'Local (Device)',
-            onPress: () => setVerificationMethod('local'),
-          },
-          {
-            text: 'IAPKit (Server)',
-            onPress: () => setVerificationMethod('iapkit'),
-          },
-          {text: 'Cancel', style: 'cancel'},
-        ],
-      );
-    }
-  }, []);
-
   return (
     <SubscriptionFlow
       connected={connected}
@@ -1917,7 +1853,7 @@ function SubscriptionFlowContainer() {
       onRetryLoadSubscriptions={handleRetryLoadSubscriptions}
       onRefreshStatus={handleRefreshStatus}
       onManageSubscriptions={handleManageSubscriptions}
-      onChangeVerificationMethod={handleChangeVerificationMethod}
+      onChangeVerificationMethod={showVerificationMethodSelector}
     />
   );
 }

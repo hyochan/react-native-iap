@@ -8,7 +8,6 @@ import {
   Platform,
   Modal,
   ScrollView,
-  ActionSheetIOS,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
@@ -25,6 +24,11 @@ import {
   NON_CONSUMABLE_PRODUCT_IDS,
   PRODUCT_IDS,
 } from '../src/utils/constants';
+import {getErrorMessage} from '../src/utils/errorUtils';
+import {
+  useVerificationMethod,
+  type VerificationMethod,
+} from '../src/hooks/useVerificationMethod';
 import type {
   Product,
   Purchase,
@@ -32,8 +36,6 @@ import type {
   VerifyPurchaseWithProviderProps,
 } from 'react-native-iap';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
-
-type VerificationMethod = 'ignore' | 'local' | 'iapkit';
 
 const CONSUMABLE_PRODUCT_ID_SET = new Set(CONSUMABLE_PRODUCT_IDS);
 const NON_CONSUMABLE_PRODUCT_ID_SET = new Set(NON_CONSUMABLE_PRODUCT_IDS);
@@ -399,14 +401,12 @@ function PurchaseFlowContainer() {
   const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
   const [storefront, setStorefront] = useState<string | null>(null);
   const [fetchingStorefront, setFetchingStorefront] = useState(false);
-  const [verificationMethod, setVerificationMethod] =
-    useState<VerificationMethod>('ignore');
-  const verificationMethodRef = useRef<VerificationMethod>(verificationMethod);
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    verificationMethodRef.current = verificationMethod;
-  }, [verificationMethod]);
+  const {
+    verificationMethod,
+    verificationMethodRef,
+    showVerificationMethodSelector,
+  } = useVerificationMethod('ignore');
 
   const {
     connected,
@@ -547,25 +547,9 @@ function PurchaseFlowContainer() {
           }
         } catch (error) {
           console.warn('[PurchaseFlow] Verification failed:', error);
-          // Extract error message from various formats
-          let errorMessage = 'Unknown error';
-          if (error instanceof Error) {
-            errorMessage = error.message;
-          } else if (
-            error &&
-            typeof error === 'object' &&
-            'errors' in error &&
-            Array.isArray((error as {errors: unknown[]}).errors)
-          ) {
-            const errors = (error as {errors: {message?: string}[]}).errors;
-            errorMessage =
-              errors[0]?.message ||
-              JSON.stringify(errors[0]) ||
-              'Unknown error';
-          }
           Alert.alert(
             'Verification Failed',
-            `Purchase verification failed: ${errorMessage}`,
+            `Purchase verification failed: ${getErrorMessage(error)}`,
           );
         } finally {
           setIsProcessing(false);
@@ -671,54 +655,6 @@ function PurchaseFlowContainer() {
     void fetchStorefront();
   }, [fetchStorefront]);
 
-  const handleChangeVerificationMethod = useCallback(() => {
-    const options = [
-      'None (Skip)',
-      'Local (Device)',
-      'IAPKit (Server)',
-      'Cancel',
-    ];
-    const cancelButtonIndex = 3;
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options,
-          cancelButtonIndex,
-          title: 'Select Verification Method',
-          message: 'Choose how to verify purchases after completion',
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 0) {
-            setVerificationMethod('ignore');
-          } else if (buttonIndex === 1) {
-            setVerificationMethod('local');
-          } else if (buttonIndex === 2) {
-            setVerificationMethod('iapkit');
-          }
-        },
-      );
-    } else {
-      // For Android, use simple Alert with buttons
-      Alert.alert(
-        'Select Verification Method',
-        'Choose how to verify purchases after completion',
-        [
-          {text: 'None (Skip)', onPress: () => setVerificationMethod('ignore')},
-          {
-            text: 'Local (Device)',
-            onPress: () => setVerificationMethod('local'),
-          },
-          {
-            text: 'IAPKit (Server)',
-            onPress: () => setVerificationMethod('iapkit'),
-          },
-          {text: 'Cancel', style: 'cancel'},
-        ],
-      );
-    }
-  }, []);
-
   return (
     <PurchaseFlow
       connected={connected}
@@ -731,7 +667,7 @@ function PurchaseFlowContainer() {
       verificationMethod={verificationMethod}
       onPurchase={handlePurchase}
       onRefreshStorefront={handleRefreshStorefront}
-      onChangeVerificationMethod={handleChangeVerificationMethod}
+      onChangeVerificationMethod={showVerificationMethodSelector}
     />
   );
 }
