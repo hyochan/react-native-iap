@@ -8,11 +8,11 @@ The react-native-iap type surface is now generated in one place: `src/types.ts`.
 
 Key runtime helpers that build on these types live alongside them:
 
-- `src/types.ts` – auto-generated enums and interfaces
-- `src/utils/errorMapping.ts` – typed error helpers (`createPurchaseError`, `ErrorCodeUtils`)
-- `src/helpers/subscription.ts` – subscription utilities that re-export `ActiveSubscription`
+- [`src/types.ts`](https://github.com/hyochan/react-native-iap/blob/main/src/types.ts) – auto-generated enums and interfaces
+- [`src/utils/errorMapping.ts`](https://github.com/hyochan/react-native-iap/blob/main/src/utils/errorMapping.ts) – typed error helpers (`createPurchaseError`, `ErrorCodeUtils`)
+- [`src/helpers/subscription.ts`](https://github.com/hyochan/react-native-iap/blob/main/src/helpers/subscription.ts) – subscription utilities that re-export `ActiveSubscription`
 
-Below is a curated overview of the most commonly used types. Consult `src/types.ts` for the full schema.
+Below is a curated overview of the most commonly used types. Consult [`src/types.ts`](https://github.com/hyochan/react-native-iap/blob/main/src/types.ts) for the full schema.
 
 ## Core Type Aliases
 
@@ -30,54 +30,7 @@ export type PurchaseState =
   | 'unknown';
 ```
 
-The `ErrorCode` enum uses kebab-case values for consistency:
-
-```ts
-export enum ErrorCode {
-  ActivityUnavailable = 'activity-unavailable',
-  AlreadyOwned = 'already-owned',
-  AlreadyPrepared = 'already-prepared',
-  BillingResponseJsonParseError = 'billing-response-json-parse-error',
-  BillingUnavailable = 'billing-unavailable',
-  ConnectionClosed = 'connection-closed',
-  DeferredPayment = 'deferred-payment',
-  DeveloperError = 'developer-error',
-  EmptySkuList = 'empty-sku-list',
-  FeatureNotSupported = 'feature-not-supported',
-  IapNotAvailable = 'iap-not-available',
-  InitConnection = 'init-connection',
-  Interrupted = 'interrupted',
-  ItemNotOwned = 'item-not-owned',
-  ItemUnavailable = 'item-unavailable',
-  NetworkError = 'network-error',
-  NotEnded = 'not-ended',
-  NotPrepared = 'not-prepared',
-  Pending = 'pending',
-  PurchaseError = 'purchase-error',
-  QueryProduct = 'query-product',
-  ReceiptFailed = 'receipt-failed',
-  ReceiptFinished = 'receipt-finished',
-  ReceiptFinishedFailed = 'receipt-finished-failed',
-  RemoteError = 'remote-error',
-  ServiceDisconnected = 'service-disconnected',
-  ServiceError = 'service-error',
-  SkuNotFound = 'sku-not-found',
-  SkuOfferMismatch = 'sku-offer-mismatch',
-  SyncError = 'sync-error',
-  TransactionValidationFailed = 'transaction-validation-failed',
-  Unknown = 'unknown',
-  UserCancelled = 'user-cancelled',
-  UserError = 'user-error',
-}
-```
-
-**Note:** Native platforms use different formats:
-
-- **Android Native**: Uses `E_` prefix (e.g., `E_USER_CANCELLED`)
-- **iOS Native**: Uses kebab-case (e.g., `user-cancelled`)
-- **TypeScript**: Automatically normalized to `ErrorCode` enum values (kebab-case)
-
-Use `createPurchaseError` from `src/utils/errorMapping.ts` to work with typed errors and platform mappings. The `normalizeErrorCodeFromNative()` function automatically converts native error codes to the standardized `ErrorCode` enum format.
+For `ErrorCode` enum and error handling utilities, see [Error Handling](./error-handling).
 
 ## Product Types
 
@@ -200,22 +153,22 @@ export type MutationRequestPurchaseArgs =
     };
 ```
 
-## Receipt Validation
+## Purchase Verification
 
-Receipt validation results are platform-specific unions:
+Purchase verification results are platform-specific unions:
 
 ```ts
-export type ReceiptValidationResult =
-  | ReceiptValidationResultAndroid
-  | ReceiptValidationResultIos;
+export type PurchaseVerificationResult =
+  | PurchaseVerificationResultAndroid
+  | PurchaseVerificationResultIos;
 ```
 
 Use the higher-level `validateReceipt` helper exported from `src/index.ts` for a strongly typed wrapper around the native modules.
 
 ## Where to Find Everything
 
-- For the exhaustive list of enums and interfaces, open `src/types.ts`.
-- For error handling utilities (`createPurchaseError`, `ErrorCodeUtils`), use `src/utils/errorMapping.ts`.
+- For the exhaustive list of enums and interfaces, open [`src/types.ts`](https://github.com/hyochan/react-native-iap/blob/main/src/types.ts).
+- For error handling utilities (`createPurchaseError`, `ErrorCodeUtils`), see [`src/utils/errorMapping.ts`](https://github.com/hyochan/react-native-iap/blob/main/src/utils/errorMapping.ts).
 - All generated types are re-exported from the package root so consumers can import from `react-native-iap` directly:
 
 ```ts

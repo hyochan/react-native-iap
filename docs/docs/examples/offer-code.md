@@ -12,9 +12,11 @@ import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 This guide demonstrates how to redeem App Store offer/promo codes using the native iOS sheet. This is useful for subscription promotional codes and requires a real iOS device.
 
-:::tip The complete working example can be found at [example/screens/OfferCode.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/OfferCode.tsx).
+:::tip
+The complete working example can be found at [example/screens/OfferCode.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/OfferCode.tsx).
 
-Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only. :::
+Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only.
+:::
 
 ## Usage
 

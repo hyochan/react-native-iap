@@ -89,7 +89,7 @@ function App() {
 
 ### iOS-Specific Features
 
-#### Receipt Validation
+#### Purchase Verification
 
 ```tsx
 const validateReceiptExample = async (productId: string) => {
@@ -161,7 +161,7 @@ const handlePurchaseError = (error: any) => {
 - Verify internet connection
 - Try on a real device (simulator may have issues)
 
-### Receipt Validation Failures
+### Purchase Verification Failures
 
 **Problem**: Receipt validation returns invalid **Solution**:
 

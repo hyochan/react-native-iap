@@ -180,7 +180,7 @@ const restorePurchases = async () => {
 };
 ```
 
-## Receipt Validation
+## Purchase Verification
 
 ### Do I need to validate receipts on my server?
 

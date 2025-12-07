@@ -55,154 +55,20 @@ Install the package using your favorite package manager:
 npm install react-native-iap react-native-nitro-modules
 ```
 
-:::tip Nitro Modules Dependency Starting from v14.4.0, react-native-iap uses [Nitro Modules](https://github.com/margelo/nitro) for native bridging. For more details, see the [announcement discussion](https://github.com/hyochan/react-native-iap/discussions/2985). :::
+:::tip Nitro Modules Dependency
+Starting from v14.4.0, react-native-iap uses [Nitro Modules](https://github.com/margelo/nitro) for native bridging. For more details, see the [announcement discussion](https://github.com/hyochan/react-native-iap/discussions/2985).
+:::
 
-### 1. Basic Setup
-
-First, import and initialize the IAP hook:
+### Basic Usage
 
 ```tsx
 import {useIAP, ErrorCode} from 'react-native-iap';
 
-function MyStore() {
-  const {
-    connected,
-    products,
-    fetchProducts,
-    requestPurchase,
-    finishTransaction,
-  } = useIAP();
-
-  const productIds = ['your.product.id', 'your.premium.subscription'];
-}
-```
-
-### 2. Fetch Products
-
-Load your products when the store connects:
-
-```tsx
-useEffect(() => {
-  if (connected) {
-    // Fetch your products
-    fetchProducts({skus: productIds, type: 'in-app'});
-  }
-}, [connected]);
-```
-
-### 3. Display Products
-
-Show available products to users:
-
-```tsx
-return (
-  <View>
-    <Text>Store Status: {connected ? 'Connected' : 'Connecting...'}</Text>
-
-    {products.map((product) => (
-      <View key={product.id} style={styles.productItem}>
-        <Text style={styles.productTitle}>{product.title}</Text>
-        <Text style={styles.productPrice}>{product.displayPrice}</Text>
-        <Button title="Buy Now" onPress={() => handlePurchase(product.id)} />
-      </View>
-    ))}
-  </View>
-);
-```
-
-### 4. Handle Purchases
-
-Process purchase requests with our new platform-specific API (v2.7.0+):
-
-```tsx
-const handlePurchase = async (productId: string) => {
-  try {
-    await requestPurchase({
-      request: {
-        ios: {
-          sku: productId,
-        },
-        android: {
-          skus: [productId],
-        },
-      },
-    });
-  } catch (error) {
-    console.error('Purchase failed:', error);
-  }
-};
-```
-
-**No more Platform.OS checks!** The new API automatically handles platform differences. iOS can only purchase one product at a time, while Android supports purchasing multiple products in a single transaction.
-
-### 5. Handle Purchase Callbacks
-
-Use the `onPurchaseSuccess` and `onPurchaseError` callbacks to handle purchase results:
-
-```tsx
 const {connected, products, fetchProducts, requestPurchase, finishTransaction} =
   useIAP({
     onPurchaseSuccess: async (purchase) => {
-      try {
-        console.log('Purchase successful:', purchase.productId);
-
-        // TODO: Verify the receipt on your backend before granting access
-        // const isValid = await verifyReceiptOnBackend(purchase);
-        // if (!isValid) {
-        //   throw new Error('Invalid receipt');
-        // }
-
-        // Finish the transaction after verification
-        await finishTransaction({
-          purchase,
-          isConsumable: true, // Set based on your product type
-        });
-      } catch (error) {
-        console.error('Failed to complete purchase:', error);
-      }
-    },
-    onPurchaseError: (error) => {
-      if (error.code !== ErrorCode.UserCancelled) {
-        console.error('Purchase error:', error);
-      }
-    },
-  });
-```
-
-### Complete Basic Example
-
-Here's a complete working example:
-
-```tsx
-import React, {useEffect} from 'react';
-import {View, Text, Button, StyleSheet} from 'react-native';
-import {useIAP, ErrorCode} from 'react-native-iap';
-
-export default function SimpleStore() {
-  const {
-    connected,
-    products,
-    fetchProducts,
-    requestPurchase,
-    finishTransaction,
-  } = useIAP({
-    onPurchaseSuccess: async (purchase) => {
-      try {
-        console.log('Purchase successful:', purchase.productId);
-
-        // TODO: Verify the receipt on your backend before granting access
-        // const isValid = await verifyReceiptOnBackend(purchase);
-        // if (!isValid) {
-        //   throw new Error('Invalid receipt');
-        // }
-
-        await finishTransaction({
-          purchase,
-          isConsumable: true,
-        });
-      } catch (error) {
-        console.error('Failed to complete purchase:', error);
-      }
+      // Validate on your server, then finish
+      await finishTransaction({purchase, isConsumable: true});
     },
     onPurchaseError: (error) => {
       if (error.code !== ErrorCode.UserCancelled) {
@@ -211,61 +77,24 @@ export default function SimpleStore() {
     },
   });
 
-  const productIds = ['com.example.coins.pack1', 'com.example.premium'];
+// Fetch products when connected
+useEffect(() => {
+  if (connected) {
+    fetchProducts({skus: ['product_id'], type: 'in-app'});
+  }
+}, [connected]);
 
-  useEffect(() => {
-    if (connected) {
-      fetchProducts({skus: productIds, type: 'in-app'});
-    }
-  }, [connected]);
-
-  const handlePurchase = async (productId: string) => {
-    try {
-      await requestPurchase({
-        request: {
-          ios: {
-            sku: productId,
-          },
-          android: {
-            skus: [productId],
-          },
-        },
-      });
-    } catch (error) {
-      console.error('Purchase failed:', error);
-    }
-  };
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.status}>
-        Store: {connected ? 'Connected ✅' : 'Connecting...'}
-      </Text>
-
-      {products.map((product) => (
-        <View key={product.id} style={styles.product}>
-          <Text style={styles.title}>{product.title}</Text>
-          <Text style={styles.price}>{product.displayPrice}</Text>
-          <Button title="Buy Now" onPress={() => handlePurchase(product.id)} />
-        </View>
-      ))}
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {padding: 20},
-  status: {fontSize: 16, marginBottom: 20},
-  product: {
-    padding: 15,
-    marginVertical: 5,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
+// Purchase (platform-specific)
+await requestPurchase({
+  request: {
+    ios: {sku: 'product_id'},
+    android: {skus: ['product_id']},
   },
-  title: {fontSize: 16, fontWeight: 'bold'},
-  price: {fontSize: 14, color: '#666', marginVertical: 5},
+  type: 'in-app',
 });
 ```
+
+For complete examples, see [Purchase Flow](./examples/purchase-flow) and [Subscription Flow](./examples/subscription-flow).
 
 ## 🏗️ Architecture
 
@@ -310,7 +139,7 @@ React Native IAP is built with a modern architecture that emphasizes:
 
 ### 🛠️ Advanced Topics
 
-- [**Receipt Validation**](./guides/purchases): Secure purchase validation
+- [**Purchase Verification**](./guides/purchases): Secure purchase verification
 - [**Error Handling**](./guides/error-handling): Comprehensive error management
 - [**Subscriptions Flow Example**](./examples/subscription-flow): Handle recurring subscriptions
 - [**Troubleshooting**](./guides/troubleshooting): Common issues and solutions
