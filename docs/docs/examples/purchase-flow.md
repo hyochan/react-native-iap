@@ -138,6 +138,105 @@ You can customize this example by:
 4. **Error Handling**: Add more specific error handling for your use case
 5. **Features**: Add features like purchase restoration, subscription management, etc.
 
+## IAPKit Verification Setup
+
+For server-side receipt validation without managing your own infrastructure, you can use [IAPKit](https://iapkit.com).
+
+### 1. Install react-native-dotenv
+
+```bash
+yarn add react-native-dotenv
+```
+
+### 2. Configure babel.config.js
+
+```js
+module.exports = {
+  presets: ['module:@react-native/babel-preset'],
+  plugins: [
+    [
+      'module:react-native-dotenv',
+      {
+        moduleName: '@env',
+        path: '.env',
+      },
+    ],
+  ],
+};
+```
+
+### 3. Create .env file
+
+```bash
+IAPKIT_API_KEY=your_iapkit_api_key_here
+```
+
+### 4. Add TypeScript declarations
+
+Create `src/types/env.d.ts`:
+
+```ts
+declare module '@env' {
+  export const IAPKIT_API_KEY: string;
+}
+```
+
+### 5. Verify purchases with IAPKit
+
+```tsx
+import {Platform} from 'react-native';
+import {verifyPurchaseWithProvider, Purchase} from 'react-native-iap';
+import {IAPKIT_API_KEY} from '@env';
+
+const verifyWithIAPKit = async (purchase: Purchase) => {
+  const result = await verifyPurchaseWithProvider({
+    provider: 'iapkit',
+    iapkit: {
+      apiKey: IAPKIT_API_KEY,
+      environment: __DEV__ ? 'sandbox' : 'production',
+      apple:
+        Platform.OS === 'ios'
+          ? {
+              jws: purchase.purchaseToken!,
+            }
+          : undefined,
+      google:
+        Platform.OS === 'android'
+          ? {
+              purchaseToken: purchase.purchaseToken!,
+              packageName: 'com.your.app',
+              productId: purchase.productId,
+            }
+          : undefined,
+    },
+  });
+
+  return result;
+};
+```
+
+### 6. Integrate with useIAP
+
+```tsx
+const {finishTransaction} = useIAP({
+  onPurchaseSuccess: async (purchase) => {
+    try {
+      // Verify with IAPKit before finishing
+      const result = await verifyWithIAPKit(purchase);
+
+      if (result.iapkit.isValid) {
+        await finishTransaction({purchase, isConsumable: true});
+        Alert.alert('Success', 'Purchase verified and completed!');
+      } else {
+        Alert.alert('Error', 'Purchase verification failed');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+    }
+  },
+});
+```
+
 ## Next Steps
 
 - Implement proper [receipt validation](../guides/purchases#receipt-validation)

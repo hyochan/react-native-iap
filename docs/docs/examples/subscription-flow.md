@@ -641,6 +641,99 @@ When changing subscriptions on Android, use these numeric constants for `replace
 5. **Test thoroughly**: Use sandbox/test accounts for both platforms
 6. **Store state properly**: Cache subscription status to reduce API calls
 
+## IAPKit Verification for Subscriptions
+
+For subscription verification without managing your own server infrastructure, you can use [IAPKit](https://iapkit.com).
+
+### Setup
+
+Follow the [IAPKit setup guide in Purchase Flow](./purchase-flow#iapkit-verification-setup) for initial configuration (react-native-dotenv, .env file, TypeScript declarations).
+
+### Verify Subscription Purchases
+
+```tsx
+import {Platform} from 'react-native';
+import {verifyPurchaseWithProvider, Purchase} from 'react-native-iap';
+import {IAPKIT_API_KEY} from '@env';
+
+const verifySubscription = async (purchase: Purchase) => {
+  const result = await verifyPurchaseWithProvider({
+    provider: 'iapkit',
+    iapkit: {
+      apiKey: IAPKIT_API_KEY,
+      environment: __DEV__ ? 'sandbox' : 'production',
+      apple:
+        Platform.OS === 'ios'
+          ? {
+              jws: purchase.purchaseToken!,
+            }
+          : undefined,
+      google:
+        Platform.OS === 'android'
+          ? {
+              purchaseToken: purchase.purchaseToken!,
+              packageName: 'com.your.app',
+              productId: purchase.productId,
+            }
+          : undefined,
+    },
+  });
+
+  return result;
+};
+```
+
+### Integrate with Subscription Purchase
+
+```tsx
+const {finishTransaction} = useIAP({
+  onPurchaseSuccess: async (purchase) => {
+    try {
+      const result = await verifySubscription(purchase);
+
+      if (result.iapkit.isValid) {
+        await finishTransaction({purchase, isConsumable: false});
+        // Update your app's subscription state
+        setIsSubscribed(true);
+        Alert.alert('Success', 'Subscription activated!');
+      } else {
+        Alert.alert('Error', 'Subscription verification failed');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+    }
+  },
+});
+```
+
+### Check Subscription Status on App Launch
+
+```tsx
+useEffect(() => {
+  const checkSubscriptionStatus = async () => {
+    if (!connected) return;
+
+    try {
+      await getAvailablePurchases();
+      // availablePurchases will contain active subscriptions
+
+      for (const purchase of availablePurchases) {
+        const result = await verifySubscription(purchase);
+
+        if (result.iapkit.isValid) {
+          setIsSubscribed(true);
+          break;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check subscription status:', error);
+    }
+  };
+
+  checkSubscriptionStatus();
+}, [connected, availablePurchases]);
+```
+
 ## Additional Resources
 
 - [Complete working example](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx)
