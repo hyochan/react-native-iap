@@ -56,24 +56,97 @@ await requestPurchase({
 - **Validation**: Always validate receipts on your server before finishing
 - **Finish transaction**: Call `finishTransaction()` after validation to prevent replay
 
-## IAPKit Verification
+## IAPKit Server Verification
 
-For server-side validation without your own infrastructure, use [IAPKit](https://iapkit.com):
+[IAPKit](https://iapkit.com) provides server-side receipt verification without your own infrastructure.
+
+### Setup
+
+1. Get your API key from [IAPKit Dashboard](https://iapkit.com)
+2. Add environment variable:
+   ```
+   EXPO_PUBLIC_IAPKIT_API_KEY=your_api_key_here
+   ```
+
+### Usage
 
 ```tsx
-const result = await verifyPurchaseWithProvider({
-  provider: 'iapkit',
-  iapkit: {
-    apiKey: IAPKIT_API_KEY,
-    apple: {jws: purchase.purchaseToken!},
-    google: {purchaseToken: purchase.purchaseToken!},
+import {verifyPurchaseWithProvider} from 'react-native-iap';
+
+const verifyPurchase = async (purchase: Purchase) => {
+  const result = await verifyPurchaseWithProvider({
+    provider: 'iapkit',
+    iapkit: {
+      apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
+      apple: {jws: purchase.purchaseToken!},
+      google: {purchaseToken: purchase.purchaseToken!},
+    },
+  });
+
+  if (result.iapkit.isValid) {
+    // Grant entitlement to user
+    await finishTransaction({purchase, isConsumable: true});
+  }
+};
+```
+
+### With useIAP Hook
+
+```tsx
+const {finishTransaction} = useIAP({
+  onPurchaseSuccess: async (purchase) => {
+    const result = await verifyPurchaseWithProvider({
+      provider: 'iapkit',
+      iapkit: {
+        apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
+        apple: {jws: purchase.purchaseToken!},
+        google: {purchaseToken: purchase.purchaseToken!},
+      },
+    });
+
+    if (result.iapkit.isValid) {
+      await finishTransaction({purchase, isConsumable: true});
+    }
   },
 });
-
-if (result.iapkit.isValid) {
-  await finishTransaction({purchase, isConsumable: true});
-}
 ```
+
+### Verification Response
+
+IAPKit returns a standardized response:
+
+```typescript
+interface IapkitVerificationResult {
+  isValid: boolean;
+  state: IapkitPurchaseState;
+  store: 'apple' | 'google';
+}
+
+type IapkitPurchaseState =
+  | 'entitled'
+  | 'pending-acknowledgment'
+  | 'pending'
+  | 'canceled'
+  | 'expired'
+  | 'ready-to-consume'
+  | 'consumed'
+  | 'unknown'
+  | 'inauthentic';
+```
+
+### Verification Methods
+
+| Method              | Description                          | Use Case               |
+| ------------------- | ------------------------------------ | ---------------------- |
+| **None (Skip)**     | Skip verification                    | Testing/Development    |
+| **Local (Device)**  | Verify with Apple/Google directly    | Simple validation      |
+| **IAPKit (Server)** | Server-side verification via IAPKit  | Production recommended |
+
+### Testing
+
+The [example app](https://github.com/hyochan/react-native-iap/blob/main/example/screens/PurchaseFlow.tsx) has built-in IAPKit support. Set your API key and use the "Purchase Verification" button to test.
+
+For more information, visit [IAPKit Documentation](https://iapkit.com/docs).
 
 ## Resources
 

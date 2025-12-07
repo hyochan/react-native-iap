@@ -101,22 +101,44 @@ await requestPurchase({
 | `2`   | CHARGE_PRORATED_PRICE | Immediate with prorated charge |
 | `6`   | DEFERRED              | Change at next renewal         |
 
-## IAPKit Verification
+## IAPKit Server Verification
+
+[IAPKit](https://iapkit.com) provides server-side subscription verification without your own infrastructure.
+
+### Setup
+
+1. Get your API key from [IAPKit Dashboard](https://iapkit.com)
+2. Add environment variable:
+   ```
+   EXPO_PUBLIC_IAPKIT_API_KEY=your_api_key_here
+   ```
+
+### Usage
 
 ```tsx
-const result = await verifyPurchaseWithProvider({
-  provider: 'iapkit',
-  iapkit: {
-    apiKey: IAPKIT_API_KEY,
-    apple: {jws: purchase.purchaseToken!},
-    google: {purchaseToken: purchase.purchaseToken!},
+import {verifyPurchaseWithProvider} from 'react-native-iap';
+
+const {finishTransaction} = useIAP({
+  onPurchaseSuccess: async (purchase) => {
+    const result = await verifyPurchaseWithProvider({
+      provider: 'iapkit',
+      iapkit: {
+        apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
+        apple: {jws: purchase.purchaseToken!},
+        google: {purchaseToken: purchase.purchaseToken!},
+      },
+    });
+
+    if (result.iapkit.isValid) {
+      await finishTransaction({purchase});
+    }
   },
 });
-
-if (result.iapkit.isValid) {
-  await finishTransaction({purchase});
-}
 ```
+
+### Testing
+
+The [example app](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx) has built-in IAPKit support. Set your API key and test subscription verification.
 
 ## Key Points
 
