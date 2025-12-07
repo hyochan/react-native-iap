@@ -643,8 +643,161 @@ When changing subscriptions on Android, use these numeric constants for `replace
 5. **Test thoroughly**: Use sandbox/test accounts for both platforms
 6. **Store state properly**: Cache subscription status to reduce API calls
 
+## IAPKit Verification for Subscriptions
+
+The example app supports IAPKit for server-side subscription verification. Here's how to integrate it:
+
+### Environment Setup
+
+Create a `.env` file in the example directory:
+
+```bash
+# example/.env
+IAPKIT_API_KEY=your_iapkit_api_key_here
+```
+
+Get your API key from [iapkit.com](https://iapkit.com).
+
+### Verification Method Selection
+
+The example provides a verification method selector (tap "Verification" button):
+
+- **None (Skip)**: Skip verification
+- **Local (Device)**: On-device verification via `verifyPurchase()`
+- **IAPKit (Server)**: Server-side verification via `verifyPurchaseWithProvider()`
+
+### Using verifyPurchaseWithProvider for Subscriptions
+
+```tsx
+import {verifyPurchaseWithProvider, Purchase} from 'react-native-iap';
+import {Platform} from 'react-native';
+import {IAPKIT_API_KEY} from '@env';
+
+const verifySubscriptionWithIAPKit = async (purchase: Purchase) => {
+  try {
+    const result = await verifyPurchaseWithProvider({
+      provider: 'iapkit',
+      iapkit: {
+        apiKey: IAPKIT_API_KEY,
+        environment: __DEV__ ? 'sandbox' : 'production',
+        apple:
+          Platform.OS === 'ios'
+            ? {jws: purchase.purchaseToken ?? ''}
+            : undefined,
+        google:
+          Platform.OS === 'android'
+            ? {
+                purchaseToken: purchase.purchaseToken ?? '',
+                packageName: 'your.package.name',
+                productId: purchase.productId,
+              }
+            : undefined,
+      },
+    });
+
+    // Check verification result for subscriptions
+    for (const item of result.iapkit) {
+      console.log(`Verification: ${item.state}, Valid: ${item.isValid}`);
+
+      // For subscriptions, check entitled or pending-acknowledgment
+      if (item.isValid) {
+        switch (item.state) {
+          case 'entitled':
+            return {verified: true, status: 'active'};
+          case 'pending-acknowledgment':
+            return {verified: true, status: 'needs_acknowledgment'};
+          case 'expired':
+            return {verified: true, status: 'expired'};
+          case 'canceled':
+            return {verified: true, status: 'canceled'};
+          default:
+            return {verified: true, status: item.state};
+        }
+      }
+    }
+    return {verified: false, status: 'invalid'};
+  } catch (error) {
+    console.error('IAPKit verification failed:', error);
+    return {verified: false, status: 'error'};
+  }
+};
+```
+
+### Integration with Subscription Purchase Flow
+
+```tsx
+const {finishTransaction} = useIAP({
+  onPurchaseSuccess: async (purchase) => {
+    let shouldFinish = false;
+
+    if (verificationMethod === 'iapkit') {
+      const {verified, status} = await verifySubscriptionWithIAPKit(purchase);
+
+      if (verified && (status === 'active' || status === 'entitled')) {
+        shouldFinish = true;
+        setActiveSubscription(purchase.productId);
+      } else if (status === 'needs_acknowledgment') {
+        // For Android, finish transaction to acknowledge
+        shouldFinish = true;
+      } else {
+        Alert.alert('Verification Failed', `Status: ${status}`);
+      }
+    } else if (verificationMethod === 'local') {
+      const result = await verifyPurchase({sku: purchase.productId});
+      shouldFinish = result.isValid;
+    } else {
+      shouldFinish = true; // Skip verification
+    }
+
+    if (shouldFinish) {
+      await finishTransaction({purchase, isConsumable: false});
+      Alert.alert('Success', 'Subscription activated!');
+    }
+  },
+});
+```
+
+### IAPKit States for Subscriptions
+
+| State | Description | Action |
+| --- | --- | --- |
+| `entitled` | Active subscription | Grant access |
+| `pending-acknowledgment` | Needs acknowledgment (Android) | Call `finishTransaction` |
+| `expired` | Subscription expired | Remove access |
+| `canceled` | User canceled (may still have access until period ends) | Check renewal status |
+| `inauthentic` | Verification failed | Deny access |
+
+### Verifying Subscription Renewals
+
+For subscription renewals, use `getActiveSubscriptions()` combined with IAPKit verification:
+
+```tsx
+const checkSubscriptionValidity = async () => {
+  const activeSubscriptions = await getActiveSubscriptions();
+
+  for (const subscription of activeSubscriptions) {
+    const {verified, status} = await verifySubscriptionWithIAPKit({
+      ...subscription,
+      purchaseToken: subscription.purchaseToken,
+    } as Purchase);
+
+    if (verified && status === 'entitled') {
+      return {
+        isValid: true,
+        productId: subscription.productId,
+        expiresAt: subscription.expirationDateIOS,
+      };
+    }
+  }
+
+  return {isValid: false};
+};
+```
+
 ## Additional Resources
 
 - [Complete working example](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx)
 - [iOS Subscription Groups Documentation](https://developer.apple.com/app-store/subscriptions/)
 - [Android Subscription Upgrade/Downgrade](https://developer.android.com/google/play/billing/subscriptions#upgrade-downgrade)
+- [IAPKit Documentation](https://iapkit.com/docs)
+- [verifyPurchaseWithProvider API](../api/methods/core-methods#verifypurchasewithprovider)

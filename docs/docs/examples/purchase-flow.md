@@ -140,6 +140,119 @@ You can customize this example by:
 4. **Error Handling**: Add more specific error handling for your use case
 5. **Features**: Add features like purchase restoration, subscription management, etc.
 
+## IAPKit Verification Setup
+
+The example app supports IAPKit for server-side purchase verification. Here's how to set it up:
+
+### 1. Environment Configuration
+
+Create a `.env` file in the example directory with your IAPKit API key:
+
+```bash
+# example/.env
+IAPKIT_API_KEY=your_iapkit_api_key_here
+```
+
+You can get your API key from [iapkit.com](https://iapkit.com).
+
+### 2. Verification Method Selection
+
+The example app provides three verification methods that can be selected via UI:
+
+- **None (Skip)**: Skip verification entirely
+- **Local (Device)**: Use on-device verification via `verifyPurchase()`
+- **IAPKit (Server)**: Use IAPKit for server-side verification via `verifyPurchaseWithProvider()`
+
+### 3. Using verifyPurchaseWithProvider
+
+```tsx
+import {verifyPurchaseWithProvider, Purchase} from 'react-native-iap';
+import {Platform} from 'react-native';
+import {IAPKIT_API_KEY} from '@env';
+
+const verifyWithIAPKit = async (purchase: Purchase) => {
+  try {
+    const result = await verifyPurchaseWithProvider({
+      provider: 'iapkit',
+      iapkit: {
+        apiKey: IAPKIT_API_KEY,
+        environment: __DEV__ ? 'sandbox' : 'production',
+        apple:
+          Platform.OS === 'ios'
+            ? {jws: purchase.purchaseToken ?? ''}
+            : undefined,
+        google:
+          Platform.OS === 'android'
+            ? {
+                purchaseToken: purchase.purchaseToken ?? '',
+                packageName: 'your.package.name',
+                productId: purchase.productId,
+              }
+            : undefined,
+      },
+    });
+
+    // Check verification result
+    for (const item of result.iapkit) {
+      if (item.isValid && item.state === 'entitled') {
+        console.log('Purchase verified successfully!');
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error('IAPKit verification failed:', error);
+    return false;
+  }
+};
+```
+
+### 4. Integration with Purchase Flow
+
+In your `onPurchaseSuccess` callback:
+
+```tsx
+const {finishTransaction} = useIAP({
+  onPurchaseSuccess: async (purchase) => {
+    let isVerified = false;
+
+    // Choose verification method based on user preference
+    if (verificationMethod === 'iapkit') {
+      isVerified = await verifyWithIAPKit(purchase);
+    } else if (verificationMethod === 'local') {
+      const result = await verifyPurchase({sku: purchase.productId});
+      isVerified = result.isValid;
+    } else {
+      // Skip verification
+      isVerified = true;
+    }
+
+    if (isVerified) {
+      await finishTransaction({purchase, isConsumable: true});
+      Alert.alert('Success', 'Purchase completed!');
+    } else {
+      Alert.alert('Error', 'Purchase verification failed');
+    }
+  },
+});
+```
+
+### IAPKit Verification States
+
+The `state` field in the verification result indicates the purchase status:
+
+| State | Description |
+| --- | --- |
+| `entitled` | User is entitled to the product |
+| `pending` | Purchase is pending |
+| `pending-acknowledgment` | Purchase needs acknowledgment (Android) |
+| `ready-to-consume` | Consumable ready to be consumed |
+| `consumed` | Consumable has been consumed |
+| `canceled` | Purchase was canceled |
+| `expired` | Subscription has expired |
+| `inauthentic` | Purchase verification failed |
+| `unknown` | Unknown state |
+
 ## Next Steps
 
 - Implement proper [receipt validation](../guides/purchases#receipt-validation)
