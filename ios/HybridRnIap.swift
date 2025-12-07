@@ -265,7 +265,22 @@ class HybridRnIap: HybridRnIapSpec {
             }
         }
     }
-    
+
+    func hasActiveSubscriptions(subscriptionIds: [String]?) throws -> Promise<Bool> {
+        return Promise.async {
+            try self.ensureConnection()
+            do {
+                RnIapLog.payload("hasActiveSubscriptions", subscriptionIds ?? [])
+                let hasActive = try await OpenIapModule.shared.hasActiveSubscriptions(subscriptionIds)
+                RnIapLog.result("hasActiveSubscriptions", hasActive)
+                return hasActive
+            } catch {
+                RnIapLog.failure("hasActiveSubscriptions", error: error)
+                throw error
+            }
+        }
+    }
+
     func finishTransaction(params: NitroFinishTransactionParams) throws -> Promise<Variant_Bool_NitroPurchaseResult> {
         return Promise.async {
             guard let iosParams = params.ios else { return .first(true) }
@@ -305,7 +320,7 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             do {
                 RnIapLog.payload("validateReceiptIOS", ["sku": params.sku])
-                let props = try OpenIapSerialization.receiptValidationProps(from: ["sku": params.sku])
+                let props = try OpenIapSerialization.verifyPurchaseProps(from: ["sku": params.sku])
                 let result = try await OpenIapModule.shared.validateReceiptIOS(props)
                 var encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
                 if encoded["receiptData"] != nil {
@@ -329,6 +344,50 @@ class HybridRnIap: HybridRnIapSpec {
                 return .first(mapped)
             } catch {
                 RnIapLog.failure("validateReceiptIOS", error: error)
+                throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func verifyPurchaseWithProvider(params: NitroVerifyPurchaseWithProviderProps) throws -> Promise<NitroVerifyPurchaseWithProviderResult> {
+        return Promise.async {
+            do {
+                RnIapLog.payload("verifyPurchaseWithProvider", ["provider": params.provider.stringValue])
+                // Convert Nitro params to OpenIAP props using JSONSerialization (same as expo-iap)
+                // Use stringValue for enum to get proper string representation ("iapkit" instead of numeric rawValue)
+                var propsDict: [String: Any] = ["provider": params.provider.stringValue]
+                if let iapkit = params.iapkit {
+                    var iapkitDict: [String: Any] = [:]
+                    if let apiKey = iapkit.apiKey {
+                        iapkitDict["apiKey"] = apiKey
+                    }
+                    if let apple = iapkit.apple {
+                        iapkitDict["apple"] = ["jws": apple.jws]
+                    }
+                    if let google = iapkit.google {
+                        iapkitDict["google"] = ["purchaseToken": google.purchaseToken]
+                    }
+                    propsDict["iapkit"] = iapkitDict
+                }
+                // Use JSONSerialization + JSONDecoder like expo-iap does
+                let jsonData = try JSONSerialization.data(withJSONObject: propsDict)
+                let props = try JSONDecoder().decode(VerifyPurchaseWithProviderProps.self, from: jsonData)
+                let result = try await OpenIapModule.shared.verifyPurchaseWithProvider(props)
+                RnIapLog.result("verifyPurchaseWithProvider", ["provider": result.provider, "iapkitCount": result.iapkit.count])
+                // Convert result to Nitro types
+                let nitroIapkitResults = result.iapkit.map { item -> NitroVerifyPurchaseWithIapkitResult in
+                    NitroVerifyPurchaseWithIapkitResult(
+                        isValid: item.isValid,
+                        state: IapkitPurchaseState(fromString: item.state.rawValue) ?? .unknown,
+                        store: IapkitStore(fromString: item.store.rawValue) ?? .apple
+                    )
+                }
+                return NitroVerifyPurchaseWithProviderResult(
+                    iapkit: nitroIapkitResults,
+                    provider: PurchaseVerificationProvider(fromString: result.provider.rawValue) ?? .iapkit
+                )
+            } catch {
+                RnIapLog.failure("verifyPurchaseWithProvider", error: error)
                 throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
             }
         }

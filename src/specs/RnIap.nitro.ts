@@ -14,15 +14,34 @@ import type {
   ProductCommon,
   PurchaseCommon,
   PurchaseOptions,
-  ReceiptValidationAndroidOptions,
-  ReceiptValidationProps,
-  ReceiptValidationResultAndroid,
+  VerifyPurchaseAndroidOptions,
+  VerifyPurchaseProps,
+  VerifyPurchaseResultAndroid,
   RequestPurchaseIosProps,
   RequestPurchaseResult,
   RequestSubscriptionAndroidProps,
   UserChoiceBillingDetails,
   PaymentModeIOS,
 } from '../types';
+
+// Nitro-compatible enum types (Nitro doesn't support inline string unions from types.ts)
+export type IapPlatform = 'ios' | 'android';
+
+export type IapkitPurchaseState =
+  | 'entitled'
+  | 'pending-acknowledgment'
+  | 'pending'
+  | 'canceled'
+  | 'expired'
+  | 'ready-to-consume'
+  | 'consumed'
+  | 'unknown'
+  | 'inauthentic';
+
+export type IapkitStore = 'apple' | 'google';
+
+// Note: Nitro requires at least 2 values for union types
+export type PurchaseVerificationProvider = 'iapkit' | 'none';
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║                                  PARAMS                                  ║
@@ -31,14 +50,14 @@ import type {
 // Receipt validation parameters
 
 export interface NitroReceiptValidationAndroidOptions {
-  accessToken: ReceiptValidationAndroidOptions['accessToken'];
-  isSub?: ReceiptValidationAndroidOptions['isSub'];
-  packageName: ReceiptValidationAndroidOptions['packageName'];
-  productToken: ReceiptValidationAndroidOptions['productToken'];
+  accessToken: VerifyPurchaseAndroidOptions['accessToken'];
+  isSub?: VerifyPurchaseAndroidOptions['isSub'];
+  packageName: VerifyPurchaseAndroidOptions['packageName'];
+  productToken: VerifyPurchaseAndroidOptions['productToken'];
 }
 
 export interface NitroReceiptValidationParams {
-  sku: ReceiptValidationProps['sku'];
+  sku: VerifyPurchaseProps['sku'];
   androidOptions?: NitroReceiptValidationAndroidOptions | null;
 }
 
@@ -165,24 +184,58 @@ export interface NitroReceiptValidationResultIOS {
 }
 
 export interface NitroReceiptValidationResultAndroid {
-  autoRenewing: ReceiptValidationResultAndroid['autoRenewing'];
-  betaProduct: ReceiptValidationResultAndroid['betaProduct'];
-  cancelDate: ReceiptValidationResultAndroid['cancelDate'];
-  cancelReason: ReceiptValidationResultAndroid['cancelReason'];
-  deferredDate: ReceiptValidationResultAndroid['deferredDate'];
-  deferredSku: ReceiptValidationResultAndroid['deferredSku'];
-  freeTrialEndDate: ReceiptValidationResultAndroid['freeTrialEndDate'];
-  gracePeriodEndDate: ReceiptValidationResultAndroid['gracePeriodEndDate'];
-  parentProductId: ReceiptValidationResultAndroid['parentProductId'];
-  productId: ReceiptValidationResultAndroid['productId'];
-  productType: ReceiptValidationResultAndroid['productType'];
-  purchaseDate: ReceiptValidationResultAndroid['purchaseDate'];
-  quantity: ReceiptValidationResultAndroid['quantity'];
-  receiptId: ReceiptValidationResultAndroid['receiptId'];
-  renewalDate: ReceiptValidationResultAndroid['renewalDate'];
-  term: ReceiptValidationResultAndroid['term'];
-  termSku: ReceiptValidationResultAndroid['termSku'];
-  testTransaction: ReceiptValidationResultAndroid['testTransaction'];
+  autoRenewing: VerifyPurchaseResultAndroid['autoRenewing'];
+  betaProduct: VerifyPurchaseResultAndroid['betaProduct'];
+  cancelDate: VerifyPurchaseResultAndroid['cancelDate'];
+  cancelReason: VerifyPurchaseResultAndroid['cancelReason'];
+  deferredDate: VerifyPurchaseResultAndroid['deferredDate'];
+  deferredSku: VerifyPurchaseResultAndroid['deferredSku'];
+  freeTrialEndDate: VerifyPurchaseResultAndroid['freeTrialEndDate'];
+  gracePeriodEndDate: VerifyPurchaseResultAndroid['gracePeriodEndDate'];
+  parentProductId: VerifyPurchaseResultAndroid['parentProductId'];
+  productId: VerifyPurchaseResultAndroid['productId'];
+  productType: VerifyPurchaseResultAndroid['productType'];
+  purchaseDate: VerifyPurchaseResultAndroid['purchaseDate'];
+  quantity: VerifyPurchaseResultAndroid['quantity'];
+  receiptId: VerifyPurchaseResultAndroid['receiptId'];
+  renewalDate: VerifyPurchaseResultAndroid['renewalDate'];
+  term: VerifyPurchaseResultAndroid['term'];
+  termSku: VerifyPurchaseResultAndroid['termSku'];
+  testTransaction: VerifyPurchaseResultAndroid['testTransaction'];
+}
+
+// VerifyPurchaseWithProvider types
+
+export interface NitroVerifyPurchaseWithIapkitAppleProps {
+  /** The JWS token returned with the purchase response. */
+  jws: string;
+}
+
+export interface NitroVerifyPurchaseWithIapkitGoogleProps {
+  /** The token provided to the user's device when the product or subscription was purchased. */
+  purchaseToken: string;
+}
+
+export interface NitroVerifyPurchaseWithIapkitProps {
+  apiKey?: string | null;
+  apple?: NitroVerifyPurchaseWithIapkitAppleProps | null;
+  google?: NitroVerifyPurchaseWithIapkitGoogleProps | null;
+}
+
+export interface NitroVerifyPurchaseWithProviderProps {
+  iapkit?: NitroVerifyPurchaseWithIapkitProps | null;
+  provider: PurchaseVerificationProvider;
+}
+
+export interface NitroVerifyPurchaseWithIapkitResult {
+  isValid: boolean;
+  state: IapkitPurchaseState;
+  store: IapkitStore;
+}
+
+export interface NitroVerifyPurchaseWithProviderResult {
+  iapkit: NitroVerifyPurchaseWithIapkitResult[];
+  provider: PurchaseVerificationProvider;
 }
 
 /**
@@ -199,7 +252,7 @@ export interface NitroPurchase {
   productId: PurchaseCommon['productId'];
   transactionDate: PurchaseCommon['transactionDate'];
   purchaseToken?: PurchaseCommon['purchaseToken'];
-  platform: PurchaseCommon['platform'];
+  platform: IapPlatform;
   quantity: PurchaseCommon['quantity'];
   purchaseState: PurchaseCommon['purchaseState'];
   isAutoRenewing: PurchaseCommon['isAutoRenewing'];
@@ -288,7 +341,7 @@ export interface NitroProduct {
   displayPrice?: ProductCommon['displayPrice'];
   currency?: ProductCommon['currency'];
   price?: ProductCommon['price'];
-  platform: ProductCommon['platform'];
+  platform: IapPlatform;
   // iOS specific fields
   typeIOS?: string | null;
   isFamilyShareableIOS?: boolean | null;
@@ -377,6 +430,13 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   getActiveSubscriptions(
     subscriptionIds?: string[],
   ): Promise<NitroActiveSubscription[]>;
+
+  /**
+   * Check if there are any active subscriptions
+   * @param subscriptionIds - Optional array of subscription IDs to filter
+   * @returns Promise<boolean> - True if there are active subscriptions
+   */
+  hasActiveSubscriptions(subscriptionIds?: string[]): Promise<boolean>;
 
   /**
    * Finish a transaction (unified method for both platforms)
@@ -645,6 +705,19 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   ): Promise<
     NitroReceiptValidationResultIOS | NitroReceiptValidationResultAndroid
   >;
+
+  /**
+   * Verify purchase with a specific provider (e.g., IAPKit)
+   *
+   * This function allows you to verify purchases using external verification
+   * services like IAPKit, which provide additional validation and security.
+   *
+   * @param params - Verification options including provider and credentials
+   * @returns Promise<NitroVerifyPurchaseWithProviderResult> - Provider-specific verification result
+   */
+  verifyPurchaseWithProvider(
+    params: NitroVerifyPurchaseWithProviderProps,
+  ): Promise<NitroVerifyPurchaseWithProviderResult>;
 
   /**
    * Get the storefront country/region code for the current user.

@@ -549,7 +549,34 @@ class HybridRnIap : HybridRnIapSpec() {
             }
         }
     }
-    
+
+    override fun hasActiveSubscriptions(subscriptionIds: Array<String>?): Promise<Boolean> {
+        return Promise.async {
+            initConnection(null).await()
+
+            RnIapLog.payload(
+                "hasActiveSubscriptions",
+                mapOf("subscriptionIds" to (subscriptionIds?.toList() ?: "all"))
+            )
+
+            try {
+                val hasActive = openIap.hasActiveSubscriptions(subscriptionIds?.toList())
+                RnIapLog.result("hasActiveSubscriptions", hasActive)
+                hasActive
+            } catch (e: Exception) {
+                RnIapLog.failure("hasActiveSubscriptions", e)
+                val error = OpenIAPError.ServiceUnavailable
+                throw OpenIapException(
+                    toErrorJson(
+                        error = error,
+                        debugMessage = e.message,
+                        messageOverride = "Failed to check active subscriptions: ${e.message}"
+                    )
+                )
+            }
+        }
+    }
+
     // Transaction management methods (Unified)
     override fun finishTransaction(params: NitroFinishTransactionParams): Promise<Variant_Boolean_NitroPurchaseResult> {
         return Promise.async {
@@ -1078,7 +1105,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 )
                 
                 Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid.Second(result)
-                
+
             } catch (e: Exception) {
                 val debugMessage = e.message
                 val error = OpenIAPError.InvalidReceipt
@@ -1092,7 +1119,60 @@ class HybridRnIap : HybridRnIapSpec() {
             }
         }
     }
-    
+
+    override fun verifyPurchaseWithProvider(params: NitroVerifyPurchaseWithProviderProps): Promise<NitroVerifyPurchaseWithProviderResult> {
+        return Promise.async {
+            try {
+                // Convert Nitro enum to string (e.g., IAPKIT -> "iapkit")
+                val providerString = params.provider.name.lowercase()
+                RnIapLog.payload("verifyPurchaseWithProvider", mapOf("provider" to providerString))
+
+                // Build the props map for OpenIAP - use string value for provider
+                val propsMap = mutableMapOf<String, Any?>("provider" to providerString)
+                params.iapkit?.let { iapkit ->
+                    val iapkitMap = mutableMapOf<String, Any?>()
+                    iapkit.apiKey?.let { iapkitMap["apiKey"] = it }
+                    iapkit.google?.let { google ->
+                        iapkitMap["google"] = mapOf("purchaseToken" to google.purchaseToken)
+                    }
+                    iapkit.apple?.let { apple ->
+                        iapkitMap["apple"] = mapOf("jws" to apple.jws)
+                    }
+                    propsMap["iapkit"] = iapkitMap
+                }
+
+                val props = dev.hyo.openiap.VerifyPurchaseWithProviderProps.fromJson(propsMap)
+                val result = openIap.verifyPurchaseWithProvider(props)
+
+                RnIapLog.result("verifyPurchaseWithProvider", mapOf("provider" to result.provider, "iapkitCount" to result.iapkit.size))
+
+                // Convert result to Nitro types
+                val nitroIapkitResults = result.iapkit.map { item ->
+                    NitroVerifyPurchaseWithIapkitResult(
+                        isValid = item.isValid,
+                        state = mapIapkitPurchaseState(item.state.name),
+                        store = mapIapkitStore(item.store.name)
+                    )
+                }.toTypedArray()
+
+                NitroVerifyPurchaseWithProviderResult(
+                    iapkit = nitroIapkitResults,
+                    provider = mapPurchaseVerificationProvider(result.provider.name)
+                )
+            } catch (e: Exception) {
+                RnIapLog.failure("verifyPurchaseWithProvider", e)
+                val error = OpenIAPError.VerificationFailed
+                throw OpenIapException(
+                    toErrorJson(
+                        error = error,
+                        debugMessage = e.message,
+                        messageOverride = "Verification failed: ${e.message ?: "unknown reason"}"
+                    )
+                )
+            }
+        }
+    }
+
     // iOS-specific methods - Not applicable on Android, return appropriate defaults
     override fun subscriptionStatusIOS(sku: String): Promise<Array<NitroSubscriptionStatus>?> {
         return Promise.async {
@@ -1321,6 +1401,36 @@ class HybridRnIap : HybridRnIapSpec() {
             "{${jsonPairs.joinToString(",")}}"
         } catch (e: Exception) {
             "$code: $message"
+        }
+    }
+
+    // Helper functions to map OpenIAP enum values to Nitro enum values
+    private fun mapIapkitPurchaseState(stateName: String): IapkitPurchaseState {
+        return when (stateName.uppercase()) {
+            "ENTITLED" -> IapkitPurchaseState.ENTITLED
+            "PENDING_ACKNOWLEDGMENT", "PENDING-ACKNOWLEDGMENT" -> IapkitPurchaseState.PENDING_ACKNOWLEDGMENT
+            "PENDING" -> IapkitPurchaseState.PENDING
+            "CANCELED" -> IapkitPurchaseState.CANCELED
+            "EXPIRED" -> IapkitPurchaseState.EXPIRED
+            "READY_TO_CONSUME", "READY-TO-CONSUME" -> IapkitPurchaseState.READY_TO_CONSUME
+            "CONSUMED" -> IapkitPurchaseState.CONSUMED
+            "INAUTHENTIC" -> IapkitPurchaseState.INAUTHENTIC
+            else -> IapkitPurchaseState.UNKNOWN
+        }
+    }
+
+    private fun mapIapkitStore(storeName: String): IapkitStore {
+        return when (storeName.uppercase()) {
+            "APPLE" -> IapkitStore.APPLE
+            "GOOGLE" -> IapkitStore.GOOGLE
+            else -> IapkitStore.GOOGLE // Default to Google on Android
+        }
+    }
+
+    private fun mapPurchaseVerificationProvider(providerName: String): PurchaseVerificationProvider {
+        return when (providerName.uppercase()) {
+            "IAPKIT" -> PurchaseVerificationProvider.IAPKIT
+            else -> PurchaseVerificationProvider.NONE
         }
     }
 
