@@ -13,6 +13,7 @@ import type {
   NitroSubscriptionStatus,
   RnIap,
 } from './specs/RnIap.nitro';
+import {ErrorCode} from './types';
 import type {
   AndroidSubscriptionOfferInput,
   DiscountOfferInputIOS,
@@ -27,8 +28,8 @@ import type {
   PurchaseIOS,
   QueryField,
   AppTransaction,
-  ReceiptValidationResultAndroid,
-  ReceiptValidationResultIOS,
+  VerifyPurchaseResultAndroid,
+  VerifyPurchaseResultIOS,
   RequestPurchaseAndroidProps,
   RequestPurchaseIosProps,
   RequestPurchasePropsByPlatforms,
@@ -1336,7 +1337,7 @@ export const consumePurchaseAndroid: MutationField<
  * Validate receipt on both iOS and Android platforms
  * @param sku - Product SKU
  * @param androidOptions - Android-specific validation options (required for Android)
- * @returns Promise<ReceiptValidationResultIOS | ReceiptValidationResultAndroid> - Platform-specific receipt validation result
+ * @returns Promise<VerifyPurchaseResultIOS | VerifyPurchaseResultAndroid> - Platform-specific receipt validation result
  */
 export const validateReceipt: MutationField<'validateReceipt'> = async (
   options,
@@ -1364,7 +1365,7 @@ export const validateReceipt: MutationField<'validateReceipt'> = async (
     // Convert Nitro result to public API result
     if (Platform.OS === 'ios') {
       const iosResult = nitroResult as NitroReceiptValidationResultIOS;
-      const result: ReceiptValidationResultIOS = {
+      const result: VerifyPurchaseResultIOS = {
         isValid: iosResult.isValid,
         receiptData: iosResult.receiptData,
         jwsRepresentation: iosResult.jwsRepresentation,
@@ -1376,7 +1377,7 @@ export const validateReceipt: MutationField<'validateReceipt'> = async (
     } else {
       // Android
       const androidResult = nitroResult as NitroReceiptValidationResultAndroid;
-      const result: ReceiptValidationResultAndroid = {
+      const result: VerifyPurchaseResultAndroid = {
         autoRenewing: androidResult.autoRenewing,
         betaProduct: androidResult.betaProduct,
         cancelDate: androidResult.cancelDate,
@@ -1400,6 +1401,74 @@ export const validateReceipt: MutationField<'validateReceipt'> = async (
     }
   } catch (error) {
     RnIapConsole.error('[validateReceipt] Failed:', error);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+    });
+  }
+};
+
+/**
+ * Verify purchase with the configured providers
+ *
+ * This function uses the native OpenIAP verifyPurchase implementation
+ * which validates purchases using platform-specific methods.
+ * This is an alias for validateReceipt for API consistency with OpenIAP.
+ *
+ * @param options - Receipt validation options containing the SKU
+ * @returns Promise resolving to receipt validation result
+ */
+export const verifyPurchase: MutationField<'verifyPurchase'> = validateReceipt;
+
+/**
+ * Verify purchase with a specific provider (e.g., IAPKit)
+ *
+ * This function allows you to verify purchases using external verification
+ * services like IAPKit, which provide additional validation and security.
+ *
+ * @param options - Verification options including provider and credentials
+ * @returns Promise resolving to provider-specific verification result
+ *
+ * @example
+ * ```typescript
+ * const result = await verifyPurchaseWithProvider({
+ *   provider: 'iapkit',
+ *   iapkit: {
+ *     apiKey: 'your-api-key',
+ *     apple: { jws: purchase.purchaseToken },
+ *     google: { purchaseToken: purchase.purchaseToken },
+ *   },
+ * });
+ * ```
+ */
+export const verifyPurchaseWithProvider: MutationField<
+  'verifyPurchaseWithProvider'
+> = async (options) => {
+  try {
+    const result = await IAP.instance.verifyPurchaseWithProvider({
+      provider: options.provider,
+      iapkit: options.iapkit ?? null,
+    });
+    // Validate provider - Nitro spec allows 'none' for compatibility, but this function only supports 'iapkit'
+    if (result.provider !== 'iapkit') {
+      throw createPurchaseError({
+        code: ErrorCode.DeveloperError,
+        message: `Unsupported provider: ${result.provider}. Only 'iapkit' is supported.`,
+      });
+    }
+    return {
+      provider: result.provider,
+      iapkit: result.iapkit.map((item) => ({
+        isValid: item.isValid,
+        state: item.state,
+        store: item.store,
+      })),
+    };
+  } catch (error) {
+    RnIapConsole.error('[verifyPurchaseWithProvider] Failed:', error);
     const parsedError = parseErrorStringToJsonObj(error);
     throw createPurchaseError({
       code: parsedError.code,

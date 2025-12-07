@@ -12257,6 +12257,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-native-dotenv@npm:^3.4.11":
+  version: 3.4.11
+  resolution: "react-native-dotenv@npm:3.4.11"
+  dependencies:
+    dotenv: ^16.4.5
+  peerDependencies:
+    "@babel/runtime": ^7.20.6
+  checksum: 3ebac2c2ed79dd7e4920fd3fc2da9187413b7190231618e4858b46c47833677838b96d531afe7bd5c4b0a60454dba40cb8708722210df5d522e30aefbf41da05
+  languageName: node
+  linkType: hard
+
 "react-native-edge-to-edge@npm:1.6.0":
   version: 1.6.0
   resolution: "react-native-edge-to-edge@npm:1.6.0"
@@ -12820,6 +12831,7 @@ __metadata:
     prettier: 2.8.8
     react: 19.1.0
     react-native: 0.81.1
+    react-native-dotenv: ^3.4.11
     react-native-monorepo-config: ^0.1.9
     react-native-nitro-modules: ^0.31.1
     react-native-safe-area-context: ^5.6.1

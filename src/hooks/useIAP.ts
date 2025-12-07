@@ -14,6 +14,8 @@ import {
   requestPurchase as requestPurchaseInternal,
   fetchProducts,
   validateReceipt as validateReceiptInternal,
+  verifyPurchase as verifyPurchaseTopLevel,
+  verifyPurchaseWithProvider as verifyPurchaseWithProviderTopLevel,
   getActiveSubscriptions,
   hasActiveSubscriptions,
   restorePurchases as restorePurchasesTopLevel,
@@ -33,6 +35,10 @@ import type {
   RequestPurchaseResult,
   AlternativeBillingModeAndroid,
   UserChoiceBillingDetails,
+  VerifyPurchaseProps,
+  VerifyPurchaseResult,
+  VerifyPurchaseWithProviderProps,
+  VerifyPurchaseWithProviderResult,
 } from '../types';
 import type {
   ActiveSubscription,
@@ -74,6 +80,14 @@ type UseIap = {
       isSub?: boolean;
     },
   ) => Promise<any>;
+  /** Verify purchase with the configured providers (alias for validateReceipt) */
+  verifyPurchase: (
+    options: VerifyPurchaseProps,
+  ) => Promise<VerifyPurchaseResult>;
+  /** Verify purchase with a specific provider (e.g., IAPKit) */
+  verifyPurchaseWithProvider: (
+    options: VerifyPurchaseWithProviderProps,
+  ) => Promise<VerifyPurchaseWithProviderResult>;
   restorePurchases: () => Promise<void>;
   getPromotedProductIOS: () => Promise<Product | null>;
   requestPurchaseOnPromotedProductIOS: () => Promise<boolean>;
@@ -314,6 +328,22 @@ export function useIAP(options?: UseIapOptions): UseIap {
     [],
   );
 
+  const verifyPurchase = useCallback(
+    async (options: VerifyPurchaseProps): Promise<VerifyPurchaseResult> => {
+      return verifyPurchaseTopLevel(options);
+    },
+    [],
+  );
+
+  const verifyPurchaseWithProvider = useCallback(
+    async (
+      options: VerifyPurchaseWithProviderProps,
+    ): Promise<VerifyPurchaseWithProviderResult> => {
+      return verifyPurchaseWithProviderTopLevel(options);
+    },
+    [],
+  );
+
   const initIapWithSubscriptions = useCallback(async (): Promise<void> => {
     // Register listeners BEFORE initConnection to avoid race condition
     subscriptionsRef.current.purchaseUpdate = purchaseUpdatedListener(
@@ -420,6 +450,8 @@ export function useIAP(options?: UseIapOptions): UseIap {
     fetchProducts: fetchProductsInternal,
     requestPurchase,
     validateReceipt,
+    verifyPurchase,
+    verifyPurchaseWithProvider,
     restorePurchases: async () => {
       try {
         await restorePurchasesTopLevel();

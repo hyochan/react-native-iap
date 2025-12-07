@@ -17,13 +17,24 @@ import {
   getStorefront,
   ErrorCode,
 } from 'react-native-iap';
+import {IAPKIT_API_KEY} from '@env';
 import Loading from '../src/components/Loading';
 import {
   CONSUMABLE_PRODUCT_IDS,
   NON_CONSUMABLE_PRODUCT_IDS,
   PRODUCT_IDS,
 } from '../src/utils/constants';
-import type {Product, Purchase, PurchaseError} from 'react-native-iap';
+import {getErrorMessage} from '../src/utils/errorUtils';
+import {
+  useVerificationMethod,
+  type VerificationMethod,
+} from '../src/hooks/useVerificationMethod';
+import type {
+  Product,
+  Purchase,
+  PurchaseError,
+  VerifyPurchaseWithProviderProps,
+} from 'react-native-iap';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
 
 const CONSUMABLE_PRODUCT_ID_SET = new Set(CONSUMABLE_PRODUCT_IDS);
@@ -37,8 +48,10 @@ type PurchaseFlowProps = {
   lastPurchase: Purchase | null;
   storefront: string | null;
   isFetchingStorefront: boolean;
+  verificationMethod: VerificationMethod;
   onPurchase: (productId: string) => void;
   onRefreshStorefront: () => void;
+  onChangeVerificationMethod: () => void;
 };
 
 /**
@@ -60,8 +73,10 @@ function PurchaseFlow({
   lastPurchase,
   storefront,
   isFetchingStorefront,
+  verificationMethod,
   onPurchase,
   onRefreshStorefront,
+  onChangeVerificationMethod,
 }: PurchaseFlowProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -171,6 +186,24 @@ function PurchaseFlow({
                 ? 'Fetching storefront...'
                 : 'Refresh storefront'}
             </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Verification Method Selector */}
+        <View style={styles.verificationContainer}>
+          <Text style={styles.statusLabel}>Purchase Verification:</Text>
+          <TouchableOpacity
+            style={styles.verificationButton}
+            onPress={onChangeVerificationMethod}
+          >
+            <Text style={styles.verificationButtonText}>
+              {verificationMethod === 'ignore'
+                ? '❌ None (Skip)'
+                : verificationMethod === 'local'
+                  ? '📱 Local (Device)'
+                  : '☁️ IAPKit (Server)'}
+            </Text>
+            <Text style={styles.verificationButtonHint}>Tap to change</Text>
           </TouchableOpacity>
         </View>
 
@@ -369,7 +402,20 @@ function PurchaseFlowContainer() {
   const [storefront, setStorefront] = useState<string | null>(null);
   const [fetchingStorefront, setFetchingStorefront] = useState(false);
 
-  const {connected, products, fetchProducts, finishTransaction} = useIAP({
+  const {
+    verificationMethod,
+    verificationMethodRef,
+    showVerificationMethodSelector,
+  } = useVerificationMethod('ignore');
+
+  const {
+    connected,
+    products,
+    fetchProducts,
+    finishTransaction,
+    verifyPurchase,
+    verifyPurchaseWithProvider,
+  } = useIAP({
     onPurchaseSuccess: async (purchase: Purchase) => {
       const {purchaseToken: tokenToMask, ...rest} = purchase;
       const masked = {
@@ -398,6 +444,115 @@ function PurchaseFlowContainer() {
             '[PurchaseFlow] Purchase for product not listed in constants:',
             productId,
           );
+        }
+      }
+
+      // Verify purchase based on selected method (use ref for current value)
+      const currentVerificationMethod = verificationMethodRef.current;
+      console.log('[PurchaseFlow] About to verify purchase:', {
+        verificationMethod: currentVerificationMethod,
+        productId,
+        willVerify: currentVerificationMethod !== 'ignore' && !!productId,
+      });
+
+      if (currentVerificationMethod !== 'ignore' && productId) {
+        setIsProcessing(true);
+        try {
+          if (currentVerificationMethod === 'local') {
+            console.log('[PurchaseFlow] Verifying with local method...');
+            const result = await verifyPurchase({sku: productId});
+            console.log('[PurchaseFlow] Local verification result:', result);
+          } else if (currentVerificationMethod === 'iapkit') {
+            console.log('[PurchaseFlow] Verifying with IAPKit...');
+            // NOTE: Set your API key in .env file as IAPKIT_API_KEY
+            const apiKey = IAPKIT_API_KEY;
+
+            console.log(
+              '[PurchaseFlow] API Key loaded:',
+              apiKey ? '✓ Present' : '✗ Missing',
+            );
+            console.log(
+              '[PurchaseFlow] purchase.purchaseToken:',
+              purchase.purchaseToken
+                ? `✓ Present (${purchase.purchaseToken.length} chars)`
+                : '✗ Missing or empty',
+            );
+
+            if (!apiKey) {
+              throw new Error('IAPKIT_API_KEY not configured');
+            }
+
+            const jwsOrToken = purchase.purchaseToken ?? '';
+            if (!jwsOrToken) {
+              console.warn(
+                '[PurchaseFlow] No purchaseToken/JWS available for verification',
+              );
+              throw new Error(
+                'No purchase token available for IAPKit verification',
+              );
+            }
+
+            const verifyRequest: VerifyPurchaseWithProviderProps = {
+              provider: 'iapkit',
+              iapkit: {
+                apiKey,
+                apple: {
+                  jws: jwsOrToken,
+                },
+                google: {
+                  purchaseToken: jwsOrToken,
+                },
+              },
+            };
+
+            console.log(
+              '[PurchaseFlow] Sending IAPKit verification request:',
+              JSON.stringify(
+                {
+                  provider: verifyRequest.provider,
+                  iapkit: {
+                    apiKey: '***hidden***',
+                    ...(Platform.OS === 'ios'
+                      ? {apple: {jws: `${jwsOrToken.substring(0, 50)}...`}}
+                      : {
+                          google: {
+                            purchaseToken: `${jwsOrToken.substring(0, 50)}...`,
+                          },
+                        }),
+                  },
+                },
+                null,
+                2,
+              ),
+            );
+
+            const result = await verifyPurchaseWithProvider(verifyRequest);
+            console.log('[PurchaseFlow] IAPKit verification result:', result);
+
+            // Show verification result to user
+            if (result.iapkit && result.iapkit.length > 0) {
+              const iapkitResult = result.iapkit[0];
+              if (iapkitResult) {
+                const statusEmoji = iapkitResult.isValid ? '✅' : '⚠️';
+                const stateText = iapkitResult.state || 'unknown';
+
+                Alert.alert(
+                  `${statusEmoji} IAPKit Verification`,
+                  `Valid: ${iapkitResult.isValid}\nState: ${stateText}\nStore: ${
+                    iapkitResult.store || 'unknown'
+                  }`,
+                );
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('[PurchaseFlow] Verification failed:', error);
+          Alert.alert(
+            'Verification Failed',
+            `Purchase verification failed: ${getErrorMessage(error)}`,
+          );
+        } finally {
+          setIsProcessing(false);
         }
       }
 
@@ -509,8 +664,10 @@ function PurchaseFlowContainer() {
       lastPurchase={lastPurchase}
       storefront={storefront}
       isFetchingStorefront={fetchingStorefront}
+      verificationMethod={verificationMethod}
       onPurchase={handlePurchase}
       onRefreshStorefront={handleRefreshStorefront}
+      onChangeVerificationMethod={showVerificationMethodSelector}
     />
   );
 }
@@ -572,6 +729,31 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 13,
     fontWeight: '600',
+  },
+  verificationContainer: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+  },
+  verificationButton: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 6,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  verificationButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  verificationButtonHint: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
   },
   section: {
     marginBottom: 20,
