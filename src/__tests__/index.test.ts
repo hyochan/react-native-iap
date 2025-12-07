@@ -1134,4 +1134,161 @@ describe('Public API (src/index.ts)', () => {
       });
     });
   });
+
+  describe('verifyPurchaseWithProvider', () => {
+    beforeEach(() => {
+      mockIap.verifyPurchaseWithProvider = jest.fn();
+    });
+
+    it('should call native verifyPurchaseWithProvider with correct params', async () => {
+      (Platform as any).OS = 'ios';
+      const mockResult = {
+        provider: 'iapkit',
+        iapkit: [
+          {
+            isValid: true,
+            state: 'entitled',
+            store: 'apple',
+          },
+        ],
+      };
+      mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
+
+      const result = await IAP.verifyPurchaseWithProvider({
+        provider: 'iapkit',
+        iapkit: {
+          apiKey: 'test-api-key',
+          environment: 'sandbox',
+          apple: {
+            jws: 'test-jws-token',
+          },
+        },
+      });
+
+      expect(mockIap.verifyPurchaseWithProvider).toHaveBeenCalledWith({
+        provider: 'iapkit',
+        iapkit: {
+          apiKey: 'test-api-key',
+          environment: 'sandbox',
+          apple: {
+            jws: 'test-jws-token',
+          },
+        },
+      });
+      expect(result.provider).toBe('iapkit');
+      expect(result.iapkit).toHaveLength(1);
+      expect(result.iapkit[0].isValid).toBe(true);
+      expect(result.iapkit[0].state).toBe('entitled');
+      expect(result.iapkit[0].store).toBe('apple');
+    });
+
+    it('should handle Android verification', async () => {
+      (Platform as any).OS = 'android';
+      const mockResult = {
+        provider: 'iapkit',
+        iapkit: [
+          {
+            isValid: true,
+            state: 'entitled',
+            store: 'google',
+          },
+        ],
+      };
+      mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
+
+      const result = await IAP.verifyPurchaseWithProvider({
+        provider: 'iapkit',
+        iapkit: {
+          apiKey: 'test-api-key',
+          google: {
+            purchaseToken: 'test-purchase-token',
+            packageName: 'com.test.app',
+            productId: 'test-product',
+          },
+        },
+      });
+
+      expect(result.iapkit[0].store).toBe('google');
+    });
+
+    it('should throw error when provider is not iapkit', async () => {
+      (Platform as any).OS = 'ios';
+      const mockResult = {
+        provider: 'none',
+        iapkit: [],
+      };
+      mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
+
+      await expect(
+        IAP.verifyPurchaseWithProvider({
+          provider: 'iapkit',
+          iapkit: {
+            apiKey: 'test-api-key',
+            apple: {jws: 'test-jws'},
+          },
+        }),
+      ).rejects.toThrow(/Unsupported provider/);
+    });
+
+    it('should handle verification failure states', async () => {
+      (Platform as any).OS = 'ios';
+      const mockResult = {
+        provider: 'iapkit',
+        iapkit: [
+          {
+            isValid: false,
+            state: 'expired',
+            store: 'apple',
+          },
+        ],
+      };
+      mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
+
+      const result = await IAP.verifyPurchaseWithProvider({
+        provider: 'iapkit',
+        iapkit: {
+          apiKey: 'test-api-key',
+          apple: {jws: 'test-jws'},
+        },
+      });
+
+      expect(result.iapkit[0].isValid).toBe(false);
+      expect(result.iapkit[0].state).toBe('expired');
+    });
+
+    it('should handle native errors', async () => {
+      (Platform as any).OS = 'ios';
+      mockIap.verifyPurchaseWithProvider.mockRejectedValueOnce(
+        new Error('Network error'),
+      );
+
+      await expect(
+        IAP.verifyPurchaseWithProvider({
+          provider: 'iapkit',
+          iapkit: {
+            apiKey: 'test-api-key',
+            apple: {jws: 'test-jws'},
+          },
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should handle null iapkit param', async () => {
+      (Platform as any).OS = 'ios';
+      const mockResult = {
+        provider: 'iapkit',
+        iapkit: [],
+      };
+      mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
+
+      await IAP.verifyPurchaseWithProvider({
+        provider: 'iapkit',
+      });
+
+      expect(mockIap.verifyPurchaseWithProvider).toHaveBeenCalledWith({
+        provider: 'iapkit',
+        iapkit: null,
+      });
+    });
+  });
 });

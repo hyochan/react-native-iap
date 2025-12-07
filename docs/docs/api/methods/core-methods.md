@@ -20,16 +20,16 @@ Note: react-native-iap aligns with the OpenIAP API surface. For canonical cross-
 
 These cross‑platform methods work on both iOS and Android. For StoreKit/Play‑specific helpers, see the Platform‑specific APIs section below.
 
-- `initConnection()` — Initialize the store connection
-- `endConnection()` — End the store connection and cleanup
-- `fetchProducts()` — Fetch product and subscription metadata
-- `requestPurchase()` — Start a purchase for products or subscriptions
-- `finishTransaction()` — Complete a transaction after validation
-- `getAvailablePurchases()` — Restore non‑consumables and subscriptions
-- `deepLinkToSubscriptions()` — Open native subscription management UI
-- `getStorefront()` — Get current storefront country code
-- `hasActiveSubscriptions()` — Check if user has active subscriptions
-- `verifyPurchaseWithProvider()` — Verify purchases with external providers (e.g., IAPKit)
+- [`initConnection()`](#initconnection) — Initialize the store connection
+- [`endConnection()`](#endconnection) — End the store connection and cleanup
+- [`fetchProducts()`](#fetchproducts) — Fetch product and subscription metadata
+- [`requestPurchase()`](#requestpurchase) — Start a purchase for products or subscriptions
+- [`finishTransaction()`](#finishtransaction) — Complete a transaction after validation
+- [`getAvailablePurchases()`](#getavailablepurchases) — Restore non‑consumables and subscriptions
+- [`deepLinkToSubscriptions()`](#deeplinktosubscriptions) — Open native subscription management UI
+- [`getStorefront()`](#getstorefront) — Get current storefront country code
+- [`hasActiveSubscriptions()`](#hasactivesubscriptions) — Check if user has active subscriptions
+- [`verifyPurchaseWithProvider()`](#verifypurchasewithprovider) — Verify purchases with external providers (e.g., IAPKit)
 
 ## initConnection()
 
