@@ -29,6 +29,7 @@ These cross‑platform methods work on both iOS and Android. For StoreKit/Play�
 - `deepLinkToSubscriptions()` — Open native subscription management UI
 - `getStorefront()` — Get current storefront country code
 - `hasActiveSubscriptions()` — Check if user has active subscriptions
+- `verifyPurchaseWithProvider()` — Verify purchases with external providers (e.g., IAPKit)
 
 ## initConnection()
 
@@ -488,6 +489,96 @@ const checkIfUserHasSubscription = async () => {
 - `subscriptionIds?` (string[]): Optional array of subscription product IDs to check. If not provided, checks all subscriptions.
 
 **Returns:** `Promise<boolean>` - Returns true if user has at least one active subscription
+
+## verifyPurchaseWithProvider()
+
+Verifies purchases using external verification services like IAPKit. This provides additional validation and security beyond local device verification.
+
+```tsx
+import {verifyPurchaseWithProvider} from 'react-native-iap';
+
+const verifyWithIAPKit = async (purchase: Purchase) => {
+  try {
+    const result = await verifyPurchaseWithProvider({
+      provider: 'iapkit',
+      iapkit: {
+        apiKey: 'your-iapkit-api-key',
+        environment: 'production', // or 'sandbox'
+        apple: {
+          jws: purchase.purchaseToken, // iOS JWS token
+        },
+        google: {
+          purchaseToken: purchase.purchaseToken, // Android purchase token
+          packageName: 'com.your.app',
+          productId: purchase.productId,
+        },
+      },
+    });
+
+    for (const item of result.iapkit) {
+      console.log('Is Valid:', item.isValid);
+      console.log('State:', item.state); // 'entitled', 'expired', 'canceled', etc.
+      console.log('Store:', item.store); // 'apple' or 'google'
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Verification failed:', error);
+  }
+};
+```
+
+**Parameters:**
+
+- `params` (object):
+  - `provider` ('iapkit'): The verification provider to use
+  - `iapkit?` (object): IAPKit-specific configuration
+    - `apiKey` (string): Your IAPKit API key
+    - `environment?` ('production' | 'sandbox'): Environment for verification
+    - `apple?` (object): iOS verification data
+      - `jws` (string): The JWS token from the purchase
+    - `google?` (object): Android verification data
+      - `purchaseToken` (string): The purchase token
+      - `packageName` (string): Your app's package name
+      - `productId` (string): The product ID
+
+**Returns:** `Promise<VerifyPurchaseWithProviderResult>`
+
+```typescript
+interface VerifyPurchaseWithProviderResult {
+  provider: 'iapkit';
+  iapkit: Array<{
+    isValid: boolean;
+    state: IapkitPurchaseState;
+    store: 'apple' | 'google';
+  }>;
+}
+
+type IapkitPurchaseState =
+  | 'pending'
+  | 'unknown'
+  | 'entitled'
+  | 'pending-acknowledgment'
+  | 'canceled'
+  | 'expired'
+  | 'ready-to-consume'
+  | 'consumed'
+  | 'inauthentic';
+```
+
+**Platform Behavior:**
+
+- **iOS**: Sends the JWS (JSON Web Signature) token to IAPKit for server-side verification
+- **Android**: Sends the purchase token along with package name and product ID for verification
+- **Both**: Returns the verification state and validity from IAPKit's servers
+
+**Use Cases:**
+
+- Server-side receipt validation without maintaining your own validation infrastructure
+- Cross-platform purchase verification with a unified API
+- Enhanced security through external verification services
+
+> **Note:** You need an IAPKit API key to use this feature. Visit [iapkit.com](https://iapkit.com) to get started.
 
 ## Purchase Interface
 
