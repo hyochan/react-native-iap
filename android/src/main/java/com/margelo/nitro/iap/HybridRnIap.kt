@@ -922,6 +922,7 @@ class HybridRnIap : HybridRnIapSpec() {
             transactionDate = purchase.transactionDate,
             purchaseToken = purchase.purchaseToken,
             platform = IapPlatform.ANDROID,
+            store = mapIapStore(purchase.store),
             quantity = purchase.quantity.toDouble(),
             purchaseState = mapPurchaseState(purchase.purchaseState),
             isAutoRenewing = purchase.isAutoRenewing,
@@ -970,7 +971,16 @@ class HybridRnIap : HybridRnIapSpec() {
             dev.hyo.openiap.PurchaseState.Unknown -> PurchaseState.UNKNOWN
         }
     }
-    
+
+    private fun mapIapStore(store: dev.hyo.openiap.IapStore): IapStore {
+        return when (store) {
+            dev.hyo.openiap.IapStore.Apple -> IapStore.APPLE
+            dev.hyo.openiap.IapStore.Google -> IapStore.GOOGLE
+            dev.hyo.openiap.IapStore.Horizon -> IapStore.HORIZON
+            dev.hyo.openiap.IapStore.Unknown -> IapStore.UNKNOWN
+        }
+    }
+
     // Billing error messages handled by OpenIAP
     
     // iOS-specific method - not supported on Android
@@ -1144,19 +1154,28 @@ class HybridRnIap : HybridRnIapSpec() {
                 val props = dev.hyo.openiap.VerifyPurchaseWithProviderProps.fromJson(propsMap)
                 val result = openIap.verifyPurchaseWithProvider(props)
 
-                RnIapLog.result("verifyPurchaseWithProvider", mapOf("provider" to result.provider, "iapkitCount" to result.iapkit.size))
+                RnIapLog.result("verifyPurchaseWithProvider", mapOf("provider" to result.provider, "hasIapkit" to (result.iapkit != null)))
 
                 // Convert result to Nitro types
-                val nitroIapkitResults = result.iapkit.map { item ->
+                val nitroIapkitResult = result.iapkit?.let { item ->
                     NitroVerifyPurchaseWithIapkitResult(
                         isValid = item.isValid,
                         state = mapIapkitPurchaseState(item.state.name),
                         store = mapIapkitStore(item.store.name)
                     )
-                }.toTypedArray()
+                }
+
+                // Convert errors if present
+                val nitroErrors = result.errors?.map { error ->
+                    NitroVerifyPurchaseWithProviderError(
+                        code = error.code,
+                        message = error.message
+                    )
+                }?.toTypedArray()
 
                 NitroVerifyPurchaseWithProviderResult(
-                    iapkit = nitroIapkitResults,
+                    iapkit = nitroIapkitResult,
+                    errors = nitroErrors,
                     provider = mapPurchaseVerificationProvider(result.provider.name)
                 )
             } catch (e: Exception) {

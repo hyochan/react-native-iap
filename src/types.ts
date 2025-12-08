@@ -180,10 +180,10 @@ export type IapEvent = 'purchase-updated' | 'purchase-error' | 'promoted-product
 
 export type IapPlatform = 'ios' | 'android';
 
+export type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
+
 /** Unified purchase states from IAPKit verification response. */
 export type IapkitPurchaseState = 'entitled' | 'pending-acknowledgment' | 'pending' | 'canceled' | 'expired' | 'ready-to-consume' | 'consumed' | 'unknown' | 'inauthentic';
-
-export type IapkitStore = 'apple' | 'google';
 
 /** Connection initialization configuration */
 export interface InitConnectionConfig {
@@ -457,12 +457,18 @@ export interface PurchaseAndroid extends PurchaseCommon {
   obfuscatedAccountIdAndroid?: (string | null);
   obfuscatedProfileIdAndroid?: (string | null);
   packageNameAndroid?: (string | null);
+  /**
+   * @deprecated Use store instead
+   * @deprecated Use store instead
+   */
   platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
   purchaseToken?: (string | null);
   quantity: number;
   signatureAndroid?: (string | null);
+  /** Store where purchase was made */
+  store: IapStore;
   transactionDate: number;
   transactionId?: (string | null);
 }
@@ -478,12 +484,18 @@ export interface PurchaseCommon {
   id: string;
   ids?: (string[] | null);
   isAutoRenewing: boolean;
+  /**
+   * @deprecated Use store instead
+   * @deprecated Use store instead
+   */
   platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
   /** Unified purchase token (iOS JWS, Android purchaseToken) */
   purchaseToken?: (string | null);
   quantity: number;
+  /** Store where purchase was made */
+  store: IapStore;
   transactionDate: number;
 }
 
@@ -510,6 +522,10 @@ export interface PurchaseIOS extends PurchaseCommon {
   originalTransactionDateIOS?: (number | null);
   originalTransactionIdentifierIOS?: (string | null);
   ownershipTypeIOS?: (string | null);
+  /**
+   * @deprecated Use store instead
+   * @deprecated Use store instead
+   */
   platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
@@ -521,6 +537,8 @@ export interface PurchaseIOS extends PurchaseCommon {
   renewalInfoIOS?: (RenewalInfoIOS | null);
   revocationDateIOS?: (number | null);
   revocationReasonIOS?: (string | null);
+  /** Store where purchase was made */
+  store: IapStore;
   storefrontCountryCodeIOS?: (string | null);
   subscriptionGroupIdIOS?: (string | null);
   transactionDate: number;
@@ -710,9 +728,13 @@ export type RequestPurchaseProps =
     };
 
 export interface RequestPurchasePropsByPlatforms {
-  /** Android-specific purchase parameters */
+  /** @deprecated Use google instead */
   android?: (RequestPurchaseAndroidProps | null);
-  /** iOS-specific purchase parameters */
+  /** Apple-specific purchase parameters */
+  apple?: (RequestPurchaseIosProps | null);
+  /** Google-specific purchase parameters */
+  google?: (RequestPurchaseAndroidProps | null);
+  /** @deprecated Use apple instead */
   ios?: (RequestPurchaseIosProps | null);
 }
 
@@ -744,9 +766,13 @@ export interface RequestSubscriptionIosProps {
 }
 
 export interface RequestSubscriptionPropsByPlatforms {
-  /** Android-specific subscription parameters */
+  /** @deprecated Use google instead */
   android?: (RequestSubscriptionAndroidProps | null);
-  /** iOS-specific subscription parameters */
+  /** Apple-specific subscription parameters */
+  apple?: (RequestSubscriptionIosProps | null);
+  /** Google-specific subscription parameters */
+  google?: (RequestSubscriptionAndroidProps | null);
+  /** @deprecated Use apple instead */
   ios?: (RequestSubscriptionIosProps | null);
 }
 
@@ -774,7 +800,7 @@ export interface RequestVerifyPurchaseWithIapkitResult {
   isValid: boolean;
   /** The current state of the purchase. */
   state: IapkitPurchaseState;
-  store: IapkitStore;
+  store: IapStore;
 }
 
 export interface Subscription {
@@ -882,14 +908,21 @@ export interface VerifyPurchaseResultIOS {
   receiptData: string;
 }
 
+export interface VerifyPurchaseWithProviderError {
+  code?: (string | null);
+  message: string;
+}
+
 export interface VerifyPurchaseWithProviderProps {
   iapkit?: (RequestVerifyPurchaseWithIapkitProps | null);
   provider: PurchaseVerificationProvider;
 }
 
 export interface VerifyPurchaseWithProviderResult {
-  /** IAPKit verification results (can include Apple and Google entries) */
-  iapkit: RequestVerifyPurchaseWithIapkitResult[];
+  /** Error details if verification failed */
+  errors?: (VerifyPurchaseWithProviderError[] | null);
+  /** IAPKit verification result */
+  iapkit?: (RequestVerifyPurchaseWithIapkitResult | null);
   provider: PurchaseVerificationProvider;
 }
 

@@ -373,17 +373,29 @@ class HybridRnIap: HybridRnIapSpec {
                 let jsonData = try JSONSerialization.data(withJSONObject: propsDict)
                 let props = try JSONDecoder().decode(VerifyPurchaseWithProviderProps.self, from: jsonData)
                 let result = try await OpenIapModule.shared.verifyPurchaseWithProvider(props)
-                RnIapLog.result("verifyPurchaseWithProvider", ["provider": result.provider, "iapkitCount": result.iapkit.count])
+                RnIapLog.result("verifyPurchaseWithProvider", ["provider": result.provider, "hasIapkit": result.iapkit != nil])
                 // Convert result to Nitro types
-                let nitroIapkitResults = result.iapkit.map { item -> NitroVerifyPurchaseWithIapkitResult in
-                    NitroVerifyPurchaseWithIapkitResult(
+                var nitroIapkitResult: NitroVerifyPurchaseWithIapkitResult? = nil
+                if let item = result.iapkit {
+                    nitroIapkitResult = NitroVerifyPurchaseWithIapkitResult(
                         isValid: item.isValid,
                         state: IapkitPurchaseState(fromString: item.state.rawValue) ?? .unknown,
                         store: IapkitStore(fromString: item.store.rawValue) ?? .apple
                     )
                 }
+                // Convert errors if present
+                var nitroErrors: [NitroVerifyPurchaseWithProviderError]? = nil
+                if let errors = result.errors {
+                    nitroErrors = errors.map { error in
+                        NitroVerifyPurchaseWithProviderError(
+                            code: error.code,
+                            message: error.message
+                        )
+                    }
+                }
                 return NitroVerifyPurchaseWithProviderResult(
-                    iapkit: nitroIapkitResults,
+                    iapkit: nitroIapkitResult,
+                    errors: nitroErrors,
                     provider: PurchaseVerificationProvider(fromString: result.provider.rawValue) ?? .iapkit
                 )
             } catch {

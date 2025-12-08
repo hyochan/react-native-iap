@@ -1520,19 +1520,21 @@ function SubscriptionFlowContainer() {
             );
 
             // Show verification result to user
-            if (result.iapkit && result.iapkit.length > 0) {
-              const iapkitResult = result.iapkit[0];
-              if (iapkitResult) {
-                const statusEmoji = iapkitResult.isValid ? '✅' : '⚠️';
-                const stateText = iapkitResult.state || 'unknown';
+            if (result.iapkit) {
+              const statusEmoji = result.iapkit.isValid ? '✅' : '⚠️';
+              const stateText = result.iapkit.state || 'unknown';
 
-                Alert.alert(
-                  `${statusEmoji} IAPKit Verification`,
-                  `Valid: ${iapkitResult.isValid}\nState: ${stateText}\nStore: ${
-                    iapkitResult.store || 'unknown'
-                  }`,
-                );
-              }
+              Alert.alert(
+                `${statusEmoji} IAPKit Verification`,
+                `Valid: ${result.iapkit.isValid}\nState: ${stateText}\nStore: ${
+                  result.iapkit.store || 'unknown'
+                }`,
+              );
+            } else if (result.errors && result.errors.length > 0) {
+              const errorMessages = result.errors
+                .map((e) => `${e.code ? `[${e.code}] ` : ''}${e.message}`)
+                .join('\n');
+              Alert.alert('⚠️ IAPKit Verification Error', errorMessages);
             }
           }
         } catch (error) {

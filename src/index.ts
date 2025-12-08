@@ -1461,11 +1461,14 @@ export const verifyPurchaseWithProvider: MutationField<
     }
     return {
       provider: result.provider,
-      iapkit: result.iapkit.map((item) => ({
-        isValid: item.isValid,
-        state: item.state,
-        store: item.store,
-      })),
+      iapkit: result.iapkit
+        ? {
+            isValid: result.iapkit.isValid,
+            state: result.iapkit.state,
+            store: result.iapkit.store,
+          }
+        : null,
+      errors: result.errors ?? null,
     };
   } catch (error) {
     RnIapConsole.error('[verifyPurchaseWithProvider] Failed:', error);

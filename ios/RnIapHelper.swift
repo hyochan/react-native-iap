@@ -109,6 +109,14 @@ enum RnIapHelper {
             purchase.platform = .ios
         }
 
+        // Set store field
+        if let storeString = dictionary["store"] as? String,
+           let store = IapStore(fromString: storeString) {
+            purchase.store = store
+        } else {
+            purchase.store = .apple
+        }
+
         if let quantity = doubleValue(dictionary["quantity"]) { purchase.quantity = quantity }
         if let purchaseStateString = dictionary["purchaseState"] as? String,
            let state = PurchaseState(fromString: purchaseStateString) {

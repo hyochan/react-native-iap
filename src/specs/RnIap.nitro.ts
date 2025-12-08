@@ -40,6 +40,9 @@ export type IapkitPurchaseState =
 
 export type IapkitStore = 'apple' | 'google';
 
+// IapStore enum for purchase store identification
+export type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
+
 // Note: Nitro requires at least 2 values for union types
 export type PurchaseVerificationProvider = 'iapkit' | 'none';
 
@@ -85,8 +88,14 @@ export interface NitroRequestPurchaseAndroid {
 }
 
 export interface NitroPurchaseRequest {
+  /** @deprecated Use apple instead */
   ios?: NitroRequestPurchaseIos | null;
+  /** @deprecated Use google instead */
   android?: NitroRequestPurchaseAndroid | null;
+  /** Apple-specific purchase parameters */
+  apple?: NitroRequestPurchaseIos | null;
+  /** Google-specific purchase parameters */
+  google?: NitroRequestPurchaseAndroid | null;
 }
 
 // Available purchases parameters
@@ -233,8 +242,14 @@ export interface NitroVerifyPurchaseWithIapkitResult {
   store: IapkitStore;
 }
 
+export interface NitroVerifyPurchaseWithProviderError {
+  code?: string | null;
+  message: string;
+}
+
 export interface NitroVerifyPurchaseWithProviderResult {
-  iapkit: NitroVerifyPurchaseWithIapkitResult[];
+  iapkit?: NitroVerifyPurchaseWithIapkitResult | null;
+  errors?: NitroVerifyPurchaseWithProviderError[] | null;
   provider: PurchaseVerificationProvider;
 }
 
@@ -252,7 +267,10 @@ export interface NitroPurchase {
   productId: PurchaseCommon['productId'];
   transactionDate: PurchaseCommon['transactionDate'];
   purchaseToken?: PurchaseCommon['purchaseToken'];
+  /** @deprecated Use store instead */
   platform: IapPlatform;
+  /** Store where purchase was made */
+  store: IapStore;
   quantity: PurchaseCommon['quantity'];
   purchaseState: PurchaseCommon['purchaseState'];
   isAutoRenewing: PurchaseCommon['isAutoRenewing'];

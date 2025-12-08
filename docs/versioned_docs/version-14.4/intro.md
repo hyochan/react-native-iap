@@ -87,8 +87,8 @@ useEffect(() => {
 // Purchase (platform-specific)
 await requestPurchase({
   request: {
-    apple: {sku: 'product_id'},
-    google: {skus: ['product_id']},
+    ios: {sku: 'product_id'},
+    android: {skus: ['product_id']},
   },
   type: 'in-app',
 });
