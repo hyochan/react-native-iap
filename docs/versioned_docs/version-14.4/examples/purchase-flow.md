@@ -116,10 +116,10 @@ const {finishTransaction} = useIAP({
 IAPKit returns a standardized response:
 
 ```typescript
-interface RequestVerifyPurchaseWithIapkitResult {
+interface IapkitVerificationResult {
   isValid: boolean;
   state: IapkitPurchaseState;
-  store: IapStore;
+  store: 'apple' | 'google';
 }
 
 type IapkitPurchaseState =
@@ -132,8 +132,6 @@ type IapkitPurchaseState =
   | 'consumed'
   | 'unknown'
   | 'inauthentic';
-
-type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 ```
 
 ### Verification Methods

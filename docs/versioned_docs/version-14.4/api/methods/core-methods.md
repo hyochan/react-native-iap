@@ -547,17 +547,11 @@ const verifyWithIAPKit = async (purchase: Purchase) => {
 ```typescript
 interface VerifyPurchaseWithProviderResult {
   provider: 'iapkit';
-  iapkit?: {
+  iapkit: Array<{
     isValid: boolean;
     state: IapkitPurchaseState;
-    store: IapStore;
-  } | null;
-  errors?: VerifyPurchaseWithProviderError[] | null;
-}
-
-interface VerifyPurchaseWithProviderError {
-  code?: string | null;
-  message: string;
+    store: 'apple' | 'google';
+  }>;
 }
 
 type IapkitPurchaseState =
@@ -570,8 +564,6 @@ type IapkitPurchaseState =
   | 'ready-to-consume'
   | 'consumed'
   | 'inauthentic';
-
-type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 ```
 
 **Platform Behavior:**

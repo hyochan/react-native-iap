@@ -12,6 +12,7 @@ import type {
 } from '../specs/RnIap.nitro';
 import type {
   IapPlatform,
+  IapStore,
   PaymentModeIOS,
   ProductType,
   ProductTypeIOS,
@@ -30,6 +31,10 @@ import {RnIapConsole} from './debug';
 
 const PLATFORM_IOS: IapPlatform = 'ios';
 const PLATFORM_ANDROID: IapPlatform = 'android';
+const STORE_UNKNOWN: IapStore = 'unknown';
+const STORE_APPLE: IapStore = 'apple';
+const STORE_GOOGLE: IapStore = 'google';
+const STORE_HORIZON: IapStore = 'horizon';
 const PRODUCT_TYPE_SUBS: ProductType = 'subs';
 const PRODUCT_TYPE_IN_APP: ProductType = 'in-app';
 const PURCHASE_STATE_DEFERRED: PurchaseState = 'deferred';
@@ -55,6 +60,19 @@ function normalizePlatform(value?: Nullable<string>): IapPlatform {
   return value?.toLowerCase() === PLATFORM_IOS
     ? PLATFORM_IOS
     : PLATFORM_ANDROID;
+}
+
+function normalizeStore(value?: Nullable<string>): IapStore {
+  switch (value?.toLowerCase()) {
+    case 'apple':
+      return STORE_APPLE;
+    case 'google':
+      return STORE_GOOGLE;
+    case 'horizon':
+      return STORE_HORIZON;
+    default:
+      return STORE_UNKNOWN;
+  }
 }
 
 function normalizeProductType(value?: Nullable<string>): ProductType {
@@ -332,6 +350,8 @@ export function convertNitroPurchaseToPurchase(
     purchaseState = normalizePurchaseState(nitroPurchase.purchaseStateAndroid);
   }
 
+  const store = normalizeStore(nitroPurchase.store);
+
   if (platform === PLATFORM_IOS) {
     const iosPurchase: PurchaseIOS = {
       id: nitroPurchase.id,
@@ -339,6 +359,7 @@ export function convertNitroPurchaseToPurchase(
       transactionDate: nitroPurchase.transactionDate ?? Date.now(),
       purchaseToken: nitroPurchase.purchaseToken ?? null,
       platform,
+      store,
       quantity: nitroPurchase.quantity ?? 1,
       purchaseState,
       isAutoRenewing: Boolean(nitroPurchase.isAutoRenewing),
@@ -433,6 +454,7 @@ export function convertNitroPurchaseToPurchase(
     purchaseToken:
       nitroPurchase.purchaseToken ?? nitroPurchase.purchaseTokenAndroid ?? null,
     platform,
+    store,
     quantity: nitroPurchase.quantity ?? 1,
     purchaseState,
     isAutoRenewing: Boolean(nitroPurchase.isAutoRenewing),

@@ -83,6 +83,7 @@ describe('hooks/useIAP (renderer)', () => {
       productId: 'p1',
       transactionDate: Date.now(),
       platform: 'ios',
+      store: 'apple',
       quantity: 1,
       purchaseState: 'purchased',
       isAutoRenewing: false,

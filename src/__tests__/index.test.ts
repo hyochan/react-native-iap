@@ -1144,13 +1144,11 @@ describe('Public API (src/index.ts)', () => {
       (Platform as any).OS = 'ios';
       const mockResult = {
         provider: 'iapkit',
-        iapkit: [
-          {
-            isValid: true,
-            state: 'entitled',
-            store: 'apple',
-          },
-        ],
+        iapkit: {
+          isValid: true,
+          state: 'entitled',
+          store: 'apple',
+        },
       };
       mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
 
@@ -1176,23 +1174,20 @@ describe('Public API (src/index.ts)', () => {
         },
       });
       expect(result.provider).toBe('iapkit');
-      expect(result.iapkit).toHaveLength(1);
-      expect(result.iapkit[0].isValid).toBe(true);
-      expect(result.iapkit[0].state).toBe('entitled');
-      expect(result.iapkit[0].store).toBe('apple');
+      expect(result.iapkit?.isValid).toBe(true);
+      expect(result.iapkit?.state).toBe('entitled');
+      expect(result.iapkit?.store).toBe('apple');
     });
 
     it('should handle Android verification', async () => {
       (Platform as any).OS = 'android';
       const mockResult = {
         provider: 'iapkit',
-        iapkit: [
-          {
-            isValid: true,
-            state: 'entitled',
-            store: 'google',
-          },
-        ],
+        iapkit: {
+          isValid: true,
+          state: 'entitled',
+          store: 'google',
+        },
       };
       mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
 
@@ -1208,14 +1203,14 @@ describe('Public API (src/index.ts)', () => {
         },
       });
 
-      expect(result.iapkit[0].store).toBe('google');
+      expect(result.iapkit?.store).toBe('google');
     });
 
     it('should throw error when provider is not iapkit', async () => {
       (Platform as any).OS = 'ios';
       const mockResult = {
         provider: 'none',
-        iapkit: [],
+        iapkit: null,
       };
       mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
 
@@ -1234,13 +1229,11 @@ describe('Public API (src/index.ts)', () => {
       (Platform as any).OS = 'ios';
       const mockResult = {
         provider: 'iapkit',
-        iapkit: [
-          {
-            isValid: false,
-            state: 'expired',
-            store: 'apple',
-          },
-        ],
+        iapkit: {
+          isValid: false,
+          state: 'expired',
+          store: 'apple',
+        },
       };
       mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
 
@@ -1252,8 +1245,8 @@ describe('Public API (src/index.ts)', () => {
         },
       });
 
-      expect(result.iapkit[0].isValid).toBe(false);
-      expect(result.iapkit[0].state).toBe('expired');
+      expect(result.iapkit?.isValid).toBe(false);
+      expect(result.iapkit?.state).toBe('expired');
     });
 
     it('should handle native errors', async () => {
@@ -1308,7 +1301,7 @@ describe('Public API (src/index.ts)', () => {
       for (const state of states) {
         const mockResult = {
           provider: 'iapkit',
-          iapkit: [{isValid: state !== 'inauthentic', state, store: 'apple'}],
+          iapkit: {isValid: state !== 'inauthentic', state, store: 'apple'},
         };
         mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
 
@@ -1320,7 +1313,7 @@ describe('Public API (src/index.ts)', () => {
           },
         });
 
-        expect(result.iapkit[0].state).toBe(state);
+        expect(result.iapkit?.state).toBe(state);
       }
     });
 
@@ -1328,7 +1321,7 @@ describe('Public API (src/index.ts)', () => {
       (Platform as any).OS = 'ios';
       const mockResult = {
         provider: 'iapkit',
-        iapkit: [{isValid: false, state: 'inauthentic', store: 'apple'}],
+        iapkit: {isValid: false, state: 'inauthentic', store: 'apple'},
       };
       mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
 
@@ -1340,15 +1333,15 @@ describe('Public API (src/index.ts)', () => {
         },
       });
 
-      expect(result.iapkit[0].isValid).toBe(false);
-      expect(result.iapkit[0].state).toBe('inauthentic');
+      expect(result.iapkit?.isValid).toBe(false);
+      expect(result.iapkit?.state).toBe('inauthentic');
     });
 
     it('should handle ready-to-consume state for consumables', async () => {
       (Platform as any).OS = 'android';
       const mockResult = {
         provider: 'iapkit',
-        iapkit: [{isValid: true, state: 'ready-to-consume', store: 'google'}],
+        iapkit: {isValid: true, state: 'ready-to-consume', store: 'google'},
       };
       mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
 
@@ -1356,18 +1349,26 @@ describe('Public API (src/index.ts)', () => {
         provider: 'iapkit',
         iapkit: {
           apiKey: 'key',
-          google: {purchaseToken: 'token', packageName: 'com.app', productId: 'consumable'},
+          google: {
+            purchaseToken: 'token',
+            packageName: 'com.app',
+            productId: 'consumable',
+          },
         },
       });
 
-      expect(result.iapkit[0].state).toBe('ready-to-consume');
+      expect(result.iapkit?.state).toBe('ready-to-consume');
     });
 
     it('should handle pending-acknowledgment state for subscriptions', async () => {
       (Platform as any).OS = 'android';
       const mockResult = {
         provider: 'iapkit',
-        iapkit: [{isValid: true, state: 'pending-acknowledgment', store: 'google'}],
+        iapkit: {
+          isValid: true,
+          state: 'pending-acknowledgment',
+          store: 'google',
+        },
       };
       mockIap.verifyPurchaseWithProvider.mockResolvedValueOnce(mockResult);
 
@@ -1375,11 +1376,15 @@ describe('Public API (src/index.ts)', () => {
         provider: 'iapkit',
         iapkit: {
           apiKey: 'key',
-          google: {purchaseToken: 'token', packageName: 'com.app', productId: 'subscription'},
+          google: {
+            purchaseToken: 'token',
+            packageName: 'com.app',
+            productId: 'subscription',
+          },
         },
       });
 
-      expect(result.iapkit[0].state).toBe('pending-acknowledgment');
+      expect(result.iapkit?.state).toBe('pending-acknowledgment');
     });
   });
 });
