@@ -133,24 +133,16 @@ The request types have been harmonised to match the schema definitions.
 
 ```ts
 export interface RequestPurchasePropsByPlatforms {
-  /** Apple-specific purchase parameters */
-  apple?: RequestPurchaseIosProps | null;
-  /** Google-specific purchase parameters */
-  google?: RequestPurchaseAndroidProps | null;
-  /** @deprecated Use apple instead */
+  /** iOS-specific purchase parameters */
   ios?: RequestPurchaseIosProps | null;
-  /** @deprecated Use google instead */
+  /** Android-specific purchase parameters */
   android?: RequestPurchaseAndroidProps | null;
 }
 
 export interface RequestSubscriptionPropsByPlatforms {
-  /** Apple-specific subscription parameters */
-  apple?: RequestSubscriptionIosProps | null;
-  /** Google-specific subscription parameters */
-  google?: RequestSubscriptionAndroidProps | null;
-  /** @deprecated Use apple instead */
+  /** iOS-specific subscription parameters */
   ios?: RequestSubscriptionIosProps | null;
-  /** @deprecated Use google instead */
+  /** Android-specific subscription parameters */
   android?: RequestSubscriptionAndroidProps | null;
 }
 

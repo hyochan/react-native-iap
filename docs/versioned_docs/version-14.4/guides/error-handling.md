@@ -182,7 +182,7 @@ Convert technical errors to user-friendly messages:
 ```typescript
 import {ErrorCode} from 'react-native-iap';
 
-const getUserFriendlyMessage = (error: IapError): string => {
+const getUserFriendlyMessage = (error: IapError): string | null => {
   switch (error.code) {
     case ErrorCode.UserCancelled:
       return null; // Don't show message

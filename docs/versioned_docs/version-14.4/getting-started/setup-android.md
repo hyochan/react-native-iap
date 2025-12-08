@@ -91,7 +91,7 @@ const AndroidProductItem = ({product}: {product: Product}) => {
   const handlePurchase = () => {
     if (product.platform === 'android') {
       requestPurchase({
-        request: {skus: [product.id]},
+        request: {android: {skus: [product.id]}},
         type: 'in-app',
       });
     }
@@ -124,13 +124,15 @@ const AndroidSubscriptionItem = ({
     if (subscription.platform === 'android') {
       requestPurchase({
         request: {
-          skus: [subscription.id],
-          subscriptionOffers: [
-            {
-              sku: subscription.id,
-              offerToken: offer.offerToken,
-            },
-          ],
+          android: {
+            skus: [subscription.id],
+            subscriptionOffers: [
+              {
+                sku: subscription.id,
+                offerToken: offer.offerToken,
+              },
+            ],
+          },
         },
         type: 'subs',
       });

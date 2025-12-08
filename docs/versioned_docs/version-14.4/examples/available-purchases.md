@@ -64,6 +64,8 @@ export default function AvailablePurchasesScreen() {
 The hook exposes `activeSubscriptions`, which you can render directly after calling `getActiveSubscriptions()`:
 
 ```tsx
+import {useEffect} from 'react';
+import {View, Text} from 'react-native';
 import {useIAP} from 'react-native-iap';
 
 function ActiveSubscriptionsList() {

@@ -22,7 +22,10 @@ import {
 } from 'react-native-iap';
 
 try {
-  await requestPurchase({request: {sku: 'product_id'}});
+  await requestPurchase({
+    request: {ios: {sku: 'product_id'}},
+    type: 'in-app',
+  });
 } catch (error) {
   // Check for user cancellation
   if (isUserCancelledError(error)) {

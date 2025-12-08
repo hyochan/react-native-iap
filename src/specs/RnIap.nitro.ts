@@ -38,8 +38,6 @@ export type IapkitPurchaseState =
   | 'unknown'
   | 'inauthentic';
 
-export type IapkitStore = 'apple' | 'google';
-
 // IapStore enum for purchase store identification
 export type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 
@@ -239,7 +237,7 @@ export interface NitroVerifyPurchaseWithProviderProps {
 export interface NitroVerifyPurchaseWithIapkitResult {
   isValid: boolean;
   state: IapkitPurchaseState;
-  store: IapkitStore;
+  store: IapStore;
 }
 
 export interface NitroVerifyPurchaseWithProviderError {

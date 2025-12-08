@@ -16,9 +16,9 @@ import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
 
 `react-native-iap` is a comprehensive in-app purchase solution specifically designed for Expo and React Native applications. It provides a unified API for handling purchases across iOS and Android with TypeScript support and modern React hooks.
 
-### How is react-native-iap different from react-native-iap?
+### What is the relationship between react-native-iap and the OpenIAP ecosystem?
 
-`react-native-iap` is the official successor to `react-native-iap`. After 8 years of maintaining `react-native-iap` (with 3K+ stars, 230+ contributors, and 214K monthly downloads), the project is being gradually deprecated in favor of `react-native-iap`.
+`react-native-iap` is part of the OpenIAP ecosystem. The project has evolved over 8 years (with 3K+ stars, 230+ contributors, and 214K monthly downloads) and now conforms to the [Open IAP specification](https://openiap.dev) for unified in-app purchase handling across platforms.
 
 **Why the migration?**
 
@@ -344,15 +344,13 @@ Implement purchase state management:
 ```tsx
 const [isPurchasing, setIsPurchasing] = useState(false);
 
-const handlePurchase = async (productId) => {
+const handlePurchase = (productId) => {
   if (isPurchasing) return;
 
   setIsPurchasing(true);
-  try {
-    await requestPurchase({sku: productId});
-  } finally {
-    setIsPurchasing(false);
-  }
+  requestPurchase({request: {ios: {sku: productId}}, type: 'in-app'});
+  // Note: setIsPurchasing(false) should be called in
+  // onPurchaseSuccess/onPurchaseError callbacks
 };
 ```
 
@@ -397,16 +395,12 @@ npx expo install react-native-iap
 **API Changes:**
 
 ```tsx
-// react-native-iap (OLD)
+// react-native-iap (OLD - with context wrapper)
 import {useIAP, withIAPContext} from 'react-native-iap';
 
-function App() {
-  return (
-    <withIAPContext>
-      <YourApp />
-    </withIAPContext>
-  );
-}
+const App = withIAPContext(() => {
+  return <YourApp />;
+});
 
 // react-native-iap (NEW)
 import {useIAP} from 'react-native-iap'; // No context wrapper needed

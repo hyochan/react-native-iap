@@ -22,11 +22,11 @@ On iOS, react-native-iap provides a native method to present Apple's code redemp
 ### Usage
 
 ```typescript
-import {presentCodeRedemptionSheet} from 'react-native-iap';
+import {presentCodeRedemptionSheetIOS} from 'react-native-iap';
 
 // Present the code redemption sheet
 try {
-  const result = await presentCodeRedemptionSheet();
+  const result = await presentCodeRedemptionSheetIOS();
   if (result) {
     console.log('Code redemption sheet presented successfully');
     // The system will handle the redemption process
@@ -80,9 +80,10 @@ const redeemCode = async (code: string) => {
 Here's a complete example that handles both platforms:
 
 ```typescript
+import {useEffect} from 'react';
 import {Platform} from 'react-native';
 import {
-  presentCodeRedemptionSheet,
+  presentCodeRedemptionSheetIOS,
   openRedeemOfferCodeAndroid,
   purchaseUpdatedListener,
 } from 'react-native-iap';
@@ -91,7 +92,7 @@ const handleRedeemCode = async () => {
   try {
     if (Platform.OS === 'ios') {
       // Present native iOS redemption sheet
-      const result = await presentCodeRedemptionSheet();
+      const result = await presentCodeRedemptionSheetIOS();
       if (result) {
         console.log('Redemption sheet presented');
       }
