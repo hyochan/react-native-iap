@@ -1438,11 +1438,12 @@ class HybridRnIap : HybridRnIapSpec() {
         }
     }
 
-    private fun mapIapkitStore(storeName: String): IapkitStore {
+    private fun mapIapkitStore(storeName: String): IapStore {
         return when (storeName.uppercase()) {
-            "APPLE" -> IapkitStore.APPLE
-            "GOOGLE" -> IapkitStore.GOOGLE
-            else -> IapkitStore.GOOGLE // Default to Google on Android
+            "APPLE" -> IapStore.APPLE
+            "GOOGLE" -> IapStore.GOOGLE
+            "HORIZON" -> IapStore.HORIZON
+            else -> IapStore.UNKNOWN
         }
     }
 

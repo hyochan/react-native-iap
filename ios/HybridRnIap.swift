@@ -380,7 +380,7 @@ class HybridRnIap: HybridRnIapSpec {
                     nitroIapkitResult = NitroVerifyPurchaseWithIapkitResult(
                         isValid: item.isValid,
                         state: IapkitPurchaseState(fromString: item.state.rawValue) ?? .unknown,
-                        store: IapkitStore(fromString: item.store.rawValue) ?? .apple
+                        store: IapStore(fromString: item.store.rawValue) ?? .unknown
                     )
                 }
                 // Convert errors if present
