@@ -580,6 +580,10 @@ type IapkitPurchaseState =
 
 > **Note:** You need an IAPKit API key to use this feature. Visit [iapkit.com](https://iapkit.com) to get started.
 
+### Error Handling & Purchase Identifiers
+
+For detailed guidance on error handling best practices and purchase identifier usage, see the [OpenIAP Verification Error Handling documentation](https://www.openiap.dev/docs/apis#verification-error-handling).
+
 ## Purchase Interface
 
 ```tsx

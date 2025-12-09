@@ -495,37 +495,34 @@ const checkIfUserHasSubscription = async () => {
 Verifies purchases using external verification services like IAPKit. This provides additional validation and security beyond local device verification.
 
 ```tsx
-import {verifyPurchaseWithProvider} from 'react-native-iap';
+import {verifyPurchaseWithProvider, finishTransaction} from 'react-native-iap';
 
-const verifyWithIAPKit = async (purchase: Purchase) => {
-  try {
-    const result = await verifyPurchaseWithProvider({
-      provider: 'iapkit',
-      iapkit: {
-        apiKey: 'your-iapkit-api-key',
-        environment: 'production', // or 'sandbox'
-        apple: {
-          jws: purchase.purchaseToken, // iOS JWS token
-        },
-        google: {
-          purchaseToken: purchase.purchaseToken, // Android purchase token
-          packageName: 'com.your.app',
-          productId: purchase.productId,
-        },
-      },
-    });
+try {
+  const result = await verifyPurchaseWithProvider({
+    provider: 'iapkit',
+    iapkit: {
+      apiKey: 'your-api-key',
+      apple: {jws: purchase.purchaseToken},
+      google: {purchaseToken: purchase.purchaseToken},
+    },
+  });
 
-    for (const item of result.iapkit) {
-      console.log('Is Valid:', item.isValid);
-      console.log('State:', item.state); // 'entitled', 'expired', 'canceled', etc.
-      console.log('Store:', item.store); // 'apple' or 'google'
-    }
-
-    return result;
-  } catch (error) {
-    console.error('Verification failed:', error);
+  if (result.iapkit?.isValid) {
+    // Verification succeeded - grant access
+    await finishTransaction(purchase);
+    grantAccess();
+  } else {
+    // Verification failed (isValid: false) - actually invalid purchase
+    // Don't call finishTransaction - allow retry
+    denyAccess();
   }
-};
+} catch (error) {
+  // Verification itself failed (network, server error, etc.)
+  // This doesn't mean the purchase is invalid - don't penalize the customer
+  console.error('Verification failed:', error);
+  await finishTransaction(purchase); // Complete the transaction
+  grantAccess(); // Grant access (fail-open approach)
+}
 ```
 
 **Parameters:**
@@ -534,13 +531,10 @@ const verifyWithIAPKit = async (purchase: Purchase) => {
   - `provider` ('iapkit'): The verification provider to use
   - `iapkit?` (object): IAPKit-specific configuration
     - `apiKey` (string): Your IAPKit API key
-    - `environment?` ('production' | 'sandbox'): Environment for verification
     - `apple?` (object): iOS verification data
       - `jws` (string): The JWS token from the purchase
     - `google?` (object): Android verification data
       - `purchaseToken` (string): The purchase token
-      - `packageName` (string): Your app's package name
-      - `productId` (string): The product ID
 
 **Returns:** `Promise<VerifyPurchaseWithProviderResult>`
 
@@ -574,6 +568,8 @@ type IapkitPurchaseState =
 type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 ```
 
+> For detailed descriptions of each `IapkitPurchaseState`, see the [OpenIAP IAPKit Purchase States documentation](https://www.openiap.dev/docs/apis#iapkit-purchase-states).
+
 **Platform Behavior:**
 
 - **iOS**: Sends the JWS (JSON Web Signature) token to IAPKit for server-side verification
@@ -587,6 +583,10 @@ type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 - Enhanced security through external verification services
 
 > **Note:** You need an IAPKit API key to use this feature. Visit [iapkit.com](https://iapkit.com) to get started.
+
+### Error Handling & Purchase Identifiers
+
+For detailed guidance on error handling best practices and purchase identifier usage, see the [OpenIAP Verification Error Handling documentation](https://www.openiap.dev/docs/apis#verification-error-handling).
 
 ## Purchase Interface
 
