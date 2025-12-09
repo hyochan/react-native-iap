@@ -490,6 +490,38 @@ const checkIfUserHasSubscription = async () => {
 
 **Returns:** `Promise<boolean>` - Returns true if user has at least one active subscription
 
+## verifyPurchase()
+
+Verifies a purchase using the native OpenIAP implementation. This validates purchases using platform-specific methods.
+
+```tsx
+import {verifyPurchase} from 'react-native-iap';
+
+const verify = async (sku: string) => {
+  try {
+    const result = await verifyPurchase({sku});
+
+    console.log('Verification result:', result);
+  } catch (error) {
+    console.error('Verification failed:', error);
+  }
+};
+```
+
+**Parameters:**
+
+- `options` (object):
+  - `sku` (string): Product SKU to validate
+  - `androidOptions?` (object): Android-specific validation options
+    - `accessToken` (string): Access token for Google Play API
+    - `packageName` (string): Android package name
+    - `productToken` (string): Product token
+    - `isSub?` (boolean): Whether the product is a subscription
+
+**Returns:** `Promise<VerifyPurchaseResult>` - Platform-specific verification result
+
+For external verification services with additional security, use [`verifyPurchaseWithProvider()`](#verifypurchasewithprovider) instead.
+
 ## verifyPurchaseWithProvider()
 
 Verifies purchases using external verification services like IAPKit. This provides additional validation and security beyond local device verification.
