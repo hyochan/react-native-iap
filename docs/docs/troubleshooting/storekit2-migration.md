@@ -7,7 +7,7 @@ title: StoreKit 2 Migration Issues
 
 When upgrading from `react-native-iap` v12/v13 (StoreKit 1) to v14+ (StoreKit 2), you may encounter the following error:
 
-```
+```plaintext
 [RN-IAP] Error fetching products: Error: PurchaseError(code: OpenIAP.ErrorCode.queryProduct,
 message: "The operation couldn't be completed. (StoreKit.StoreKitError error 1.)", productId: nil)
 ```

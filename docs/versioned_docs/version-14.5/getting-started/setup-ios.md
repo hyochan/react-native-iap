@@ -92,9 +92,10 @@ function App() {
 #### Purchase Verification
 
 ```tsx
-const validateReceiptExample = async (productId: string) => {
+const validateReceiptExample = async (sku: string) => {
   try {
-    const result = await validateReceipt(productId);
+    // validateReceipt requires an object with sku property
+    const result = await validateReceipt({sku});
 
     console.log('Receipt validation result:', {
       isValid: result.isValid,
