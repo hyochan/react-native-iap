@@ -72,6 +72,34 @@ export interface DeepLinkOptions {
   skuAndroid?: (string | null);
 }
 
+/**
+ * Discount amount details for one-time purchase offers (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface DiscountAmountAndroid {
+  /** Discount amount in micro-units (1,000,000 = 1 unit of currency) */
+  discountAmountMicros: string;
+  /** Formatted discount amount with currency sign (e.g., "$4.99") */
+  formattedDiscountAmount: string;
+}
+
+/**
+ * Discount display information for one-time purchase offers (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface DiscountDisplayInfoAndroid {
+  /**
+   * Absolute discount amount details
+   * Only returned for fixed amount discounts
+   */
+  discountAmount?: (DiscountAmountAndroid | null);
+  /**
+   * Percentage discount (e.g., 33 for 33% off)
+   * Only returned for percentage-based discounts
+   */
+  percentageDiscount?: (number | null);
+}
+
 export interface DiscountIOS {
   identifier: string;
   localizedPrice?: (string | null);
@@ -194,6 +222,17 @@ export interface InitConnectionConfig {
   alternativeBillingModeAndroid?: (AlternativeBillingModeAndroid | null);
 }
 
+/**
+ * Limited quantity information for one-time purchase offers (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface LimitedQuantityInfoAndroid {
+  /** Maximum quantity a user can purchase */
+  maximumQuantity: number;
+  /** Remaining quantity the user can still purchase */
+  remainingQuantity: number;
+}
+
 export interface Mutation {
   /** Acknowledge a non-consumable purchase or subscription */
   acknowledgePurchaseAndroid: Promise<boolean>;
@@ -310,6 +349,23 @@ export type MutationVerifyPurchaseWithProviderArgs = VerifyPurchaseWithProviderP
 
 export type PaymentModeIOS = 'empty' | 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
 
+/**
+ * Pre-order details for one-time purchase products (Android)
+ * Available in Google Play Billing Library 8.1.0+
+ */
+export interface PreorderDetailsAndroid {
+  /**
+   * Pre-order presale end time in milliseconds since epoch.
+   * This is when the presale period ends and the product will be released.
+   */
+  preorderPresaleEndTimeMillis: string;
+  /**
+   * Pre-order release time in milliseconds since epoch.
+   * This is when the product will be available to users who pre-ordered.
+   */
+  preorderReleaseTimeMillis: string;
+}
+
 export interface PricingPhaseAndroid {
   billingCycleCount: number;
   billingPeriod: string;
@@ -333,7 +389,11 @@ export interface ProductAndroid extends ProductCommon {
   displayPrice: string;
   id: string;
   nameAndroid: string;
-  oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail | null);
+  /**
+   * One-time purchase offer details including discounts (Android)
+   * Returns all eligible offers. Available in Google Play Billing Library 7.0+
+   */
+  oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail[] | null);
   platform: 'android';
   price?: (number | null);
   subscriptionOfferDetailsAndroid?: (ProductSubscriptionAndroidOfferDetails[] | null);
@@ -341,10 +401,41 @@ export interface ProductAndroid extends ProductCommon {
   type: 'in-app';
 }
 
+/**
+ * One-time purchase offer details (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
 export interface ProductAndroidOneTimePurchaseOfferDetail {
+  /**
+   * Discount display information
+   * Only available for discounted offers
+   */
+  discountDisplayInfo?: (DiscountDisplayInfoAndroid | null);
   formattedPrice: string;
+  /**
+   * Full (non-discounted) price in micro-units
+   * Only available for discounted offers
+   */
+  fullPriceMicros?: (string | null);
+  /** Limited quantity information */
+  limitedQuantityInfo?: (LimitedQuantityInfoAndroid | null);
+  /** Offer ID */
+  offerId?: (string | null);
+  /** List of offer tags */
+  offerTags: string[];
+  /** Offer token for use in BillingFlowParams when purchasing */
+  offerToken: string;
+  /**
+   * Pre-order details for products available for pre-order
+   * Available in Google Play Billing Library 8.1.0+
+   */
+  preorderDetailsAndroid?: (PreorderDetailsAndroid | null);
   priceAmountMicros: string;
   priceCurrencyCode: string;
+  /** Rental details for rental offers */
+  rentalDetailsAndroid?: (RentalDetailsAndroid | null);
+  /** Valid time window for the offer */
+  validTimeWindow?: (ValidTimeWindowAndroid | null);
 }
 
 export interface ProductCommon {
@@ -397,7 +488,11 @@ export interface ProductSubscriptionAndroid extends ProductCommon {
   displayPrice: string;
   id: string;
   nameAndroid: string;
-  oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail | null);
+  /**
+   * One-time purchase offer details including discounts (Android)
+   * Returns all eligible offers. Available in Google Play Billing Library 7.0+
+   */
+  oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail[] | null);
   platform: 'android';
   price?: (number | null);
   subscriptionOfferDetailsAndroid: ProductSubscriptionAndroidOfferDetails[];
@@ -454,13 +549,18 @@ export interface PurchaseAndroid extends PurchaseCommon {
   ids?: (string[] | null);
   isAcknowledgedAndroid?: (boolean | null);
   isAutoRenewing: boolean;
+  /**
+   * Whether the subscription is suspended (Android)
+   * A suspended subscription means the user's payment method failed and they need to fix it.
+   * Users should be directed to the subscription center to resolve the issue.
+   * Do NOT grant entitlements for suspended subscriptions.
+   * Available in Google Play Billing Library 8.1.0+
+   */
+  isSuspendedAndroid?: (boolean | null);
   obfuscatedAccountIdAndroid?: (string | null);
   obfuscatedProfileIdAndroid?: (string | null);
   packageNameAndroid?: (string | null);
-  /**
-   * @deprecated Use store instead
-   * @deprecated Use store instead
-   */
+  /** @deprecated Use store instead */
   platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
@@ -484,10 +584,7 @@ export interface PurchaseCommon {
   id: string;
   ids?: (string[] | null);
   isAutoRenewing: boolean;
-  /**
-   * @deprecated Use store instead
-   * @deprecated Use store instead
-   */
+  /** @deprecated Use store instead */
   platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
@@ -522,10 +619,7 @@ export interface PurchaseIOS extends PurchaseCommon {
   originalTransactionDateIOS?: (number | null);
   originalTransactionIdentifierIOS?: (string | null);
   ownershipTypeIOS?: (string | null);
-  /**
-   * @deprecated Use store instead
-   * @deprecated Use store instead
-   */
+  /** @deprecated Use store instead */
   platform: IapPlatform;
   productId: string;
   purchaseState: PurchaseState;
@@ -685,6 +779,20 @@ export interface RenewalInfoIOS {
    */
   renewalOfferType?: (string | null);
   willAutoRenew: boolean;
+}
+
+/**
+ * Rental details for one-time purchase products that can be rented (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface RentalDetailsAndroid {
+  /**
+   * Rental expiration period in ISO 8601 format
+   * Time after rental period ends when user can still extend
+   */
+  rentalExpirationPeriod?: (string | null);
+  /** Rental period in ISO 8601 format (e.g., P7D for 7 days) */
+  rentalPeriod: string;
 }
 
 export interface RequestPurchaseAndroidProps {
@@ -858,6 +966,17 @@ export interface UserChoiceBillingDetails {
   externalTransactionToken: string;
   /** List of product IDs selected by the user */
   products: string[];
+}
+
+/**
+ * Valid time window for when an offer is available (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface ValidTimeWindowAndroid {
+  /** End time in milliseconds since epoch */
+  endTimeMillis: string;
+  /** Start time in milliseconds since epoch */
+  startTimeMillis: string;
 }
 
 export interface VerifyPurchaseAndroidOptions {

@@ -815,20 +815,59 @@ class HybridRnIap : HybridRnIapSpec() {
             is ProductAndroid -> product.subscriptionOfferDetailsAndroid.orEmpty()
             else -> emptyList()
         }
-        val oneTimeOffer = when (product) {
+        val oneTimeOffers = when (product) {
             is ProductSubscriptionAndroid -> product.oneTimePurchaseOfferDetailsAndroid
             is ProductAndroid -> product.oneTimePurchaseOfferDetailsAndroid
             else -> null
         }
 
         val subscriptionOffersJson = subscriptionOffers.takeIf { it.isNotEmpty() }?.let { serializeSubscriptionOffers(it) }
-        val oneTimeOfferNitro = oneTimeOffer?.let { otp ->
+        val oneTimeOffersNitro = oneTimeOffers?.map { otp ->
             NitroOneTimePurchaseOfferDetail(
                 formattedPrice = otp.formattedPrice,
                 priceAmountMicros = otp.priceAmountMicros,
-                priceCurrencyCode = otp.priceCurrencyCode
+                priceCurrencyCode = otp.priceCurrencyCode,
+                offerId = otp.offerId,
+                offerToken = otp.offerToken,
+                offerTags = otp.offerTags.toTypedArray(),
+                fullPriceMicros = otp.fullPriceMicros,
+                discountDisplayInfo = otp.discountDisplayInfo?.let { discount ->
+                    NitroDiscountDisplayInfoAndroid(
+                        percentageDiscount = discount.percentageDiscount?.toDouble(),
+                        discountAmount = discount.discountAmount?.let { amount ->
+                            NitroDiscountAmountAndroid(
+                                discountAmountMicros = amount.discountAmountMicros,
+                                formattedDiscountAmount = amount.formattedDiscountAmount
+                            )
+                        }
+                    )
+                },
+                validTimeWindow = otp.validTimeWindow?.let { window ->
+                    NitroValidTimeWindowAndroid(
+                        startTimeMillis = window.startTimeMillis,
+                        endTimeMillis = window.endTimeMillis
+                    )
+                },
+                limitedQuantityInfo = otp.limitedQuantityInfo?.let { info ->
+                    NitroLimitedQuantityInfoAndroid(
+                        maximumQuantity = info.maximumQuantity.toDouble(),
+                        remainingQuantity = info.remainingQuantity.toDouble()
+                    )
+                },
+                preorderDetailsAndroid = otp.preorderDetailsAndroid?.let { preorder ->
+                    NitroPreorderDetailsAndroid(
+                        preorderPresaleEndTimeMillis = preorder.preorderPresaleEndTimeMillis,
+                        preorderReleaseTimeMillis = preorder.preorderReleaseTimeMillis
+                    )
+                },
+                rentalDetailsAndroid = otp.rentalDetailsAndroid?.let { rental ->
+                    NitroRentalDetailsAndroid(
+                        rentalPeriod = rental.rentalPeriod,
+                        rentalExpirationPeriod = rental.rentalExpirationPeriod
+                    )
+                }
             )
-        }
+        }?.toTypedArray()
 
         var originalPriceAndroid: String? = null
         var originalPriceAmountMicrosAndroid: Double? = null
@@ -839,7 +878,7 @@ class HybridRnIap : HybridRnIapSpec() {
         var freeTrialPeriodAndroid: String? = null
 
         if (product.type == ProductType.InApp) {
-            oneTimeOffer?.let { otp ->
+            oneTimeOffers?.firstOrNull()?.let { otp ->
                 originalPriceAndroid = otp.formattedPrice
                 originalPriceAmountMicrosAndroid = otp.priceAmountMicros.toDoubleOrNull()
             }
@@ -903,7 +942,7 @@ class HybridRnIap : HybridRnIapSpec() {
             subscriptionPeriodAndroid = subscriptionPeriodAndroid,
             freeTrialPeriodAndroid = freeTrialPeriodAndroid,
             subscriptionOfferDetailsAndroid = subscriptionOffersJson,
-            oneTimePurchaseOfferDetailsAndroid = oneTimeOfferNitro
+            oneTimePurchaseOfferDetailsAndroid = oneTimeOffersNitro
         )
     }
     
@@ -957,7 +996,8 @@ class HybridRnIap : HybridRnIapSpec() {
             packageNameAndroid = androidPurchase?.packageNameAndroid,
             obfuscatedAccountIdAndroid = androidPurchase?.obfuscatedAccountIdAndroid,
             obfuscatedProfileIdAndroid = androidPurchase?.obfuscatedProfileIdAndroid,
-            developerPayloadAndroid = androidPurchase?.developerPayloadAndroid
+            developerPayloadAndroid = androidPurchase?.developerPayloadAndroid,
+            isSuspendedAndroid = androidPurchase?.isSuspendedAndroid
         )
     }
 

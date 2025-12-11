@@ -252,12 +252,70 @@ export interface NitroVerifyPurchaseWithProviderResult {
 }
 
 /**
+ * Discount amount details for one-time purchase offers (Android)
+ */
+export interface NitroDiscountAmountAndroid {
+  discountAmountMicros: string;
+  formattedDiscountAmount: string;
+}
+
+/**
+ * Discount display information for one-time purchase offers (Android)
+ */
+export interface NitroDiscountDisplayInfoAndroid {
+  discountAmount?: NitroDiscountAmountAndroid | null;
+  percentageDiscount?: number | null;
+}
+
+/**
+ * Limited quantity information for one-time purchase offers (Android)
+ */
+export interface NitroLimitedQuantityInfoAndroid {
+  maximumQuantity: number;
+  remainingQuantity: number;
+}
+
+/**
+ * Pre-order details for one-time purchase products (Android)
+ */
+export interface NitroPreorderDetailsAndroid {
+  preorderPresaleEndTimeMillis: string;
+  preorderReleaseTimeMillis: string;
+}
+
+/**
+ * Rental details for one-time purchase products (Android)
+ */
+export interface NitroRentalDetailsAndroid {
+  rentalExpirationPeriod?: string | null;
+  rentalPeriod: string;
+}
+
+/**
+ * Valid time window for when an offer is available (Android)
+ */
+export interface NitroValidTimeWindowAndroid {
+  endTimeMillis: string;
+  startTimeMillis: string;
+}
+
+/**
  * Android one-time purchase offer details
+ * Available in Google Play Billing Library 7.0+
  */
 export interface NitroOneTimePurchaseOfferDetail {
+  discountDisplayInfo?: NitroDiscountDisplayInfoAndroid | null;
   formattedPrice: string;
+  fullPriceMicros?: string | null;
+  limitedQuantityInfo?: NitroLimitedQuantityInfoAndroid | null;
+  offerId?: string | null;
+  offerTags: string[];
+  offerToken: string;
+  preorderDetailsAndroid?: NitroPreorderDetailsAndroid | null;
   priceAmountMicros: string;
   priceCurrencyCode: string;
+  rentalDetailsAndroid?: NitroRentalDetailsAndroid | null;
+  validTimeWindow?: NitroValidTimeWindowAndroid | null;
 }
 
 export interface NitroPurchase {
@@ -306,6 +364,7 @@ export interface NitroPurchase {
   obfuscatedAccountIdAndroid?: string | null;
   obfuscatedProfileIdAndroid?: string | null;
   developerPayloadAndroid?: string | null;
+  isSuspendedAndroid?: boolean | null;
 }
 
 /**
@@ -380,7 +439,7 @@ export interface NitroProduct {
   subscriptionPeriodAndroid?: string | null;
   freeTrialPeriodAndroid?: string | null;
   subscriptionOfferDetailsAndroid?: string | null;
-  oneTimePurchaseOfferDetailsAndroid?: NitroOneTimePurchaseOfferDetail | null;
+  oneTimePurchaseOfferDetailsAndroid?: NitroOneTimePurchaseOfferDetail[] | null;
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════╗

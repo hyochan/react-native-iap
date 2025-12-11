@@ -21,6 +21,8 @@ import {
   type Purchase,
   type PurchaseError,
   type VerifyPurchaseWithProviderProps,
+  type ProductSubscriptionAndroidOfferDetails,
+  type ProductAndroidOneTimePurchaseOfferDetail,
   ErrorCode,
 } from 'react-native-iap';
 import {IAPKIT_API_KEY} from '@env';
@@ -487,10 +489,195 @@ function SubscriptionFlow({
 
     const jsonString = JSON.stringify(selectedSubscription, null, 2);
 
+    // Check for Android offers
+    const hasSubscriptionOffers =
+      selectedSubscription.platform === 'android' &&
+      'subscriptionOfferDetailsAndroid' in selectedSubscription &&
+      selectedSubscription.subscriptionOfferDetailsAndroid &&
+      selectedSubscription.subscriptionOfferDetailsAndroid.length > 0;
+
+    const hasOneTimeOffers =
+      selectedSubscription.platform === 'android' &&
+      'oneTimePurchaseOfferDetailsAndroid' in selectedSubscription &&
+      selectedSubscription.oneTimePurchaseOfferDetailsAndroid &&
+      selectedSubscription.oneTimePurchaseOfferDetailsAndroid.length > 0;
+
     return (
       <View style={styles.modalContent}>
         <ScrollView style={styles.jsonContainer}>
-          <Text style={styles.jsonText}>{jsonString}</Text>
+          {/* Basic Info */}
+          <Text style={styles.detailLabel}>Product ID:</Text>
+          <Text style={styles.detailValue}>{selectedSubscription.id}</Text>
+
+          <Text style={styles.detailLabel}>Title:</Text>
+          <Text style={styles.detailValue}>{selectedSubscription.title}</Text>
+
+          <Text style={styles.detailLabel}>Price:</Text>
+          <Text style={styles.detailValue}>
+            {selectedSubscription.displayPrice}
+          </Text>
+
+          {/* Android Subscription Offers */}
+          {hasSubscriptionOffers && (
+            <View style={styles.offersSection}>
+              <Text style={styles.offersSectionTitle}>
+                Subscription Offers (
+                {
+                  (selectedSubscription as ProductSubscriptionAndroid)
+                    .subscriptionOfferDetailsAndroid.length
+                }
+                )
+              </Text>
+              {(
+                selectedSubscription as ProductSubscriptionAndroid
+              ).subscriptionOfferDetailsAndroid.map(
+                (
+                  offer: ProductSubscriptionAndroidOfferDetails,
+                  index: number,
+                ) => (
+                  <View key={offer.offerToken} style={styles.offerCard}>
+                    <Text style={styles.offerTitle}>
+                      Offer {index + 1}
+                      {offer.offerId ? ` (${offer.offerId})` : ''}
+                    </Text>
+
+                    <Text style={styles.offerDetailLabel}>Base Plan ID:</Text>
+                    <Text style={styles.offerValue}>{offer.basePlanId}</Text>
+
+                    {offer.pricingPhases.pricingPhaseList.length > 0 && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>
+                          Pricing Phases:
+                        </Text>
+                        {offer.pricingPhases.pricingPhaseList.map(
+                          (phase, phaseIndex) => (
+                            <View key={phaseIndex} style={styles.pricingPhase}>
+                              <Text style={styles.phaseText}>
+                                Phase {phaseIndex + 1}: {phase.formattedPrice} /{' '}
+                                {phase.billingPeriod}
+                              </Text>
+                              <Text style={styles.phaseDetail}>
+                                Cycles: {phase.billingCycleCount}, Mode:{' '}
+                                {phase.recurrenceMode}
+                              </Text>
+                            </View>
+                          ),
+                        )}
+                      </>
+                    )}
+
+                    {offer.offerTags.length > 0 && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>Tags:</Text>
+                        <Text style={styles.offerValue}>
+                          {offer.offerTags.join(', ')}
+                        </Text>
+                      </>
+                    )}
+
+                    <Text style={styles.offerDetailLabel}>Offer Token:</Text>
+                    <Text
+                      style={[styles.offerValue, styles.offerTokenText]}
+                      numberOfLines={2}
+                    >
+                      {offer.offerToken}
+                    </Text>
+                  </View>
+                ),
+              )}
+            </View>
+          )}
+
+          {/* Android One-Time Purchase Offers */}
+          {hasOneTimeOffers && (
+            <View style={styles.offersSection}>
+              <Text style={styles.offersSectionTitle}>
+                One-Time Purchase Offers (
+                {
+                  (selectedSubscription as ProductSubscriptionAndroid)
+                    .oneTimePurchaseOfferDetailsAndroid!.length
+                }
+                )
+              </Text>
+              {(
+                selectedSubscription as ProductSubscriptionAndroid
+              ).oneTimePurchaseOfferDetailsAndroid!.map(
+                (
+                  offer: ProductAndroidOneTimePurchaseOfferDetail,
+                  index: number,
+                ) => (
+                  <View key={offer.offerToken} style={styles.offerCard}>
+                    <Text style={styles.offerTitle}>
+                      Offer {index + 1}
+                      {offer.offerId ? ` (${offer.offerId})` : ''}
+                    </Text>
+
+                    <Text style={styles.offerDetailLabel}>Price:</Text>
+                    <Text style={styles.offerValue}>
+                      {offer.formattedPrice} ({offer.priceAmountMicros} micros)
+                    </Text>
+
+                    {offer.fullPriceMicros && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>Full Price:</Text>
+                        <Text style={styles.offerValue}>
+                          {offer.fullPriceMicros} micros
+                        </Text>
+                      </>
+                    )}
+
+                    {offer.discountDisplayInfo && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>Discount:</Text>
+                        <Text style={styles.offerValueDiscount}>
+                          {offer.discountDisplayInfo.percentageDiscount
+                            ? `${offer.discountDisplayInfo.percentageDiscount}% off`
+                            : offer.discountDisplayInfo.discountAmount
+                              ? `${offer.discountDisplayInfo.discountAmount.formattedDiscountAmount} off`
+                              : 'N/A'}
+                        </Text>
+                      </>
+                    )}
+
+                    {offer.limitedQuantityInfo && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>
+                          Limited Quantity:
+                        </Text>
+                        <Text style={styles.offerValue}>
+                          {offer.limitedQuantityInfo.remainingQuantity} /{' '}
+                          {offer.limitedQuantityInfo.maximumQuantity} remaining
+                        </Text>
+                      </>
+                    )}
+
+                    {offer.offerTags.length > 0 && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>Tags:</Text>
+                        <Text style={styles.offerValue}>
+                          {offer.offerTags.join(', ')}
+                        </Text>
+                      </>
+                    )}
+
+                    <Text style={styles.offerDetailLabel}>Offer Token:</Text>
+                    <Text
+                      style={[styles.offerValue, styles.offerTokenText]}
+                      numberOfLines={2}
+                    >
+                      {offer.offerToken}
+                    </Text>
+                  </View>
+                ),
+              )}
+            </View>
+          )}
+
+          {/* Raw JSON Section */}
+          <View style={styles.rawJsonSection}>
+            <Text style={styles.rawJsonTitle}>Raw JSON:</Text>
+            <Text style={styles.jsonText}>{jsonString}</Text>
+          </View>
         </ScrollView>
         <View style={styles.buttonContainer}>
           <TouchableOpacity
@@ -2463,5 +2650,95 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#f57c00',
     fontWeight: '600',
+  },
+  // Offer Details Styles (Modal)
+  detailLabel: {
+    fontSize: 12,
+    color: '#5f6470',
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#1a1f36',
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  offersSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e1e7ef',
+  },
+  offersSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1f36',
+    marginBottom: 12,
+  },
+  offerCard: {
+    backgroundColor: '#f1f4ff',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1f3c88',
+  },
+  offerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1f3c88',
+    marginBottom: 10,
+  },
+  offerDetailLabel: {
+    fontSize: 11,
+    color: '#5f6470',
+    marginTop: 8,
+    fontWeight: '600',
+  },
+  offerValue: {
+    fontSize: 13,
+    color: '#1a1f36',
+    marginTop: 2,
+  },
+  offerValueDiscount: {
+    fontSize: 13,
+    color: '#E53935',
+    marginTop: 2,
+    fontWeight: '700',
+  },
+  offerTokenText: {
+    fontSize: 10,
+    color: '#999',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  pricingPhase: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: 6,
+    padding: 8,
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  phaseText: {
+    fontSize: 12,
+    color: '#1565C0',
+    fontWeight: '600',
+  },
+  phaseDetail: {
+    fontSize: 10,
+    color: '#5f6470',
+    marginTop: 2,
+  },
+  rawJsonSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e1e7ef',
+  },
+  rawJsonTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#5f6470',
+    marginBottom: 8,
   },
 });
