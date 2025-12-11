@@ -137,18 +137,16 @@ export async function getCurrentPhase(sku: string): Promise<DerivedPhase> {
 
 > Tweak `GRACE_WINDOW_DAYS` (or add additional checks such as `willExpireSoon`) to match how your product defines "grace period". For Android plans you can also look at `autoRenewingAndroid` and the Play Developer API for richer state.
 
-````
-
 ## StoreKit 2 status API (`subscriptionStatusIOS`)
 
-When you need to know the exact lifecycle phase, call [`subscriptionStatusIOS`](../api/methods/core-methods.md#subscriptionstatusios). This maps to StoreKit&nbsp;2’s `Product.SubscriptionInfo.Status` API and returns an array of status entries for the subscription group. Each `status.state` comes through as a string so you can forward unknown values to your analytics or logging when Apple adds new phases.
+When you need to know the exact lifecycle phase, call [`subscriptionStatusIOS`](../api/methods/core-methods.md#subscriptionstatusios). This maps to StoreKit&nbsp;2's `Product.SubscriptionInfo.Status` API and returns an array of status entries for the subscription group. Each `status.state` comes through as a string so you can forward unknown values to your analytics or logging when Apple adds new phases.
 
 ```ts
 import {subscriptionStatusIOS} from 'react-native-iap';
 
 const statuses = await subscriptionStatusIOS('your.yearly.subscription');
 const latestState = statuses[0]?.state ?? 'unknown';
-````
+```
 
 ### Phase reference
 

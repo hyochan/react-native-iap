@@ -143,7 +143,7 @@ For detailed platform-specific configuration:
 - [iOS Setup](./getting-started/setup-ios.md) - iOS StoreKit configuration
 - [Android Setup](./getting-started/setup-android.md) - Android Google Play Billing configuration
 
-## Real world examples
+## Real-world examples
 
 For detailed platform-specific setup instructions, check out our real examples:
 

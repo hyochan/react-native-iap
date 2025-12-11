@@ -22,11 +22,11 @@ On iOS, react-native-iap provides a native method to present Apple's code redemp
 ### Usage
 
 ```typescript
-import {presentCodeRedemptionSheet} from 'react-native-iap';
+import {presentCodeRedemptionSheetIOS} from 'react-native-iap';
 
 // Present the code redemption sheet
 try {
-  const result = await presentCodeRedemptionSheet();
+  const result = await presentCodeRedemptionSheetIOS();
   if (result) {
     console.log('Code redemption sheet presented successfully');
     // The system will handle the redemption process

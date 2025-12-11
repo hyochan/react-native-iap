@@ -1245,7 +1245,8 @@ This automatically adds the required entitlements and Info.plist configuration.
 - **Approval Required**: You must obtain approval from Apple/Google to use alternative billing
 - **iOS URL Format**: URLs must use HTTPS, have no query parameters, and be 1,000 characters or fewer
 - **Android Reporting**: External transaction tokens must be reported to Google Play within 24 hours
-- **Service Fees**: Reduced fees apply when using alternative billing (varies by platform and region) :::
+- **Service Fees**: Reduced fees apply when using alternative billing (varies by platform and region)
+:::
 
 For complete guides, see:
 

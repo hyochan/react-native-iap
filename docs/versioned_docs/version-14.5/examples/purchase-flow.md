@@ -74,16 +74,27 @@ await requestPurchase({
 import {verifyPurchaseWithProvider} from 'react-native-iap';
 
 const verifyPurchase = async (purchase: Purchase) => {
+  const apiKey = process.env.EXPO_PUBLIC_IAPKIT_API_KEY;
+  if (!apiKey) {
+    console.error('IAPKit API key not configured');
+    return;
+  }
+
+  if (!purchase.purchaseToken) {
+    console.error('Purchase token missing');
+    return;
+  }
+
   const result = await verifyPurchaseWithProvider({
     provider: 'iapkit',
     iapkit: {
-      apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
-      apple: {jws: purchase.purchaseToken!},
-      google: {purchaseToken: purchase.purchaseToken!},
+      apiKey,
+      apple: {jws: purchase.purchaseToken},
+      google: {purchaseToken: purchase.purchaseToken},
     },
   });
 
-  if (result.iapkit.isValid) {
+  if (result.iapkit?.isValid) {
     // Grant entitlement to user
     await finishTransaction({purchase, isConsumable: true});
   }
@@ -95,16 +106,22 @@ const verifyPurchase = async (purchase: Purchase) => {
 ```tsx
 const {finishTransaction} = useIAP({
   onPurchaseSuccess: async (purchase) => {
+    const apiKey = process.env.EXPO_PUBLIC_IAPKIT_API_KEY;
+    if (!apiKey || !purchase.purchaseToken) {
+      console.error('Missing API key or purchase token');
+      return;
+    }
+
     const result = await verifyPurchaseWithProvider({
       provider: 'iapkit',
       iapkit: {
-        apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
-        apple: {jws: purchase.purchaseToken!},
-        google: {purchaseToken: purchase.purchaseToken!},
+        apiKey,
+        apple: {jws: purchase.purchaseToken},
+        google: {purchaseToken: purchase.purchaseToken},
       },
     });
 
-    if (result.iapkit.isValid) {
+    if (result.iapkit?.isValid) {
       await finishTransaction({purchase, isConsumable: true});
     }
   },

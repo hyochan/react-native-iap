@@ -54,7 +54,7 @@ function App() {
 
   const validatePurchase = async (purchase) => {
     try {
-      const result = await validateReceipt({sku: purchase.transactionId});
+      const result = await validateReceipt({sku: purchase.id});
       if (result.isValid) {
         // Grant user the purchased content
         console.log('Receipt is valid');

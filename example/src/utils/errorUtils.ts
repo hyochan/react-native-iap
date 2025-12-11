@@ -7,6 +7,15 @@ export function getErrorMessage(error: unknown): string {
     return error.message;
   }
 
+  // Handle primitive types - preserve the original message
+  if (
+    typeof error === 'string' ||
+    typeof error === 'number' ||
+    typeof error === 'boolean'
+  ) {
+    return String(error);
+  }
+
   if (
     error &&
     typeof error === 'object' &&
@@ -24,5 +33,5 @@ export function getErrorMessage(error: unknown): string {
     return String((error as {message: unknown}).message);
   }
 
-  return 'Unknown error';
+  return String(error ?? 'Unknown error');
 }

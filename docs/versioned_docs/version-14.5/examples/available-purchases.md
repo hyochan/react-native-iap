@@ -32,32 +32,43 @@ import {useIAP} from 'react-native-iap';
 export default function AvailablePurchasesScreen() {
   const {
     connected,
+    availablePurchases,
     getAvailablePurchases,
     getActiveSubscriptions,
-    activeSubscriptions,
     finishTransaction,
   } = useIAP();
 
   const restore = async () => {
     if (!connected) return;
-    const [purchases] = await Promise.all([
-      getAvailablePurchases(),
-      getActiveSubscriptions(),
-    ]);
 
-    for (const p of purchases) {
+    // These methods update hook state (availablePurchases, activeSubscriptions)
+    // and return Promise<void>, so we use the state after calling them
+    await Promise.all([getAvailablePurchases(), getActiveSubscriptions()]);
+
+    for (const p of availablePurchases) {
       // TODO: validate on your backend first
       // await grantEntitlement(p)
       // Non-consumables and subscriptions typically don't require consumption
       await finishTransaction({purchase: p, isConsumable: false});
     }
 
-    Alert.alert('Restored', `Restored ${purchases.length} purchases`);
+    Alert.alert('Restored', `Restored ${availablePurchases.length} purchases`);
   };
 
   return null; // Render your UI and call restore() from a button
 }
 ```
+
+:::note Hook vs Root API
+The `useIAP` hook methods (`getAvailablePurchases`, `getActiveSubscriptions`) update internal state and return `Promise<void>`. Access the data through hook state properties like `availablePurchases` and `activeSubscriptions`.
+
+If you need the Promise-based return values, import the root API functions directly:
+```tsx
+import {getAvailablePurchases, getActiveSubscriptions} from 'react-native-iap';
+
+const purchases = await getAvailablePurchases();
+```
+:::
 
 ## Showing Active Subscriptions
 

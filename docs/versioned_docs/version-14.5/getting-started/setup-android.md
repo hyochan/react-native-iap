@@ -99,10 +99,14 @@ const AndroidProductItem = ({product}: {product: Product}) => {
 
   if (product.platform !== 'android') return null;
 
+  // In v14.5.x, oneTimePurchaseOfferDetailsAndroid is a single object
+  // In v14.6.0+, it becomes an array for discount support
+  const offerDetails = product.oneTimePurchaseOfferDetailsAndroid;
+
   return (
     <TouchableOpacity onPress={handlePurchase}>
       <Text>{product.title}</Text>
-      <Text>{product.oneTimePurchaseOfferDetails?.formattedPrice}</Text>
+      <Text>{offerDetails?.formattedPrice ?? product.displayPrice}</Text>
     </TouchableOpacity>
   );
 };
@@ -142,7 +146,7 @@ const AndroidSubscriptionItem = ({
   return (
     <View>
       <Text>{subscription.title}</Text>
-      {subscription.subscriptionOfferDetails?.map((offer) => (
+      {subscription.subscriptionOfferDetailsAndroid?.map((offer) => (
         <TouchableOpacity
           key={offer.offerId}
           onPress={() => handleSubscribe(offer)}

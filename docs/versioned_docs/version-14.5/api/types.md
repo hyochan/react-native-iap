@@ -12,7 +12,11 @@ Key runtime helpers that build on these types live alongside them:
 - [`src/utils/errorMapping.ts`](https://github.com/hyochan/react-native-iap/blob/main/src/utils/errorMapping.ts) – typed error helpers (`createPurchaseError`, `ErrorCodeUtils`)
 - [`src/helpers/subscription.ts`](https://github.com/hyochan/react-native-iap/blob/main/src/helpers/subscription.ts) – subscription utilities that re-export `ActiveSubscription`
 
-Below is a curated overview of the most commonly used types. Consult [`src/types.ts`](https://github.com/hyochan/react-native-iap/blob/main/src/types.ts) for the full schema.
+Below is a curated overview of the most commonly used types for version 14.5.x. For the latest types including new fields added in v14.6.0+, see the [current documentation](/docs/api/types).
+
+:::note Version Note
+This documentation reflects the type definitions as of version 14.5.x. Version 14.6.0+ includes additional fields such as `oneTimePurchaseOfferDetailsAndroid` as an array (for discount support), `isSuspendedAndroid`, and Billing Programs API types.
+:::
 
 ## Core Type Aliases
 
