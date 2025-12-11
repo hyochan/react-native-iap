@@ -24,11 +24,21 @@ import {
   type ProductSubscriptionAndroid,
   type Purchase,
   type PurchaseError,
+  type VerifyPurchaseWithProviderProps,
+  type ProductSubscriptionAndroidOfferDetails,
   ErrorCode,
 } from 'react-native-iap';
 import Loading from '../components/Loading';
 import {SUBSCRIPTION_PRODUCT_IDS} from '../constants/products';
+import {getErrorMessage} from '../utils/errorUtils';
+import {
+  useVerificationMethod,
+  type VerificationMethod,
+} from '../hooks/useVerificationMethod';
 import PurchaseSummaryRow from '../components/PurchaseSummaryRow';
+import AndroidOneTimeOfferDetails from '../components/AndroidOneTimeOfferDetails';
+// IAPKit API Key - Set this in your environment or replace with your actual key
+const IAPKIT_API_KEY = process.env.EXPO_PUBLIC_IAPKIT_API_KEY || '';
 
 type ExtendedPurchase = Purchase & {
   purchaseTokenAndroid?: string;
@@ -219,6 +229,7 @@ type SubscriptionFlowProps = {
   isCheckingStatus: boolean;
   lastPurchase: Purchase | null;
   lastPurchasedPlan: string | null;
+  verificationMethod: VerificationMethod;
   setIsProcessing: (value: boolean) => void;
   setPurchaseResult: (value: string) => void;
   setLastPurchasedPlan: (value: string | null) => void;
@@ -226,6 +237,7 @@ type SubscriptionFlowProps = {
   onRetryLoadSubscriptions: () => void;
   onRefreshStatus: () => void;
   onManageSubscriptions: () => void;
+  onChangeVerificationMethod: () => void;
 };
 
 function SubscriptionFlow({
@@ -237,12 +249,14 @@ function SubscriptionFlow({
   isCheckingStatus,
   lastPurchase,
   lastPurchasedPlan,
+  verificationMethod,
   setIsProcessing,
   setPurchaseResult,
   onSubscribe,
   onRetryLoadSubscriptions,
   onRefreshStatus,
   onManageSubscriptions,
+  onChangeVerificationMethod,
 }: SubscriptionFlowProps) {
   const [selectedSubscription, setSelectedSubscription] =
     useState<ProductSubscription | null>(null);
@@ -480,10 +494,120 @@ function SubscriptionFlow({
 
     const jsonString = JSON.stringify(selectedSubscription, null, 2);
 
+    // Check for Android offers
+    const hasSubscriptionOffers =
+      selectedSubscription.platform === 'android' &&
+      'subscriptionOfferDetailsAndroid' in selectedSubscription &&
+      selectedSubscription.subscriptionOfferDetailsAndroid &&
+      selectedSubscription.subscriptionOfferDetailsAndroid.length > 0;
+
+    const hasOneTimeOffers =
+      selectedSubscription.platform === 'android' &&
+      'oneTimePurchaseOfferDetailsAndroid' in selectedSubscription &&
+      selectedSubscription.oneTimePurchaseOfferDetailsAndroid &&
+      selectedSubscription.oneTimePurchaseOfferDetailsAndroid.length > 0;
+
     return (
       <View style={styles.modalContent}>
         <ScrollView style={styles.jsonContainer}>
-          <Text style={styles.jsonText}>{jsonString}</Text>
+          {/* Basic Info */}
+          <Text style={styles.detailLabel}>Product ID:</Text>
+          <Text style={styles.detailValue}>{selectedSubscription.id}</Text>
+
+          <Text style={styles.detailLabel}>Title:</Text>
+          <Text style={styles.detailValue}>{selectedSubscription.title}</Text>
+
+          <Text style={styles.detailLabel}>Price:</Text>
+          <Text style={styles.detailValue}>
+            {selectedSubscription.displayPrice}
+          </Text>
+
+          {/* Android Subscription Offers */}
+          {hasSubscriptionOffers && (
+            <View style={styles.offersSection}>
+              <Text style={styles.offersSectionTitle}>
+                Subscription Offers (
+                {
+                  (selectedSubscription as ProductSubscriptionAndroid)
+                    .subscriptionOfferDetailsAndroid.length
+                }
+                )
+              </Text>
+              {(
+                selectedSubscription as ProductSubscriptionAndroid
+              ).subscriptionOfferDetailsAndroid.map(
+                (
+                  offer: ProductSubscriptionAndroidOfferDetails,
+                  index: number,
+                ) => (
+                  <View key={offer.offerToken} style={styles.offerCard}>
+                    <Text style={styles.offerTitle}>
+                      Offer {index + 1}
+                      {offer.offerId ? ` (${offer.offerId})` : ''}
+                    </Text>
+
+                    <Text style={styles.offerDetailLabel}>Base Plan ID:</Text>
+                    <Text style={styles.offerValue}>{offer.basePlanId}</Text>
+
+                    {offer.pricingPhases.pricingPhaseList.length > 0 && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>
+                          Pricing Phases:
+                        </Text>
+                        {offer.pricingPhases.pricingPhaseList.map(
+                          (phase, phaseIndex) => (
+                            <View key={phaseIndex} style={styles.pricingPhase}>
+                              <Text style={styles.phaseText}>
+                                Phase {phaseIndex + 1}: {phase.formattedPrice} /{' '}
+                                {phase.billingPeriod}
+                              </Text>
+                              <Text style={styles.phaseDetail}>
+                                Cycles: {phase.billingCycleCount}, Mode:{' '}
+                                {phase.recurrenceMode}
+                              </Text>
+                            </View>
+                          ),
+                        )}
+                      </>
+                    )}
+
+                    {offer.offerTags.length > 0 && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>Tags:</Text>
+                        <Text style={styles.offerValue}>
+                          {offer.offerTags.join(', ')}
+                        </Text>
+                      </>
+                    )}
+
+                    <Text style={styles.offerDetailLabel}>Offer Token:</Text>
+                    <Text
+                      style={[styles.offerValue, styles.offerTokenText]}
+                      numberOfLines={2}
+                    >
+                      {offer.offerToken}
+                    </Text>
+                  </View>
+                ),
+              )}
+            </View>
+          )}
+
+          {/* Android One-Time Purchase Offers */}
+          {hasOneTimeOffers && (
+            <AndroidOneTimeOfferDetails
+              offers={
+                (selectedSubscription as ProductSubscriptionAndroid)
+                  .oneTimePurchaseOfferDetailsAndroid ?? []
+              }
+            />
+          )}
+
+          {/* Raw JSON Section */}
+          <View style={styles.rawJsonSection}>
+            <Text style={styles.rawJsonTitle}>Raw JSON:</Text>
+            <Text style={styles.jsonText}>{jsonString}</Text>
+          </View>
         </ScrollView>
         <View style={styles.buttonContainer}>
           <TouchableOpacity
@@ -596,6 +720,24 @@ function SubscriptionFlow({
           <Text style={styles.statusText}>
             Platform: {Platform.OS === 'ios' ? '🍎 iOS' : '🤖 Android'}
           </Text>
+        </View>
+
+        {/* Verification Method Selector */}
+        <View style={styles.verificationContainer}>
+          <Text style={styles.verificationLabel}>Purchase Verification:</Text>
+          <TouchableOpacity
+            style={styles.verificationButton}
+            onPress={onChangeVerificationMethod}
+          >
+            <Text style={styles.verificationButtonText}>
+              {verificationMethod === 'ignore'
+                ? '❌ None (Skip)'
+                : verificationMethod === 'local'
+                  ? '📱 Local (Device)'
+                  : '☁️ IAPKit (Server)'}
+            </Text>
+            <Text style={styles.verificationButtonHint}>Tap to change</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -1322,6 +1464,13 @@ function SubscriptionFlowContainer() {
   const [lastPurchasedPlan, setLastPurchasedPlan] = useState<string | null>(
     null,
   );
+
+  const {
+    verificationMethod,
+    verificationMethodRef,
+    showVerificationMethodSelector,
+  } = useVerificationMethod('ignore');
+
   const lastSuccessAtRef = useRef(0);
   const connectedRef = useRef(false);
   const fetchedProductsOnceRef = useRef(false);
@@ -1334,6 +1483,8 @@ function SubscriptionFlowContainer() {
     fetchProducts,
     finishTransaction,
     getActiveSubscriptions,
+    verifyPurchase,
+    verifyPurchaseWithProvider,
   } = useIAP({
     onPurchaseSuccess: async (purchase: Purchase) => {
       const {purchaseToken, ...safePurchase} = purchase || {};
@@ -1388,6 +1539,132 @@ function SubscriptionFlowContainer() {
       setLastPurchase(purchase);
       setIsProcessing(false);
 
+      setPurchaseResult(
+        `✅ Subscription activated\n` +
+          `Product: ${purchase.productId}\n` +
+          `Transaction ID: ${purchase.id}\n` +
+          `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}`,
+      );
+
+      const productId = purchase.productId ?? '';
+
+      // Verify purchase based on selected method (use ref for current value)
+      const currentVerificationMethod = verificationMethodRef.current;
+      console.log('[SubscriptionFlow] About to verify purchase:', {
+        verificationMethod: currentVerificationMethod,
+        productId,
+        willVerify: currentVerificationMethod !== 'ignore' && !!productId,
+      });
+
+      if (currentVerificationMethod !== 'ignore' && productId) {
+        setIsProcessing(true);
+        try {
+          if (currentVerificationMethod === 'local') {
+            console.log('[SubscriptionFlow] Verifying with local method...');
+            const result = await verifyPurchase({sku: productId});
+            console.log(
+              '[SubscriptionFlow] Local verification result:',
+              result,
+            );
+          } else if (currentVerificationMethod === 'iapkit') {
+            console.log('[SubscriptionFlow] Verifying with IAPKit...');
+            // NOTE: Set your API key in .env file as IAPKIT_API_KEY
+            const apiKey = IAPKIT_API_KEY;
+
+            console.log(
+              '[SubscriptionFlow] API Key loaded:',
+              apiKey ? '✓ Present' : '✗ Missing',
+            );
+            console.log(
+              '[SubscriptionFlow] purchase.purchaseToken:',
+              purchase.purchaseToken
+                ? `✓ Present (${purchase.purchaseToken.length} chars)`
+                : '✗ Missing or empty',
+            );
+
+            if (!apiKey) {
+              throw new Error('IAPKIT_API_KEY not configured');
+            }
+
+            const jwsOrToken = purchase.purchaseToken ?? '';
+            if (!jwsOrToken) {
+              console.warn(
+                '[SubscriptionFlow] No purchaseToken/JWS available for verification',
+              );
+              throw new Error(
+                'No purchase token available for IAPKit verification',
+              );
+            }
+
+            const verifyRequest: VerifyPurchaseWithProviderProps = {
+              provider: 'iapkit',
+              iapkit: {
+                apiKey,
+                apple: {
+                  jws: jwsOrToken,
+                },
+                google: {
+                  purchaseToken: jwsOrToken,
+                },
+              },
+            };
+
+            console.log(
+              '[SubscriptionFlow] Sending IAPKit verification request:',
+              JSON.stringify(
+                {
+                  provider: verifyRequest.provider,
+                  iapkit: {
+                    apiKey: '***hidden***',
+                    ...(Platform.OS === 'ios'
+                      ? {apple: {jws: `${jwsOrToken.substring(0, 50)}...`}}
+                      : {
+                          google: {
+                            purchaseToken: `${jwsOrToken.substring(0, 50)}...`,
+                          },
+                        }),
+                  },
+                },
+                null,
+                2,
+              ),
+            );
+
+            const result = await verifyPurchaseWithProvider(verifyRequest);
+            console.log(
+              '[SubscriptionFlow] IAPKit verification result:',
+              result,
+            );
+
+            // Show verification result to user
+            if (result.iapkit) {
+              const statusEmoji = result.iapkit.isValid ? '✅' : '⚠️';
+              const stateText = result.iapkit.state || 'unknown';
+
+              Alert.alert(
+                `${statusEmoji} IAPKit Verification`,
+                `Valid: ${result.iapkit.isValid}\nState: ${stateText}\nStore: ${
+                  result.iapkit.store || 'unknown'
+                }`,
+              );
+            } else if (result.errors && result.errors.length > 0) {
+              const errorMessages = result.errors
+                .map((e) => `${e.code ? `[${e.code}] ` : ''}${e.message}`)
+                .join('\n');
+              Alert.alert('⚠️ IAPKit Verification Error', errorMessages);
+            }
+          }
+        } catch (error) {
+          console.warn('[SubscriptionFlow] Verification failed:', error);
+          Alert.alert(
+            'Verification Failed',
+            `Purchase verification failed: ${getErrorMessage(error)}`,
+          );
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+
       const isConsumable = false;
 
       if (!connectedRef.current) {
@@ -1426,13 +1703,6 @@ function SubscriptionFlowContainer() {
       } catch (e) {
         console.warn('Failed to refresh subscriptions:', e);
       }
-
-      setPurchaseResult(
-        `✅ Subscription activated\n` +
-          `Product: ${purchase.productId}\n` +
-          `Transaction ID: ${purchase.id}\n` +
-          `Date: ${new Date(purchase.transactionDate).toLocaleDateString()}`,
-      );
 
       Alert.alert('Success', 'Purchase completed successfully!');
     },
@@ -1694,6 +1964,7 @@ function SubscriptionFlowContainer() {
       isCheckingStatus={isCheckingStatus}
       lastPurchase={lastPurchase}
       lastPurchasedPlan={lastPurchasedPlan}
+      verificationMethod={verificationMethod}
       setIsProcessing={setIsProcessing}
       setPurchaseResult={setPurchaseResult}
       setLastPurchasedPlan={setLastPurchasedPlan}
@@ -1701,6 +1972,7 @@ function SubscriptionFlowContainer() {
       onRetryLoadSubscriptions={handleRetryLoadSubscriptions}
       onRefreshStatus={handleRefreshStatus}
       onManageSubscriptions={handleManageSubscriptions}
+      onChangeVerificationMethod={showVerificationMethodSelector}
     />
   );
 }
@@ -1740,6 +2012,36 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 13,
     marginBottom: 4,
+  },
+  verificationContainer: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  verificationLabel: {
+    color: 'white',
+    fontSize: 13,
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  verificationButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  verificationButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'white',
+    marginBottom: 4,
+  },
+  verificationButtonHint: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    fontStyle: 'italic',
   },
   section: {
     paddingHorizontal: 20,
@@ -2278,5 +2580,95 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#f57c00',
     fontWeight: '600',
+  },
+  // Offer Details Styles (Modal)
+  detailLabel: {
+    fontSize: 12,
+    color: '#5f6470',
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#1a1f36',
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  offersSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e1e7ef',
+  },
+  offersSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1f36',
+    marginBottom: 12,
+  },
+  offerCard: {
+    backgroundColor: '#f1f4ff',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1f3c88',
+  },
+  offerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1f3c88',
+    marginBottom: 10,
+  },
+  offerDetailLabel: {
+    fontSize: 11,
+    color: '#5f6470',
+    marginTop: 8,
+    fontWeight: '600',
+  },
+  offerValue: {
+    fontSize: 13,
+    color: '#1a1f36',
+    marginTop: 2,
+  },
+  offerValueDiscount: {
+    fontSize: 13,
+    color: '#E53935',
+    marginTop: 2,
+    fontWeight: '700',
+  },
+  offerTokenText: {
+    fontSize: 10,
+    color: '#999',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  pricingPhase: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: 6,
+    padding: 8,
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  phaseText: {
+    fontSize: 12,
+    color: '#1565C0',
+    fontWeight: '600',
+  },
+  phaseDetail: {
+    fontSize: 10,
+    color: '#5f6470',
+    marginTop: 2,
+  },
+  rawJsonSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e1e7ef',
+  },
+  rawJsonTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#5f6470',
+    marginBottom: 8,
   },
 });

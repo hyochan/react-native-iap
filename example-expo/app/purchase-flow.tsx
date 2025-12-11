@@ -21,14 +21,28 @@ import {
   getStorefront,
   ErrorCode,
 } from 'react-native-iap';
+// IAPKit API Key - Set this in your environment or replace with your actual key
+const IAPKIT_API_KEY = process.env.EXPO_PUBLIC_IAPKIT_API_KEY || '';
 import Loading from '../components/Loading';
 import {
   CONSUMABLE_PRODUCT_IDS,
   NON_CONSUMABLE_PRODUCT_IDS,
   PRODUCT_IDS,
 } from '../constants/products';
-import type {Product, Purchase, PurchaseError} from 'react-native-iap';
+import {getErrorMessage} from '../utils/errorUtils';
+import {
+  useVerificationMethod,
+  type VerificationMethod,
+} from '../hooks/useVerificationMethod';
+import type {
+  Product,
+  ProductAndroid,
+  Purchase,
+  PurchaseError,
+  VerifyPurchaseWithProviderProps,
+} from 'react-native-iap';
 import PurchaseSummaryRow from '../components/PurchaseSummaryRow';
+import AndroidOneTimeOfferDetails from '../components/AndroidOneTimeOfferDetails';
 
 const CONSUMABLE_PRODUCT_ID_SET = new Set(CONSUMABLE_PRODUCT_IDS);
 const NON_CONSUMABLE_PRODUCT_ID_SET = new Set(NON_CONSUMABLE_PRODUCT_IDS);
@@ -41,8 +55,10 @@ type PurchaseFlowProps = {
   lastPurchase: Purchase | null;
   storefront: string | null;
   isFetchingStorefront: boolean;
+  verificationMethod: VerificationMethod;
   onPurchase: (productId: string) => void;
   onRefreshStorefront: () => void;
+  onChangeVerificationMethod: () => void;
 };
 
 /**
@@ -64,8 +80,10 @@ function PurchaseFlow({
   lastPurchase,
   storefront,
   isFetchingStorefront,
+  verificationMethod,
   onPurchase,
   onRefreshStorefront,
+  onChangeVerificationMethod,
 }: PurchaseFlowProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -175,6 +193,24 @@ function PurchaseFlow({
                 ? 'Fetching storefront...'
                 : 'Refresh storefront'}
             </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Verification Method Selector */}
+        <View style={styles.verificationContainer}>
+          <Text style={styles.statusLabel}>Purchase Verification:</Text>
+          <TouchableOpacity
+            style={styles.verificationButton}
+            onPress={onChangeVerificationMethod}
+          >
+            <Text style={styles.verificationButtonText}>
+              {verificationMethod === 'ignore'
+                ? '❌ None (Skip)'
+                : verificationMethod === 'local'
+                  ? '📱 Local (Device)'
+                  : '☁️ IAPKit (Server)'}
+            </Text>
+            <Text style={styles.verificationButtonHint}>Tap to change</Text>
           </TouchableOpacity>
         </View>
 
@@ -315,44 +351,59 @@ function PurchaseFlow({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Product Details</Text>
-            {selectedProduct && (
-              <>
-                <Text style={styles.modalLabel}>Product ID:</Text>
-                <Text style={styles.modalValue}>{selectedProduct.id}</Text>
+            <ScrollView style={styles.modalScrollView}>
+              {selectedProduct && (
+                <>
+                  <Text style={styles.modalLabel}>Product ID:</Text>
+                  <Text style={styles.modalValue}>{selectedProduct.id}</Text>
 
-                <Text style={styles.modalLabel}>Title:</Text>
-                <Text style={styles.modalValue}>{selectedProduct.title}</Text>
+                  <Text style={styles.modalLabel}>Title:</Text>
+                  <Text style={styles.modalValue}>{selectedProduct.title}</Text>
 
-                <Text style={styles.modalLabel}>Description:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.description}
-                </Text>
+                  <Text style={styles.modalLabel}>Description:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.description}
+                  </Text>
 
-                <Text style={styles.modalLabel}>Price:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.displayPrice}
-                </Text>
+                  <Text style={styles.modalLabel}>Price:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.displayPrice}
+                  </Text>
 
-                <Text style={styles.modalLabel}>Currency:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.currency || 'N/A'}
-                </Text>
+                  <Text style={styles.modalLabel}>Currency:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.currency || 'N/A'}
+                  </Text>
 
-                <Text style={styles.modalLabel}>Type:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.type || 'N/A'}
-                </Text>
+                  <Text style={styles.modalLabel}>Type:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.type || 'N/A'}
+                  </Text>
 
-                {'isFamilyShareableIOS' in selectedProduct && (
-                  <>
-                    <Text style={styles.modalLabel}>Is Family Shareable:</Text>
-                    <Text style={styles.modalValue}>
-                      {selectedProduct.isFamilyShareableIOS ? 'Yes' : 'No'}
-                    </Text>
-                  </>
-                )}
-              </>
-            )}
+                  {'isFamilyShareableIOS' in selectedProduct && (
+                    <>
+                      <Text style={styles.modalLabel}>
+                        Is Family Shareable:
+                      </Text>
+                      <Text style={styles.modalValue}>
+                        {selectedProduct.isFamilyShareableIOS ? 'Yes' : 'No'}
+                      </Text>
+                    </>
+                  )}
+
+                  {/* Android One-Time Purchase Offers */}
+                  {selectedProduct.platform === 'android' &&
+                    'oneTimePurchaseOfferDetailsAndroid' in selectedProduct && (
+                      <AndroidOneTimeOfferDetails
+                        offers={
+                          (selectedProduct as ProductAndroid)
+                            .oneTimePurchaseOfferDetailsAndroid ?? []
+                        }
+                      />
+                    )}
+                </>
+              )}
+            </ScrollView>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
@@ -373,7 +424,20 @@ function PurchaseFlowContainer() {
   const [storefront, setStorefront] = useState<string | null>(null);
   const [fetchingStorefront, setFetchingStorefront] = useState(false);
 
-  const {connected, products, fetchProducts, finishTransaction} = useIAP({
+  const {
+    verificationMethod,
+    verificationMethodRef,
+    showVerificationMethodSelector,
+  } = useVerificationMethod('ignore');
+
+  const {
+    connected,
+    products,
+    fetchProducts,
+    finishTransaction,
+    verifyPurchase,
+    verifyPurchaseWithProvider,
+  } = useIAP({
     onPurchaseSuccess: async (purchase: Purchase) => {
       const {purchaseToken: tokenToMask, ...rest} = purchase;
       const masked = {
@@ -402,6 +466,117 @@ function PurchaseFlowContainer() {
             '[PurchaseFlow] Purchase for product not listed in constants:',
             productId,
           );
+        }
+      }
+
+      // Verify purchase based on selected method (use ref for current value)
+      const currentVerificationMethod = verificationMethodRef.current;
+      console.log('[PurchaseFlow] About to verify purchase:', {
+        verificationMethod: currentVerificationMethod,
+        productId,
+        willVerify: currentVerificationMethod !== 'ignore' && !!productId,
+      });
+
+      if (currentVerificationMethod !== 'ignore' && productId) {
+        setIsProcessing(true);
+        try {
+          if (currentVerificationMethod === 'local') {
+            console.log('[PurchaseFlow] Verifying with local method...');
+            const result = await verifyPurchase({sku: productId});
+            console.log('[PurchaseFlow] Local verification result:', result);
+          } else if (currentVerificationMethod === 'iapkit') {
+            console.log('[PurchaseFlow] Verifying with IAPKit...');
+            // NOTE: Set your API key in .env file as IAPKIT_API_KEY
+            const apiKey = IAPKIT_API_KEY;
+
+            console.log(
+              '[PurchaseFlow] API Key loaded:',
+              apiKey ? '✓ Present' : '✗ Missing',
+            );
+            console.log(
+              '[PurchaseFlow] purchase.purchaseToken:',
+              purchase.purchaseToken
+                ? `✓ Present (${purchase.purchaseToken.length} chars)`
+                : '✗ Missing or empty',
+            );
+
+            if (!apiKey) {
+              throw new Error('IAPKIT_API_KEY not configured');
+            }
+
+            const jwsOrToken = purchase.purchaseToken ?? '';
+            if (!jwsOrToken) {
+              console.warn(
+                '[PurchaseFlow] No purchaseToken/JWS available for verification',
+              );
+              throw new Error(
+                'No purchase token available for IAPKit verification',
+              );
+            }
+
+            const verifyRequest: VerifyPurchaseWithProviderProps = {
+              provider: 'iapkit',
+              iapkit: {
+                apiKey,
+                apple: {
+                  jws: jwsOrToken,
+                },
+                google: {
+                  purchaseToken: jwsOrToken,
+                },
+              },
+            };
+
+            console.log(
+              '[PurchaseFlow] Sending IAPKit verification request:',
+              JSON.stringify(
+                {
+                  provider: verifyRequest.provider,
+                  iapkit: {
+                    apiKey: '***hidden***',
+                    ...(Platform.OS === 'ios'
+                      ? {apple: {jws: `${jwsOrToken.substring(0, 50)}...`}}
+                      : {
+                          google: {
+                            purchaseToken: `${jwsOrToken.substring(0, 50)}...`,
+                          },
+                        }),
+                  },
+                },
+                null,
+                2,
+              ),
+            );
+
+            const result = await verifyPurchaseWithProvider(verifyRequest);
+            console.log('[PurchaseFlow] IAPKit verification result:', result);
+
+            // Show verification result to user
+            if (result.iapkit) {
+              const statusEmoji = result.iapkit.isValid ? '✅' : '⚠️';
+              const stateText = result.iapkit.state || 'unknown';
+
+              Alert.alert(
+                `${statusEmoji} IAPKit Verification`,
+                `Valid: ${result.iapkit.isValid}\nState: ${stateText}\nStore: ${
+                  result.iapkit.store || 'unknown'
+                }`,
+              );
+            } else if (result.errors && result.errors.length > 0) {
+              const errorMessages = result.errors
+                .map((e) => `${e.code ? `[${e.code}] ` : ''}${e.message}`)
+                .join('\n');
+              Alert.alert('⚠️ IAPKit Verification Error', errorMessages);
+            }
+          }
+        } catch (error) {
+          console.warn('[PurchaseFlow] Verification failed:', error);
+          Alert.alert(
+            'Verification Failed',
+            `Purchase verification failed: ${getErrorMessage(error)}`,
+          );
+        } finally {
+          setIsProcessing(false);
         }
       }
 
@@ -513,8 +688,10 @@ function PurchaseFlowContainer() {
       lastPurchase={lastPurchase}
       storefront={storefront}
       isFetchingStorefront={fetchingStorefront}
+      verificationMethod={verificationMethod}
       onPurchase={handlePurchase}
       onRefreshStorefront={handleRefreshStorefront}
+      onChangeVerificationMethod={showVerificationMethodSelector}
     />
   );
 }
@@ -576,6 +753,31 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 13,
     fontWeight: '600',
+  },
+  verificationContainer: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+  },
+  verificationButton: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 6,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  verificationButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  verificationButtonHint: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
   },
   section: {
     marginBottom: 20,
@@ -817,5 +1019,56 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
+  },
+  modalScrollView: {
+    maxHeight: '85%',
+  },
+  offersSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  offersSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+  },
+  offerCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  offerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  offerLabel: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  offerValue: {
+    fontSize: 13,
+    color: '#333',
+    marginTop: 2,
+  },
+  offerValueDiscount: {
+    fontSize: 13,
+    color: '#E53935',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  offerToken: {
+    fontSize: 10,
+    color: '#999',
+    fontFamily: 'monospace',
   },
 });
