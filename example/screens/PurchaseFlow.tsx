@@ -31,12 +31,13 @@ import {
 } from '../src/hooks/useVerificationMethod';
 import type {
   Product,
+  ProductAndroid,
   Purchase,
   PurchaseError,
   VerifyPurchaseWithProviderProps,
-  ProductAndroidOneTimePurchaseOfferDetail,
 } from 'react-native-iap';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
+import AndroidOneTimeOfferDetails from '../src/components/AndroidOneTimeOfferDetails';
 
 const CONSUMABLE_PRODUCT_ID_SET = new Set(CONSUMABLE_PRODUCT_IDS);
 const NON_CONSUMABLE_PRODUCT_ID_SET = new Set(NON_CONSUMABLE_PRODUCT_IDS);
@@ -387,152 +388,13 @@ function PurchaseFlow({
 
                   {/* Android One-Time Purchase Offers */}
                   {selectedProduct.platform === 'android' &&
-                    'oneTimePurchaseOfferDetailsAndroid' in selectedProduct &&
-                    selectedProduct.oneTimePurchaseOfferDetailsAndroid &&
-                    selectedProduct.oneTimePurchaseOfferDetailsAndroid.length >
-                      0 && (
-                      <View style={styles.offersSection}>
-                        <Text style={styles.offersSectionTitle}>
-                          One-Time Purchase Offers (
-                          {
-                            selectedProduct.oneTimePurchaseOfferDetailsAndroid
-                              .length
-                          }
-                          )
-                        </Text>
-                        {selectedProduct.oneTimePurchaseOfferDetailsAndroid.map(
-                          (
-                            offer: ProductAndroidOneTimePurchaseOfferDetail,
-                            index: number,
-                          ) => (
-                            <View
-                              key={offer.offerToken}
-                              style={styles.offerCard}
-                            >
-                              <Text style={styles.offerTitle}>
-                                Offer {index + 1}
-                                {offer.offerId ? ` (${offer.offerId})` : ''}
-                              </Text>
-
-                              <Text style={styles.offerLabel}>Price:</Text>
-                              <Text style={styles.offerValue}>
-                                {offer.formattedPrice} (
-                                {offer.priceAmountMicros} micros)
-                              </Text>
-
-                              {offer.fullPriceMicros && (
-                                <>
-                                  <Text style={styles.offerLabel}>
-                                    Full Price:
-                                  </Text>
-                                  <Text style={styles.offerValue}>
-                                    {offer.fullPriceMicros} micros
-                                  </Text>
-                                </>
-                              )}
-
-                              {offer.discountDisplayInfo && (
-                                <>
-                                  <Text style={styles.offerLabel}>
-                                    Discount:
-                                  </Text>
-                                  <Text style={styles.offerValueDiscount}>
-                                    {offer.discountDisplayInfo
-                                      .percentageDiscount
-                                      ? `${offer.discountDisplayInfo.percentageDiscount}% off`
-                                      : offer.discountDisplayInfo.discountAmount
-                                        ? `${offer.discountDisplayInfo.discountAmount.formattedDiscountAmount} off`
-                                        : 'N/A'}
-                                  </Text>
-                                </>
-                              )}
-
-                              {offer.limitedQuantityInfo && (
-                                <>
-                                  <Text style={styles.offerLabel}>
-                                    Limited Quantity:
-                                  </Text>
-                                  <Text style={styles.offerValue}>
-                                    {
-                                      offer.limitedQuantityInfo
-                                        .remainingQuantity
-                                    }{' '}
-                                    /{' '}
-                                    {offer.limitedQuantityInfo.maximumQuantity}{' '}
-                                    remaining
-                                  </Text>
-                                </>
-                              )}
-
-                              {offer.validTimeWindow && (
-                                <>
-                                  <Text style={styles.offerLabel}>
-                                    Valid Window:
-                                  </Text>
-                                  <Text style={styles.offerValue}>
-                                    {new Date(
-                                      Number(
-                                        offer.validTimeWindow.startTimeMillis,
-                                      ),
-                                    ).toLocaleDateString()}{' '}
-                                    -{' '}
-                                    {new Date(
-                                      Number(
-                                        offer.validTimeWindow.endTimeMillis,
-                                      ),
-                                    ).toLocaleDateString()}
-                                  </Text>
-                                </>
-                              )}
-
-                              {offer.preorderDetailsAndroid && (
-                                <>
-                                  <Text style={styles.offerLabel}>
-                                    Pre-order Release:
-                                  </Text>
-                                  <Text style={styles.offerValue}>
-                                    {new Date(
-                                      Number(
-                                        offer.preorderDetailsAndroid
-                                          .preorderReleaseTimeMillis,
-                                      ),
-                                    ).toLocaleDateString()}
-                                  </Text>
-                                </>
-                              )}
-
-                              {offer.rentalDetailsAndroid && (
-                                <>
-                                  <Text style={styles.offerLabel}>Rental:</Text>
-                                  <Text style={styles.offerValue}>
-                                    Period:{' '}
-                                    {offer.rentalDetailsAndroid.rentalPeriod}
-                                  </Text>
-                                </>
-                              )}
-
-                              {offer.offerTags.length > 0 && (
-                                <>
-                                  <Text style={styles.offerLabel}>Tags:</Text>
-                                  <Text style={styles.offerValue}>
-                                    {offer.offerTags.join(', ')}
-                                  </Text>
-                                </>
-                              )}
-
-                              <Text style={styles.offerLabel}>
-                                Offer Token:
-                              </Text>
-                              <Text
-                                style={[styles.offerValue, styles.offerToken]}
-                                numberOfLines={2}
-                              >
-                                {offer.offerToken}
-                              </Text>
-                            </View>
-                          ),
-                        )}
-                      </View>
+                    'oneTimePurchaseOfferDetailsAndroid' in selectedProduct && (
+                      <AndroidOneTimeOfferDetails
+                        offers={
+                          (selectedProduct as ProductAndroid)
+                            .oneTimePurchaseOfferDetailsAndroid ?? []
+                        }
+                      />
                     )}
                 </>
               )}

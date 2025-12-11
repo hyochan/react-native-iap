@@ -22,7 +22,6 @@ import {
   type PurchaseError,
   type VerifyPurchaseWithProviderProps,
   type ProductSubscriptionAndroidOfferDetails,
-  type ProductAndroidOneTimePurchaseOfferDetail,
   ErrorCode,
 } from 'react-native-iap';
 import {IAPKIT_API_KEY} from '@env';
@@ -34,6 +33,7 @@ import {
   type VerificationMethod,
 } from '../src/hooks/useVerificationMethod';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
+import AndroidOneTimeOfferDetails from '../src/components/AndroidOneTimeOfferDetails';
 
 type ExtendedPurchase = Purchase & {
   purchaseTokenAndroid?: string;
@@ -590,87 +590,12 @@ function SubscriptionFlow({
 
           {/* Android One-Time Purchase Offers */}
           {hasOneTimeOffers && (
-            <View style={styles.offersSection}>
-              <Text style={styles.offersSectionTitle}>
-                One-Time Purchase Offers (
-                {
-                  (selectedSubscription as ProductSubscriptionAndroid)
-                    .oneTimePurchaseOfferDetailsAndroid!.length
-                }
-                )
-              </Text>
-              {(
-                selectedSubscription as ProductSubscriptionAndroid
-              ).oneTimePurchaseOfferDetailsAndroid!.map(
-                (
-                  offer: ProductAndroidOneTimePurchaseOfferDetail,
-                  index: number,
-                ) => (
-                  <View key={offer.offerToken} style={styles.offerCard}>
-                    <Text style={styles.offerTitle}>
-                      Offer {index + 1}
-                      {offer.offerId ? ` (${offer.offerId})` : ''}
-                    </Text>
-
-                    <Text style={styles.offerDetailLabel}>Price:</Text>
-                    <Text style={styles.offerValue}>
-                      {offer.formattedPrice} ({offer.priceAmountMicros} micros)
-                    </Text>
-
-                    {offer.fullPriceMicros && (
-                      <>
-                        <Text style={styles.offerDetailLabel}>Full Price:</Text>
-                        <Text style={styles.offerValue}>
-                          {offer.fullPriceMicros} micros
-                        </Text>
-                      </>
-                    )}
-
-                    {offer.discountDisplayInfo && (
-                      <>
-                        <Text style={styles.offerDetailLabel}>Discount:</Text>
-                        <Text style={styles.offerValueDiscount}>
-                          {offer.discountDisplayInfo.percentageDiscount
-                            ? `${offer.discountDisplayInfo.percentageDiscount}% off`
-                            : offer.discountDisplayInfo.discountAmount
-                              ? `${offer.discountDisplayInfo.discountAmount.formattedDiscountAmount} off`
-                              : 'N/A'}
-                        </Text>
-                      </>
-                    )}
-
-                    {offer.limitedQuantityInfo && (
-                      <>
-                        <Text style={styles.offerDetailLabel}>
-                          Limited Quantity:
-                        </Text>
-                        <Text style={styles.offerValue}>
-                          {offer.limitedQuantityInfo.remainingQuantity} /{' '}
-                          {offer.limitedQuantityInfo.maximumQuantity} remaining
-                        </Text>
-                      </>
-                    )}
-
-                    {offer.offerTags.length > 0 && (
-                      <>
-                        <Text style={styles.offerDetailLabel}>Tags:</Text>
-                        <Text style={styles.offerValue}>
-                          {offer.offerTags.join(', ')}
-                        </Text>
-                      </>
-                    )}
-
-                    <Text style={styles.offerDetailLabel}>Offer Token:</Text>
-                    <Text
-                      style={[styles.offerValue, styles.offerTokenText]}
-                      numberOfLines={2}
-                    >
-                      {offer.offerToken}
-                    </Text>
-                  </View>
-                ),
-              )}
-            </View>
+            <AndroidOneTimeOfferDetails
+              offers={
+                (selectedSubscription as ProductSubscriptionAndroid)
+                  .oneTimePurchaseOfferDetailsAndroid ?? []
+              }
+            />
           )}
 
           {/* Raw JSON Section */}
