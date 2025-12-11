@@ -51,7 +51,7 @@ export interface ProductCommon {
 
 export interface ProductAndroid extends ProductCommon {
   nameAndroid: string;
-  oneTimePurchaseOfferDetailsAndroid?: ProductAndroidOneTimePurchaseOfferDetail | null;
+  oneTimePurchaseOfferDetailsAndroid?: ProductAndroidOneTimePurchaseOfferDetail[] | null;
   subscriptionOfferDetailsAndroid?:
     | ProductSubscriptionAndroidOfferDetails[]
     | null;
@@ -69,6 +69,59 @@ export type Product = ProductAndroid | ProductIOS;
 export type ProductSubscription =
   | ProductSubscriptionAndroid
   | ProductSubscriptionIOS;
+```
+
+### Android One-Time Purchase Offer Details (v14.6.0+)
+
+Starting from v14.6.0, `oneTimePurchaseOfferDetailsAndroid` is now an **array** to support Google Play's one-time product discounts (Billing Library 7.0+).
+
+```ts
+export interface ProductAndroidOneTimePurchaseOfferDetail {
+  formattedPrice: string;
+  priceAmountMicros: string;
+  priceCurrencyCode: string;
+  offerId?: string | null;
+  offerToken: string;
+  offerTags: string[];
+  // Discount fields (Billing Library 7.0+)
+  fullPriceMicros?: string | null;
+  discountDisplayInfo?: DiscountDisplayInfoAndroid | null;
+  limitedQuantityInfo?: LimitedQuantityInfoAndroid | null;
+  validTimeWindow?: ValidTimeWindowAndroid | null;
+  // Product-specific details
+  preorderDetailsAndroid?: PreorderDetailsAndroid | null;
+  rentalDetailsAndroid?: RentalDetailsAndroid | null;
+}
+
+export interface DiscountDisplayInfoAndroid {
+  percentageDiscount?: number | null;
+  discountAmount?: DiscountAmountAndroid | null;
+}
+
+export interface DiscountAmountAndroid {
+  discountAmountMicros: string;
+  formattedDiscountAmount: string;
+}
+
+export interface LimitedQuantityInfoAndroid {
+  maximumQuantity: number;
+  remainingQuantity: number;
+}
+
+export interface ValidTimeWindowAndroid {
+  startTimeMillis: string;
+  endTimeMillis: string;
+}
+
+export interface PreorderDetailsAndroid {
+  preorderReleaseTimeMillis: string;
+  preorderPresaleEndTimeMillis: string;
+}
+
+export interface RentalDetailsAndroid {
+  rentalPeriod: string;
+  rentalExpirationPeriod?: string | null;
+}
 ```
 
 ## Purchase Types
@@ -93,6 +146,7 @@ export interface PurchaseAndroid extends PurchaseCommon {
   packageNameAndroid?: string | null;
   signatureAndroid?: string | null;
   dataAndroid?: string | null;
+  isSuspendedAndroid?: boolean | null; // v14.6.0+ (Billing Library 8.1.0+)
 }
 
 export interface PurchaseIOS extends PurchaseCommon {
@@ -163,6 +217,44 @@ export type MutationRequestPurchaseArgs =
       request: RequestSubscriptionPropsByPlatforms;
       type: 'subs';
     };
+```
+
+## Billing Programs Types (v14.6.0+)
+
+New in v14.6.0, the Billing Programs API provides types for Google Play's external billing programs (Billing Library 8.2.0+).
+
+```ts
+export type BillingProgramAndroid =
+  | 'unspecified'
+  | 'external-content-link'
+  | 'external-offer';
+
+export type ExternalLinkLaunchModeAndroid =
+  | 'unspecified'
+  | 'launch-in-external-browser-or-app'
+  | 'caller-will-launch-link';
+
+export type ExternalLinkTypeAndroid =
+  | 'unspecified'
+  | 'link-to-digital-content-offer'
+  | 'link-to-app-download';
+
+export interface LaunchExternalLinkParamsAndroid {
+  billingProgram: BillingProgramAndroid;
+  launchMode: ExternalLinkLaunchModeAndroid;
+  linkType: ExternalLinkTypeAndroid;
+  linkUri: string;
+}
+
+export interface BillingProgramAvailabilityResultAndroid {
+  billingProgram: BillingProgramAndroid;
+  isAvailable: boolean;
+}
+
+export interface BillingProgramReportingDetailsAndroid {
+  billingProgram: BillingProgramAndroid;
+  externalTransactionToken: string;
+}
 ```
 
 ## Purchase Verification

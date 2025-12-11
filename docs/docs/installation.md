@@ -60,9 +60,9 @@ If you're using the Expo managed workflow, you **must** use a [custom developmen
 
 After installing the package, you need to:
 
-1. **Configure expo-build-properties for Android** (required for Kotlin 2.0+ support):
+1. **Configure expo-build-properties for Android** (required for Kotlin 2.2+ support):
 
-   Starting from version 14.0.0-rc, react-native-iap supports Google Play Billing Library v8.0.0, which requires Kotlin 2.0+. Since `expo-modules-core` doesn't support Kotlin 2.0 yet, you need to manually configure the Kotlin version.
+   Starting from version 14.6.0, react-native-iap supports Google Play Billing Library v8.2.0, which requires Kotlin 2.2+. Since `expo-modules-core` doesn't support Kotlin 2.2 yet, you need to manually configure the Kotlin version.
 
    Add the following to your `app.json`:
 
@@ -75,7 +75,7 @@ After installing the package, you need to:
            "expo-build-properties",
            {
              "android": {
-               "kotlinVersion": "2.1.20"
+               "kotlinVersion": "2.2.0"
              }
            }
          ]
@@ -143,7 +143,7 @@ For detailed platform-specific configuration:
 - [iOS Setup](./getting-started/setup-ios.md) - iOS StoreKit configuration
 - [Android Setup](./getting-started/setup-android.md) - Android Google Play Billing configuration
 
-## Real world examples
+## Real-world examples
 
 For detailed platform-specific setup instructions, check out our real examples:
 

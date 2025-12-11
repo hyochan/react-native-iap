@@ -31,11 +31,13 @@ import {
 } from '../src/hooks/useVerificationMethod';
 import type {
   Product,
+  ProductAndroid,
   Purchase,
   PurchaseError,
   VerifyPurchaseWithProviderProps,
 } from 'react-native-iap';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
+import AndroidOneTimeOfferDetails from '../src/components/AndroidOneTimeOfferDetails';
 
 const CONSUMABLE_PRODUCT_ID_SET = new Set(CONSUMABLE_PRODUCT_IDS);
 const NON_CONSUMABLE_PRODUCT_ID_SET = new Set(NON_CONSUMABLE_PRODUCT_IDS);
@@ -344,44 +346,59 @@ function PurchaseFlow({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Product Details</Text>
-            {selectedProduct && (
-              <>
-                <Text style={styles.modalLabel}>Product ID:</Text>
-                <Text style={styles.modalValue}>{selectedProduct.id}</Text>
+            <ScrollView style={styles.modalScrollView}>
+              {selectedProduct && (
+                <>
+                  <Text style={styles.modalLabel}>Product ID:</Text>
+                  <Text style={styles.modalValue}>{selectedProduct.id}</Text>
 
-                <Text style={styles.modalLabel}>Title:</Text>
-                <Text style={styles.modalValue}>{selectedProduct.title}</Text>
+                  <Text style={styles.modalLabel}>Title:</Text>
+                  <Text style={styles.modalValue}>{selectedProduct.title}</Text>
 
-                <Text style={styles.modalLabel}>Description:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.description}
-                </Text>
+                  <Text style={styles.modalLabel}>Description:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.description}
+                  </Text>
 
-                <Text style={styles.modalLabel}>Price:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.displayPrice}
-                </Text>
+                  <Text style={styles.modalLabel}>Price:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.displayPrice}
+                  </Text>
 
-                <Text style={styles.modalLabel}>Currency:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.currency || 'N/A'}
-                </Text>
+                  <Text style={styles.modalLabel}>Currency:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.currency || 'N/A'}
+                  </Text>
 
-                <Text style={styles.modalLabel}>Type:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.type || 'N/A'}
-                </Text>
+                  <Text style={styles.modalLabel}>Type:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.type || 'N/A'}
+                  </Text>
 
-                {'isFamilyShareableIOS' in selectedProduct && (
-                  <>
-                    <Text style={styles.modalLabel}>Is Family Shareable:</Text>
-                    <Text style={styles.modalValue}>
-                      {selectedProduct.isFamilyShareableIOS ? 'Yes' : 'No'}
-                    </Text>
-                  </>
-                )}
-              </>
-            )}
+                  {'isFamilyShareableIOS' in selectedProduct && (
+                    <>
+                      <Text style={styles.modalLabel}>
+                        Is Family Shareable:
+                      </Text>
+                      <Text style={styles.modalValue}>
+                        {selectedProduct.isFamilyShareableIOS ? 'Yes' : 'No'}
+                      </Text>
+                    </>
+                  )}
+
+                  {/* Android One-Time Purchase Offers */}
+                  {selectedProduct.platform === 'android' &&
+                    'oneTimePurchaseOfferDetailsAndroid' in selectedProduct && (
+                      <AndroidOneTimeOfferDetails
+                        offers={
+                          (selectedProduct as ProductAndroid)
+                            .oneTimePurchaseOfferDetailsAndroid ?? []
+                        }
+                      />
+                    )}
+                </>
+              )}
+            </ScrollView>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
@@ -997,5 +1014,56 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
+  },
+  modalScrollView: {
+    maxHeight: '85%',
+  },
+  offersSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  offersSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+  },
+  offerCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  offerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  offerLabel: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  offerValue: {
+    fontSize: 13,
+    color: '#333',
+    marginTop: 2,
+  },
+  offerValueDiscount: {
+    fontSize: 13,
+    color: '#E53935',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  offerToken: {
+    fontSize: 10,
+    color: '#999',
+    fontFamily: 'monospace',
   },
 });

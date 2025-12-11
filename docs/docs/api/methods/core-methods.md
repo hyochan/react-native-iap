@@ -957,7 +957,159 @@ This ensures pending transactions are surfaced and properly resolved without a s
 
 Alternative billing enables developers to offer payment options outside of the platform's standard billing systems. Both platforms require special approval.
 
-### Android Alternative Billing
+### Billing Programs API (Android 8.2.0+) - Recommended
+
+:::tip New in 14.6.0
+The Billing Programs API is the recommended approach for apps using Google Play Billing Library 8.2.0+. It replaces the deprecated alternative billing APIs.
+:::
+
+#### enableBillingProgramAndroid()
+
+Enable a billing program before calling `initConnection()`.
+
+```tsx
+import {enableBillingProgramAndroid, initConnection} from 'react-native-iap';
+
+// Enable before initConnection
+enableBillingProgramAndroid('external-offer');
+await initConnection();
+```
+
+**Parameters:**
+
+- `program`: `BillingProgramAndroid` - `'unspecified'` | `'external-content-link'` | `'external-offer'`
+
+**Returns:** `void`
+
+**Platform:** Android only
+
+#### isBillingProgramAvailableAndroid()
+
+Check if a billing program is available for the current user.
+
+```tsx
+import {isBillingProgramAvailableAndroid} from 'react-native-iap';
+
+const result = await isBillingProgramAvailableAndroid('external-offer');
+if (result.isAvailable) {
+  // Program is available for this user
+}
+```
+
+**Parameters:**
+
+- `program`: `BillingProgramAndroid` - The billing program to check
+
+**Returns:** `Promise<BillingProgramAvailabilityResultAndroid>`
+
+```tsx
+interface BillingProgramAvailabilityResultAndroid {
+  billingProgram: BillingProgramAndroid;
+  isAvailable: boolean;
+}
+```
+
+**Platform:** Android only
+
+#### createBillingProgramReportingDetailsAndroid()
+
+Create reporting details with an external transaction token for Google Play reporting.
+
+```tsx
+import {createBillingProgramReportingDetailsAndroid} from 'react-native-iap';
+
+const details = await createBillingProgramReportingDetailsAndroid('external-offer');
+// Send details.externalTransactionToken to your backend for Google Play reporting
+```
+
+**Parameters:**
+
+- `program`: `BillingProgramAndroid` - The billing program
+
+**Returns:** `Promise<BillingProgramReportingDetailsAndroid>`
+
+```tsx
+interface BillingProgramReportingDetailsAndroid {
+  billingProgram: BillingProgramAndroid;
+  externalTransactionToken: string;
+}
+```
+
+**Platform:** Android only
+
+#### launchExternalLinkAndroid()
+
+Launch an external link for billing programs.
+
+```tsx
+import {launchExternalLinkAndroid} from 'react-native-iap';
+
+const success = await launchExternalLinkAndroid({
+  billingProgram: 'external-offer',
+  launchMode: 'launch-in-external-browser-or-app',
+  linkType: 'link-to-digital-content-offer',
+  linkUri: 'https://your-website.com/purchase',
+});
+```
+
+**Parameters:**
+
+- `params`: `LaunchExternalLinkParamsAndroid`
+  - `billingProgram`: `BillingProgramAndroid` - The billing program
+  - `launchMode`: `ExternalLinkLaunchModeAndroid` - How to launch the link
+  - `linkType`: `ExternalLinkTypeAndroid` - Type of external link
+  - `linkUri`: `string` - The URL to open
+
+**Returns:** `Promise<boolean>` - `true` if launch was successful
+
+**Platform:** Android only
+
+#### Complete Billing Programs Flow
+
+```tsx
+import {
+  enableBillingProgramAndroid,
+  isBillingProgramAvailableAndroid,
+  createBillingProgramReportingDetailsAndroid,
+  launchExternalLinkAndroid,
+  initConnection,
+} from 'react-native-iap';
+
+// Step 1: Enable billing program BEFORE initConnection
+enableBillingProgramAndroid('external-offer');
+
+// Step 2: Initialize connection
+await initConnection();
+
+// Step 3: Check if program is available
+const {isAvailable} = await isBillingProgramAvailableAndroid('external-offer');
+if (!isAvailable) {
+  console.log('External offers not available for this user');
+  return;
+}
+
+// Step 4: Launch external link
+const success = await launchExternalLinkAndroid({
+  billingProgram: 'external-offer',
+  launchMode: 'launch-in-external-browser-or-app',
+  linkType: 'link-to-digital-content-offer',
+  linkUri: 'https://your-website.com/purchase',
+});
+
+if (success) {
+  // Step 5: Get reporting token after external purchase
+  const details = await createBillingProgramReportingDetailsAndroid('external-offer');
+
+  // Step 6: Report to Google Play backend
+  await reportExternalTransaction(details.externalTransactionToken);
+}
+```
+
+### Legacy Alternative Billing APIs (Pre-8.2.0)
+
+For apps using older Billing Library versions, the legacy APIs are still supported but deprecated.
+
+### Android Alternative Billing (Legacy)
 
 Android supports two modes:
 

@@ -27,12 +27,17 @@ add_generation_comment() {
         echo "// Do not edit directly - modify the source file instead"
         echo ""
         # Read the source file and replace imports
+        # example uses ../src/*, example-expo uses ../* (components/, utils/, hooks/ at root level)
         sed \
             -e "s|from '\.\./src/components/Loading'|from '../components/Loading'|g" \
             -e "s|from '\.\./src/utils/constants'|from '../constants/products'|g" \
             -e "s|from '\.\./src/components/PurchaseDetails'|from '../components/PurchaseDetails'|g" \
             -e "s|from '\.\./src/components/PurchaseSummaryRow'|from '../components/PurchaseSummaryRow'|g" \
             -e "s|from '\.\./src/contexts/DataModalContext'|from '../contexts/DataModalContext'|g" \
+            -e "s|from '\.\./src/utils/errorUtils'|from '../utils/errorUtils'|g" \
+            -e "s|from '\.\./src/hooks/useVerificationMethod'|from '../hooks/useVerificationMethod'|g" \
+            -e "s|from '\.\./src/components/AndroidOneTimeOfferDetails'|from '../components/AndroidOneTimeOfferDetails'|g" \
+            -e "s|import {IAPKIT_API_KEY} from '@env';|// IAPKit API Key - Set this in your environment or replace with your actual key\nconst IAPKIT_API_KEY = process.env.EXPO_PUBLIC_IAPKIT_API_KEY \|\| '';|g" \
             "$source_file"
     } > "$target_file"
 }

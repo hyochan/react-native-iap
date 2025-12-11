@@ -47,10 +47,15 @@ const config: Config = {
           // Remove this to remove the "edit this page" links.
           editUrl:
             'https://github.com/hyochan/react-native-iap/tree/main/docs/',
-          lastVersion: 'current',
+          lastVersion: '14.5',
           exclude: ['**/node_modules/**'],
           versions: {
             current: {
+              label: '14.6 (Next)',
+              path: 'next',
+              banner: 'unreleased',
+            },
+            '14.5': {
               label: '14.5 (Current)',
               path: '',
             },

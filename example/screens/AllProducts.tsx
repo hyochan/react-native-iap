@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   SectionList,
+  ScrollView,
 } from 'react-native';
 import {useIAP} from 'react-native-iap';
 import Loading from '../src/components/Loading';
@@ -15,7 +16,14 @@ import {
   CONSUMABLE_PRODUCT_IDS,
   NON_CONSUMABLE_PRODUCT_IDS,
 } from '../src/utils/constants';
-import type {Product, ProductSubscription} from 'react-native-iap';
+import type {
+  Product,
+  ProductAndroid,
+  ProductSubscription,
+  ProductSubscriptionAndroid,
+  ProductSubscriptionAndroidOfferDetails,
+} from 'react-native-iap';
+import AndroidOneTimeOfferDetails from '../src/components/AndroidOneTimeOfferDetails';
 
 const ALL_PRODUCT_IDS = [...PRODUCT_IDS, ...SUBSCRIPTION_PRODUCT_IDS];
 
@@ -295,44 +303,149 @@ function AllProducts() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Product Details</Text>
-            {selectedProduct && (
-              <>
-                <Text style={styles.modalLabel}>Product ID:</Text>
-                <Text style={styles.modalValue}>{selectedProduct.id}</Text>
+            <ScrollView style={styles.modalScrollView}>
+              {selectedProduct && (
+                <>
+                  <Text style={styles.modalLabel}>Product ID:</Text>
+                  <Text style={styles.modalValue}>{selectedProduct.id}</Text>
 
-                <Text style={styles.modalLabel}>Title:</Text>
-                <Text style={styles.modalValue}>{selectedProduct.title}</Text>
+                  <Text style={styles.modalLabel}>Title:</Text>
+                  <Text style={styles.modalValue}>{selectedProduct.title}</Text>
 
-                <Text style={styles.modalLabel}>Description:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.description}
-                </Text>
+                  <Text style={styles.modalLabel}>Description:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.description}
+                  </Text>
 
-                <Text style={styles.modalLabel}>Price:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.displayPrice}
-                </Text>
+                  <Text style={styles.modalLabel}>Price:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.displayPrice}
+                  </Text>
 
-                <Text style={styles.modalLabel}>Currency:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.currency || 'N/A'}
-                </Text>
+                  <Text style={styles.modalLabel}>Currency:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.currency || 'N/A'}
+                  </Text>
 
-                <Text style={styles.modalLabel}>Type:</Text>
-                <Text style={styles.modalValue}>
-                  {selectedProduct.type || 'N/A'}
-                </Text>
+                  <Text style={styles.modalLabel}>Type:</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedProduct.type || 'N/A'}
+                  </Text>
 
-                {'isFamilyShareableIOS' in selectedProduct && (
-                  <>
-                    <Text style={styles.modalLabel}>Is Family Shareable:</Text>
-                    <Text style={styles.modalValue}>
-                      {selectedProduct.isFamilyShareableIOS ? 'Yes' : 'No'}
-                    </Text>
-                  </>
-                )}
-              </>
-            )}
+                  {'isFamilyShareableIOS' in selectedProduct && (
+                    <>
+                      <Text style={styles.modalLabel}>
+                        Is Family Shareable:
+                      </Text>
+                      <Text style={styles.modalValue}>
+                        {selectedProduct.isFamilyShareableIOS ? 'Yes' : 'No'}
+                      </Text>
+                    </>
+                  )}
+
+                  {/* Android One-Time Purchase Offers */}
+                  {selectedProduct.platform === 'android' &&
+                    'oneTimePurchaseOfferDetailsAndroid' in selectedProduct && (
+                      <AndroidOneTimeOfferDetails
+                        offers={
+                          (
+                            selectedProduct as
+                              | ProductAndroid
+                              | ProductSubscriptionAndroid
+                          ).oneTimePurchaseOfferDetailsAndroid ?? []
+                        }
+                      />
+                    )}
+
+                  {/* Android Subscription Offers */}
+                  {selectedProduct.platform === 'android' &&
+                    'subscriptionOfferDetailsAndroid' in selectedProduct &&
+                    selectedProduct.subscriptionOfferDetailsAndroid &&
+                    selectedProduct.subscriptionOfferDetailsAndroid.length >
+                      0 && (
+                      <View style={styles.offersSection}>
+                        <Text style={styles.offersSectionTitle}>
+                          Subscription Offers (
+                          {
+                            selectedProduct.subscriptionOfferDetailsAndroid
+                              .length
+                          }
+                          )
+                        </Text>
+                        {selectedProduct.subscriptionOfferDetailsAndroid.map(
+                          (
+                            offer: ProductSubscriptionAndroidOfferDetails,
+                            index: number,
+                          ) => (
+                            <View
+                              key={offer.offerToken}
+                              style={styles.offerCard}
+                            >
+                              <Text style={styles.offerTitle}>
+                                Offer {index + 1}
+                                {offer.offerId ? ` (${offer.offerId})` : ''}
+                              </Text>
+
+                              <Text style={styles.offerLabel}>
+                                Base Plan ID:
+                              </Text>
+                              <Text style={styles.offerValue}>
+                                {offer.basePlanId}
+                              </Text>
+
+                              {offer.pricingPhases.pricingPhaseList.length >
+                                0 && (
+                                <>
+                                  <Text style={styles.offerLabel}>
+                                    Pricing Phases:
+                                  </Text>
+                                  {offer.pricingPhases.pricingPhaseList.map(
+                                    (phase, phaseIndex) => (
+                                      <View
+                                        key={phaseIndex}
+                                        style={styles.pricingPhase}
+                                      >
+                                        <Text style={styles.phaseText}>
+                                          Phase {phaseIndex + 1}:{' '}
+                                          {phase.formattedPrice} /{' '}
+                                          {phase.billingPeriod}
+                                        </Text>
+                                        <Text style={styles.phaseDetail}>
+                                          Cycles: {phase.billingCycleCount},
+                                          Mode: {phase.recurrenceMode}
+                                        </Text>
+                                      </View>
+                                    ),
+                                  )}
+                                </>
+                              )}
+
+                              {offer.offerTags.length > 0 && (
+                                <>
+                                  <Text style={styles.offerLabel}>Tags:</Text>
+                                  <Text style={styles.offerValue}>
+                                    {offer.offerTags.join(', ')}
+                                  </Text>
+                                </>
+                              )}
+
+                              <Text style={styles.offerLabel}>
+                                Offer Token:
+                              </Text>
+                              <Text
+                                style={[styles.offerValue, styles.offerToken]}
+                                numberOfLines={2}
+                              >
+                                {offer.offerToken}
+                              </Text>
+                            </View>
+                          ),
+                        )}
+                      </View>
+                    )}
+                </>
+              )}
+            </ScrollView>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
@@ -533,5 +646,73 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
     fontSize: 16,
+  },
+  modalScrollView: {
+    maxHeight: '85%',
+  },
+  offersSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  offersSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+  },
+  offerCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007AFF',
+  },
+  offerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  offerLabel: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  offerValue: {
+    fontSize: 13,
+    color: '#333',
+    marginTop: 2,
+  },
+  offerValueDiscount: {
+    fontSize: 13,
+    color: '#E53935',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  offerToken: {
+    fontSize: 10,
+    color: '#999',
+    fontFamily: 'monospace',
+  },
+  pricingPhase: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: 4,
+    padding: 6,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  phaseText: {
+    fontSize: 12,
+    color: '#1565C0',
+    fontWeight: '600',
+  },
+  phaseDetail: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 2,
   },
 });

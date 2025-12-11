@@ -478,6 +478,7 @@ export function convertNitroPurchaseToPurchase(
     developerPayloadAndroid: toNullableString(
       nitroPurchase.developerPayloadAndroid,
     ),
+    isSuspendedAndroid: toNullableBoolean(nitroPurchase.isSuspendedAndroid),
   };
 
   return androidPurchase;
