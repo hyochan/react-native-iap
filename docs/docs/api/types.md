@@ -71,9 +71,9 @@ export type ProductSubscription =
   | ProductSubscriptionIOS;
 ```
 
-### Android One-Time Purchase Offer Details (v14.5.1+)
+### Android One-Time Purchase Offer Details (v14.6.0+)
 
-Starting from v14.5.1, `oneTimePurchaseOfferDetailsAndroid` is now an **array** to support Google Play's one-time product discounts (Billing Library 7.0+).
+Starting from v14.6.0, `oneTimePurchaseOfferDetailsAndroid` is now an **array** to support Google Play's one-time product discounts (Billing Library 7.0+).
 
 ```ts
 export interface ProductAndroidOneTimePurchaseOfferDetail {
@@ -146,7 +146,7 @@ export interface PurchaseAndroid extends PurchaseCommon {
   packageNameAndroid?: string | null;
   signatureAndroid?: string | null;
   dataAndroid?: string | null;
-  isSuspendedAndroid?: boolean | null; // v14.5.1+ (Billing Library 8.1.0+)
+  isSuspendedAndroid?: boolean | null; // v14.6.0+ (Billing Library 8.1.0+)
 }
 
 export interface PurchaseIOS extends PurchaseCommon {
@@ -217,6 +217,44 @@ export type MutationRequestPurchaseArgs =
       request: RequestSubscriptionPropsByPlatforms;
       type: 'subs';
     };
+```
+
+## Billing Programs Types (v14.6.0+)
+
+New in v14.6.0, the Billing Programs API provides types for Google Play's external billing programs (Billing Library 8.2.0+).
+
+```ts
+export type BillingProgramAndroid =
+  | 'unspecified'
+  | 'external-content-link'
+  | 'external-offer';
+
+export type ExternalLinkLaunchModeAndroid =
+  | 'unspecified'
+  | 'launch-in-external-browser-or-app'
+  | 'caller-will-launch-link';
+
+export type ExternalLinkTypeAndroid =
+  | 'unspecified'
+  | 'link-to-digital-content-offer'
+  | 'link-to-app-download';
+
+export interface LaunchExternalLinkParamsAndroid {
+  billingProgram: BillingProgramAndroid;
+  launchMode: ExternalLinkLaunchModeAndroid;
+  linkType: ExternalLinkTypeAndroid;
+  linkUri: string;
+}
+
+export interface BillingProgramAvailabilityResultAndroid {
+  billingProgram: BillingProgramAndroid;
+  isAvailable: boolean;
+}
+
+export interface BillingProgramReportingDetailsAndroid {
+  billingProgram: BillingProgramAndroid;
+  externalTransactionToken: string;
+}
 ```
 
 ## Purchase Verification

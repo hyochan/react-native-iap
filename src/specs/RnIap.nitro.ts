@@ -44,6 +44,22 @@ export type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 // Note: Nitro requires at least 2 values for union types
 export type PurchaseVerificationProvider = 'iapkit' | 'none';
 
+// Billing Programs API types (Android 8.2.0+)
+export type BillingProgramAndroid =
+  | 'unspecified'
+  | 'external-content-link'
+  | 'external-offer';
+
+export type ExternalLinkLaunchModeAndroid =
+  | 'unspecified'
+  | 'launch-in-external-browser-or-app'
+  | 'caller-will-launch-link';
+
+export type ExternalLinkTypeAndroid =
+  | 'unspecified'
+  | 'link-to-digital-content-offer'
+  | 'link-to-app-download';
+
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║                                  PARAMS                                  ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
@@ -145,6 +161,20 @@ export interface NitroFinishTransactionParams {
 export interface NitroDeepLinkOptionsAndroid {
   skuAndroid?: DeepLinkOptions['skuAndroid'];
   packageNameAndroid?: DeepLinkOptions['packageNameAndroid'];
+}
+
+/**
+ * Parameters for launching an external link (Android 8.2.0+)
+ */
+export interface NitroLaunchExternalLinkParamsAndroid {
+  /** The billing program (external-content-link or external-offer) */
+  billingProgram: BillingProgramAndroid;
+  /** The external link launch mode */
+  launchMode: ExternalLinkLaunchModeAndroid;
+  /** The type of the external link */
+  linkType: ExternalLinkTypeAndroid;
+  /** The URI where the content will be accessed from */
+  linkUri: string;
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
@@ -249,6 +279,26 @@ export interface NitroVerifyPurchaseWithProviderResult {
   iapkit?: NitroVerifyPurchaseWithIapkitResult | null;
   errors?: NitroVerifyPurchaseWithProviderError[] | null;
   provider: PurchaseVerificationProvider;
+}
+
+/**
+ * Result of checking billing program availability (Android 8.2.0+)
+ */
+export interface NitroBillingProgramAvailabilityResultAndroid {
+  /** The billing program that was checked */
+  billingProgram: BillingProgramAndroid;
+  /** Whether the billing program is available for the user */
+  isAvailable: boolean;
+}
+
+/**
+ * Reporting details for external transactions (Android 8.2.0+)
+ */
+export interface NitroBillingProgramReportingDetailsAndroid {
+  /** The billing program that the reporting details are associated with */
+  billingProgram: BillingProgramAndroid;
+  /** External transaction token used to report transactions to Google */
+  externalTransactionToken: string;
 }
 
 /**
@@ -869,6 +919,57 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   removeUserChoiceBillingListenerAndroid(
     listener: (details: UserChoiceBillingDetails) => void,
   ): void;
+
+  // ╔════════════════════════════════════════════════════════════════════════╗
+  // ║                 BILLING PROGRAMS API (Android 8.2.0+)                  ║
+  // ╚════════════════════════════════════════════════════════════════════════╝
+
+  /**
+   * Enable a billing program before initConnection (Android only).
+   * Must be called BEFORE initConnection() to configure the BillingClient.
+   *
+   * @param program - The billing program to enable
+   * @platform Android
+   * @since Billing Library 8.2.0+
+   */
+  enableBillingProgramAndroid(program: BillingProgramAndroid): void;
+
+  /**
+   * Check if a billing program is available for this user/device (Android only).
+   *
+   * @param program - The billing program to check
+   * @returns Promise with availability result
+   * @platform Android
+   * @since Billing Library 8.2.0+
+   */
+  isBillingProgramAvailableAndroid(
+    program: BillingProgramAndroid,
+  ): Promise<NitroBillingProgramAvailabilityResultAndroid>;
+
+  /**
+   * Create billing program reporting details for external transactions (Android only).
+   * Used to get the external transaction token needed for reporting to Google.
+   *
+   * @param program - The billing program to create reporting details for
+   * @returns Promise with reporting details including external transaction token
+   * @platform Android
+   * @since Billing Library 8.2.0+
+   */
+  createBillingProgramReportingDetailsAndroid(
+    program: BillingProgramAndroid,
+  ): Promise<NitroBillingProgramReportingDetailsAndroid>;
+
+  /**
+   * Launch external link for external offers or app download (Android only).
+   *
+   * @param params - Parameters for launching the external link
+   * @returns Promise<boolean> - true if user accepted, false otherwise
+   * @platform Android
+   * @since Billing Library 8.2.0+
+   */
+  launchExternalLinkAndroid(
+    params: NitroLaunchExternalLinkParamsAndroid,
+  ): Promise<boolean>;
 
   // ╔════════════════════════════════════════════════════════════════════════╗
   // ║                EXTERNAL PURCHASE LINKS (iOS 16.0+)                     ║

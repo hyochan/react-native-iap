@@ -1047,6 +1047,30 @@ class HybridRnIap: HybridRnIapSpec {
         // No-op on iOS
     }
 
+    // MARK: - Billing Programs API (Android 8.2.0+) - Not supported on iOS
+
+    func enableBillingProgramAndroid(program: BillingProgramAndroid) throws {
+        // No-op on iOS - Billing Programs are Android-only
+    }
+
+    func isBillingProgramAvailableAndroid(program: BillingProgramAndroid) throws -> Promise<NitroBillingProgramAvailabilityResultAndroid> {
+        return Promise.async {
+            throw PurchaseError.make(code: .featureNotSupported, message: "Billing Programs API is Android-only")
+        }
+    }
+
+    func createBillingProgramReportingDetailsAndroid(program: BillingProgramAndroid) throws -> Promise<NitroBillingProgramReportingDetailsAndroid> {
+        return Promise.async {
+            throw PurchaseError.make(code: .featureNotSupported, message: "Billing Programs API is Android-only")
+        }
+    }
+
+    func launchExternalLinkAndroid(params: NitroLaunchExternalLinkParamsAndroid) throws -> Promise<Bool> {
+        return Promise.async {
+            throw PurchaseError.make(code: .featureNotSupported, message: "Billing Programs API is Android-only")
+        }
+    }
+
     // MARK: - External Purchase (iOS 16.0+)
 
     func canPresentExternalPurchaseNoticeIOS() throws -> Promise<Bool> {

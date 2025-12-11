@@ -31,6 +31,11 @@ import dev.hyo.openiap.InitConnectionConfig as OpenIapInitConnectionConfig
 import dev.hyo.openiap.listener.OpenIapPurchaseErrorListener
 import dev.hyo.openiap.listener.OpenIapPurchaseUpdateListener
 import dev.hyo.openiap.listener.OpenIapUserChoiceBillingListener
+import dev.hyo.openiap.BillingProgramAndroid as OpenIapBillingProgramAndroid
+import dev.hyo.openiap.LaunchExternalLinkParamsAndroid as OpenIapLaunchExternalLinkParams
+import dev.hyo.openiap.ExternalLinkLaunchModeAndroid as OpenIapExternalLinkLaunchMode
+import dev.hyo.openiap.ExternalLinkTypeAndroid as OpenIapExternalLinkType
+import dev.hyo.openiap.store.OpenIapStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CompletableDeferred
@@ -1378,6 +1383,127 @@ class HybridRnIap : HybridRnIapSpec() {
     private fun sendUserChoiceBilling(details: UserChoiceBillingDetails) {
         synchronized(userChoiceBillingListenersAndroid) {
             userChoiceBillingListenersAndroid.forEach { it(details) }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Billing Programs API (Android 8.2.0+)
+    // -------------------------------------------------------------------------
+
+    // Create OpenIapStore lazily for Billing Programs API
+    private val openIapStore: OpenIapStore by lazy { OpenIapStore(context) }
+
+    override fun enableBillingProgramAndroid(program: BillingProgramAndroid) {
+        RnIapLog.payload("enableBillingProgramAndroid", mapOf("program" to program.name))
+        try {
+            val openIapProgram = mapBillingProgram(program)
+            openIapStore.enableBillingProgram(openIapProgram)
+            RnIapLog.result("enableBillingProgramAndroid", true)
+        } catch (err: Throwable) {
+            RnIapLog.failure("enableBillingProgramAndroid", err)
+            // enableBillingProgram is void, so we just log the error
+        }
+    }
+
+    override fun isBillingProgramAvailableAndroid(program: BillingProgramAndroid): Promise<NitroBillingProgramAvailabilityResultAndroid> {
+        return Promise.async {
+            RnIapLog.payload("isBillingProgramAvailableAndroid", mapOf("program" to program.name))
+            try {
+                initConnection(null).await()
+                val openIapProgram = mapBillingProgram(program)
+                val result = openIapStore.isBillingProgramAvailable(openIapProgram)
+                val nitroResult = NitroBillingProgramAvailabilityResultAndroid(
+                    billingProgram = program,
+                    isAvailable = result.isAvailable
+                )
+                RnIapLog.result("isBillingProgramAvailableAndroid", mapOf("isAvailable" to result.isAvailable))
+                nitroResult
+            } catch (err: Throwable) {
+                RnIapLog.failure("isBillingProgramAvailableAndroid", err)
+                val errorType = parseOpenIapError(err)
+                throw OpenIapException(toErrorJson(errorType, debugMessage = err.message))
+            }
+        }
+    }
+
+    override fun createBillingProgramReportingDetailsAndroid(program: BillingProgramAndroid): Promise<NitroBillingProgramReportingDetailsAndroid> {
+        return Promise.async {
+            RnIapLog.payload("createBillingProgramReportingDetailsAndroid", mapOf("program" to program.name))
+            try {
+                initConnection(null).await()
+                val openIapProgram = mapBillingProgram(program)
+                val result = openIapStore.createBillingProgramReportingDetails(openIapProgram)
+                val nitroResult = NitroBillingProgramReportingDetailsAndroid(
+                    billingProgram = program,
+                    externalTransactionToken = result.externalTransactionToken
+                )
+                RnIapLog.result("createBillingProgramReportingDetailsAndroid", mapOf("hasToken" to true))
+                nitroResult
+            } catch (err: Throwable) {
+                RnIapLog.failure("createBillingProgramReportingDetailsAndroid", err)
+                val errorType = parseOpenIapError(err)
+                throw OpenIapException(toErrorJson(errorType, debugMessage = err.message))
+            }
+        }
+    }
+
+    override fun launchExternalLinkAndroid(params: NitroLaunchExternalLinkParamsAndroid): Promise<Boolean> {
+        return Promise.async {
+            RnIapLog.payload("launchExternalLinkAndroid", mapOf(
+                "billingProgram" to params.billingProgram.name,
+                "launchMode" to params.launchMode.name,
+                "linkType" to params.linkType.name,
+                "linkUri" to params.linkUri
+            ))
+            try {
+                initConnection(null).await()
+
+                val activity = withContext(Dispatchers.Main) {
+                    runCatching { context.currentActivity }.getOrNull()
+                } ?: throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Activity not available"))
+
+                val openIapParams = OpenIapLaunchExternalLinkParams(
+                    billingProgram = mapBillingProgram(params.billingProgram),
+                    launchMode = mapExternalLinkLaunchMode(params.launchMode),
+                    linkType = mapExternalLinkType(params.linkType),
+                    linkUri = params.linkUri
+                )
+
+                val result = withContext(Dispatchers.Main) {
+                    openIapStore.launchExternalLink(activity, openIapParams)
+                }
+                RnIapLog.result("launchExternalLinkAndroid", result)
+                result
+            } catch (err: Throwable) {
+                RnIapLog.failure("launchExternalLinkAndroid", err)
+                val errorType = parseOpenIapError(err)
+                throw OpenIapException(toErrorJson(errorType, debugMessage = err.message))
+            }
+        }
+    }
+
+    // Billing Programs helper functions
+    private fun mapBillingProgram(program: BillingProgramAndroid): OpenIapBillingProgramAndroid {
+        return when (program) {
+            BillingProgramAndroid.UNSPECIFIED -> OpenIapBillingProgramAndroid.Unspecified
+            BillingProgramAndroid.EXTERNAL_CONTENT_LINK -> OpenIapBillingProgramAndroid.ExternalContentLink
+            BillingProgramAndroid.EXTERNAL_OFFER -> OpenIapBillingProgramAndroid.ExternalOffer
+        }
+    }
+
+    private fun mapExternalLinkLaunchMode(mode: ExternalLinkLaunchModeAndroid): OpenIapExternalLinkLaunchMode {
+        return when (mode) {
+            ExternalLinkLaunchModeAndroid.UNSPECIFIED -> OpenIapExternalLinkLaunchMode.Unspecified
+            ExternalLinkLaunchModeAndroid.LAUNCH_IN_EXTERNAL_BROWSER_OR_APP -> OpenIapExternalLinkLaunchMode.LaunchInExternalBrowserOrApp
+            ExternalLinkLaunchModeAndroid.CALLER_WILL_LAUNCH_LINK -> OpenIapExternalLinkLaunchMode.CallerWillLaunchLink
+        }
+    }
+
+    private fun mapExternalLinkType(type: ExternalLinkTypeAndroid): OpenIapExternalLinkType {
+        return when (type) {
+            ExternalLinkTypeAndroid.UNSPECIFIED -> OpenIapExternalLinkType.Unspecified
+            ExternalLinkTypeAndroid.LINK_TO_DIGITAL_CONTENT_OFFER -> OpenIapExternalLinkType.LinkToDigitalContentOffer
+            ExternalLinkTypeAndroid.LINK_TO_APP_DOWNLOAD -> OpenIapExternalLinkType.LinkToAppDownload
         }
     }
 

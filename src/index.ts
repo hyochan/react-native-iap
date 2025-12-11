@@ -2154,6 +2154,224 @@ export const createAlternativeBillingTokenAndroid: MutationField<
 };
 
 // ------------------------------
+// Billing Programs API (Android 8.2.0+)
+// ------------------------------
+
+/**
+ * Billing program type for external content links and external offers.
+ * @platform Android
+ * @since Google Play Billing Library 8.2.0+
+ */
+export type BillingProgramAndroid =
+  | 'unspecified'
+  | 'external-content-link'
+  | 'external-offer';
+
+/**
+ * Launch mode for external link flow.
+ * @platform Android
+ * @since Google Play Billing Library 8.2.0+
+ */
+export type ExternalLinkLaunchModeAndroid =
+  | 'unspecified'
+  | 'launch-in-external-browser-or-app'
+  | 'caller-will-launch-link';
+
+/**
+ * Link type for external link flow.
+ * @platform Android
+ * @since Google Play Billing Library 8.2.0+
+ */
+export type ExternalLinkTypeAndroid =
+  | 'unspecified'
+  | 'link-to-digital-content-offer'
+  | 'link-to-app-download';
+
+/**
+ * Parameters for launching an external link (Android 8.2.0+).
+ */
+export interface LaunchExternalLinkParamsAndroid {
+  /** The billing program (external-content-link or external-offer) */
+  billingProgram: BillingProgramAndroid;
+  /** The external link launch mode */
+  launchMode: ExternalLinkLaunchModeAndroid;
+  /** The type of the external link */
+  linkType: ExternalLinkTypeAndroid;
+  /** The URI where the content will be accessed from */
+  linkUri: string;
+}
+
+/**
+ * Result of checking billing program availability (Android 8.2.0+).
+ */
+export interface BillingProgramAvailabilityResultAndroid {
+  /** The billing program that was checked */
+  billingProgram: BillingProgramAndroid;
+  /** Whether the billing program is available for the user */
+  isAvailable: boolean;
+}
+
+/**
+ * Reporting details for external transactions (Android 8.2.0+).
+ */
+export interface BillingProgramReportingDetailsAndroid {
+  /** The billing program that the reporting details are associated with */
+  billingProgram: BillingProgramAndroid;
+  /** External transaction token used to report transactions to Google */
+  externalTransactionToken: string;
+}
+
+/**
+ * Enable a billing program before initConnection (Android only).
+ * Must be called BEFORE initConnection() to configure the BillingClient.
+ *
+ * @param program - The billing program to enable (external-content-link or external-offer)
+ * @platform Android
+ * @since Google Play Billing Library 8.2.0+
+ *
+ * @example
+ * ```typescript
+ * // Enable external offers before connecting
+ * enableBillingProgramAndroid('external-offer');
+ * await initConnection();
+ * ```
+ */
+export const enableBillingProgramAndroid = (
+  program: BillingProgramAndroid,
+): void => {
+  if (Platform.OS !== 'android') {
+    RnIapConsole.warn(
+      'enableBillingProgramAndroid is only supported on Android',
+    );
+    return;
+  }
+  try {
+    IAP.instance.enableBillingProgramAndroid(program as any);
+  } catch (error) {
+    RnIapConsole.error('Failed to enable billing program:', error);
+  }
+};
+
+/**
+ * Check if a billing program is available for this user/device (Android only).
+ *
+ * @param program - The billing program to check
+ * @returns Promise with availability result
+ * @platform Android
+ * @since Google Play Billing Library 8.2.0+
+ *
+ * @example
+ * ```typescript
+ * const result = await isBillingProgramAvailableAndroid('external-offer');
+ * if (result.isAvailable) {
+ *   // External offers are available for this user
+ * }
+ * ```
+ */
+export const isBillingProgramAvailableAndroid = async (
+  program: BillingProgramAndroid,
+): Promise<BillingProgramAvailabilityResultAndroid> => {
+  if (Platform.OS !== 'android') {
+    throw new Error('Billing Programs API is only supported on Android');
+  }
+  try {
+    const result = await IAP.instance.isBillingProgramAvailableAndroid(
+      program as any,
+    );
+    return {
+      billingProgram: result.billingProgram as unknown as BillingProgramAndroid,
+      isAvailable: result.isAvailable,
+    };
+  } catch (error) {
+    RnIapConsole.error('Failed to check billing program availability:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create billing program reporting details for external transactions (Android only).
+ * Used to get the external transaction token needed for reporting to Google.
+ *
+ * @param program - The billing program to create reporting details for
+ * @returns Promise with reporting details including external transaction token
+ * @platform Android
+ * @since Google Play Billing Library 8.2.0+
+ *
+ * @example
+ * ```typescript
+ * const details = await createBillingProgramReportingDetailsAndroid('external-offer');
+ * // Use details.externalTransactionToken to report the transaction
+ * await fetch('/api/report-external-transaction', {
+ *   method: 'POST',
+ *   body: JSON.stringify({ token: details.externalTransactionToken })
+ * });
+ * ```
+ */
+export const createBillingProgramReportingDetailsAndroid = async (
+  program: BillingProgramAndroid,
+): Promise<BillingProgramReportingDetailsAndroid> => {
+  if (Platform.OS !== 'android') {
+    throw new Error('Billing Programs API is only supported on Android');
+  }
+  try {
+    const result =
+      await IAP.instance.createBillingProgramReportingDetailsAndroid(
+        program as any,
+      );
+    return {
+      billingProgram: result.billingProgram as unknown as BillingProgramAndroid,
+      externalTransactionToken: result.externalTransactionToken,
+    };
+  } catch (error) {
+    RnIapConsole.error(
+      'Failed to create billing program reporting details:',
+      error,
+    );
+    throw error;
+  }
+};
+
+/**
+ * Launch external link for external offers or app download (Android only).
+ *
+ * @param params - Parameters for launching the external link
+ * @returns Promise<boolean> - true if user accepted, false otherwise
+ * @platform Android
+ * @since Google Play Billing Library 8.2.0+
+ *
+ * @example
+ * ```typescript
+ * const success = await launchExternalLinkAndroid({
+ *   billingProgram: 'external-offer',
+ *   launchMode: 'launch-in-external-browser-or-app',
+ *   linkType: 'link-to-digital-content-offer',
+ *   linkUri: 'https://your-website.com/purchase'
+ * });
+ * if (success) {
+ *   console.log('User accepted external link');
+ * }
+ * ```
+ */
+export const launchExternalLinkAndroid = async (
+  params: LaunchExternalLinkParamsAndroid,
+): Promise<boolean> => {
+  if (Platform.OS !== 'android') {
+    throw new Error('Billing Programs API is only supported on Android');
+  }
+  try {
+    return await IAP.instance.launchExternalLinkAndroid({
+      billingProgram: params.billingProgram as any,
+      launchMode: params.launchMode as any,
+      linkType: params.linkType as any,
+      linkUri: params.linkUri,
+    });
+  } catch (error) {
+    RnIapConsole.error('Failed to launch external link:', error);
+    throw error;
+  }
+};
+
+// ------------------------------
 // iOS External Purchase
 // ------------------------------
 

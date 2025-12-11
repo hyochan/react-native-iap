@@ -251,6 +251,74 @@ See [AlternativeBilling.tsx](https://github.com/hyochan/react-native-iap/blob/ma
 
 ## Android Alternative Billing
 
+Android supports two approaches for alternative billing:
+
+### Billing Programs API (8.2.0+) - Recommended
+
+:::tip New in 14.6.0
+The Billing Programs API is the recommended approach for apps using Google Play Billing Library 8.2.0+. It replaces the deprecated alternative billing APIs and supports both External Content Links and External Offers programs.
+:::
+
+The Billing Programs API provides a cleaner, more unified approach to external billing:
+
+```typescript
+import {
+  enableBillingProgramAndroid,
+  isBillingProgramAvailableAndroid,
+  createBillingProgramReportingDetailsAndroid,
+  launchExternalLinkAndroid,
+  initConnection,
+} from 'react-native-iap';
+
+// Step 1: Enable billing program BEFORE initConnection
+enableBillingProgramAndroid('external-offer');
+
+// Step 2: Initialize connection
+await initConnection();
+
+// Step 3: Check if program is available
+const {isAvailable} = await isBillingProgramAvailableAndroid('external-offer');
+if (!isAvailable) {
+  console.log('External offers not available for this user');
+  return;
+}
+
+// Step 4: Launch external link
+const success = await launchExternalLinkAndroid({
+  billingProgram: 'external-offer',
+  launchMode: 'launch-in-external-browser-or-app',
+  linkType: 'link-to-digital-content-offer',
+  linkUri: 'https://your-website.com/purchase',
+});
+
+if (success) {
+  // Step 5: Get reporting token after external purchase
+  const details = await createBillingProgramReportingDetailsAndroid('external-offer');
+
+  // Step 6: Report to Google Play backend
+  await reportExternalTransaction(details.externalTransactionToken);
+}
+```
+
+#### Billing Program Types
+
+- **`external-content-link`**: For linking to external content outside the app
+- **`external-offer`**: For offering digital content purchases outside Google Play
+
+#### Launch Modes
+
+- **`launch-in-external-browser-or-app`**: Google Play launches the URL
+- **`caller-will-launch-link`**: Your app handles launching the URL after Play returns
+
+#### Link Types
+
+- **`link-to-digital-content-offer`**: Link to a digital content offer
+- **`link-to-app-download`**: Link to download an app
+
+### Legacy Alternative Billing APIs (Pre-8.2.0)
+
+For apps using older Billing Library versions, the legacy APIs are still supported but deprecated:
+
 Android supports two alternative billing modes:
 
 1. **Alternative Billing Only**: Users can ONLY use your payment system
@@ -413,7 +481,9 @@ The example demonstrates:
 ## Platform Requirements
 
 - **iOS**: iOS 16.0+ for external purchase URLs
-- **Android**: Google Play Billing Library 5.0+ with alternative billing enabled
+- **Android**:
+  - Billing Programs API: Google Play Billing Library 8.2.0+ (recommended)
+  - Legacy APIs: Google Play Billing Library 5.0+ with alternative billing enabled
 - **Approval**: Both platforms require approval for alternative billing features
 
 ## API Reference

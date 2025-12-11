@@ -65,6 +65,38 @@ export interface AppTransaction {
   signedDate: number;
 }
 
+/**
+ * Billing program types for external content links and external offers (Android)
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export type BillingProgramAndroid = 'unspecified' | 'external-content-link' | 'external-offer';
+
+/**
+ * Result of checking billing program availability (Android)
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export interface BillingProgramAvailabilityResultAndroid {
+  /** The billing program that was checked */
+  billingProgram: BillingProgramAndroid;
+  /** Whether the billing program is available for the user */
+  isAvailable: boolean;
+}
+
+/**
+ * Reporting details for transactions made outside of Google Play Billing (Android)
+ * Contains the external transaction token needed for reporting
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export interface BillingProgramReportingDetailsAndroid {
+  /** The billing program that the reporting details are associated with */
+  billingProgram: BillingProgramAndroid;
+  /**
+   * External transaction token used to report transactions made outside of Google Play Billing.
+   * This token must be used when reporting the external transaction to Google.
+   */
+  externalTransactionToken: string;
+}
+
 export interface DeepLinkOptions {
   /** Android package name to target (required on Android) */
   packageNameAndroid?: (string | null);
@@ -183,6 +215,40 @@ export enum ErrorCode {
   UserError = 'user-error'
 }
 
+/**
+ * Launch mode for external link flow (Android)
+ * Determines how the external URL is launched
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export type ExternalLinkLaunchModeAndroid = 'unspecified' | 'launch-in-external-browser-or-app' | 'caller-will-launch-link';
+
+/**
+ * Link type for external link flow (Android)
+ * Specifies the type of external link destination
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export type ExternalLinkTypeAndroid = 'unspecified' | 'link-to-digital-content-offer' | 'link-to-app-download';
+
+/**
+ * External offer availability result (Android)
+ * @deprecated Use BillingProgramAvailabilityResultAndroid with isBillingProgramAvailableAsync instead
+ * Available in Google Play Billing Library 6.2.0+, deprecated in 8.2.0
+ */
+export interface ExternalOfferAvailabilityResultAndroid {
+  /** Whether external offers are available for the user */
+  isAvailable: boolean;
+}
+
+/**
+ * External offer reporting details (Android)
+ * @deprecated Use BillingProgramReportingDetailsAndroid with createBillingProgramReportingDetailsAsync instead
+ * Available in Google Play Billing Library 6.2.0+, deprecated in 8.2.0
+ */
+export interface ExternalOfferReportingDetailsAndroid {
+  /** External transaction token for reporting external offer transactions */
+  externalTransactionToken: string;
+}
+
 /** Result of presenting an external purchase link (iOS 18.2+) */
 export interface ExternalPurchaseLinkResultIOS {
   /** Optional error message if the presentation failed */
@@ -220,6 +286,22 @@ export interface InitConnectionConfig {
    * If not specified, defaults to NONE (standard Google Play billing)
    */
   alternativeBillingModeAndroid?: (AlternativeBillingModeAndroid | null);
+}
+
+/**
+ * Parameters for launching an external link (Android)
+ * Used with launchExternalLink to initiate external offer or app install flows
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export interface LaunchExternalLinkParamsAndroid {
+  /** The billing program (EXTERNAL_CONTENT_LINK or EXTERNAL_OFFER) */
+  billingProgram: BillingProgramAndroid;
+  /** The external link launch mode */
+  launchMode: ExternalLinkLaunchModeAndroid;
+  /** The type of the external link */
+  linkType: ExternalLinkTypeAndroid;
+  /** The URI where the content will be accessed from */
+  linkUri: string;
 }
 
 /**
@@ -857,12 +939,20 @@ export interface RequestSubscriptionAndroidProps {
   obfuscatedProfileIdAndroid?: (string | null);
   /** Purchase token for upgrades/downgrades */
   purchaseTokenAndroid?: (string | null);
-  /** Replacement mode for subscription changes */
+  /**
+   * Replacement mode for subscription changes
+   * @deprecated Use subscriptionProductReplacementParams instead for item-level replacement (8.1.0+)
+   */
   replacementModeAndroid?: (number | null);
   /** List of subscription SKUs */
   skus: string[];
   /** Subscription offers */
   subscriptionOffers?: (AndroidSubscriptionOfferInput[] | null);
+  /**
+   * Product-level replacement parameters (8.1.0+)
+   * Use this instead of replacementModeAndroid for item-level replacement
+   */
+  subscriptionProductReplacementParams?: (SubscriptionProductReplacementParamsAndroid | null);
 }
 
 export interface RequestSubscriptionIosProps {
@@ -951,6 +1041,25 @@ export interface SubscriptionPeriodValueIOS {
   unit: SubscriptionPeriodIOS;
   value: number;
 }
+
+/**
+ * Product-level subscription replacement parameters (Android)
+ * Used with setSubscriptionProductReplacementParams in BillingFlowParams.ProductDetailsParams
+ * Available in Google Play Billing Library 8.1.0+
+ */
+export interface SubscriptionProductReplacementParamsAndroid {
+  /** The old product ID that needs to be replaced */
+  oldProductId: string;
+  /** The replacement mode for this product change */
+  replacementMode: SubscriptionReplacementModeAndroid;
+}
+
+/**
+ * Replacement mode for subscription changes (Android)
+ * These modes determine how the subscription replacement affects billing.
+ * Available in Google Play Billing Library 8.1.0+
+ */
+export type SubscriptionReplacementModeAndroid = 'unknown-replacement-mode' | 'with-time-proration' | 'charge-prorated-price' | 'charge-full-price' | 'without-proration' | 'deferred' | 'keep-existing';
 
 export interface SubscriptionStatusIOS {
   renewalInfo?: (RenewalInfoIOS | null);
