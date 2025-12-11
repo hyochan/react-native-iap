@@ -47,6 +47,18 @@ const mockIap: any = {
     jwsRepresentation: 'mock-jws',
     latestTransaction: null,
   })),
+
+  // Billing Programs API (Android 8.2.0+)
+  enableBillingProgramAndroid: jest.fn(),
+  isBillingProgramAvailableAndroid: jest.fn(async () => ({
+    billingProgram: 'external-offer',
+    isAvailable: true,
+  })),
+  createBillingProgramReportingDetailsAndroid: jest.fn(async () => ({
+    billingProgram: 'external-offer',
+    externalTransactionToken: 'mock-token-123',
+  })),
+  launchExternalLinkAndroid: jest.fn(async () => true),
 };
 
 jest.mock('react-native-nitro-modules', () => ({
@@ -1385,6 +1397,257 @@ describe('Public API (src/index.ts)', () => {
       });
 
       expect(result.iapkit?.state).toBe('pending-acknowledgment');
+    });
+  });
+
+  describe('Billing Programs API (Android 8.2.0+)', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    describe('enableBillingProgramAndroid', () => {
+      it('should call native method on Android', () => {
+        (Platform as any).OS = 'android';
+        IAP.enableBillingProgramAndroid('external-offer');
+        expect(mockIap.enableBillingProgramAndroid).toHaveBeenCalledWith(
+          'external-offer',
+        );
+      });
+
+      it('should warn and return early on non-Android', () => {
+        (Platform as any).OS = 'ios';
+        IAP.enableBillingProgramAndroid('external-offer');
+        expect(mockIap.enableBillingProgramAndroid).not.toHaveBeenCalled();
+        expect(console.warn).toHaveBeenCalledWith(
+          '[RN-IAP]',
+          'enableBillingProgramAndroid is only supported on Android',
+        );
+      });
+
+      it('should handle errors gracefully', () => {
+        (Platform as any).OS = 'android';
+        mockIap.enableBillingProgramAndroid.mockImplementationOnce(() => {
+          throw new Error('Native error');
+        });
+        // Should not throw, just log error
+        expect(() =>
+          IAP.enableBillingProgramAndroid('external-offer'),
+        ).not.toThrow();
+        expect(console.error).toHaveBeenCalled();
+      });
+
+      it('should support external-content-link program', () => {
+        (Platform as any).OS = 'android';
+        IAP.enableBillingProgramAndroid('external-content-link');
+        expect(mockIap.enableBillingProgramAndroid).toHaveBeenCalledWith(
+          'external-content-link',
+        );
+      });
+    });
+
+    describe('isBillingProgramAvailableAndroid', () => {
+      it('should return availability result on Android', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.isBillingProgramAvailableAndroid.mockResolvedValueOnce({
+          billingProgram: 'external-offer',
+          isAvailable: true,
+        });
+
+        const result =
+          await IAP.isBillingProgramAvailableAndroid('external-offer');
+
+        expect(mockIap.isBillingProgramAvailableAndroid).toHaveBeenCalledWith(
+          'external-offer',
+        );
+        expect(result.billingProgram).toBe('external-offer');
+        expect(result.isAvailable).toBe(true);
+      });
+
+      it('should return false when program not available', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.isBillingProgramAvailableAndroid.mockResolvedValueOnce({
+          billingProgram: 'external-offer',
+          isAvailable: false,
+        });
+
+        const result =
+          await IAP.isBillingProgramAvailableAndroid('external-offer');
+
+        expect(result.isAvailable).toBe(false);
+      });
+
+      it('should throw on non-Android', async () => {
+        (Platform as any).OS = 'ios';
+        await expect(
+          IAP.isBillingProgramAvailableAndroid('external-offer'),
+        ).rejects.toThrow('Billing Programs API is only supported on Android');
+      });
+
+      it('should handle native errors', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.isBillingProgramAvailableAndroid.mockRejectedValueOnce(
+          new Error('Service unavailable'),
+        );
+
+        await expect(
+          IAP.isBillingProgramAvailableAndroid('external-offer'),
+        ).rejects.toThrow('Service unavailable');
+      });
+
+      it('should support external-content-link program', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.isBillingProgramAvailableAndroid.mockResolvedValueOnce({
+          billingProgram: 'external-content-link',
+          isAvailable: true,
+        });
+
+        const result = await IAP.isBillingProgramAvailableAndroid(
+          'external-content-link',
+        );
+
+        expect(result.billingProgram).toBe('external-content-link');
+      });
+    });
+
+    describe('createBillingProgramReportingDetailsAndroid', () => {
+      it('should return reporting details with token on Android', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.createBillingProgramReportingDetailsAndroid.mockResolvedValueOnce(
+          {
+            billingProgram: 'external-offer',
+            externalTransactionToken: 'token-abc-123',
+          },
+        );
+
+        const result =
+          await IAP.createBillingProgramReportingDetailsAndroid(
+            'external-offer',
+          );
+
+        expect(
+          mockIap.createBillingProgramReportingDetailsAndroid,
+        ).toHaveBeenCalledWith('external-offer');
+        expect(result.billingProgram).toBe('external-offer');
+        expect(result.externalTransactionToken).toBe('token-abc-123');
+      });
+
+      it('should throw on non-Android', async () => {
+        (Platform as any).OS = 'ios';
+        await expect(
+          IAP.createBillingProgramReportingDetailsAndroid('external-offer'),
+        ).rejects.toThrow('Billing Programs API is only supported on Android');
+      });
+
+      it('should handle native errors', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.createBillingProgramReportingDetailsAndroid.mockRejectedValueOnce(
+          new Error('Token creation failed'),
+        );
+
+        await expect(
+          IAP.createBillingProgramReportingDetailsAndroid('external-offer'),
+        ).rejects.toThrow('Token creation failed');
+      });
+
+      it('should support external-content-link program', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.createBillingProgramReportingDetailsAndroid.mockResolvedValueOnce(
+          {
+            billingProgram: 'external-content-link',
+            externalTransactionToken: 'content-token-456',
+          },
+        );
+
+        const result = await IAP.createBillingProgramReportingDetailsAndroid(
+          'external-content-link',
+        );
+
+        expect(result.billingProgram).toBe('external-content-link');
+        expect(result.externalTransactionToken).toBe('content-token-456');
+      });
+    });
+
+    describe('launchExternalLinkAndroid', () => {
+      const defaultParams = {
+        billingProgram: 'external-offer' as const,
+        launchMode: 'launch-in-external-browser-or-app' as const,
+        linkType: 'link-to-digital-content-offer' as const,
+        linkUri: 'https://example.com/purchase',
+      };
+
+      it('should return true when user accepts on Android', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.launchExternalLinkAndroid.mockResolvedValueOnce(true);
+
+        const result = await IAP.launchExternalLinkAndroid(defaultParams);
+
+        expect(mockIap.launchExternalLinkAndroid).toHaveBeenCalledWith({
+          billingProgram: 'external-offer',
+          launchMode: 'launch-in-external-browser-or-app',
+          linkType: 'link-to-digital-content-offer',
+          linkUri: 'https://example.com/purchase',
+        });
+        expect(result).toBe(true);
+      });
+
+      it('should return false when user declines', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.launchExternalLinkAndroid.mockResolvedValueOnce(false);
+
+        const result = await IAP.launchExternalLinkAndroid(defaultParams);
+
+        expect(result).toBe(false);
+      });
+
+      it('should throw on non-Android', async () => {
+        (Platform as any).OS = 'ios';
+        await expect(
+          IAP.launchExternalLinkAndroid(defaultParams),
+        ).rejects.toThrow('Billing Programs API is only supported on Android');
+      });
+
+      it('should handle native errors', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.launchExternalLinkAndroid.mockRejectedValueOnce(
+          new Error('Launch failed'),
+        );
+
+        await expect(
+          IAP.launchExternalLinkAndroid(defaultParams),
+        ).rejects.toThrow('Launch failed');
+      });
+
+      it('should support external-content-link program', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.launchExternalLinkAndroid.mockResolvedValueOnce(true);
+
+        const params = {
+          billingProgram: 'external-content-link' as const,
+          launchMode: 'launch-in-external-browser-or-app' as const,
+          linkType: 'link-to-app-download' as const,
+          linkUri: 'https://example.com/download',
+        };
+
+        await IAP.launchExternalLinkAndroid(params);
+
+        expect(mockIap.launchExternalLinkAndroid).toHaveBeenCalledWith(params);
+      });
+
+      it('should support caller-will-launch-link mode', async () => {
+        (Platform as any).OS = 'android';
+        mockIap.launchExternalLinkAndroid.mockResolvedValueOnce(true);
+
+        const params = {
+          billingProgram: 'external-offer' as const,
+          launchMode: 'caller-will-launch-link' as const,
+          linkType: 'link-to-digital-content-offer' as const,
+          linkUri: 'https://example.com/custom',
+        };
+
+        await IAP.launchExternalLinkAndroid(params);
+
+        expect(mockIap.launchExternalLinkAndroid).toHaveBeenCalledWith(params);
+      });
     });
   });
 });
