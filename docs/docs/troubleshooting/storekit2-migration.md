@@ -167,7 +167,7 @@ StoreKit 2 uses a different API that may have stricter requirements:
 
 ### Receipt Validation Changes
 
-StoreKit 2 uses JWS (JSON Web Signature) instead of the old receipt format. If you have server-side validation, you'll need to update it. See [Receipt Validation](/docs/guides/receipt-validation) for details.
+StoreKit 2 uses JWS (JSON Web Signature) instead of the old receipt format. If you have server-side validation, you'll need to update it. See [Subscription Validation](/docs/guides/subscription-validation) for details.
 
 ## Still Having Issues?
 
