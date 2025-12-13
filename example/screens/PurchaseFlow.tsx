@@ -539,12 +539,19 @@ function PurchaseFlowContainer() {
             console.log('[PurchaseFlow] Verifying with local method...');
             // Platform-specific verification API
             // Provide all platform options - library handles platform detection
+            //
+            // ⚠️ SECURITY WARNING: The accessToken below is a PLACEHOLDER.
+            // NEVER ship OAuth tokens directly in your app bundle!
+            // In production, your mobile app should:
+            //   1. Send the purchaseToken to YOUR backend server
+            //   2. Your backend authenticates with Google Play Developer API
+            //   3. Your backend returns the verification result to the app
+            // This example uses a placeholder for demonstration purposes only.
             const result = await verifyPurchase({
               apple: {sku: productId},
               google: {
                 sku: productId,
-                // NOTE: accessToken must be obtained from your backend server
-                // that has authenticated with Google Play Developer API
+                // PLACEHOLDER - Replace with token fetched from your backend
                 accessToken: 'YOUR_OAUTH_ACCESS_TOKEN',
                 packageName: 'dev.hyo.martie',
                 purchaseToken: purchase.purchaseToken ?? '',

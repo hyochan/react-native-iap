@@ -1370,6 +1370,12 @@ export const validateReceipt: MutationField<'validateReceipt'> = async (
     } else if (Platform.OS === 'android') {
       // Horizon verification path (e.g., Meta Quest) - skip Google validation
       if (horizon?.sku) {
+        // Validate all required Horizon fields
+        if (!horizon.userId || !horizon.accessToken) {
+          throw new Error(
+            'Missing required Horizon parameters: userId and accessToken are required when horizon.sku is provided',
+          );
+        }
         // Horizon verification will be handled by native layer
       } else if (!google) {
         throw new Error('Missing required parameter: google options');
