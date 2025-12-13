@@ -24,5 +24,13 @@
   "[javascriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "cSpell.words": ["couroutines", "hyochan", "openiap", "Podfile", "skus"]
+  "cSpell.words": [
+    "couroutines",
+    "hyochan",
+    "iapkit",
+    "martie",
+    "openiap",
+    "Podfile",
+    "skus"
+  ]
 }

@@ -824,7 +824,7 @@ describe('Public API (src/index.ts)', () => {
         latestTransaction: null,
       });
       const res = await IAP.validateReceipt({
-        sku: 'sku',
+        apple: {sku: 'sku'},
       });
       expect(res).toEqual(
         expect.objectContaining({
@@ -858,10 +858,10 @@ describe('Public API (src/index.ts)', () => {
         testTransaction: false,
       });
       const res = await IAP.validateReceipt({
-        sku: 'sku',
-        androidOptions: {
+        google: {
+          sku: 'sku',
           packageName: 'com.app',
-          productToken: 'tok',
+          purchaseToken: 'tok',
           accessToken: 'acc',
         },
       });

@@ -54,7 +54,10 @@ function App() {
 
   const validatePurchase = async (purchase) => {
     try {
-      const result = await validateReceipt({sku: purchase.transactionId});
+      // New platform-specific verification API (v14.6+)
+      const result = await validateReceipt({
+        apple: {sku: purchase.productId},
+      });
       if (result.isValid) {
         // Grant user the purchased content
         console.log('Receipt is valid');
@@ -92,9 +95,13 @@ function App() {
 #### Purchase Verification
 
 ```tsx
-const validateReceiptExample = async (productId: string) => {
+const validateReceiptExample = async (sku: string) => {
   try {
-    const result = await validateReceipt(productId);
+    // New platform-specific verification API (v14.6+)
+    // For iOS, only apple.sku is required
+    const result = await validateReceipt({
+      apple: {sku},
+    });
 
     console.log('Receipt validation result:', {
       isValid: result.isValid,

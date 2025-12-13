@@ -477,7 +477,21 @@ function PurchaseFlowContainer() {
         try {
           if (currentVerificationMethod === 'local') {
             console.log('[PurchaseFlow] Verifying with local method...');
-            const result = await verifyPurchase({sku: productId});
+            // New platform-specific verification API - provide all platform options
+            // The library internally handles which options to use based on platform
+            const result = await verifyPurchase({
+              apple: {sku: productId},
+              google: {
+                sku: productId,
+                // NOTE: accessToken must be obtained from your backend server
+                // that has authenticated with Google Play Developer API
+                accessToken: 'YOUR_OAUTH_ACCESS_TOKEN',
+                packageName: 'dev.hyo.martie',
+                purchaseToken: purchase.purchaseToken ?? '',
+                isSub: false,
+              },
+              // horizon: { sku: productId, userId: '...', accessToken: '...' }
+            });
             console.log('[PurchaseFlow] Local verification result:', result);
           } else if (currentVerificationMethod === 'iapkit') {
             console.log('[PurchaseFlow] Verifying with IAPKit...');

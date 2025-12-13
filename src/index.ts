@@ -1335,29 +1335,87 @@ export const consumePurchaseAndroid: MutationField<
 
 /**
  * Validate receipt on both iOS and Android platforms
- * @param sku - Product SKU
- * @param androidOptions - Android-specific validation options (required for Android)
+ * @param options - Platform-specific verification options
+ * @param options.apple - Apple App Store verification options (iOS)
+ * @param options.google - Google Play verification options (Android)
+ * @param options.horizon - Meta Horizon (Quest) verification options
  * @returns Promise<VerifyPurchaseResultIOS | VerifyPurchaseResultAndroid> - Platform-specific receipt validation result
+ *
+ * @example
+ * ```typescript
+ * // iOS
+ * const result = await validateReceipt({
+ *   apple: { sku: 'premium_monthly' }
+ * });
+ *
+ * // Android
+ * const result = await validateReceipt({
+ *   google: {
+ *     sku: 'premium_monthly',
+ *     packageName: 'com.example.app',
+ *     purchaseToken: 'token...',
+ *     accessToken: 'oauth_token...',
+ *     isSub: true
+ *   }
+ * });
+ * ```
  */
 export const validateReceipt: MutationField<'validateReceipt'> = async (
   options,
 ) => {
-  const {sku, androidOptions} = options;
+  const {apple, google, horizon} = options;
   try {
-    const normalizedAndroidOptions =
-      androidOptions != null
-        ? {
-            ...androidOptions,
-            isSub:
-              androidOptions.isSub == null
-                ? undefined
-                : Boolean(androidOptions.isSub),
-          }
-        : undefined;
+    // Validate required fields based on platform
+    if (Platform.OS === 'ios') {
+      if (!apple?.sku) {
+        throw new Error('Missing required parameter: apple.sku');
+      }
+    } else if (Platform.OS === 'android') {
+      if (!google) {
+        throw new Error('Missing required parameter: google options');
+      }
+      if (!google.sku) {
+        throw new Error('Missing or empty required parameter: google.sku');
+      }
+      if (!google.accessToken) {
+        throw new Error(
+          'Missing or empty required parameter: google.accessToken',
+        );
+      }
+      if (!google.packageName) {
+        throw new Error(
+          'Missing or empty required parameter: google.packageName',
+        );
+      }
+      if (!google.purchaseToken) {
+        throw new Error(
+          'Missing or empty required parameter: google.purchaseToken',
+        );
+      }
+    }
 
     const params: NitroReceiptValidationParams = {
-      sku,
-      androidOptions: normalizedAndroidOptions,
+      apple: apple
+        ? {
+            sku: apple.sku,
+          }
+        : null,
+      google: google
+        ? {
+            sku: google.sku,
+            accessToken: google.accessToken,
+            packageName: google.packageName,
+            purchaseToken: google.purchaseToken,
+            isSub: google.isSub == null ? undefined : Boolean(google.isSub),
+          }
+        : null,
+      horizon: horizon
+        ? {
+            sku: horizon.sku,
+            userId: horizon.userId,
+            accessToken: horizon.accessToken,
+          }
+        : null,
     };
 
     const nitroResult = await IAP.instance.validateReceipt(params);

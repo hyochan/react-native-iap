@@ -917,6 +917,14 @@ export type RequestPurchaseProps =
       useAlternativeBilling?: boolean | null;
     };
 
+/**
+ * Platform-specific purchase request parameters.
+ *
+ * Note: "Platforms" refers to the SDK/OS level (apple, google), not the store.
+ * - apple: Always targets App Store
+ * - google: Targets Play Store by default, or Horizon when built with horizon flavor
+ *   (determined at build time, not runtime)
+ */
 export interface RequestPurchasePropsByPlatforms {
   /** @deprecated Use google instead */
   android?: (RequestPurchaseAndroidProps | null);
@@ -963,6 +971,14 @@ export interface RequestSubscriptionIosProps {
   withOffer?: (DiscountOfferInputIOS | null);
 }
 
+/**
+ * Platform-specific subscription request parameters.
+ *
+ * Note: "Platforms" refers to the SDK/OS level (apple, google), not the store.
+ * - apple: Always targets App Store
+ * - google: Targets Play Store by default, or Horizon when built with horizon flavor
+ *   (determined at build time, not runtime)
+ */
 export interface RequestSubscriptionPropsByPlatforms {
   /** @deprecated Use google instead */
   android?: (RequestSubscriptionAndroidProps | null);
@@ -984,12 +1000,18 @@ export interface RequestVerifyPurchaseWithIapkitGoogleProps {
   purchaseToken: string;
 }
 
+/**
+ * Platform-specific verification parameters for IAPKit.
+ *
+ * - apple: Verifies via App Store (JWS token)
+ * - google: Verifies via Play Store (purchase token)
+ */
 export interface RequestVerifyPurchaseWithIapkitProps {
   /** API key used for the Authorization header (Bearer {apiKey}). */
   apiKey?: (string | null);
-  /** Apple verification parameters. */
+  /** Apple App Store verification parameters. */
   apple?: (RequestVerifyPurchaseWithIapkitAppleProps | null);
-  /** Google verification parameters. */
+  /** Google Play Store verification parameters. */
   google?: (RequestVerifyPurchaseWithIapkitGoogleProps | null);
 }
 
@@ -1088,21 +1110,76 @@ export interface ValidTimeWindowAndroid {
   startTimeMillis: string;
 }
 
-export interface VerifyPurchaseAndroidOptions {
-  accessToken: string;
-  isSub?: (boolean | null);
-  packageName: string;
-  productToken: string;
-}
-
-export interface VerifyPurchaseProps {
-  /** Android-specific validation options */
-  androidOptions?: (VerifyPurchaseAndroidOptions | null);
+/**
+ * Apple App Store verification parameters.
+ * Used for server-side receipt validation via App Store Server API.
+ */
+export interface VerifyPurchaseAppleOptions {
   /** Product SKU to validate */
   sku: string;
 }
 
-export type VerifyPurchaseResult = VerifyPurchaseResultAndroid | VerifyPurchaseResultIOS;
+/**
+ * Google Play Store verification parameters.
+ * Used for server-side receipt validation via Google Play Developer API.
+ *
+ * ⚠️ SECURITY: Contains sensitive tokens (accessToken, purchaseToken). Do not log or persist this data.
+ */
+export interface VerifyPurchaseGoogleOptions {
+  /**
+   * Google OAuth2 access token for API authentication.
+   * ⚠️ Sensitive: Do not log this value.
+   */
+  accessToken: string;
+  /** Whether this is a subscription purchase (affects API endpoint used) */
+  isSub?: (boolean | null);
+  /** Android package name (e.g., com.example.app) */
+  packageName: string;
+  /**
+   * Purchase token from the purchase response.
+   * ⚠️ Sensitive: Do not log this value.
+   */
+  purchaseToken: string;
+  /** Product SKU to validate */
+  sku: string;
+}
+
+/**
+ * Meta Horizon (Quest) verification parameters.
+ * Used for server-side entitlement verification via Meta's S2S API.
+ * POST https://graph.oculus.com/$APP_ID/verify_entitlement
+ *
+ * ⚠️ SECURITY: Contains sensitive token (accessToken). Do not log or persist this data.
+ */
+export interface VerifyPurchaseHorizonOptions {
+  /**
+   * Access token for Meta API authentication (OC|$APP_ID|$APP_SECRET or User Access Token).
+   * ⚠️ Sensitive: Do not log this value.
+   */
+  accessToken: string;
+  /** The SKU for the add-on item, defined in Meta Developer Dashboard */
+  sku: string;
+  /** The user ID of the user whose purchase you want to verify */
+  userId: string;
+}
+
+/**
+ * Platform-specific purchase verification parameters.
+ *
+ * - apple: Verifies via App Store Server API
+ * - google: Verifies via Google Play Developer API
+ * - horizon: Verifies via Meta's S2S API (verify_entitlement endpoint)
+ */
+export interface VerifyPurchaseProps {
+  /** Apple App Store verification parameters. */
+  apple?: (VerifyPurchaseAppleOptions | null);
+  /** Google Play Store verification parameters. */
+  google?: (VerifyPurchaseGoogleOptions | null);
+  /** Meta Horizon (Quest) verification parameters. */
+  horizon?: (VerifyPurchaseHorizonOptions | null);
+}
+
+export type VerifyPurchaseResult = VerifyPurchaseResultAndroid | VerifyPurchaseResultHorizon | VerifyPurchaseResultIOS;
 
 export interface VerifyPurchaseResultAndroid {
   autoRenewing: boolean;
@@ -1123,6 +1200,17 @@ export interface VerifyPurchaseResultAndroid {
   term: string;
   termSku: string;
   testTransaction: boolean;
+}
+
+/**
+ * Result from Meta Horizon verify_entitlement API.
+ * Returns verification status and grant time for the entitlement.
+ */
+export interface VerifyPurchaseResultHorizon {
+  /** Unix timestamp (seconds) when the entitlement was granted. */
+  grantTime?: (number | null);
+  /** Whether the entitlement verification succeeded. */
+  success: boolean;
 }
 
 export interface VerifyPurchaseResultIOS {

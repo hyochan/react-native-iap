@@ -27,6 +27,9 @@ import dev.hyo.openiap.RequestPurchaseResultPurchase
 import dev.hyo.openiap.RequestPurchaseResultPurchases
 import dev.hyo.openiap.RequestSubscriptionAndroidProps
 import dev.hyo.openiap.RequestSubscriptionPropsByPlatforms
+import dev.hyo.openiap.VerifyPurchaseGoogleOptions
+import dev.hyo.openiap.VerifyPurchaseProps
+import dev.hyo.openiap.VerifyPurchaseResultAndroid
 import dev.hyo.openiap.InitConnectionConfig as OpenIapInitConnectionConfig
 import dev.hyo.openiap.listener.OpenIapPurchaseErrorListener
 import dev.hyo.openiap.listener.OpenIapPurchaseUpdateListener
@@ -1119,51 +1122,85 @@ class HybridRnIap : HybridRnIapSpec() {
         }
     }
 
-    // Receipt validation
+    // Receipt validation - calls OpenIAP's verifyPurchase
     override fun validateReceipt(params: NitroReceiptValidationParams): Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
         return Promise.async {
             try {
-                // For Android, we need the androidOptions to be provided
-                val androidOptions = params.androidOptions
-                    ?: throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError))
+                // For Android, we need the google options to be provided (new platform-specific structure)
+                val nitroGoogleOptions = params.google
+                    ?: throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing required parameter: google options"))
 
-                // Android receipt validation would typically involve server-side validation
-                // using Google Play Developer API. Here we provide a simplified implementation
-                // that demonstrates the expected structure.
-                
-                // In a real implementation, you would make an HTTP request to Google Play API
-                // using the androidOptions.accessToken, androidOptions.packageName, etc.
-                
-                // For now, we'll return a mock successful validation result
-                // This should be replaced with actual Google Play Developer API calls
-                val currentTime = System.currentTimeMillis()
-                
-                val result = NitroReceiptValidationResultAndroid(
-                    autoRenewing = androidOptions.isSub ?: false,
-                    betaProduct = false,
-                    cancelDate = null,
-                    cancelReason = "",
-                    deferredDate = null,
-                    deferredSku = null,
-                    freeTrialEndDate = 0.0,
-                    gracePeriodEndDate = 0.0,
-                    parentProductId = params.sku,
-                    productId = params.sku,
-                    productType = if (androidOptions.isSub == true) "subs" else "inapp",
-                    purchaseDate = currentTime.toDouble(),
-                    quantity = 1.0,
-                    receiptId = androidOptions.productToken,
-                    renewalDate = if (androidOptions.isSub == true) (currentTime + (30L * 24 * 60 * 60 * 1000)).toDouble() else 0.0, // 30 days from now if subscription
-                    term = if (androidOptions.isSub == true) "P1M" else "", // P1M = 1 month
-                    termSku = params.sku,
-                    testTransaction = false
+                // Validate required google fields
+                if (nitroGoogleOptions.sku.isEmpty()) {
+                    throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing or empty required parameter: google.sku"))
+                }
+                if (nitroGoogleOptions.accessToken.isEmpty()) {
+                    throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing or empty required parameter: google.accessToken"))
+                }
+                if (nitroGoogleOptions.packageName.isEmpty()) {
+                    throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing or empty required parameter: google.packageName"))
+                }
+                if (nitroGoogleOptions.purchaseToken.isEmpty()) {
+                    throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing or empty required parameter: google.purchaseToken"))
+                }
+
+                RnIapLog.payload("validateReceipt", mapOf(
+                    "sku" to nitroGoogleOptions.sku,
+                    "packageName" to nitroGoogleOptions.packageName,
+                    "isSub" to nitroGoogleOptions.isSub
+                ))
+
+                // Create OpenIAP VerifyPurchaseGoogleOptions
+                val googleOptions = VerifyPurchaseGoogleOptions(
+                    sku = nitroGoogleOptions.sku,
+                    accessToken = nitroGoogleOptions.accessToken,
+                    packageName = nitroGoogleOptions.packageName,
+                    purchaseToken = nitroGoogleOptions.purchaseToken,
+                    isSub = nitroGoogleOptions.isSub
                 )
-                
+
+                // Create OpenIAP VerifyPurchaseProps
+                val props = VerifyPurchaseProps(google = googleOptions)
+
+                // Call OpenIAP's verifyPurchase - this makes the actual Google Play API call
+                val verifyResult = openIap.verifyPurchase(props)
+                RnIapLog.result("validateReceipt", verifyResult.toString())
+
+                // Cast to Android result type (on Android, verifyPurchase returns VerifyPurchaseResultAndroid)
+                val androidResult = verifyResult as? VerifyPurchaseResultAndroid
+                    ?: throw OpenIapException(toErrorJson(OpenIAPError.InvalidPurchaseVerification, debugMessage = "Unexpected result type from verifyPurchase"))
+
+                // Convert OpenIAP result to Nitro result
+                val result = NitroReceiptValidationResultAndroid(
+                    autoRenewing = androidResult.autoRenewing,
+                    betaProduct = androidResult.betaProduct,
+                    cancelDate = androidResult.cancelDate,
+                    cancelReason = androidResult.cancelReason,
+                    deferredDate = androidResult.deferredDate,
+                    deferredSku = androidResult.deferredSku,
+                    freeTrialEndDate = androidResult.freeTrialEndDate,
+                    gracePeriodEndDate = androidResult.gracePeriodEndDate,
+                    parentProductId = androidResult.parentProductId,
+                    productId = androidResult.productId,
+                    productType = androidResult.productType,
+                    purchaseDate = androidResult.purchaseDate,
+                    quantity = androidResult.quantity.toDouble(),
+                    receiptId = androidResult.receiptId,
+                    renewalDate = androidResult.renewalDate,
+                    term = androidResult.term,
+                    termSku = androidResult.termSku,
+                    testTransaction = androidResult.testTransaction
+                )
+
                 Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid.Second(result)
 
+            } catch (e: OpenIapException) {
+                RnIapLog.failure("validateReceipt", e)
+                throw e
             } catch (e: Exception) {
+                RnIapLog.failure("validateReceipt", e)
                 val debugMessage = e.message
-                val error = OpenIAPError.InvalidReceipt
+                val error = OpenIAPError.InvalidPurchaseVerification
                 throw OpenIapException(
                     toErrorJson(
                         error = error,
