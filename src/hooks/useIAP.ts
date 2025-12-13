@@ -71,16 +71,13 @@ type UseIap = {
   requestPurchase: (
     params: RequestPurchaseProps,
   ) => Promise<RequestPurchaseResult | null>;
+  /**
+   * @deprecated Use `verifyPurchase` instead. This function will be removed in a future version.
+   */
   validateReceipt: (
-    sku: string,
-    androidOptions?: {
-      packageName: string;
-      productToken: string;
-      accessToken: string;
-      isSub?: boolean;
-    },
-  ) => Promise<any>;
-  /** Verify purchase with the configured providers (alias for validateReceipt) */
+    options: VerifyPurchaseProps,
+  ) => Promise<VerifyPurchaseResult>;
+  /** Verify purchase with the configured providers */
   verifyPurchase: (
     options: VerifyPurchaseProps,
   ) => Promise<VerifyPurchaseResult>;
@@ -311,20 +308,8 @@ export function useIAP(options?: UseIapOptions): UseIap {
   // No local restorePurchases; use the top-level helper via returned API
 
   const validateReceipt = useCallback(
-    async (
-      sku: string,
-      androidOptions?: {
-        packageName: string;
-        productToken: string;
-        accessToken: string;
-        isSub?: boolean;
-      },
-    ) => {
-      return validateReceiptInternal({
-        sku,
-        androidOptions,
-      });
-    },
+    async (options: VerifyPurchaseProps): Promise<VerifyPurchaseResult> =>
+      validateReceiptInternal(options),
     [],
   );
 

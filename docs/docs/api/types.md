@@ -259,15 +259,103 @@ export interface BillingProgramReportingDetailsAndroid {
 
 ## Purchase Verification
 
-Purchase verification results are platform-specific unions:
+Purchase verification uses platform-specific options and returns platform-specific results.
+
+### VerifyPurchaseProps
+
+The main parameter type for `verifyPurchase` (and deprecated `validateReceipt`):
 
 ```ts
-export type PurchaseVerificationResult =
-  | PurchaseVerificationResultAndroid
-  | PurchaseVerificationResultIos;
+export interface VerifyPurchaseProps {
+  /** Apple App Store verification parameters */
+  apple?: VerifyPurchaseAppleOptions | null;
+  /** Google Play Store verification parameters */
+  google?: VerifyPurchaseGoogleOptions | null;
+  /** Meta Horizon (Quest) verification parameters */
+  horizon?: VerifyPurchaseHorizonOptions | null;
+}
 ```
 
-Use the higher-level `validateReceipt` helper exported from `src/index.ts` for a strongly typed wrapper around the native modules.
+### Platform-specific Options
+
+```ts
+// Apple App Store (iOS)
+export interface VerifyPurchaseAppleOptions {
+  /** Product SKU to validate */
+  sku: string;
+}
+
+// Google Play Store (Android)
+export interface VerifyPurchaseGoogleOptions {
+  /** Product SKU to validate */
+  sku: string;
+  /** Google OAuth2 access token for API authentication */
+  accessToken: string;
+  /** Android package name (e.g., com.example.app) */
+  packageName: string;
+  /** Purchase token from the purchase response */
+  purchaseToken: string;
+  /** Whether this is a subscription purchase */
+  isSub?: boolean | null;
+}
+
+// Meta Horizon (Quest)
+export interface VerifyPurchaseHorizonOptions {
+  /** SKU for the add-on item */
+  sku: string;
+  /** Access token for Meta API authentication */
+  accessToken: string;
+  /** User ID to verify purchase for */
+  userId: string;
+}
+```
+
+### Verification Results
+
+```ts
+export type VerifyPurchaseResult =
+  | VerifyPurchaseResultAndroid
+  | VerifyPurchaseResultIOS
+  | VerifyPurchaseResultHorizon;
+
+// Android result
+export interface VerifyPurchaseResultAndroid {
+  autoRenewing: boolean;
+  betaProduct: boolean;
+  cancelDate?: number | null;
+  cancelReason?: string | null;
+  deferredDate?: number | null;
+  deferredSku?: string | null;
+  freeTrialEndDate: number;
+  gracePeriodEndDate: number;
+  parentProductId: string;
+  productId: string;
+  productType: string;
+  purchaseDate: number;
+  quantity: number;
+  receiptId: string;
+  renewalDate: number;
+  term: string;
+  termSku: string;
+  testTransaction: boolean;
+}
+
+// iOS result
+export interface VerifyPurchaseResultIOS {
+  isValid: boolean;
+  receiptData: string;
+  jwsRepresentation: string;
+  latestTransaction?: Purchase | null;
+}
+
+// Horizon result
+export interface VerifyPurchaseResultHorizon {
+  isEntitled: boolean;
+  grantTime?: number | null;
+}
+```
+
+Use the higher-level `verifyPurchase` helper exported from `src/index.ts` for a strongly typed wrapper around the native modules.
 
 ## Where to Find Everything
 

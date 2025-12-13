@@ -319,8 +319,14 @@ class HybridRnIap: HybridRnIapSpec {
     func validateReceipt(params: NitroReceiptValidationParams) throws -> Promise<Variant_NitroReceiptValidationResultIOS_NitroReceiptValidationResultAndroid> {
         return Promise.async {
             do {
-                RnIapLog.payload("validateReceiptIOS", ["sku": params.sku])
-                let props = try OpenIapSerialization.verifyPurchaseProps(from: ["sku": params.sku])
+                // Extract SKU from apple options (new platform-specific structure)
+                guard let appleOptions = params.apple, !appleOptions.sku.isEmpty else {
+                    throw PurchaseError.make(code: .developerError, message: "Missing required parameter: apple.sku")
+                }
+                let sku = appleOptions.sku
+
+                RnIapLog.payload("validateReceiptIOS", ["sku": sku])
+                let props = try OpenIapSerialization.verifyPurchaseProps(from: ["apple": ["sku": sku]])
                 let result = try await OpenIapModule.shared.validateReceiptIOS(props)
                 var encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
                 if encoded["receiptData"] != nil {

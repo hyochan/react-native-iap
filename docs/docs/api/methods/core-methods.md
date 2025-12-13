@@ -496,11 +496,51 @@ Verifies a purchase using the native OpenIAP implementation. This validates purc
 
 ```tsx
 import {verifyPurchase} from 'react-native-iap';
+import {Platform} from 'react-native';
 
-const verify = async (sku: string) => {
+// iOS verification (simple - just needs SKU)
+const verifyIOS = async (sku: string) => {
   try {
-    const result = await verifyPurchase({sku});
+    const result = await verifyPurchase({
+      apple: {sku},
+    });
+    console.log('iOS Verification result:', result);
+  } catch (error) {
+    console.error('Verification failed:', error);
+  }
+};
 
+// Android verification (requires additional parameters)
+const verifyAndroid = async (purchase: Purchase) => {
+  try {
+    const result = await verifyPurchase({
+      google: {
+        sku: purchase.productId,
+        packageName: purchase.packageNameAndroid!,
+        purchaseToken: purchase.purchaseToken!,
+        accessToken: 'your-google-api-access-token',
+        isSub: false, // Set to true for subscriptions
+      },
+    });
+    console.log('Android Verification result:', result);
+  } catch (error) {
+    console.error('Verification failed:', error);
+  }
+};
+
+// Cross-platform verification
+const verifyPurchaseCrossPlatform = async (purchase: Purchase) => {
+  try {
+    const result = await verifyPurchase({
+      apple: {sku: purchase.productId},
+      google: {
+        sku: purchase.productId,
+        packageName: purchase.packageNameAndroid ?? '',
+        purchaseToken: purchase.purchaseToken ?? '',
+        accessToken: 'your-google-api-access-token',
+        isSub: false,
+      },
+    });
     console.log('Verification result:', result);
   } catch (error) {
     console.error('Verification failed:', error);
@@ -510,15 +550,27 @@ const verify = async (sku: string) => {
 
 **Parameters:**
 
-- `options` (object):
-  - `sku` (string): Product SKU to validate
-  - `androidOptions?` (object): Android-specific validation options
-    - `accessToken` (string): Access token for Google Play API
-    - `packageName` (string): Android package name
-    - `productToken` (string): Product token
-    - `isSub?` (boolean): Whether the product is a subscription
+- `options` (object): Platform-specific verification parameters
+  - `apple?` (object): Apple App Store verification options
+    - `sku` (string): Product SKU to validate
+  - `google?` (object): Google Play Store verification options
+    - `sku` (string): Product SKU to validate
+    - `accessToken` (string): Google OAuth2 access token for API authentication
+    - `packageName` (string): Android package name (e.g., `com.example.app`)
+    - `purchaseToken` (string): Purchase token from the purchase response
+    - `isSub?` (boolean): Whether this is a subscription purchase
+  - `horizon?` (object): Meta Horizon (Quest) verification options
+    - `sku` (string): SKU for the add-on item
+    - `accessToken` (string): Meta API access token
+    - `userId` (string): User ID to verify purchase for
 
 **Returns:** `Promise<VerifyPurchaseResult>` - Platform-specific verification result
+
+**Important Notes:**
+
+- **iOS**: Only requires `apple.sku` - verification uses StoreKit 2's built-in verification
+- **Android**: Requires all `google` parameters - verification calls Google Play Developer API
+- **Horizon**: Requires all `horizon` parameters - verification calls Meta's S2S verify_entitlement API
 
 For external verification services with additional security, use [`verifyPurchaseWithProvider()`](#verifypurchasewithprovider) instead.
 
@@ -983,7 +1035,7 @@ await initConnection();
 
 **Platform:** Android only
 
-#### isBillingProgramAvailableAndroid()
+#### isBillingProgramAvailableAndroid() {#isbillingprogramavailableandroid}
 
 Check if a billing program is available for the current user.
 
@@ -1011,7 +1063,7 @@ interface BillingProgramAvailabilityResultAndroid {
 
 **Platform:** Android only
 
-#### createBillingProgramReportingDetailsAndroid()
+#### createBillingProgramReportingDetailsAndroid() {#createbillingprogramreportingdetailsandroid}
 
 Create reporting details with an external transaction token for Google Play reporting.
 
@@ -1037,7 +1089,7 @@ interface BillingProgramReportingDetailsAndroid {
 
 **Platform:** Android only
 
-#### launchExternalLinkAndroid()
+#### launchExternalLinkAndroid() {#launchexternallinkandroid}
 
 Launch an external link for billing programs.
 

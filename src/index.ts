@@ -1335,29 +1335,94 @@ export const consumePurchaseAndroid: MutationField<
 
 /**
  * Validate receipt on both iOS and Android platforms
- * @param sku - Product SKU
- * @param androidOptions - Android-specific validation options (required for Android)
+ * @deprecated Use `verifyPurchase` instead. This function will be removed in a future version.
+ * @param options - Platform-specific verification options
+ * @param options.apple - Apple App Store verification options (iOS)
+ * @param options.google - Google Play verification options (Android)
+ * @param options.horizon - Meta Horizon (Quest) verification options
  * @returns Promise<VerifyPurchaseResultIOS | VerifyPurchaseResultAndroid> - Platform-specific receipt validation result
+ *
+ * @example
+ * ```typescript
+ * // Use verifyPurchase instead:
+ * const result = await verifyPurchase({
+ *   apple: { sku: 'premium_monthly' },
+ *   google: {
+ *     sku: 'premium_monthly',
+ *     packageName: 'com.example.app',
+ *     purchaseToken: 'token...',
+ *     accessToken: 'oauth_token...',
+ *     isSub: true
+ *   }
+ * });
+ * ```
  */
 export const validateReceipt: MutationField<'validateReceipt'> = async (
   options,
 ) => {
-  const {sku, androidOptions} = options;
+  const {apple, google, horizon} = options;
   try {
-    const normalizedAndroidOptions =
-      androidOptions != null
-        ? {
-            ...androidOptions,
-            isSub:
-              androidOptions.isSub == null
-                ? undefined
-                : Boolean(androidOptions.isSub),
+    // Validate required fields based on platform
+    if (Platform.OS === 'ios') {
+      if (!apple?.sku) {
+        throw new Error('Missing required parameter: apple.sku');
+      }
+    } else if (Platform.OS === 'android') {
+      // Horizon verification path (e.g., Meta Quest) - skip Google validation
+      if (horizon?.sku) {
+        // Validate all required Horizon fields
+        if (!horizon.userId || !horizon.accessToken) {
+          throw new Error(
+            'Missing required Horizon parameters: userId and accessToken are required when horizon.sku is provided',
+          );
+        }
+        // Horizon verification will be handled by native layer
+      } else if (!google) {
+        throw new Error('Missing required parameter: google options');
+      } else {
+        const requiredFields: (keyof typeof google)[] = [
+          'sku',
+          'accessToken',
+          'packageName',
+          'purchaseToken',
+        ];
+        for (const field of requiredFields) {
+          if (!google[field]) {
+            throw new Error(
+              `Missing or empty required parameter: google.${field}`,
+            );
           }
-        : undefined;
+        }
+      }
+    }
 
     const params: NitroReceiptValidationParams = {
-      sku,
-      androidOptions: normalizedAndroidOptions,
+      apple: apple?.sku
+        ? {
+            sku: apple.sku,
+          }
+        : null,
+      google:
+        google?.sku &&
+        google.accessToken &&
+        google.packageName &&
+        google.purchaseToken
+          ? {
+              sku: google.sku,
+              accessToken: google.accessToken,
+              packageName: google.packageName,
+              purchaseToken: google.purchaseToken,
+              isSub: google.isSub == null ? undefined : Boolean(google.isSub),
+            }
+          : null,
+      horizon:
+        horizon?.sku && horizon.userId && horizon.accessToken
+          ? {
+              sku: horizon.sku,
+              userId: horizon.userId,
+              accessToken: horizon.accessToken,
+            }
+          : null,
     };
 
     const nitroResult = await IAP.instance.validateReceipt(params);

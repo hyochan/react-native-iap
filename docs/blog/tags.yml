@@ -107,3 +107,68 @@ bugfix:
   label: Bugfix
   permalink: /bugfix
   description: Bug fixes and patches
+
+horizon-os:
+  label: Horizon OS
+  permalink: /horizon-os
+  description: Meta Horizon OS (Quest) platform support
+
+meta-quest:
+  label: Meta Quest
+  permalink: /meta-quest
+  description: Meta Quest VR device support
+
+vr:
+  label: VR
+  permalink: /vr
+  description: Virtual Reality platform support
+
+alternative-billing:
+  label: Alternative Billing
+  permalink: /alternative-billing
+  description: Alternative billing and external purchase features
+
+google-play:
+  label: Google Play
+  permalink: /google-play
+  description: Google Play Store features
+
+storekit:
+  label: StoreKit
+  permalink: /storekit
+  description: Apple StoreKit framework features
+
+billing-programs:
+  label: Billing Programs
+  permalink: /billing-programs
+  description: Google Play Billing Programs API
+
+discounts:
+  label: Discounts
+  permalink: /discounts
+  description: Product discounts and promotional offers
+
+billing-library:
+  label: Billing Library
+  permalink: /billing-library
+  description: Google Play Billing Library updates
+
+iapkit:
+  label: IAPKit
+  permalink: /iapkit
+  description: IAPKit verification service integration
+
+verification:
+  label: Verification
+  permalink: /verification
+  description: Purchase verification and validation
+
+backend:
+  label: Backend
+  permalink: /backend
+  description: Backend integration and server-side features
+
+security:
+  label: Security
+  permalink: /security
+  description: Security features and best practices

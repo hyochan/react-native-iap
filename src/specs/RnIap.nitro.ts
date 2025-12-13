@@ -14,8 +14,9 @@ import type {
   ProductCommon,
   PurchaseCommon,
   PurchaseOptions,
-  VerifyPurchaseAndroidOptions,
-  VerifyPurchaseProps,
+  VerifyPurchaseAppleOptions,
+  VerifyPurchaseGoogleOptions,
+  VerifyPurchaseHorizonOptions,
   VerifyPurchaseResultAndroid,
   RequestPurchaseIosProps,
   RequestPurchaseResult,
@@ -64,18 +65,30 @@ export type ExternalLinkTypeAndroid =
 // ║                                  PARAMS                                  ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
-// Receipt validation parameters
+// Receipt validation parameters (platform-specific)
 
-export interface NitroReceiptValidationAndroidOptions {
-  accessToken: VerifyPurchaseAndroidOptions['accessToken'];
-  isSub?: VerifyPurchaseAndroidOptions['isSub'];
-  packageName: VerifyPurchaseAndroidOptions['packageName'];
-  productToken: VerifyPurchaseAndroidOptions['productToken'];
+export interface NitroReceiptValidationAppleOptions {
+  sku: VerifyPurchaseAppleOptions['sku'];
+}
+
+export interface NitroReceiptValidationGoogleOptions {
+  accessToken: VerifyPurchaseGoogleOptions['accessToken'];
+  isSub?: VerifyPurchaseGoogleOptions['isSub'];
+  packageName: VerifyPurchaseGoogleOptions['packageName'];
+  purchaseToken: VerifyPurchaseGoogleOptions['purchaseToken'];
+  sku: VerifyPurchaseGoogleOptions['sku'];
+}
+
+export interface NitroReceiptValidationHorizonOptions {
+  accessToken: VerifyPurchaseHorizonOptions['accessToken'];
+  sku: VerifyPurchaseHorizonOptions['sku'];
+  userId: VerifyPurchaseHorizonOptions['userId'];
 }
 
 export interface NitroReceiptValidationParams {
-  sku: VerifyPurchaseProps['sku'];
-  androidOptions?: NitroReceiptValidationAndroidOptions | null;
+  apple?: NitroReceiptValidationAppleOptions | null;
+  google?: NitroReceiptValidationGoogleOptions | null;
+  horizon?: NitroReceiptValidationHorizonOptions | null;
 }
 
 // Purchase request parameters
@@ -822,6 +835,7 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
 
   /**
    * Validate a receipt on the appropriate platform
+   * @deprecated Use `verifyPurchase` instead. This function will be removed in a future version.
    * @param params - Receipt validation parameters including SKU and platform-specific options
    * @returns Promise<NitroReceiptValidationResultIOS | NitroReceiptValidationResultAndroid> - Platform-specific validation result
    */

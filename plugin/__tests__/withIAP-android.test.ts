@@ -30,7 +30,31 @@ jest.mock('expo/config-plugins', () => ({
     const updated = {...original, contents: result.modResults.contents};
     return {...config, modResults: updated};
   },
-  WarningAggregator: {addWarningAndroid: jest.fn()},
+  withInfoPlist: (config: any, action: any) => {
+    const original = config.modResults;
+    const cfg = {...config, modResults: original.plist ?? {}};
+    const result = action(cfg);
+    const updated = {...original, plist: result.modResults};
+    return {...config, modResults: updated};
+  },
+  withEntitlementsPlist: (config: any, action: any) => {
+    const original = config.modResults;
+    const cfg = {...config, modResults: original.entitlements ?? {}};
+    const result = action(cfg);
+    const updated = {...original, entitlements: result.modResults};
+    return {...config, modResults: updated};
+  },
+  withPodfile: (config: any, action: any) => {
+    const original = config.modResults;
+    const cfg = {...config, modResults: {contents: original.podfile ?? ''}};
+    const result = action(cfg);
+    const updated = {...original, podfile: result.modResults.contents};
+    return {...config, modResults: updated};
+  },
+  WarningAggregator: {
+    addWarningAndroid: jest.fn(),
+    addWarningIOS: jest.fn(),
+  },
 }));
 
 describe('withIAP config plugin (Android)', () => {
@@ -53,6 +77,9 @@ describe('withIAP config plugin (Android)', () => {
       modResults: {
         contents: gradle,
         manifest: manifest ?? {manifest: {}},
+        plist: {},
+        entitlements: {},
+        podfile: '',
       },
     } as any;
   }
@@ -112,5 +139,35 @@ describe('withIAP config plugin (Android)', () => {
     const res: any = plugin(config as any);
     const perms = res.modResults.manifest.manifest['uses-permission'];
     expect(perms.length).toBe(1);
+  });
+
+  it('adds IAPKit API key to AndroidManifest when provided', () => {
+    const manifest = {
+      manifest: {
+        application: [{}],
+      },
+    };
+    const config = makeConfig('dependencies {\n}', manifest);
+    const res: any = plugin(config as any, {iapkitApiKey: 'test-api-key-123'});
+    const app = res.modResults.manifest.manifest.application[0];
+    expect(app['meta-data']).toBeDefined();
+    expect(Array.isArray(app['meta-data'])).toBe(true);
+    const iapkitMeta = app['meta-data'].find(
+      (m: any) => m.$['android:name'] === 'dev.iapkit.API_KEY',
+    );
+    expect(iapkitMeta).toBeDefined();
+    expect(iapkitMeta.$['android:value']).toBe('test-api-key-123');
+  });
+
+  it('does not add IAPKit API key when not provided', () => {
+    const manifest = {
+      manifest: {
+        application: [{}],
+      },
+    };
+    const config = makeConfig('dependencies {\n}', manifest);
+    const res: any = plugin(config as any);
+    const app = res.modResults.manifest.manifest.application[0];
+    expect(app['meta-data']).toBeUndefined();
   });
 });

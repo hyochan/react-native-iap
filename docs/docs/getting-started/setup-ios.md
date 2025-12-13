@@ -54,7 +54,10 @@ function App() {
 
   const validatePurchase = async (purchase) => {
     try {
-      const result = await validateReceipt({sku: purchase.transactionId});
+      // New platform-specific verification API (v14.6+)
+      const result = await validateReceipt({
+        apple: {sku: purchase.productId},
+      });
       if (result.isValid) {
         // Grant user the purchased content
         console.log('Receipt is valid');
@@ -86,49 +89,6 @@ function App() {
 ```
 
 > **💡 Cross-Platform Note:** This example shows iOS-specific usage with `sku`. For cross-platform compatibility, include both `sku` and `skus` in your request object. See the [Core Methods](/docs/api/methods/core-methods#requestpurchase) documentation for details.
-
-### iOS-Specific Features
-
-#### Purchase Verification
-
-```tsx
-const validateReceiptExample = async (productId: string) => {
-  try {
-    const result = await validateReceipt(productId);
-
-    console.log('Receipt validation result:', {
-      isValid: result.isValid,
-      receiptData: result.receiptData,
-      jwsRepresentation: result.jwsRepresentation, // iOS 15+
-    });
-
-    return result.isValid;
-  } catch (error) {
-    console.error('Receipt validation failed:', error);
-    return false;
-  }
-};
-```
-
-#### Handling StoreKit Errors
-
-```tsx
-const handlePurchaseError = (error: any) => {
-  switch (error.code) {
-    case ErrorCode.UserCancelled:
-      // User cancelled - don't show error
-      break;
-    case ErrorCode.BillingUnavailable:
-      Alert.alert('Purchases are not allowed on this device');
-      break;
-    case ErrorCode.PurchaseError:
-      Alert.alert('Invalid payment information');
-      break;
-    default:
-      Alert.alert('Purchase failed', error.message);
-  }
-};
-```
 
 ## Common Issues
 
