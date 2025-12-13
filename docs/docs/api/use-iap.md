@@ -341,53 +341,78 @@ const buySubscriptionWithOffer = async (
 
 #### validateReceipt
 
-- **Type**: `(productId: string, params?: ValidationParams) => Promise<ValidationResult>`
-- **Description**: Validate a purchase receipt
+- **Type**: `(options: VerifyPurchaseProps) => Promise<VerifyPurchaseResult>`
+- **Description**: Validate a purchase receipt using platform-specific verification
 - **Parameters**:
-  - `productId`: ID of the product to validate
-  - `params`: **Required for Android**, optional for iOS:
-    - `packageName` (string, Android): Package name of your app
-    - `productToken` (string, Android): Purchase token from the purchase
-    - `accessToken` (string, Android): Optional access token for server validation
-    - `isSub` (boolean, Android): Whether this is a subscription
-- **Returns**: Promise resolving to validation result
+  - `options` (object): Platform-specific verification parameters
+    - `apple?` (object): Apple App Store verification options
+      - `sku` (string): Product SKU to validate
+    - `google?` (object): Google Play Store verification options
+      - `sku` (string): Product SKU to validate
+      - `accessToken` (string): Google OAuth2 access token for API authentication
+      - `packageName` (string): Android package name (e.g., `com.example.app`)
+      - `purchaseToken` (string): Purchase token from the purchase response
+      - `isSub?` (boolean): Whether this is a subscription purchase
+    - `horizon?` (object): Meta Horizon verification options
+      - `sku` (string): SKU for the add-on item
+      - `accessToken` (string): Meta API access token
+      - `userId` (string): User ID to verify purchase for
+- **Returns**: Promise resolving to platform-specific validation result
 
 **Important Platform Differences:**
 
-- **iOS**: Only requires the product ID
-- **Android**: Requires additional parameters (packageName, productToken)
+- **iOS**: Only requires `apple.sku` - uses StoreKit 2's built-in verification
+- **Android**: Requires all `google` parameters - calls Google Play Developer API
+- **Horizon**: Requires all `horizon` parameters - calls Meta's S2S API
 
 - **Example**:
 
   ```tsx
-  const validatePurchase = async (productId: string, purchase: any) => {
+  const validatePurchase = async (purchase: Purchase) => {
     try {
-      if (Platform.OS === 'ios') {
-        // iOS: Simple validation with just product ID
-        const result = await validateReceipt(productId);
-        return result;
-      } else if (Platform.OS === 'android') {
-        // Android: Requires additional parameters
-        const purchaseToken = purchase.purchaseToken;
-        const packageName = purchase.packageNameAndroid;
-
-        if (!purchaseToken || !packageName) {
-          throw new Error(
-            'Android validation requires packageName and productToken',
-          );
-        }
-
-        const result = await validateReceipt(productId, {
-          packageName,
-          productToken: purchaseToken,
+      // Cross-platform validation
+      const result = await validateReceipt({
+        // iOS options (only needs SKU)
+        apple: {
+          sku: purchase.productId,
+        },
+        // Android options (requires all parameters)
+        google: {
+          sku: purchase.productId,
+          packageName: purchase.packageNameAndroid ?? '',
+          purchaseToken: purchase.purchaseToken ?? '',
+          accessToken: 'your-google-api-access-token',
           isSub: false, // Set to true for subscriptions
-        });
-        return result;
-      }
+        },
+      });
+
+      console.log('Validation result:', result);
+      return result;
     } catch (error) {
       console.error('Validation failed:', error);
       throw error;
     }
+  };
+
+  // Platform-specific examples
+  const validateIOSOnly = async (sku: string) => {
+    const result = await validateReceipt({
+      apple: {sku},
+    });
+    return result;
+  };
+
+  const validateAndroidOnly = async (purchase: Purchase) => {
+    const result = await validateReceipt({
+      google: {
+        sku: purchase.productId,
+        packageName: purchase.packageNameAndroid!,
+        purchaseToken: purchase.purchaseToken!,
+        accessToken: 'your-google-api-access-token',
+        isSub: false,
+      },
+    });
+    return result;
   };
   ```
 
