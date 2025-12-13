@@ -1035,7 +1035,7 @@ await initConnection();
 
 **Platform:** Android only
 
-#### isBillingProgramAvailableAndroid()
+#### isBillingProgramAvailableAndroid() {#isbillingprogramavailableandroid}
 
 Check if a billing program is available for the current user.
 
@@ -1063,7 +1063,7 @@ interface BillingProgramAvailabilityResultAndroid {
 
 **Platform:** Android only
 
-#### createBillingProgramReportingDetailsAndroid()
+#### createBillingProgramReportingDetailsAndroid() {#createbillingprogramreportingdetailsandroid}
 
 Create reporting details with an external transaction token for Google Play reporting.
 
@@ -1089,7 +1089,7 @@ interface BillingProgramReportingDetailsAndroid {
 
 **Platform:** Android only
 
-#### launchExternalLinkAndroid()
+#### launchExternalLinkAndroid() {#launchexternallinkandroid}
 
 Launch an external link for billing programs.
 

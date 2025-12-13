@@ -984,7 +984,7 @@ await initConnection({
 
 - `alternativeBillingModeAndroid`: `'none'` | `'alternative-only'` | `'user-choice'`
 
-#### checkAlternativeBillingAvailabilityAndroid()
+#### checkAlternativeBillingAvailabilityAndroid() {#checkalternativebillingavailabilityandroid}
 
 Check if alternative billing is available for the current user/device.
 
@@ -1001,7 +1001,7 @@ if (isAvailable) {
 
 **Platform:** Android only
 
-#### showAlternativeBillingDialogAndroid()
+#### showAlternativeBillingDialogAndroid() {#showalternativebillingdialogandroid}
 
 Show the alternative billing information dialog to the user. Must be called **before** processing payment in your payment system.
 
@@ -1024,7 +1024,7 @@ if (userAccepted) {
 
 **Platform:** Android only
 
-#### createAlternativeBillingTokenAndroid()
+#### createAlternativeBillingTokenAndroid() {#createalternativebillingtokenandroid}
 
 Create an external transaction token for Google Play reporting. Must be called **after** successful payment in your payment system. Token must be reported to Google Play backend within 24 hours.
 
