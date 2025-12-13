@@ -4,6 +4,7 @@
   <img src="https://hyochan.github.io/react-native-iap/img/icon.png" alt="React Native IAP Logo" width="150" />
   
 [![Version](http://img.shields.io/npm/v/react-native-iap.svg?style=flat-square)](https://npmjs.org/package/react-native-iap)
+[![Next Version](https://img.shields.io/npm/v/react-native-iap/next.svg?style=flat-square&label=next)](https://npmjs.org/package/react-native-iap)
 [![Download](http://img.shields.io/npm/dm/react-native-iap.svg?style=flat-square)](https://npmjs.org/package/react-native-iap)
 [![Backers and Sponsors](https://img.shields.io/opencollective/all/react-native-iap.svg)](https://opencollective.com/react-native-iap)
 [![CI - Test](https://github.com/hyochan/react-native-iap/actions/workflows/ci-test.yml/badge.svg)](https://github.com/hyochan/react-native-iap/actions/workflows/ci-test.yml)
