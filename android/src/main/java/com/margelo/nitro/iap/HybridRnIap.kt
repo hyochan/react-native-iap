@@ -1131,17 +1131,16 @@ class HybridRnIap : HybridRnIapSpec() {
                     ?: throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing required parameter: google options"))
 
                 // Validate required google fields
-                if (nitroGoogleOptions.sku.isEmpty()) {
-                    throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing or empty required parameter: google.sku"))
-                }
-                if (nitroGoogleOptions.accessToken.isEmpty()) {
-                    throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing or empty required parameter: google.accessToken"))
-                }
-                if (nitroGoogleOptions.packageName.isEmpty()) {
-                    throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing or empty required parameter: google.packageName"))
-                }
-                if (nitroGoogleOptions.purchaseToken.isEmpty()) {
-                    throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing or empty required parameter: google.purchaseToken"))
+                val validations = mapOf(
+                    "google.sku" to nitroGoogleOptions.sku,
+                    "google.accessToken" to nitroGoogleOptions.accessToken,
+                    "google.packageName" to nitroGoogleOptions.packageName,
+                    "google.purchaseToken" to nitroGoogleOptions.purchaseToken
+                )
+                for ((name, value) in validations) {
+                    if (value.isEmpty()) {
+                        throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing or empty required parameter: $name"))
+                    }
                 }
 
                 RnIapLog.payload("validateReceipt", mapOf(

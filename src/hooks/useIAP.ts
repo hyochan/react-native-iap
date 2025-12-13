@@ -71,7 +71,9 @@ type UseIap = {
   requestPurchase: (
     params: RequestPurchaseProps,
   ) => Promise<RequestPurchaseResult | null>;
-  validateReceipt: (options: VerifyPurchaseProps) => Promise<any>;
+  validateReceipt: (
+    options: VerifyPurchaseProps,
+  ) => Promise<VerifyPurchaseResult>;
   /** Verify purchase with the configured providers (alias for validateReceipt) */
   verifyPurchase: (
     options: VerifyPurchaseProps,
@@ -302,9 +304,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
 
   // No local restorePurchases; use the top-level helper via returned API
 
-  const validateReceipt = useCallback(async (options: VerifyPurchaseProps) => {
-    return validateReceiptInternal(options);
-  }, []);
+  const validateReceipt = useCallback(
+    async (options: VerifyPurchaseProps): Promise<VerifyPurchaseResult> =>
+      validateReceiptInternal(options),
+    [],
+  );
 
   const verifyPurchase = useCallback(
     async (options: VerifyPurchaseProps): Promise<VerifyPurchaseResult> => {

@@ -1371,51 +1371,55 @@ export const validateReceipt: MutationField<'validateReceipt'> = async (
         throw new Error('Missing required parameter: apple.sku');
       }
     } else if (Platform.OS === 'android') {
-      if (!google) {
+      // Horizon verification path (e.g., Meta Quest) - skip Google validation
+      if (horizon?.sku) {
+        // Horizon verification will be handled by native layer
+      } else if (!google) {
         throw new Error('Missing required parameter: google options');
-      }
-      if (!google.sku) {
-        throw new Error('Missing or empty required parameter: google.sku');
-      }
-      if (!google.accessToken) {
-        throw new Error(
-          'Missing or empty required parameter: google.accessToken',
-        );
-      }
-      if (!google.packageName) {
-        throw new Error(
-          'Missing or empty required parameter: google.packageName',
-        );
-      }
-      if (!google.purchaseToken) {
-        throw new Error(
-          'Missing or empty required parameter: google.purchaseToken',
-        );
+      } else {
+        const requiredFields: (keyof typeof google)[] = [
+          'sku',
+          'accessToken',
+          'packageName',
+          'purchaseToken',
+        ];
+        for (const field of requiredFields) {
+          if (!google[field]) {
+            throw new Error(
+              `Missing or empty required parameter: google.${field}`,
+            );
+          }
+        }
       }
     }
 
     const params: NitroReceiptValidationParams = {
-      apple: apple
+      apple: apple?.sku
         ? {
             sku: apple.sku,
           }
         : null,
-      google: google
-        ? {
-            sku: google.sku,
-            accessToken: google.accessToken,
-            packageName: google.packageName,
-            purchaseToken: google.purchaseToken,
-            isSub: google.isSub == null ? undefined : Boolean(google.isSub),
-          }
-        : null,
-      horizon: horizon
-        ? {
-            sku: horizon.sku,
-            userId: horizon.userId,
-            accessToken: horizon.accessToken,
-          }
-        : null,
+      google:
+        google?.sku &&
+        google.accessToken &&
+        google.packageName &&
+        google.purchaseToken
+          ? {
+              sku: google.sku,
+              accessToken: google.accessToken,
+              packageName: google.packageName,
+              purchaseToken: google.purchaseToken,
+              isSub: google.isSub == null ? undefined : Boolean(google.isSub),
+            }
+          : null,
+      horizon:
+        horizon?.sku && horizon.userId && horizon.accessToken
+          ? {
+              sku: horizon.sku,
+              userId: horizon.userId,
+              accessToken: horizon.accessToken,
+            }
+          : null,
     };
 
     const nitroResult = await IAP.instance.validateReceipt(params);
