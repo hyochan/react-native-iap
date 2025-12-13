@@ -339,7 +339,9 @@ const buySubscriptionWithOffer = async (
   };
   ```
 
-#### validateReceipt
+#### validateReceipt (Deprecated)
+
+> ⚠️ **Deprecated**: Use `verifyPurchase` instead. This function will be removed in a future version.
 
 - **Type**: `(options: VerifyPurchaseProps) => Promise<VerifyPurchaseResult>`
 - **Description**: Validate a purchase receipt using platform-specific verification

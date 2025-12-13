@@ -71,10 +71,13 @@ type UseIap = {
   requestPurchase: (
     params: RequestPurchaseProps,
   ) => Promise<RequestPurchaseResult | null>;
+  /**
+   * @deprecated Use `verifyPurchase` instead. This function will be removed in a future version.
+   */
   validateReceipt: (
     options: VerifyPurchaseProps,
   ) => Promise<VerifyPurchaseResult>;
-  /** Verify purchase with the configured providers (alias for validateReceipt) */
+  /** Verify purchase with the configured providers */
   verifyPurchase: (
     options: VerifyPurchaseProps,
   ) => Promise<VerifyPurchaseResult>;

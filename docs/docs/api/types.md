@@ -263,7 +263,7 @@ Purchase verification uses platform-specific options and returns platform-specif
 
 ### VerifyPurchaseProps
 
-The main parameter type for `validateReceipt` and `verifyPurchase`:
+The main parameter type for `verifyPurchase` (and deprecated `validateReceipt`):
 
 ```ts
 export interface VerifyPurchaseProps {
@@ -355,7 +355,7 @@ export interface VerifyPurchaseResultHorizon {
 }
 ```
 
-Use the higher-level `validateReceipt` helper exported from `src/index.ts` for a strongly typed wrapper around the native modules.
+Use the higher-level `verifyPurchase` helper exported from `src/index.ts` for a strongly typed wrapper around the native modules.
 
 ## Where to Find Everything
 

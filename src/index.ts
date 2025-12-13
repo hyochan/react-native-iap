@@ -1335,6 +1335,7 @@ export const consumePurchaseAndroid: MutationField<
 
 /**
  * Validate receipt on both iOS and Android platforms
+ * @deprecated Use `verifyPurchase` instead. This function will be removed in a future version.
  * @param options - Platform-specific verification options
  * @param options.apple - Apple App Store verification options (iOS)
  * @param options.google - Google Play verification options (Android)
@@ -1343,13 +1344,9 @@ export const consumePurchaseAndroid: MutationField<
  *
  * @example
  * ```typescript
- * // iOS
- * const result = await validateReceipt({
- *   apple: { sku: 'premium_monthly' }
- * });
- *
- * // Android
- * const result = await validateReceipt({
+ * // Use verifyPurchase instead:
+ * const result = await verifyPurchase({
+ *   apple: { sku: 'premium_monthly' },
  *   google: {
  *     sku: 'premium_monthly',
  *     packageName: 'com.example.app',

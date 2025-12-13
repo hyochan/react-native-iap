@@ -835,6 +835,7 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
 
   /**
    * Validate a receipt on the appropriate platform
+   * @deprecated Use `verifyPurchase` instead. This function will be removed in a future version.
    * @param params - Receipt validation parameters including SKU and platform-specific options
    * @returns Promise<NitroReceiptValidationResultIOS | NitroReceiptValidationResultAndroid> - Platform-specific validation result
    */
