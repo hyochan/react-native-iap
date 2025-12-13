@@ -412,7 +412,49 @@ function PurchaseFlow({
   );
 }
 
+/**
+ * ============================================================================
+ * Purchase Flow Container
+ * ============================================================================
+ *
+ * This component demonstrates the complete IAP purchase flow with 6 key steps:
+ *
+ * 1. INIT CONNECTION
+ *    - useIAP hook automatically handles connection via initConnection()
+ *    - `connected` state indicates when store is ready
+ *
+ * 2. SUBSCRIBE TO EVENTS
+ *    - useIAP internally subscribes to purchase events
+ *    - onPurchaseSuccess: Called when purchase completes successfully
+ *    - onPurchaseError: Called when purchase fails or is cancelled
+ *
+ * 3. REQUEST PURCHASE (3 options)
+ *    Option A: iOS-specific request with quantity
+ *    Option B: Android-specific request with SKU array
+ *    Option C: Cross-platform using `request` object (recommended)
+ *
+ * 4. VERIFY PURCHASE
+ *    - Local verification: Direct API call to Apple/Google
+ *    - IAPKit verification: Server-side verification via IAPKit service
+ *    - Skip verification: For testing only (not recommended for production)
+ *
+ * 5. GRANT ENTITLEMENT
+ *    - Update your backend/database with purchase info
+ *    - Unlock content or features for the user
+ *    - (Handled by your app's business logic)
+ *
+ * 6. FINISH TRANSACTION
+ *    - Call finishTransaction() to acknowledge the purchase
+ *    - For consumables: isConsumable: true (allows re-purchase)
+ *    - For non-consumables: isConsumable: false
+ *    - CRITICAL: Always finish transactions to prevent issues
+ *
+ * ============================================================================
+ */
 function PurchaseFlowContainer() {
+  // ──────────────────────────────────────────────────────────────────────────
+  // State
+  // ──────────────────────────────────────────────────────────────────────────
   const [purchaseResult, setPurchaseResult] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastPurchase, setLastPurchase] = useState<Purchase | null>(null);
@@ -425,6 +467,14 @@ function PurchaseFlowContainer() {
     showVerificationMethodSelector,
   } = useVerificationMethod('ignore');
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Step 1: INIT CONNECTION
+  // Step 2: SUBSCRIBE TO EVENTS
+  // ──────────────────────────────────────────────────────────────────────────
+  // useIAP hook automatically:
+  // - Calls initConnection() on mount
+  // - Sets up purchase event listeners
+  // - Cleans up on unmount
   const {
     connected,
     products,
@@ -433,6 +483,9 @@ function PurchaseFlowContainer() {
     verifyPurchase,
     verifyPurchaseWithProvider,
   } = useIAP({
+    // ────────────────────────────────────────────────────────────────────────
+    // Step 2a: Purchase Success Handler
+    // ────────────────────────────────────────────────────────────────────────
     onPurchaseSuccess: async (purchase: Purchase) => {
       const {purchaseToken: tokenToMask, ...rest} = purchase;
       const masked = {
@@ -464,7 +517,13 @@ function PurchaseFlowContainer() {
         }
       }
 
-      // Verify purchase based on selected method (use ref for current value)
+      // ──────────────────────────────────────────────────────────────────────
+      // Step 4: VERIFY PURCHASE
+      // ──────────────────────────────────────────────────────────────────────
+      // Choose verification method based on user selection:
+      // - 'ignore': Skip verification (testing only)
+      // - 'local': Direct API verification with Apple/Google
+      // - 'iapkit': Server-side verification via IAPKit
       const currentVerificationMethod = verificationMethodRef.current;
       console.log('[PurchaseFlow] About to verify purchase:', {
         verificationMethod: currentVerificationMethod,
@@ -475,10 +534,11 @@ function PurchaseFlowContainer() {
       if (currentVerificationMethod !== 'ignore' && productId) {
         setIsProcessing(true);
         try {
+          // ── Option A: Local Verification ──────────────────────────────────
           if (currentVerificationMethod === 'local') {
             console.log('[PurchaseFlow] Verifying with local method...');
-            // New platform-specific verification API - provide all platform options
-            // The library internally handles which options to use based on platform
+            // Platform-specific verification API
+            // Provide all platform options - library handles platform detection
             const result = await verifyPurchase({
               apple: {sku: productId},
               google: {
@@ -493,7 +553,9 @@ function PurchaseFlowContainer() {
               // horizon: { sku: productId, userId: '...', accessToken: '...' }
             });
             console.log('[PurchaseFlow] Local verification result:', result);
-          } else if (currentVerificationMethod === 'iapkit') {
+          }
+          // ── Option B: IAPKit Server Verification ──────────────────────────
+          else if (currentVerificationMethod === 'iapkit') {
             console.log('[PurchaseFlow] Verifying with IAPKit...');
             // NOTE: Set your API key in .env file as IAPKIT_API_KEY
             const apiKey = IAPKIT_API_KEY;
@@ -589,6 +651,22 @@ function PurchaseFlowContainer() {
         }
       }
 
+      // ──────────────────────────────────────────────────────────────────────
+      // Step 5: GRANT ENTITLEMENT
+      // ──────────────────────────────────────────────────────────────────────
+      // TODO: In production, update your backend here:
+      // - Save purchase record to database
+      // - Unlock premium features for user
+      // - Update user's subscription status
+      // Example: await yourBackend.grantEntitlement(purchase);
+
+      // ──────────────────────────────────────────────────────────────────────
+      // Step 6: FINISH TRANSACTION
+      // ──────────────────────────────────────────────────────────────────────
+      // CRITICAL: Always finish transactions!
+      // - Consumables: Set isConsumable: true to allow re-purchase
+      // - Non-consumables: Set isConsumable: false
+      // - Failing to finish will cause issues on next app launch
       try {
         await finishTransaction({
           purchase,
@@ -600,6 +678,10 @@ function PurchaseFlowContainer() {
 
       Alert.alert('Success', 'Purchase completed successfully!');
     },
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Step 2b: Purchase Error Handler
+    // ────────────────────────────────────────────────────────────────────────
     onPurchaseError: (error: PurchaseError) => {
       console.error('Purchase failed:', error);
       console.error('Error code:', error.code);
@@ -610,7 +692,7 @@ function PurchaseFlowContainer() {
 
       setIsProcessing(false);
 
-      // Check for user cancellation
+      // Check for user cancellation - don't show error for this
       if (error.code === ErrorCode.UserCancelled) {
         setPurchaseResult('Purchase cancelled by user');
         return;
@@ -622,6 +704,9 @@ function PurchaseFlowContainer() {
     },
   });
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Helpers
+  // ──────────────────────────────────────────────────────────────────────────
   const didFetchRef = useRef(false);
 
   const fetchStorefront = useCallback(async () => {
@@ -637,6 +722,9 @@ function PurchaseFlowContainer() {
     }
   }, []);
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Fetch Products on Connection
+  // ──────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     console.log('[PurchaseFlow] useEffect - connected:', connected);
     console.log('[PurchaseFlow] PRODUCT_IDS:', PRODUCT_IDS);
@@ -659,6 +747,25 @@ function PurchaseFlowContainer() {
     }
   }, [connected, fetchProducts, fetchStorefront]);
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Step 3: REQUEST PURCHASE
+  // ──────────────────────────────────────────────────────────────────────────
+  // Three options for requesting purchases:
+  //
+  // Option A - iOS only:
+  //   requestPurchase({ request: { ios: { sku, quantity } }, type: 'in-app' })
+  //
+  // Option B - Android only:
+  //   requestPurchase({ request: { android: { skus: [sku] } }, type: 'in-app' })
+  //
+  // Option C - Cross-platform (recommended):
+  //   requestPurchase({
+  //     request: {
+  //       ios: { sku, quantity: 1 },
+  //       android: { skus: [sku] }
+  //     },
+  //     type: 'in-app'
+  //   })
   const handlePurchase = useCallback((itemId: string) => {
     setIsProcessing(true);
     setPurchaseResult('Processing purchase...');
@@ -670,6 +777,7 @@ function PurchaseFlowContainer() {
       return;
     }
 
+    // Using Option C: Cross-platform request
     void requestPurchase({
       request: {
         ios: {

@@ -125,7 +125,10 @@ const modifyAppBuildGradle = (gradle: string): string => {
   return modified;
 };
 
-const withIapAndroid: ConfigPlugin = (config) => {
+const withIapAndroid: ConfigPlugin<{iapkitApiKey?: string} | undefined> = (
+  config,
+  props,
+) => {
   // Add OpenIAP dependency to app build.gradle
   config = withAppBuildGradle(config, (config) => {
     config.modResults.contents = modifyAppBuildGradle(
@@ -158,6 +161,34 @@ const withIapAndroid: ConfigPlugin = (config) => {
         console.log(
           'ℹ️ com.android.vending.BILLING already exists in AndroidManifest.xml',
         );
+      }
+    }
+
+    // Add IAPKit API key as meta-data if provided
+    if (props?.iapkitApiKey) {
+      const application = manifest.manifest.application;
+      const app = application?.[0];
+      if (app) {
+        if (!app['meta-data']) {
+          app['meta-data'] = [];
+        }
+
+        const metaDataKey = 'dev.iapkit.API_KEY';
+        const existingMetaData = (
+          app['meta-data'] as {$?: {'android:name'?: string}}[]
+        ).find((m) => m.$?.['android:name'] === metaDataKey);
+
+        if (!existingMetaData) {
+          app['meta-data'].push({
+            $: {
+              'android:name': metaDataKey,
+              'android:value': props.iapkitApiKey,
+            },
+          });
+          if (!hasLoggedPluginExecution) {
+            console.log('✅ Added IAPKit API key to AndroidManifest.xml');
+          }
+        }
       }
     }
 
@@ -329,6 +360,12 @@ type IapPluginProps = {
    * @platform ios
    */
   iosAlternativeBilling?: IosAlternativeBillingConfig;
+  /**
+   * IAPKit API key for purchase verification.
+   * This key will be added to AndroidManifest.xml (as meta-data) and Info.plist.
+   * Get your API key from https://iapkit.com
+   */
+  iapkitApiKey?: string;
 };
 
 const withIapIosFollyWorkaround: ConfigPlugin<IapPluginProps | undefined> = (
@@ -389,13 +426,41 @@ end
   });
 };
 
+/** Add IAPKit API key to iOS Info.plist */
+const withIapkitApiKeyIOS: ConfigPlugin<string | undefined> = (
+  config,
+  apiKey,
+) => {
+  if (!apiKey) {
+    return config;
+  }
+
+  return withInfoPlist(config, (config) => {
+    const plist = config.modResults;
+    const plistKey = 'IAPKitAPIKey';
+
+    if (!plist[plistKey]) {
+      plist[plistKey] = apiKey;
+      if (!hasLoggedPluginExecution) {
+        console.log('✅ Added IAPKit API key to Info.plist');
+      }
+    }
+
+    return config;
+  });
+};
+
 const withIAP: ConfigPlugin<IapPluginProps | undefined> = (config, props) => {
   try {
-    let result = withIapAndroid(config);
+    let result = withIapAndroid(config, {iapkitApiKey: props?.iapkitApiKey});
     result = withIapIosFollyWorkaround(result, props);
     // Add iOS alternative billing configuration if provided
     if (props?.iosAlternativeBilling) {
       result = withIosAlternativeBilling(result, props.iosAlternativeBilling);
+    }
+    // Add IAPKit API key to iOS Info.plist if provided
+    if (props?.iapkitApiKey) {
+      result = withIapkitApiKeyIOS(result, props.iapkitApiKey);
     }
     // Set flag after first execution to prevent duplicate logs
     hasLoggedPluginExecution = true;

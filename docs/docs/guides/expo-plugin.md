@@ -58,3 +58,40 @@ To enable this workaround, you can pass the `ios.with-folly-no-coroutines` optio
 ```
 
 When enabled, this option injects preprocessor definitions (`FOLLY_NO_CONFIG=1`, `FOLLY_CFG_NO_COROUTINES=1`, `FOLLY_HAS_COROUTINES=0`) into your Podfile's `post_install` hook. These definitions disable Folly coroutine support, resolving potential build conflicts.
+
+### IAPKit API Key
+
+If you're using [IAPKit](https://iapkit.com) for purchase verification, you can configure your API key directly in the plugin. The key will be automatically added to both platforms:
+
+- **Android**: Added as `<meta-data android:name="dev.iapkit.API_KEY" android:value="your-key" />` in `AndroidManifest.xml`
+- **iOS**: Added as `IAPKitAPIKey` in `Info.plist`
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-iap",
+        {
+          "iapkitApiKey": "your-iapkit-api-key"
+        }
+      ]
+    ]
+  }
+}
+```
+
+You can then use `verifyPurchaseWithProvider` to verify purchases:
+
+```typescript
+import {verifyPurchaseWithProvider} from 'react-native-iap';
+
+const result = await verifyPurchaseWithProvider({
+  provider: 'iapkit',
+  iapkit: {
+    apiKey: 'your-iapkit-api-key', // Or read from native config
+    apple: {jws: purchase.purchaseToken},
+    google: {purchaseToken: purchase.purchaseToken},
+  },
+});
+```
