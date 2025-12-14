@@ -42,7 +42,11 @@ function parseArgs() {
 }
 
 function getReleaseUrl(tag) {
-  return `https://github.com/hyodotdev/openiap/releases/download/${tag}/openiap-typescript.zip`;
+  const normalized =
+    tag.startsWith('gql-') || tag.startsWith('gql-v')
+      ? tag.replace(/^gql-v/, 'gql-')
+      : `gql-${tag}`;
+  return `https://github.com/hyodotdev/openiap/releases/download/${normalized}/openiap-typescript.zip`;
 }
 
 function main() {
