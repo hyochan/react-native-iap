@@ -1,6 +1,39 @@
 import Foundation
 import OpenIAP
 
+/// Custom error that preserves error messages through Nitro bridge.
+/// Similar to Android's OpenIapException, this wraps errors with JSON-serialized messages.
+/// Uses NSError for better compatibility with Objective-C bridging in Nitro.
+@available(iOS 15.0, *)
+class OpenIapException: NSError {
+    static let domain = "com.margelo.nitro.rniap"
+
+    convenience init(_ json: String) {
+        self.init(domain: OpenIapException.domain, code: -1, userInfo: [NSLocalizedDescriptionKey: json])
+    }
+
+    static func make(code: ErrorCode, message: String? = nil, productId: String? = nil) -> OpenIapException {
+        let errorMessage = message ?? code.rawValue
+        var dict: [String: Any] = [
+            "code": code.rawValue,
+            "message": errorMessage
+        ]
+        if let productId = productId {
+            dict["productId"] = productId
+        }
+
+        if let data = try? JSONSerialization.data(withJSONObject: dict),
+           let json = String(data: data, encoding: .utf8) {
+            return OpenIapException(json)
+        }
+        return OpenIapException("{\"code\":\"\(code.rawValue)\",\"message\":\"\(errorMessage)\"}")
+    }
+
+    static func from(_ error: PurchaseError) -> OpenIapException {
+        return make(code: error.code, message: error.message, productId: error.productId)
+    }
+}
+
 @available(iOS 15.0, *)
 enum RnIapHelper {
     // MARK: - Sanitizers
@@ -272,13 +305,13 @@ enum RnIapHelper {
 
         do {
             guard let receipt = try await OpenIapModule.shared.getReceiptDataIOS(), !receipt.isEmpty else {
-                throw PurchaseError.make(code: .receiptFailed)
+                throw OpenIapException.make(code: .receiptFailed)
             }
             return receipt
         } catch let error as PurchaseError {
-            throw error
+            throw OpenIapException.from(error)
         } catch {
-            throw PurchaseError.make(code: .receiptFailed, message: error.localizedDescription)
+            throw OpenIapException.make(code: .receiptFailed, message: error.localizedDescription)
         }
     }
 
