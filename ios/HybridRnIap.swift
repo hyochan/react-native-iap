@@ -364,8 +364,11 @@ class HybridRnIap: HybridRnIapSpec {
                 var propsDict: [String: Any] = ["provider": params.provider.stringValue]
                 if let iapkit = params.iapkit {
                     var iapkitDict: [String: Any] = [:]
+                    // Use provided apiKey, or fallback to Info.plist IAPKitAPIKey (set by config plugin)
                     if let apiKey = iapkit.apiKey {
                         iapkitDict["apiKey"] = apiKey
+                    } else if let plistApiKey = Bundle.main.object(forInfoDictionaryKey: "IAPKitAPIKey") as? String {
+                        iapkitDict["apiKey"] = plistApiKey
                     }
                     if let apple = iapkit.apple {
                         iapkitDict["apple"] = ["jws": apple.jws]

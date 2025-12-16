@@ -81,15 +81,25 @@ If you're using [IAPKit](https://iapkit.com) for purchase verification, you can 
 }
 ```
 
-You can then use `verifyPurchaseWithProvider` to verify purchases:
+You can then use `verifyPurchaseWithProvider` to verify purchases. **When `iapkitApiKey` is configured in the plugin, you can omit the `apiKey` parameter** - it will be automatically read from native config:
 
 ```typescript
 import {verifyPurchaseWithProvider} from 'react-native-iap';
 
+// apiKey is automatically injected from config plugin
 const result = await verifyPurchaseWithProvider({
   provider: 'iapkit',
   iapkit: {
-    apiKey: 'your-iapkit-api-key', // Or read from native config
+    apple: {jws: purchase.purchaseToken},
+    google: {purchaseToken: purchase.purchaseToken},
+  },
+});
+
+// Or explicitly provide apiKey (takes priority over config plugin)
+const result = await verifyPurchaseWithProvider({
+  provider: 'iapkit',
+  iapkit: {
+    apiKey: 'your-iapkit-api-key', // Optional since v14.6.1 if configured in plugin
     apple: {jws: purchase.purchaseToken},
     google: {purchaseToken: purchase.purchaseToken},
   },

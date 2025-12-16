@@ -614,7 +614,7 @@ try {
 - `params` (object):
   - `provider` ('iapkit'): The verification provider to use
   - `iapkit?` (object): IAPKit-specific configuration
-    - `apiKey` (string): Your IAPKit API key
+    - `apiKey?` (string): Your IAPKit API key. **Optional since v14.6.1 if configured via [Expo config plugin](/docs/guides/expo-plugin#iapkit-api-key)** - will be automatically read from native config (Info.plist on iOS, AndroidManifest.xml on Android). If provided, takes priority over config plugin.
     - `apple?` (object): iOS verification data
       - `jws` (string): The JWS token from the purchase
     - `google?` (object): Android verification data

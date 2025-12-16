@@ -1222,7 +1222,9 @@ class HybridRnIap : HybridRnIapSpec() {
                 val propsMap = mutableMapOf<String, Any?>("provider" to providerString)
                 params.iapkit?.let { iapkit ->
                     val iapkitMap = mutableMapOf<String, Any?>()
-                    iapkit.apiKey?.let { iapkitMap["apiKey"] = it }
+                    // Use provided apiKey, or fallback to AndroidManifest meta-data (set by config plugin)
+                    val apiKey = iapkit.apiKey ?: getIapkitApiKeyFromManifest()
+                    apiKey?.let { iapkitMap["apiKey"] = it }
                     iapkit.google?.let { google ->
                         iapkitMap["google"] = mapOf("purchaseToken" to google.purchaseToken)
                     }
@@ -1653,6 +1655,22 @@ class HybridRnIap : HybridRnIapSpec() {
         return when (providerName.uppercase()) {
             "IAPKIT" -> PurchaseVerificationProvider.IAPKIT
             else -> PurchaseVerificationProvider.NONE
+        }
+    }
+
+    /**
+     * Read IAPKit API key from AndroidManifest.xml meta-data (set by config plugin).
+     * Config plugin sets: <meta-data android:name="dev.iapkit.API_KEY" android:value="..." />
+     */
+    private fun getIapkitApiKeyFromManifest(): String? {
+        return try {
+            val appInfo = context.packageManager.getApplicationInfo(
+                context.packageName,
+                android.content.pm.PackageManager.GET_META_DATA
+            )
+            appInfo.metaData?.getString("dev.iapkit.API_KEY")
+        } catch (e: Exception) {
+            null
         }
     }
 
