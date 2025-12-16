@@ -37,7 +37,7 @@ on:
 jobs:
   build-ios:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       XCODE_VERSION: 16.4
       CCACHE_DIR: ~/.ccache
