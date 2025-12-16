@@ -226,6 +226,16 @@ export interface NitroPurchaseResult {
   purchaseToken?: string;
 }
 
+/**
+ * Result of an advanced commerce purchase (iOS only)
+ */
+export interface NitroAdvancedCommercePurchaseResult {
+  success: boolean;
+  transactionId: string;
+  productId: string;
+  purchaseDate: number;
+}
+
 export interface NitroReceiptValidationResultIOS {
   isValid: boolean;
   receiptData: string;
@@ -691,6 +701,19 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
    * @platform iOS
    */
   beginRefundRequestIOS(sku: string): Promise<string | null>;
+
+  /**
+   * Request a purchase with advanced commerce data (iOS 15+ only)
+   * Uses StoreKit 2's Product.PurchaseOption.custom to pass advanced commerce data
+   * @param productId - Product identifier to purchase
+   * @param advancedCommerceData - Advanced commerce token/data to pass to StoreKit
+   * @returns Promise<NitroAdvancedCommercePurchaseResult> - Purchase result with transaction details
+   * @platform iOS
+   */
+  requestPurchaseWithAdvancedCommerceIOS(
+    productId: string,
+    advancedCommerceData: string,
+  ): Promise<NitroAdvancedCommercePurchaseResult>;
 
   /**
    * Get subscription status for a product (iOS only)

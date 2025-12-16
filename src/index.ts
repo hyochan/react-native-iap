@@ -1695,6 +1695,69 @@ export const beginRefundRequestIOS: MutationField<
 };
 
 /**
+ * Request a purchase with advanced commerce data (iOS 15+ only)
+ * Uses StoreKit 2's Product.PurchaseOption.custom to pass advanced commerce data
+ * @param productId - Product identifier to purchase
+ * @param advancedCommerceData - Advanced commerce token/data to pass to StoreKit
+ * @returns Promise<AdvancedCommercePurchaseResult> - Purchase result with transaction details
+ * @platform iOS
+ * @requires iOS 15.0+
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   const result = await requestPurchaseWithAdvancedCommerce(
+ *     'com.example.premium',
+ *     'campaign_token_12345'
+ *   );
+ *   console.log('Purchase successful:', result.transactionId);
+ * } catch (error) {
+ *   if (error.code === ErrorCode.UserCancelled) {
+ *     console.log('User cancelled');
+ *   }
+ * }
+ * ```
+ */
+export const requestPurchaseWithAdvancedCommerce = async (
+  productId: string,
+  advancedCommerceData: string,
+): Promise<{
+  success: boolean;
+  transactionId: string;
+  productId: string;
+  purchaseDate: number;
+}> => {
+  if (Platform.OS !== 'ios') {
+    throw new Error(
+      'requestPurchaseWithAdvancedCommerce is only available on iOS',
+    );
+  }
+
+  try {
+    const result = await IAP.instance.requestPurchaseWithAdvancedCommerceIOS(
+      productId,
+      advancedCommerceData,
+    );
+    return {
+      success: result.success,
+      transactionId: result.transactionId,
+      productId: result.productId,
+      purchaseDate: result.purchaseDate,
+    };
+  } catch (error) {
+    RnIapConsole.error('[requestPurchaseWithAdvancedCommerce] Failed:', error);
+    const parsedError = parseErrorStringToJsonObj(error);
+    throw createPurchaseError({
+      code: parsedError.code,
+      message: parsedError.message,
+      responseCode: parsedError.responseCode,
+      debugMessage: parsedError.debugMessage,
+      productId,
+    });
+  }
+};
+
+/**
  * Get subscription status for a product (iOS only)
  * @param sku - The product SKU
  * @returns Promise<SubscriptionStatusIOS[]> - Array of subscription status objects

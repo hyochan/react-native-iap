@@ -1,6 +1,7 @@
 import Foundation
 import NitroModules
 import OpenIAP
+import StoreKit
 
 @available(iOS 15.0, *)
 class HybridRnIap: HybridRnIapSpec {
@@ -796,6 +797,86 @@ class HybridRnIap: HybridRnIapSpec {
             } catch {
                 RnIapLog.failure("beginRefundRequestIOS", error: error)
                 return nil
+            }
+        }
+    }
+    
+    func requestPurchaseWithAdvancedCommerceIOS(productId: String, advancedCommerceData: String) throws -> Promise<NitroAdvancedCommercePurchaseResult> {
+        return Promise.async {
+            guard #available(iOS 15.0, *) else {
+                throw PurchaseError.make(code: .featureNotSupported, message: "StoreKit 2 requires iOS 15.0 or later")
+            }
+            
+            try self.ensureConnection()
+            
+            RnIapLog.payload("requestPurchaseWithAdvancedCommerceIOS", [
+                "productId": productId,
+                "hasAdvancedCommerceData": !advancedCommerceData.isEmpty
+            ])
+            
+            do {
+                let storeProducts = try await Product.products(for: [productId])
+                guard let product = storeProducts.first else {
+                    throw PurchaseError.make(code: .skuNotFound, message: "Product with id \(productId) not found", productId: productId)
+                }
+              
+                let request = """
+                {
+                   "signatureInfo": {
+                      "token": "\(advancedCommerceData)"
+                   }
+                }
+                """
+                let advancedCommerceRequestData = Data(request.utf8)
+                
+                let purchaseResult = try await product.purchase(
+                    options: [
+                        Product.PurchaseOption.custom(
+                            key: "advancedCommerceData",
+                            value: advancedCommerceRequestData
+                        )
+                    ]
+                )
+                
+                switch purchaseResult {
+                case .success(let verification):
+                    switch verification {
+                    case .verified(let transaction):
+                        let result = NitroAdvancedCommercePurchaseResult(
+                            success: true,
+                            transactionId: String(transaction.id),
+                            productId: transaction.productID,
+                            purchaseDate: transaction.purchaseDate.timeIntervalSince1970 * 1000
+                        )
+                        RnIapLog.result("requestPurchaseWithAdvancedCommerceIOS", [
+                            "success": true,
+                            "transactionId": result.transactionId,
+                            "productId": result.productId
+                        ])
+                        Task {
+                            await transaction.finish()
+                        }
+                        return result
+                    case .unverified(_, let error):
+                        RnIapLog.failure("requestPurchaseWithAdvancedCommerceIOS", error: error)
+                        throw PurchaseError.make(code: .transactionValidationFailed, message: "Transaction verification failed: \(error.localizedDescription)")
+                    }
+                case .userCancelled:
+                    RnIapLog.result("requestPurchaseWithAdvancedCommerceIOS", "userCancelled")
+                    throw PurchaseError.make(code: .userCancelled, message: "User cancelled the purchase")
+                case .pending:
+                    RnIapLog.result("requestPurchaseWithAdvancedCommerceIOS", "pending")
+                    throw PurchaseError.make(code: .purchasePending, message: "Purchase is pending")
+                @unknown default:
+                    RnIapLog.failure("requestPurchaseWithAdvancedCommerceIOS", error: "Unknown purchase result")
+                    throw PurchaseError.make(code: .purchaseError, message: "Unknown purchase result")
+                }
+            } catch let purchaseError as PurchaseError {
+                RnIapLog.failure("requestPurchaseWithAdvancedCommerceIOS", error: purchaseError)
+                throw purchaseError
+            } catch {
+                RnIapLog.failure("requestPurchaseWithAdvancedCommerceIOS", error: error)
+                throw PurchaseError.make(code: .purchaseError, message: error.localizedDescription, productId: productId)
             }
         }
     }

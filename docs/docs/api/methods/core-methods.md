@@ -853,6 +853,46 @@ const status = await beginRefundRequestIOS('your_sku');
 
 Returns: `Promise<'success' | 'userCancelled'>`
 
+### requestPurchaseWithAdvancedCommerce()
+
+Request a purchase with advanced commerce data using StoreKit 2's `Product.PurchaseOption.custom` API. This allows passing custom data (e.g., campaign tokens, affiliate IDs) during the purchase flow. Requires iOS 15+.
+
+Unlike `requestPurchase()`, this method returns the purchase result directly via Promise rather than using event listeners.
+
+```ts
+import {requestPurchaseWithAdvancedCommerce, ErrorCode} from 'react-native-iap';
+
+try {
+  const result = await requestPurchaseWithAdvancedCommerce(
+    'com.example.premium',
+    'campaign_token_12345'
+  );
+  console.log('Purchase successful:', result.transactionId);
+  // result: { success: true, transactionId: string, productId: string, purchaseDate: number }
+} catch (error) {
+  if (error.code === ErrorCode.UserCancelled) {
+    console.log('User cancelled purchase');
+  } else {
+    console.error('Purchase failed:', error.message);
+  }
+}
+```
+
+**Parameters:**
+- `productId` (string): The product identifier to purchase
+- `advancedCommerceData` (string): The advanced commerce token/data to pass to StoreKit
+
+**Returns:** `Promise<{success: boolean, transactionId: string, productId: string, purchaseDate: number}>`
+
+**Note:** The advanced commerce data is passed to StoreKit as JSON:
+```json
+{
+  "signatureInfo": {
+    "token": "<advancedCommerceData>"
+  }
+}
+```
+
 ### isTransactionVerifiedIOS()
 
 Verifies the latest transaction for a given SKU using StoreKit 2. Requires iOS 15+.
