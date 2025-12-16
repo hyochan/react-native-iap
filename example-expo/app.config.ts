@@ -5,6 +5,10 @@ export default ({config}: ConfigContext): ExpoConfig => {
     [
       'react-native-iap',
       {
+        // IAPKit API key for purchase verification (optional)
+        // Get your API key from https://iapkit.com
+        iapkitApiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY,
+
         // iOS Alternative Billing configuration (optional)
         // Uncomment and configure for external purchase support
         // NOTE: Requires Apple approval and proper provisioning profile
