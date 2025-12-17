@@ -838,7 +838,7 @@ class HybridRnIap: HybridRnIapSpec {
             do {
                 let storeProducts = try await Product.products(for: [productId])
                 guard let product = storeProducts.first else {
-                    throw PurchaseError.make(code: .skuNotFound, message: "Product with id \(productId) not found", productId: productId)
+                    throw PurchaseError.make(code: .skuNotFound, productId: productId, message: "Product with id \(productId) not found")
                 }
               
                 let request = """
@@ -897,7 +897,7 @@ class HybridRnIap: HybridRnIapSpec {
                 throw purchaseError
             } catch {
                 RnIapLog.failure("requestPurchaseWithAdvancedCommerceIOS", error: error)
-                throw PurchaseError.make(code: .purchaseError, message: error.localizedDescription, productId: productId)
+                throw PurchaseError.make(code: .purchaseError, productId: productId, message: error.localizedDescription)
             }
         }
     }

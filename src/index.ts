@@ -1695,6 +1695,20 @@ export const beginRefundRequestIOS: MutationField<
 };
 
 /**
+ * Result of a purchase with advanced commerce data
+ */
+export interface AdvancedCommercePurchaseResult {
+  /** Whether the purchase completed successfully */
+  success: boolean;
+  /** Unique transaction identifier from StoreKit */
+  transactionId: string;
+  /** Product identifier that was purchased */
+  productId: string;
+  /** Purchase timestamp in milliseconds since Unix epoch */
+  purchaseDate: number;
+}
+
+/**
  * Request a purchase with advanced commerce data (iOS 15+ only)
  *
  * Uses StoreKit 2's Product.PurchaseOption.custom API to pass custom advanced commerce data
@@ -1711,10 +1725,15 @@ export const beginRefundRequestIOS: MutationField<
  * }
  * ```
  *
- * @param productId - Product identifier to purchase
- * @param advancedCommerceData - Advanced commerce token/data to pass to StoreKit
- * @returns Promise resolving to purchase result with transaction details
- * @throws {PurchaseError} If purchase fails, product not found, user cancels, or iOS version is insufficient
+ * @param {string} productId - The product identifier (SKU) to purchase. Must match a product configured in App Store Connect.
+ * @param {string} advancedCommerceData - Advanced commerce token or data string to pass to StoreKit. This is typically a campaign token, affiliate ID, or other attribution data that will be included in the purchase transaction.
+ * @returns {Promise<AdvancedCommercePurchaseResult>} Promise that resolves to a purchase result object containing transaction details when successful.
+ * @throws {PurchaseError} Throws a PurchaseError if:
+ *   - The purchase fails (network error, service unavailable, etc.)
+ *   - The product is not found in the store
+ *   - The user cancels the purchase (ErrorCode.UserCancelled)
+ *   - iOS version is insufficient (requires iOS 15.0+)
+ *   - Transaction verification fails
  * @platform iOS
  * @requires iOS 15.0+ (StoreKit 2)
  *
@@ -1741,12 +1760,7 @@ export const beginRefundRequestIOS: MutationField<
 export const requestPurchaseWithAdvancedCommerce = async (
   productId: string,
   advancedCommerceData: string,
-): Promise<{
-  success: boolean;
-  transactionId: string;
-  productId: string;
-  purchaseDate: number;
-}> => {
+): Promise<AdvancedCommercePurchaseResult> => {
   if (Platform.OS !== 'ios') {
     throw new Error(
       'requestPurchaseWithAdvancedCommerce is only available on iOS',
