@@ -887,7 +887,7 @@ class HybridRnIap: HybridRnIapSpec {
                     throw PurchaseError.make(code: .userCancelled, message: "User cancelled the purchase")
                 case .pending:
                     RnIapLog.result("requestPurchaseWithAdvancedCommerceIOS", "pending")
-                    throw PurchaseError.make(code: .purchasePending, message: "Purchase is pending")
+                    throw PurchaseError.make(code: .pending, message: "Purchase is pending")
                 @unknown default:
                     RnIapLog.failure("requestPurchaseWithAdvancedCommerceIOS", error: "Unknown purchase result")
                     throw PurchaseError.make(code: .purchaseError, message: "Unknown purchase result")
