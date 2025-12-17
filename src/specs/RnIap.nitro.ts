@@ -228,11 +228,16 @@ export interface NitroPurchaseResult {
 
 /**
  * Result of an advanced commerce purchase (iOS only)
+ * Returned by requestPurchaseWithAdvancedCommerceIOS when a purchase completes successfully.
  */
 export interface NitroAdvancedCommercePurchaseResult {
+  /** Whether the purchase was successful */
   success: boolean;
+  /** Transaction identifier from StoreKit */
   transactionId: string;
+  /** Product identifier that was purchased */
   productId: string;
+  /** Purchase timestamp in milliseconds since epoch */
   purchaseDate: number;
 }
 
@@ -704,11 +709,27 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
 
   /**
    * Request a purchase with advanced commerce data (iOS 15+ only)
-   * Uses StoreKit 2's Product.PurchaseOption.custom to pass advanced commerce data
+   *
+   * Uses StoreKit 2's Product.PurchaseOption.custom API to pass custom advanced commerce data
+   * (e.g., campaign tokens, affiliate IDs) during the purchase flow. Unlike the standard
+   * requestPurchase() method, this returns the purchase result directly via Promise rather
+   * than using event listeners.
+   *
+   * The advanced commerce data is formatted as JSON and passed to StoreKit:
+   * ```json
+   * {
+   *   "signatureInfo": {
+   *     "token": "<advancedCommerceData>"
+   *   }
+   * }
+   * ```
+   *
    * @param productId - Product identifier to purchase
    * @param advancedCommerceData - Advanced commerce token/data to pass to StoreKit
-   * @returns Promise<NitroAdvancedCommercePurchaseResult> - Purchase result with transaction details
+   * @returns Promise resolving to purchase result with transaction details
+   * @throws {PurchaseError} If purchase fails, product not found, user cancels, or iOS version is insufficient
    * @platform iOS
+   * @requires iOS 15.0+ (StoreKit 2)
    */
   requestPurchaseWithAdvancedCommerceIOS(
     productId: string,

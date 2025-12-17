@@ -801,6 +801,27 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
+    /// Request a purchase with advanced commerce data using StoreKit 2's Product.PurchaseOption.custom API.
+    ///
+    /// This method allows passing custom advanced commerce data (e.g., campaign tokens, affiliate IDs)
+    /// during the purchase flow. Unlike the standard `requestPurchase()` method, this returns the
+    /// purchase result directly via Promise rather than using event listeners.
+    ///
+    /// - Parameters:
+    ///   - productId: The product identifier to purchase
+    ///   - advancedCommerceData: The advanced commerce token/data to pass to StoreKit as JSON
+    /// - Returns: A Promise resolving to `NitroAdvancedCommercePurchaseResult` with transaction details
+    /// - Throws: `PurchaseError` if the purchase fails, product is not found, user cancels, or iOS version is insufficient
+    /// - Requires: iOS 15.0+ (StoreKit 2)
+    ///
+    /// The advanced commerce data is formatted as JSON:
+    /// ```json
+    /// {
+    ///   "signatureInfo": {
+    ///     "token": "<advancedCommerceData>"
+    ///   }
+    /// }
+    /// ```
     func requestPurchaseWithAdvancedCommerceIOS(productId: String, advancedCommerceData: String) throws -> Promise<NitroAdvancedCommercePurchaseResult> {
         return Promise.async {
             guard #available(iOS 15.0, *) else {
