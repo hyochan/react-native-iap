@@ -36,6 +36,12 @@ const mockIap: any = {
   requestPromotedProductIOS: jest.fn(async () => null),
   buyPromotedProductIOS: jest.fn(async () => undefined),
   presentCodeRedemptionSheetIOS: jest.fn(async () => true),
+  requestPurchaseWithAdvancedCommerceIOS: jest.fn(async () => ({
+    success: true,
+    transactionId: 'tx-123',
+    productId: 'product-1',
+    purchaseDate: Date.now(),
+  })),
 
   // Unified storefront
   getStorefront: jest.fn(async () => 'USA'),
@@ -675,6 +681,91 @@ describe('Public API (src/index.ts)', () => {
       (Platform as any).OS = 'ios';
       mockIap.beginRefundRequestIOS = jest.fn(async () => 'success');
       await expect(IAP.beginRefundRequestIOS('sku')).resolves.toBe('success');
+    });
+
+    describe('requestPurchaseWithAdvancedCommerce', () => {
+      it('returns purchase result on iOS', async () => {
+        (Platform as any).OS = 'ios';
+        const mockResult = {
+          success: true,
+          transactionId: 'tx-123',
+          productId: 'product-1',
+          purchaseDate: 1234567890,
+        };
+        mockIap.requestPurchaseWithAdvancedCommerceIOS = jest.fn(
+          async () => mockResult,
+        );
+        const result = await IAP.requestPurchaseWithAdvancedCommerce(
+          'product-1',
+          'campaign-token-123',
+        );
+        expect(result).toEqual(mockResult);
+        expect(result.success).toBe(true);
+        expect(result.transactionId).toBe('tx-123');
+        expect(result.productId).toBe('product-1');
+        expect(
+          mockIap.requestPurchaseWithAdvancedCommerceIOS,
+        ).toHaveBeenCalledWith('product-1', 'campaign-token-123');
+      });
+
+      it('throws error on non-iOS platforms', async () => {
+        (Platform as any).OS = 'android';
+        await expect(
+          IAP.requestPurchaseWithAdvancedCommerce('product-1', 'token'),
+        ).rejects.toThrow(/only available on iOS/);
+      });
+
+      it('handles purchase errors and normalizes error codes', async () => {
+        (Platform as any).OS = 'ios';
+        const mockError = new Error('User cancelled the purchase');
+        mockIap.requestPurchaseWithAdvancedCommerceIOS = jest
+          .fn()
+          .mockRejectedValue(mockError);
+        await expect(
+          IAP.requestPurchaseWithAdvancedCommerce('product-1', 'token'),
+        ).rejects.toThrow();
+        expect(
+          mockIap.requestPurchaseWithAdvancedCommerceIOS,
+        ).toHaveBeenCalledWith('product-1', 'token');
+      });
+
+      it('includes productId in error when purchase fails', async () => {
+        (Platform as any).OS = 'ios';
+        const mockError = new Error('Purchase failed');
+        mockIap.requestPurchaseWithAdvancedCommerceIOS = jest
+          .fn()
+          .mockRejectedValue(mockError);
+        try {
+          await IAP.requestPurchaseWithAdvancedCommerce('product-1', 'token');
+          fail('Should have thrown');
+        } catch (error: any) {
+          expect(error).toBeDefined();
+        }
+        expect(
+          mockIap.requestPurchaseWithAdvancedCommerceIOS,
+        ).toHaveBeenCalledWith('product-1', 'token');
+      });
+
+      it('maps result properties correctly', async () => {
+        (Platform as any).OS = 'ios';
+        const mockResult = {
+          success: true,
+          transactionId: 'transaction-456',
+          productId: 'premium-monthly',
+          purchaseDate: 9876543210,
+        };
+        mockIap.requestPurchaseWithAdvancedCommerceIOS = jest.fn(
+          async () => mockResult,
+        );
+        const result = await IAP.requestPurchaseWithAdvancedCommerce(
+          'premium-monthly',
+          'affiliate-id-789',
+        );
+        expect(result.success).toBe(mockResult.success);
+        expect(result.transactionId).toBe(mockResult.transactionId);
+        expect(result.productId).toBe(mockResult.productId);
+        expect(result.purchaseDate).toBe(mockResult.purchaseDate);
+      });
     });
 
     it('subscriptionStatusIOS converts items', async () => {
