@@ -841,14 +841,8 @@ class HybridRnIap: HybridRnIapSpec {
                     throw PurchaseError.make(code: .skuNotFound, productId: productId, message: "Product with id \(productId) not found")
                 }
               
-                let request = """
-                {
-                   "signatureInfo": {
-                      "token": "\(advancedCommerceData)"
-                   }
-                }
-                """
-                let advancedCommerceRequestData = Data(request.utf8)
+                let payload: [String: Any] = ["signatureInfo": ["token": advancedCommerceData]]
+                let advancedCommerceRequestData = try JSONSerialization.data(withJSONObject: payload)
                 
                 let purchaseResult = try await product.purchase(
                     options: [
