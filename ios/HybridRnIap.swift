@@ -889,8 +889,9 @@ class HybridRnIap: HybridRnIapSpec {
                     RnIapLog.result("requestPurchaseWithAdvancedCommerceIOS", "pending")
                     throw PurchaseError.make(code: .pending, message: "Purchase is pending")
                 @unknown default:
-                    RnIapLog.failure("requestPurchaseWithAdvancedCommerceIOS", error: "Unknown purchase result")
-                    throw PurchaseError.make(code: .purchaseError, message: "Unknown purchase result")
+                    let err = PurchaseError.make(code: .purchaseError, message: "Unknown purchase result")
+                    RnIapLog.failure("requestPurchaseWithAdvancedCommerceIOS", error: err)
+                    throw err
                 }
             } catch let purchaseError as PurchaseError {
                 RnIapLog.failure("requestPurchaseWithAdvancedCommerceIOS", error: purchaseError)
