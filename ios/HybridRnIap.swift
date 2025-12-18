@@ -810,6 +810,8 @@ class HybridRnIap: HybridRnIapSpec {
     /// - Parameters:
     ///   - productId: The product identifier to purchase
     ///   - advancedCommerceData: The advanced commerce token/data to pass to StoreKit as JSON
+    ///   - andDangerouslyFinishTransactionAutomatically: Whether to automatically finish the transaction. Defaults to `true`.
+    ///     Set to `false` if you need to verify the transaction on your server before finishing.
     /// - Returns: A Promise resolving to `NitroAdvancedCommercePurchaseResult` with transaction details
     /// - Throws: `PurchaseError` if the purchase fails, product is not found, user cancels, or iOS version is insufficient
     /// - Requires: iOS 15.0+ (StoreKit 2)
@@ -822,7 +824,7 @@ class HybridRnIap: HybridRnIapSpec {
     ///   }
     /// }
     /// ```
-    func requestPurchaseWithAdvancedCommerceIOS(productId: String, advancedCommerceData: String) throws -> Promise<NitroAdvancedCommercePurchaseResult> {
+    func requestPurchaseWithAdvancedCommerceIOS(productId: String, advancedCommerceData: String, andDangerouslyFinishTransactionAutomatically: Bool?) throws -> Promise<NitroAdvancedCommercePurchaseResult> {
         return Promise.async {
             guard #available(iOS 15.0, *) else {
                 throw PurchaseError.make(code: .featureNotSupported, message: "StoreKit 2 requires iOS 15.0 or later")
@@ -830,9 +832,12 @@ class HybridRnIap: HybridRnIapSpec {
             
             try self.ensureConnection()
             
+            let shouldFinishAutomatically = andDangerouslyFinishTransactionAutomatically ?? true
+            
             RnIapLog.payload("requestPurchaseWithAdvancedCommerceIOS", [
                 "productId": productId,
-                "hasAdvancedCommerceData": !advancedCommerceData.isEmpty
+                "hasAdvancedCommerceData": !advancedCommerceData.isEmpty,
+                "andDangerouslyFinishTransactionAutomatically": shouldFinishAutomatically
             ])
             
             do {
@@ -868,8 +873,10 @@ class HybridRnIap: HybridRnIapSpec {
                             "transactionId": result.transactionId,
                             "productId": result.productId
                         ])
-                        Task {
-                            await transaction.finish()
+                        if shouldFinishAutomatically {
+                            Task {
+                                await transaction.finish()
+                            }
                         }
                         return result
                     case .unverified(_, let error):

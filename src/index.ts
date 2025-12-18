@@ -1727,6 +1727,8 @@ export interface AdvancedCommercePurchaseResult {
  *
  * @param {string} productId - The product identifier (SKU) to purchase. Must match a product configured in App Store Connect.
  * @param {string} advancedCommerceData - Advanced commerce token or data string to pass to StoreKit. This is typically a campaign token, affiliate ID, or other attribution data that will be included in the purchase transaction.
+ * @param {boolean} [andDangerouslyFinishTransactionAutomatically=true] - Whether to automatically finish the transaction. Defaults to `true`.
+ *   Set to `false` if you need to verify the transaction on your server before finishing. When `false`, you must manually call `finishTransaction()` after verification.
  * @returns {Promise<AdvancedCommercePurchaseResult>} Promise that resolves to a purchase result object containing transaction details when successful.
  * @throws {PurchaseError} Throws a PurchaseError if:
  *   - The purchase fails (network error, service unavailable, etc.)
@@ -1760,6 +1762,7 @@ export interface AdvancedCommercePurchaseResult {
 export const requestPurchaseWithAdvancedCommerce = async (
   productId: string,
   advancedCommerceData: string,
+  andDangerouslyFinishTransactionAutomatically: boolean = true,
 ): Promise<AdvancedCommercePurchaseResult> => {
   if (Platform.OS !== 'ios') {
     throw new Error(
@@ -1771,6 +1774,7 @@ export const requestPurchaseWithAdvancedCommerce = async (
     const result = await IAP.instance.requestPurchaseWithAdvancedCommerceIOS(
       productId,
       advancedCommerceData,
+      andDangerouslyFinishTransactionAutomatically,
     );
     return {
       success: result.success,

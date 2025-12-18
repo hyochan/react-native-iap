@@ -726,6 +726,8 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
    *
    * @param productId - Product identifier to purchase
    * @param advancedCommerceData - Advanced commerce token/data to pass to StoreKit
+   * @param andDangerouslyFinishTransactionAutomatically - Whether to automatically finish the transaction. Defaults to `true`.
+   *   Set to `false` if you need to verify the transaction on your server before finishing.
    * @returns Promise resolving to purchase result with transaction details
    * @throws {PurchaseError} If purchase fails, product not found, user cancels, or iOS version is insufficient
    * @platform iOS
@@ -734,6 +736,7 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   requestPurchaseWithAdvancedCommerceIOS(
     productId: string,
     advancedCommerceData: string,
+    andDangerouslyFinishTransactionAutomatically?: boolean,
   ): Promise<NitroAdvancedCommercePurchaseResult>;
 
   /**

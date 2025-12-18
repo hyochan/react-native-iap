@@ -705,7 +705,7 @@ describe('Public API (src/index.ts)', () => {
         expect(result.productId).toBe('product-1');
         expect(
           mockIap.requestPurchaseWithAdvancedCommerceIOS,
-        ).toHaveBeenCalledWith('product-1', 'campaign-token-123');
+        ).toHaveBeenCalledWith('product-1', 'campaign-token-123', true);
       });
 
       it('throws error on non-iOS platforms', async () => {
@@ -726,7 +726,7 @@ describe('Public API (src/index.ts)', () => {
         ).rejects.toThrow();
         expect(
           mockIap.requestPurchaseWithAdvancedCommerceIOS,
-        ).toHaveBeenCalledWith('product-1', 'token');
+        ).toHaveBeenCalledWith('product-1', 'token', true);
       });
 
       it('includes productId in error when purchase fails', async () => {
@@ -743,7 +743,7 @@ describe('Public API (src/index.ts)', () => {
         }
         expect(
           mockIap.requestPurchaseWithAdvancedCommerceIOS,
-        ).toHaveBeenCalledWith('product-1', 'token');
+        ).toHaveBeenCalledWith('product-1', 'token', true);
       });
 
       it('maps result properties correctly', async () => {
@@ -765,6 +765,27 @@ describe('Public API (src/index.ts)', () => {
         expect(result.transactionId).toBe(mockResult.transactionId);
         expect(result.productId).toBe(mockResult.productId);
         expect(result.purchaseDate).toBe(mockResult.purchaseDate);
+      });
+
+      it('passes andDangerouslyFinishTransactionAutomatically parameter correctly', async () => {
+        (Platform as any).OS = 'ios';
+        const mockResult = {
+          success: true,
+          transactionId: 'tx-789',
+          productId: 'product-2',
+          purchaseDate: 1111111111,
+        };
+        mockIap.requestPurchaseWithAdvancedCommerceIOS = jest.fn(
+          async () => mockResult,
+        );
+        await IAP.requestPurchaseWithAdvancedCommerce(
+          'product-2',
+          'token-456',
+          false,
+        );
+        expect(
+          mockIap.requestPurchaseWithAdvancedCommerceIOS,
+        ).toHaveBeenCalledWith('product-2', 'token-456', false);
       });
     });
 
