@@ -2,11 +2,11 @@
 sidebar_position: 1
 ---
 
-import GreatFrontEndBanner from "@site/src/uis/GreatFrontEndBanner";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # React Native IAP
 
-<GreatFrontEndBanner type="default" />
+<IapKitBanner />
 
 **React Native IAP** is a high-performance in-app purchase library using Nitro Modules that **conforms to the [Open IAP specification](https://openiap.dev)**. It provides a unified API for handling in-app purchases across iOS and Android platforms with comprehensive error handling and modern TypeScript support.
 

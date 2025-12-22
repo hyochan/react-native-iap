@@ -4,11 +4,11 @@ sidebar_label: iOS Subscription Offers
 sidebar_position: 3
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # iOS Subscription Offers
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 This guide explains how to implement and manage subscription offers (introductory and promotional) for iOS in react-native-iap.
 

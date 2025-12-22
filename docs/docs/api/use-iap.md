@@ -4,11 +4,11 @@ sidebar_label: useIAP Hook
 sidebar_position: 1
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # useIAP Hook
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 The `useIAP` hook is the main interface for interacting with in-app purchases in React Native IAP. It provides a comprehensive API for managing purchases, subscriptions, and error handling.
 

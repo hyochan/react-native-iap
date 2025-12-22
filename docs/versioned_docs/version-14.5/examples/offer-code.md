@@ -4,11 +4,11 @@ sidebar_label: Offer Code
 sidebar_position: 4
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Offer Code Redemption
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 This guide demonstrates how to redeem App Store offer/promo codes using the native iOS sheet. This is useful for subscription promotional codes and requires a real iOS device.
 

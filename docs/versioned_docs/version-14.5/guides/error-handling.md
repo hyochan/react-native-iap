@@ -2,11 +2,11 @@
 sidebar_position: 4
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Error Handling
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 This guide covers best practices for handling errors in your react-native-iap implementation.
 

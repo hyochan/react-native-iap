@@ -1,8 +1,8 @@
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Types
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 ## OpenIAP Type Definitions
 

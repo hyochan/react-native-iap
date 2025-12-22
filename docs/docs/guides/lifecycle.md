@@ -4,11 +4,11 @@ sidebar_label: Purchase Lifecycle
 sidebar_position: 2
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Purchase Lifecycle
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 Understanding the purchase lifecycle is crucial for building robust in-app purchase functionality. This guide covers the various stages of a purchase, from connection initialization to transaction completion.
 

@@ -2,11 +2,11 @@
 sidebar_position: 2
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Error Codes
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 React Native IAP provides a centralized error handling system with platform-specific error code mapping. This ensures consistent error handling across iOS and Android platforms.
 

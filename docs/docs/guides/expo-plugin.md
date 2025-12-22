@@ -2,9 +2,9 @@
 title: Expo Plugin
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 `react-native-iap` comes with a config plugin to automatically configure your project for both iOS and Android. This guide explains how to use it and what it does.
 

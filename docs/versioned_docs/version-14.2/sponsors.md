@@ -4,11 +4,7 @@ title: Sponsors
 description: Support react-native-iap development through sponsorship
 ---
 
-import GreatFrontEndTopFixed from '@site/src/uis/GreatFrontEndTopFixed';
-
 # Sponsors
-
-<GreatFrontEndTopFixed />
 
 For information about our sponsors and sponsorship opportunities, please visit:
 

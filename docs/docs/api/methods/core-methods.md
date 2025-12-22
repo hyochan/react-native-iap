@@ -4,11 +4,11 @@ sidebar_label: Core Methods
 sidebar_position: 1
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Core Methods
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 This section covers the core methods available in react-native-iap for managing in-app purchases.
 

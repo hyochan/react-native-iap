@@ -1,8 +1,8 @@
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # API Reference
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 Welcome to the React Native IAP API documentation. Here you'll find comprehensive guides and references for all the features and functionality available in React Native IAP.
 

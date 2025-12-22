@@ -4,11 +4,11 @@ sidebar_label: Getting Started
 sidebar_position: 1
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Getting Started
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 `react-native-iap` is a powerful in-app purchase solution specifically designed for Expo and React Native applications. It provides a unified API for handling in-app purchases across iOS and Android platforms with comprehensive error handling and modern TypeScript support.
 

@@ -2,11 +2,11 @@
 sidebar_position: 1
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Installation
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 This guide will help you install and configure React Native IAP in your React Native or Expo project.
 

@@ -4,11 +4,11 @@ sidebar_label: Alternative Billing
 sidebar_position: 4.5
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Alternative Billing
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 Use alternative billing to redirect users to external payment systems or offer payment choices alongside platform billing.
 

@@ -4,11 +4,11 @@ sidebar_label: Subscription Offers
 sidebar_position: 3
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Subscription Offers
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 This guide explains how to handle subscription offers (pricing plans) when purchasing subscriptions on iOS and Android platforms.
 

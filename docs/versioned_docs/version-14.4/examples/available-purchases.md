@@ -4,11 +4,11 @@ sidebar_label: Available Purchases
 sidebar_position: 3
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Available Purchases
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 This guide demonstrates how to list and restore previously purchased items (non‑consumables and active subscriptions) using `getAvailablePurchases()` and `getActiveSubscriptions()`.
 

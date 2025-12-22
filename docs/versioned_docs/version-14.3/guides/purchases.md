@@ -4,11 +4,11 @@ sidebar_label: Purchases
 sidebar_position: 2
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Purchases
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 > :warning: **Purchase Flow Redesign** :warning:
 >

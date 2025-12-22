@@ -2,11 +2,11 @@
 sidebar_position: 3
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Complete Purchase
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 This example shows how to properly complete a purchase transaction with receipt validation and finishTransaction.
 

@@ -2,9 +2,9 @@
 title: Support
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 ## Need Help?
 

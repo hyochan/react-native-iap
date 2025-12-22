@@ -2,11 +2,11 @@
 sidebar_position: 2
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Android Setup
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 For complete Android setup instructions including Google Play Console configuration, app setup, and testing guidelines, please visit:
 

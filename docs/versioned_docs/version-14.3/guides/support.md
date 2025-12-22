@@ -4,11 +4,11 @@ sidebar_label: Support
 sidebar_position: 8
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Support & Contributing
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 We welcome contributions and are here to help you succeed with react-native-iap!
 

@@ -4,11 +4,11 @@ sidebar_label: Basic Store
 sidebar_position: 1
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Basic Store Implementation
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 This example shows how to implement a basic in-app purchase store using react-native-iap.
 

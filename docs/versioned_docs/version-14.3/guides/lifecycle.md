@@ -4,11 +4,11 @@ sidebar_label: Lifecycle
 sidebar_position: 4
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Lifecycle
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 For complete understanding of the in-app purchase lifecycle, flow diagrams, and state management, please visit:
 

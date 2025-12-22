@@ -2,11 +2,11 @@
 sidebar_position: 1
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # iOS Setup
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 For complete iOS setup instructions including App Store Connect configuration, Xcode setup, and testing guidelines, please visit:
 

@@ -4,11 +4,11 @@ sidebar_label: FAQ
 sidebar_position: 6
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Frequently Asked Questions
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 ## General Questions
 

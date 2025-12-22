@@ -2,11 +2,11 @@
 sidebar_position: 1
 ---
 
-import GreatFrontEndBanner from "@site/src/uis/GreatFrontEndBanner"; import SponsorSection from '@site/src/components/SponsorSection';
+import IapKitBanner from "@site/src/uis/IapKitBanner"; import SponsorSection from '@site/src/components/SponsorSection';
 
 # React Native IAP
 
-<GreatFrontEndBanner type="default" />
+<IapKitBanner />
 
 ---
 

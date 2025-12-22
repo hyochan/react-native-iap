@@ -4,11 +4,11 @@ sidebar_label: Purchase Flow
 sidebar_position: 1
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Purchase Flow
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 :::tip
 The complete working example can be found at [example/screens/PurchaseFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/PurchaseFlow.tsx).

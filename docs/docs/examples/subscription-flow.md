@@ -4,11 +4,11 @@ sidebar_label: Subscriptions Flow
 sidebar_position: 2
 ---
 
-import GreatFrontEndTopFixed from "@site/src/uis/GreatFrontEndTopFixed";
+import IapKitBanner from "@site/src/uis/IapKitBanner";
 
 # Subscriptions Flow
 
-<GreatFrontEndTopFixed />
+<IapKitBanner />
 
 :::tip
 The complete working example can be found at [example/screens/SubscriptionFlow.tsx](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx).
