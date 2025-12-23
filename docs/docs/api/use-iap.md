@@ -224,6 +224,7 @@ interface UseIAPOptions {
           apple: {sku: productId},
           google: {skus: [productId]},
         },
+        type: 'in-app',
       });
     } catch (error) {
       console.error('Purchase request failed:', error);
@@ -474,6 +475,7 @@ const IOSPurchaseExample = () => {
         apple: {sku: product.id},
         google: {skus: [product.id]},
       },
+      type: 'in-app',
     });
   };
 
@@ -510,6 +512,7 @@ const AndroidPurchaseExample = () => {
         apple: {sku: product.id},
         google: {skus: [product.id]},
       },
+      type: 'in-app',
     });
   };
 
@@ -582,6 +585,7 @@ const {requestPurchase} = useIAP({
            apple: {sku: productId},
            google: {skus: [productId]},
          },
+         type: 'in-app',
        });
      } finally {
        setLoading(false);

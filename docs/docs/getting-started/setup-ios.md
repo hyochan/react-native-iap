@@ -75,6 +75,7 @@ function App() {
           onPress={() =>
             requestPurchase({
               request: {apple: {sku: product.id}},
+              type: 'in-app',
             })
           }
         >

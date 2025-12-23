@@ -1621,7 +1621,7 @@ export const presentCodeRedemptionSheetIOS: MutationField<
  * // Recommended approach
  * promotedProductListenerIOS(async (product) => {
  *   await requestPurchase({
- *     request: { ios: { sku: product.id } },
+ *     request: { apple: { sku: product.id } },
  *     type: 'in-app'
  *   });
  * });

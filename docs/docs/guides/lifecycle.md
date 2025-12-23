@@ -83,6 +83,7 @@ function ProductItem({productId}: {productId: string}) {
           apple: {sku: productId},
           google: {skus: [productId]},
         },
+        type: 'in-app',
       });
     } catch (error) {
       console.error('Purchase request failed:', error);
