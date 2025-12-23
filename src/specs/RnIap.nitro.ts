@@ -108,7 +108,7 @@ export interface NitroRequestPurchaseIos {
    * Data is formatted as JSON: {"signatureInfo": {"token": "<value>"}}
    * @platform iOS
    */
-  advancedCommerceDataIOS?: RequestPurchaseIosProps['advancedCommerceDataIOS'];
+  advancedCommerceData?: RequestPurchaseIosProps['advancedCommerceData'];
 }
 
 export interface NitroRequestPurchaseAndroid {

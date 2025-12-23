@@ -473,35 +473,35 @@ describe('Public API (src/index.ts)', () => {
       expect(passed.android.skus).toEqual(['google_sku']);
     });
 
-    it('iOS passes advancedCommerceDataIOS through to native', async () => {
+    it('iOS passes advancedCommerceData through to native', async () => {
       (Platform as any).OS = 'ios';
       await IAP.requestPurchase({
         request: {
           apple: {
             sku: 'premium_sub',
-            advancedCommerceDataIOS: 'campaign_summer_2025',
+            advancedCommerceData: 'campaign_summer_2025',
           },
         },
         type: 'in-app',
       });
       const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
-      expect(passed.ios.advancedCommerceDataIOS).toBe('campaign_summer_2025');
+      expect(passed.ios.advancedCommerceData).toBe('campaign_summer_2025');
     });
 
-    it('iOS passes advancedCommerceDataIOS with JSON format', async () => {
+    it('iOS passes advancedCommerceData with JSON format', async () => {
       (Platform as any).OS = 'ios';
       const advancedData = '{"signatureInfo": {"token": "affiliate_123"}}';
       await IAP.requestPurchase({
         request: {
           apple: {
             sku: 'premium_sub',
-            advancedCommerceDataIOS: advancedData,
+            advancedCommerceData: advancedData,
           },
         },
         type: 'subs',
       });
       const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
-      expect(passed.ios.advancedCommerceDataIOS).toBe(advancedData);
+      expect(passed.ios.advancedCommerceData).toBe(advancedData);
     });
   });
 

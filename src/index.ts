@@ -1122,8 +1122,8 @@ export const requestPurchase: MutationField<'requestPurchase'> = async (
       if (offerRecord) {
         iosPayload.withOffer = offerRecord;
       }
-      if (iosRequest.advancedCommerceDataIOS) {
-        iosPayload.advancedCommerceDataIOS = iosRequest.advancedCommerceDataIOS;
+      if (iosRequest.advancedCommerceData) {
+        iosPayload.advancedCommerceData = iosRequest.advancedCommerceData;
       }
 
       unifiedRequest.ios = iosPayload;

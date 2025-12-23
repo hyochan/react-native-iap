@@ -902,7 +902,7 @@ export interface RequestPurchaseIosProps {
    * campaign tokens, affiliate IDs, or other attribution data.
    * The data is formatted as JSON: {"signatureInfo": {"token": "<value>"}}
    */
-  advancedCommerceDataIOS?: (string | null);
+  advancedCommerceData?: (string | null);
   /** Auto-finish transaction (dangerous) */
   andDangerouslyFinishTransactionAutomatically?: (boolean | null);
   /** App account token for user tracking */
@@ -984,7 +984,7 @@ export interface RequestSubscriptionIosProps {
    * campaign tokens, affiliate IDs, or other attribution data.
    * The data is formatted as JSON: {"signatureInfo": {"token": "<value>"}}
    */
-  advancedCommerceDataIOS?: (string | null);
+  advancedCommerceData?: (string | null);
   andDangerouslyFinishTransactionAutomatically?: (boolean | null);
   appAccountToken?: (string | null);
   quantity?: (number | null);

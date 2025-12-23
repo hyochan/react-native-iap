@@ -99,14 +99,14 @@ await requestPurchase({
 
 ### Advanced Commerce Data (iOS)
 
-For attribution tracking (campaign tokens, affiliate IDs), use `advancedCommerceDataIOS`:
+For attribution tracking (campaign tokens, affiliate IDs), use `advancedCommerceData`:
 
 ```tsx
 await requestPurchase({
   request: {
     apple: {
       sku: 'premium_sub',
-      advancedCommerceDataIOS: 'campaign_summer_2025',
+      advancedCommerceData: 'campaign_summer_2025',
     },
   },
   type: 'in-app',
