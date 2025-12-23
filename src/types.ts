@@ -342,6 +342,15 @@ export interface Mutation {
    * Throws OpenIapError.NotPrepared if billing client not ready
    */
   createAlternativeBillingTokenAndroid?: Promise<(string | null)>;
+  /**
+   * Create reporting details for a billing program
+   * Replaces the deprecated createExternalOfferReportingDetailsAsync API
+   *
+   * Available in Google Play Billing Library 8.2.0+
+   * Returns external transaction token needed for reporting external transactions
+   * Throws OpenIapError.NotPrepared if billing client not ready
+   */
+  createBillingProgramReportingDetailsAndroid: BillingProgramReportingDetailsAndroid;
   /** Open the native subscription management surface */
   deepLinkToSubscriptions: Promise<void>;
   /** Close the platform billing connection */
@@ -350,6 +359,24 @@ export interface Mutation {
   finishTransaction: Promise<void>;
   /** Establish the platform billing connection */
   initConnection: Promise<boolean>;
+  /**
+   * Check if a billing program is available for the current user
+   * Replaces the deprecated isExternalOfferAvailableAsync API
+   *
+   * Available in Google Play Billing Library 8.2.0+
+   * Returns availability result with isAvailable flag
+   * Throws OpenIapError.NotPrepared if billing client not ready
+   */
+  isBillingProgramAvailableAndroid: BillingProgramAvailabilityResultAndroid;
+  /**
+   * Launch external link flow for external billing programs
+   * Replaces the deprecated showExternalOfferInformationDialog API
+   *
+   * Available in Google Play Billing Library 8.2.0+
+   * Shows Play Store dialog and optionally launches external URL
+   * Throws OpenIapError.NotPrepared if billing client not ready
+   */
+  launchExternalLinkAndroid: boolean;
   /** Present the App Store code redemption sheet */
   presentCodeRedemptionSheetIOS: Promise<boolean>;
   /** Present external purchase custom link with StoreKit UI (iOS 18.2+) */
@@ -401,6 +428,8 @@ export type MutationBeginRefundRequestIosArgs = string;
 
 export type MutationConsumePurchaseAndroidArgs = string;
 
+export type MutationCreateBillingProgramReportingDetailsAndroidArgs = BillingProgramAndroid;
+
 export type MutationDeepLinkToSubscriptionsArgs = (DeepLinkOptions | null) | undefined;
 
 export interface MutationFinishTransactionArgs {
@@ -410,6 +439,10 @@ export interface MutationFinishTransactionArgs {
 
 
 export type MutationInitConnectionArgs = (InitConnectionConfig | null) | undefined;
+
+export type MutationIsBillingProgramAvailableAndroidArgs = BillingProgramAndroid;
+
+export type MutationLaunchExternalLinkAndroidArgs = LaunchExternalLinkParamsAndroid;
 
 export type MutationPresentExternalPurchaseLinkIosArgs = string;
 
@@ -1307,10 +1340,13 @@ export type MutationArgsMap = {
   clearTransactionIOS: never;
   consumePurchaseAndroid: MutationConsumePurchaseAndroidArgs;
   createAlternativeBillingTokenAndroid: never;
+  createBillingProgramReportingDetailsAndroid: MutationCreateBillingProgramReportingDetailsAndroidArgs;
   deepLinkToSubscriptions: MutationDeepLinkToSubscriptionsArgs;
   endConnection: never;
   finishTransaction: MutationFinishTransactionArgs;
   initConnection: MutationInitConnectionArgs;
+  isBillingProgramAvailableAndroid: MutationIsBillingProgramAvailableAndroidArgs;
+  launchExternalLinkAndroid: MutationLaunchExternalLinkAndroidArgs;
   presentCodeRedemptionSheetIOS: never;
   presentExternalPurchaseLinkIOS: MutationPresentExternalPurchaseLinkIosArgs;
   presentExternalPurchaseNoticeSheetIOS: never;
