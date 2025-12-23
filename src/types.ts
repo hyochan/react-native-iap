@@ -350,7 +350,7 @@ export interface Mutation {
    * Returns external transaction token needed for reporting external transactions
    * Throws OpenIapError.NotPrepared if billing client not ready
    */
-  createBillingProgramReportingDetailsAndroid: BillingProgramReportingDetailsAndroid;
+  createBillingProgramReportingDetailsAndroid: Promise<BillingProgramReportingDetailsAndroid>;
   /** Open the native subscription management surface */
   deepLinkToSubscriptions: Promise<void>;
   /** Close the platform billing connection */
@@ -367,7 +367,7 @@ export interface Mutation {
    * Returns availability result with isAvailable flag
    * Throws OpenIapError.NotPrepared if billing client not ready
    */
-  isBillingProgramAvailableAndroid: BillingProgramAvailabilityResultAndroid;
+  isBillingProgramAvailableAndroid: Promise<BillingProgramAvailabilityResultAndroid>;
   /**
    * Launch external link flow for external billing programs
    * Replaces the deprecated showExternalOfferInformationDialog API
@@ -376,7 +376,7 @@ export interface Mutation {
    * Shows Play Store dialog and optionally launches external URL
    * Throws OpenIapError.NotPrepared if billing client not ready
    */
-  launchExternalLinkAndroid: boolean;
+  launchExternalLinkAndroid: Promise<boolean>;
   /** Present the App Store code redemption sheet */
   presentCodeRedemptionSheetIOS: Promise<boolean>;
   /** Present external purchase custom link with StoreKit UI (iOS 18.2+) */

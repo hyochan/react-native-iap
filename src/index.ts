@@ -2361,9 +2361,9 @@ export const enableBillingProgramAndroid = (
  * }
  * ```
  */
-export const isBillingProgramAvailableAndroid = async (
-  program: BillingProgramAndroid,
-): Promise<BillingProgramAvailabilityResultAndroid> => {
+export const isBillingProgramAvailableAndroid: MutationField<
+  'isBillingProgramAvailableAndroid'
+> = async (program) => {
   if (Platform.OS !== 'android') {
     throw new Error('Billing Programs API is only supported on Android');
   }
@@ -2400,9 +2400,9 @@ export const isBillingProgramAvailableAndroid = async (
  * });
  * ```
  */
-export const createBillingProgramReportingDetailsAndroid = async (
-  program: BillingProgramAndroid,
-): Promise<BillingProgramReportingDetailsAndroid> => {
+export const createBillingProgramReportingDetailsAndroid: MutationField<
+  'createBillingProgramReportingDetailsAndroid'
+> = async (program) => {
   if (Platform.OS !== 'android') {
     throw new Error('Billing Programs API is only supported on Android');
   }
@@ -2445,9 +2445,9 @@ export const createBillingProgramReportingDetailsAndroid = async (
  * }
  * ```
  */
-export const launchExternalLinkAndroid = async (
-  params: LaunchExternalLinkParamsAndroid,
-): Promise<boolean> => {
+export const launchExternalLinkAndroid: MutationField<
+  'launchExternalLinkAndroid'
+> = async (params) => {
   if (Platform.OS !== 'android') {
     throw new Error('Billing Programs API is only supported on Android');
   }
