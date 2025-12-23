@@ -221,8 +221,8 @@ interface UseIAPOptions {
       // In hook: returns void. Listen via callbacks.
       await requestPurchase({
         request: {
-          ios: {sku: productId},
-          android: {skus: [productId]},
+          apple: {sku: productId},
+          google: {skus: [productId]},
         },
       });
     } catch (error) {
@@ -258,8 +258,8 @@ const buySubscription = async (subscriptionId: string) => {
   // 3) Request purchase with offers
   await requestPurchase({
     request: {
-      ios: {sku: subscriptionId},
-      android: {
+      apple: {sku: subscriptionId},
+      google: {
         skus: [subscriptionId],
         // Only include subscriptionOffers when offers are available
         ...(subscriptionOffers.length > 0 && {subscriptionOffers}),
@@ -283,12 +283,12 @@ const buySubscriptionWithOffer = async (
 ) => {
   await requestPurchase({
     request: {
-      ios: {
+      apple: {
         sku: subscriptionId,
         // Optional: apply promotional offer
         ...(discountOffer && {withOffer: discountOffer}),
       },
-      android: {skus: [subscriptionId]},
+      google: {skus: [subscriptionId]},
     },
     type: 'subs',
   });
@@ -471,8 +471,8 @@ const IOSPurchaseExample = () => {
   const buyProduct = (product: Product) => {
     requestPurchase({
       request: {
-        ios: {sku: product.id},
-        android: {skus: [product.id]},
+        apple: {sku: product.id},
+        google: {skus: [product.id]},
       },
     });
   };
@@ -507,8 +507,8 @@ const AndroidPurchaseExample = () => {
   const buyProduct = (product: Product) => {
     requestPurchase({
       request: {
-        ios: {sku: product.id},
-        android: {skus: [product.id]},
+        apple: {sku: product.id},
+        google: {skus: [product.id]},
       },
     });
   };
@@ -579,8 +579,8 @@ const {requestPurchase} = useIAP({
      try {
        await requestPurchase({
          request: {
-           ios: {sku: productId},
-           android: {skus: [productId]},
+           apple: {sku: productId},
+           google: {skus: [productId]},
          },
        });
      } finally {

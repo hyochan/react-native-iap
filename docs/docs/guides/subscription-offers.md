@@ -102,8 +102,8 @@ const purchaseSubscription = async (subscriptionId: string) => {
 
   await requestPurchase({
     request: {
-      ios: {sku: subscriptionId},
-      android: {
+      apple: {sku: subscriptionId},
+      google: {
         skus: [subscriptionId],
         subscriptionOffers, // Now guaranteed to have valid offers
       },
@@ -180,8 +180,8 @@ For standard subscription purchases, no special offer specification is needed:
 ```tsx
 await requestPurchase({
   request: {
-    ios: {sku: 'premium_monthly'},
-    android: {
+    apple: {sku: 'premium_monthly'},
+    google: {
       skus: [
         'premium_monthly',
       ] /* include subscriptionOffers only if available */,
@@ -241,7 +241,7 @@ const purchaseWithPromotionalOffer = async (
   // Step 2: Purchase with the promotional offer
   await requestPurchase({
     request: {
-      ios: {
+      apple: {
         sku: subscriptionId,
         withOffer: {
           offerIdentifier: offerIdentifier, // From App Store Connect
@@ -251,7 +251,7 @@ const purchaseWithPromotionalOffer = async (
           timestamp: signatureData.timestamp, // From your backend
         },
       },
-      android: {skus: [subscriptionId], subscriptionOffers: [...]},
+      google: {skus: [subscriptionId], subscriptionOffers: [...]},
     },
     type: 'subs',
   });
@@ -399,8 +399,8 @@ const purchaseWithSelectedOffer = async (
 
     await requestPurchase({
       request: {
-        ios: {sku: subscriptionId},
-        android: {
+        apple: {sku: subscriptionId},
+        google: {
           skus: [subscriptionId],
           // Required for Android: include only when you found a valid offer
           ...(subscriptionOffers.length > 0 && {subscriptionOffers}),
@@ -412,8 +412,8 @@ const purchaseWithSelectedOffer = async (
     // iOS: Could add promotional offer logic here
     await requestPurchase({
       request: {
-        ios: {sku: subscriptionId},
-        android: {
+        apple: {sku: subscriptionId},
+        google: {
           skus: [
             subscriptionId,
           ] /* include subscriptionOffers only if available */,

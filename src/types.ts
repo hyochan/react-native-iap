@@ -358,8 +358,15 @@ export interface Mutation {
   presentExternalPurchaseNoticeSheetIOS: Promise<ExternalPurchaseNoticeResultIOS>;
   /** Initiate a purchase flow; rely on events for final state */
   requestPurchase?: Promise<(Purchase | Purchase[] | null)>;
-  /** Purchase the promoted product surfaced by the App Store */
-  requestPurchaseOnPromotedProductIOS: Promise<boolean>;
+  /**
+   * Purchase the promoted product surfaced by the App Store.
+   *
+   * @deprecated Use promotedProductListenerIOS to receive the productId,
+   * then call requestPurchase with that SKU instead. In StoreKit 2,
+   * promoted products can be purchased directly via the standard purchase flow.
+   * @deprecated Use promotedProductListenerIOS + requestPurchase instead
+   */
+  requestPurchaseOnPromotedProductIOS: boolean;
   /** Restore completed purchases across platforms */
   restorePurchases: Promise<void>;
   /**
@@ -889,6 +896,13 @@ export interface RequestPurchaseAndroidProps {
 }
 
 export interface RequestPurchaseIosProps {
+  /**
+   * Advanced commerce data token (iOS 15+).
+   * Used with StoreKit 2's Product.PurchaseOption.custom API for passing
+   * campaign tokens, affiliate IDs, or other attribution data.
+   * The data is formatted as JSON: {"signatureInfo": {"token": "<value>"}}
+   */
+  advancedCommerceDataIOS?: (string | null);
   /** Auto-finish transaction (dangerous) */
   andDangerouslyFinishTransactionAutomatically?: (boolean | null);
   /** App account token for user tracking */
@@ -964,6 +978,13 @@ export interface RequestSubscriptionAndroidProps {
 }
 
 export interface RequestSubscriptionIosProps {
+  /**
+   * Advanced commerce data token (iOS 15+).
+   * Used with StoreKit 2's Product.PurchaseOption.custom API for passing
+   * campaign tokens, affiliate IDs, or other attribution data.
+   * The data is formatted as JSON: {"signatureInfo": {"token": "<value>"}}
+   */
+  advancedCommerceDataIOS?: (string | null);
   andDangerouslyFinishTransactionAutomatically?: (boolean | null);
   appAccountToken?: (string | null);
   quantity?: (number | null);

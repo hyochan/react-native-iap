@@ -1068,14 +1068,17 @@ export const requestPurchase: MutationField<'requestPurchase'> = async (
     }
 
     if (Platform.OS === 'ios') {
-      const iosRequest = perPlatformRequest.ios;
+      // Support both 'apple' (recommended) and 'ios' (deprecated) fields
+      const iosRequest = perPlatformRequest.apple ?? perPlatformRequest.ios;
       if (!iosRequest?.sku) {
         throw new Error(
           'Invalid request for iOS. The `sku` property is required.',
         );
       }
     } else if (Platform.OS === 'android') {
-      const androidRequest = perPlatformRequest.android;
+      // Support both 'google' (recommended) and 'android' (deprecated) fields
+      const androidRequest =
+        perPlatformRequest.google ?? perPlatformRequest.android;
       if (!androidRequest?.skus?.length) {
         throw new Error(
           'Invalid request for Android. The `skus` property is required and must be a non-empty array.',
@@ -1087,10 +1090,12 @@ export const requestPurchase: MutationField<'requestPurchase'> = async (
 
     const unifiedRequest: NitroPurchaseRequest = {};
 
-    if (Platform.OS === 'ios' && perPlatformRequest.ios) {
+    // Support both 'apple' (recommended) and 'ios' (deprecated) fields
+    const iosRequestSource = perPlatformRequest.apple ?? perPlatformRequest.ios;
+    if (Platform.OS === 'ios' && iosRequestSource) {
       const iosRequest = isSubs
-        ? (perPlatformRequest.ios as RequestSubscriptionIosProps)
-        : (perPlatformRequest.ios as RequestPurchaseIosProps);
+        ? (iosRequestSource as RequestSubscriptionIosProps)
+        : (iosRequestSource as RequestPurchaseIosProps);
 
       const iosPayload: NonNullable<NitroPurchaseRequest['ios']> = {
         sku: iosRequest.sku,
@@ -1117,14 +1122,20 @@ export const requestPurchase: MutationField<'requestPurchase'> = async (
       if (offerRecord) {
         iosPayload.withOffer = offerRecord;
       }
+      if (iosRequest.advancedCommerceDataIOS) {
+        iosPayload.advancedCommerceDataIOS = iosRequest.advancedCommerceDataIOS;
+      }
 
       unifiedRequest.ios = iosPayload;
     }
 
-    if (Platform.OS === 'android' && perPlatformRequest.android) {
+    // Support both 'google' (recommended) and 'android' (deprecated) fields
+    const androidRequestSource =
+      perPlatformRequest.google ?? perPlatformRequest.android;
+    if (Platform.OS === 'android' && androidRequestSource) {
       const androidRequest = isSubs
-        ? (perPlatformRequest.android as RequestSubscriptionAndroidProps)
-        : (perPlatformRequest.android as RequestPurchaseAndroidProps);
+        ? (androidRequestSource as RequestSubscriptionAndroidProps)
+        : (androidRequestSource as RequestPurchaseAndroidProps);
 
       const androidPayload: NonNullable<NitroPurchaseRequest['android']> = {
         skus: androidRequest.skus,
@@ -1601,43 +1612,60 @@ export const presentCodeRedemptionSheetIOS: MutationField<
 
 /**
  * Buy promoted product on iOS
+ * @deprecated In StoreKit 2, promoted products can be purchased directly via the standard `requestPurchase()` flow.
+ * Use `promotedProductListenerIOS` to receive the product ID when a user taps a promoted product,
+ * then call `requestPurchase()` with the received SKU directly.
+ *
+ * @example
+ * ```typescript
+ * // Recommended approach
+ * promotedProductListenerIOS(async (product) => {
+ *   await requestPurchase({
+ *     request: { ios: { sku: product.id } },
+ *     type: 'in-app'
+ *   });
+ * });
+ * ```
+ *
  * @returns Promise<boolean> - true when the request triggers successfully
  * @platform iOS
  */
-export const requestPurchaseOnPromotedProductIOS: MutationField<
-  'requestPurchaseOnPromotedProductIOS'
-> = async () => {
-  if (Platform.OS !== 'ios') {
-    throw new Error(
-      'requestPurchaseOnPromotedProductIOS is only available on iOS',
-    );
-  }
-
-  try {
-    await IAP.instance.buyPromotedProductIOS();
-    const pending = await IAP.instance.getPendingTransactionsIOS();
-    const latest = pending.find((purchase) => purchase != null);
-    if (!latest) {
-      throw new Error('No promoted purchase available after request');
+export const requestPurchaseOnPromotedProductIOS =
+  async (): Promise<boolean> => {
+    if (Platform.OS !== 'ios') {
+      throw new Error(
+        'requestPurchaseOnPromotedProductIOS is only available on iOS',
+      );
     }
 
-    const converted = convertNitroPurchaseToPurchase(latest);
-    if (converted.platform !== 'ios') {
-      throw new Error('Promoted purchase result not available for iOS');
-    }
+    try {
+      await IAP.instance.buyPromotedProductIOS();
+      const pending = await IAP.instance.getPendingTransactionsIOS();
+      const latest = pending.find((purchase) => purchase != null);
+      if (!latest) {
+        throw new Error('No promoted purchase available after request');
+      }
 
-    return true;
-  } catch (error) {
-    RnIapConsole.error('[requestPurchaseOnPromotedProductIOS] Failed:', error);
-    const parsedError = parseErrorStringToJsonObj(error);
-    throw createPurchaseError({
-      code: parsedError.code,
-      message: parsedError.message,
-      responseCode: parsedError.responseCode,
-      debugMessage: parsedError.debugMessage,
-    });
-  }
-};
+      const converted = convertNitroPurchaseToPurchase(latest);
+      if (converted.platform !== 'ios') {
+        throw new Error('Promoted purchase result not available for iOS');
+      }
+
+      return true;
+    } catch (error) {
+      RnIapConsole.error(
+        '[requestPurchaseOnPromotedProductIOS] Failed:',
+        error,
+      );
+      const parsedError = parseErrorStringToJsonObj(error);
+      throw createPurchaseError({
+        code: parsedError.code,
+        message: parsedError.message,
+        responseCode: parsedError.responseCode,
+        debugMessage: parsedError.debugMessage,
+      });
+    }
+  };
 
 /**
  * Clear unfinished transactions on iOS

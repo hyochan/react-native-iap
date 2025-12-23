@@ -102,6 +102,13 @@ export interface NitroRequestPurchaseIos {
   appAccountToken?: RequestPurchaseIosProps['appAccountToken'];
   quantity?: RequestPurchaseIosProps['quantity'];
   withOffer?: Record<string, string> | null;
+  /**
+   * Advanced commerce data for StoreKit 2's Product.PurchaseOption.custom API.
+   * Used to pass attribution data (campaign tokens, affiliate IDs) during purchases.
+   * Data is formatted as JSON: {"signatureInfo": {"token": "<value>"}}
+   * @platform iOS
+   */
+  advancedCommerceDataIOS?: RequestPurchaseIosProps['advancedCommerceDataIOS'];
 }
 
 export interface NitroRequestPurchaseAndroid {

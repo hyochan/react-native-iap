@@ -43,8 +43,8 @@ await fetchProducts({skus: ['premium_monthly'], type: 'subs'});
 const subscription = subscriptions[0];
 await requestPurchase({
   request: {
-    ios: {sku: 'premium_monthly'},
-    android: {
+    apple: {sku: 'premium_monthly'},
+    google: {
       skus: ['premium_monthly'],
       subscriptionOffers:
         subscription.subscriptionOfferDetailsAndroid?.map((offer) => ({
@@ -82,7 +82,7 @@ Requires explicit replacement with the current purchase token:
 ```tsx
 await requestPurchase({
   request: {
-    android: {
+    google: {
       skus: ['premium_yearly'],
       subscriptionOffers: [...],
       purchaseTokenAndroid: currentPurchase.purchaseToken, // Required
