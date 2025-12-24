@@ -5,6 +5,7 @@ sidebar_position: 3
 ---
 
 import IapKitBanner from "@site/src/uis/IapKitBanner";
+import IapKitLink from "@site/src/uis/IapKitLink";
 
 # Subscription Offers
 
@@ -66,7 +67,8 @@ const SubscriptionComponent = () => {
       'Available offers:',
       subscription.subscriptionOfferDetailsAndroid,
     );
-    // Each offer contains: basePlanId, offerId?, offerTags, offerToken, pricingPhases
+    // Each offer contains: basePlanId*, offerId?, offerTags, offerToken, pricingPhases
+    // *Note: basePlanId has limitations - see "Android basePlanId Limitation" section below
   }
 };
 ```
@@ -119,13 +121,52 @@ Each `subscriptionOfferDetailsAndroid` item contains:
 
 ```tsx
 interface ProductSubscriptionAndroidOfferDetails {
-  basePlanId: string; // Base plan identifier
+  basePlanId: string; // Base plan identifier (⚠️ see limitation below)
   offerId?: string | null; // Offer identifier (null for base plan)
   offerTags: string[]; // Tags associated with the offer
   offerToken: string; // Token required for purchase
   pricingPhases: PricingPhasesAndroid; // Pricing information
 }
 ```
+
+#### Android `basePlanId` Limitation {#baseplanid-limitation}
+
+:::caution Client-Side Limitation
+
+The `basePlanId` is available when fetching products, but **not** when retrieving purchases via `getAvailablePurchases()`. This is a limitation of Google Play Billing Library - the purchase token alone doesn't reveal which base plan was purchased.
+
+See [GitHub Issue #3096](https://github.com/hyochan/react-native-iap/issues/3096) for more details.
+
+:::
+
+**Why this matters:**
+
+- If you have multiple base plans (e.g., `monthly`, `yearly`, `premium`), you cannot determine which plan the user is subscribed to using client-side APIs alone
+- The `basePlanId` is only available from `subscriptionOfferDetailsAndroid` at the time of purchase, not from restored purchases
+
+**Solution: Server-Side Verification with <IapKitLink>IAPKit</IapKitLink>**
+
+Use the `verifyPurchaseWithProvider` function to get complete subscription details including `basePlanId`:
+
+```tsx
+import {verifyPurchaseWithProvider} from 'react-native-iap';
+
+const verifyAndroidSubscription = async (purchase: Purchase) => {
+  const result = await verifyPurchaseWithProvider({
+    purchase,
+    provider: 'iapkit',
+    iapkitAccessToken: 'your-iapkit-access-token',
+  });
+
+  // Response includes offerDetails.basePlanId
+  const basePlanId = result?.lineItems?.[0]?.offerDetails?.basePlanId;
+  console.log('Subscribed to base plan:', basePlanId);
+};
+```
+
+The server response includes `offerDetails.basePlanId` in the `lineItems` array, allowing you to identify exactly which subscription plan the user purchased.
+
+See <IapKitLink>IAPKit documentation</IapKitLink> for setup instructions and API details.
 
 ### iOS Subscription Offers
 

@@ -71,6 +71,10 @@ export type ProductSubscription =
   | ProductSubscriptionIOS;
 ```
 
+:::tip
+The `subscriptionOfferDetailsAndroid` contains `basePlanId`, but this field has limitations when retrieving purchases. See [Android basePlanId Limitation](../guides/subscription-offers#baseplanid-limitation) for details and workarounds.
+:::
+
 ### Android One-Time Purchase Offer Details (v14.6.0+)
 
 Starting from v14.6.0, `oneTimePurchaseOfferDetailsAndroid` is now an **array** to support Google Play's one-time product discounts (Billing Library 7.0+).
