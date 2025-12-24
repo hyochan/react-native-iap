@@ -74,7 +74,8 @@ function App() {
           key={product.id}
           onPress={() =>
             requestPurchase({
-              request: {ios: {sku: product.id}},
+              request: {apple: {sku: product.id}},
+              type: 'in-app',
             })
           }
         >
@@ -88,7 +89,7 @@ function App() {
 }
 ```
 
-> **💡 Cross-Platform Note:** This example shows iOS-specific usage with `sku`. For cross-platform compatibility, include both `sku` and `skus` in your request object. See the [Core Methods](/docs/api/methods/core-methods#requestpurchase) documentation for details.
+> **💡 Cross-Platform Note:** This example shows iOS-specific usage with `apple.sku`. For cross-platform compatibility, include both `apple` and `google` fields in your request object. The older `ios` and `android` fields are deprecated but still supported. See the [Core Methods](/docs/api/methods/core-methods#requestpurchase) documentation for details.
 
 ## Common Issues
 

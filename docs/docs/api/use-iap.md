@@ -221,9 +221,10 @@ interface UseIAPOptions {
       // In hook: returns void. Listen via callbacks.
       await requestPurchase({
         request: {
-          ios: {sku: productId},
-          android: {skus: [productId]},
+          apple: {sku: productId},
+          google: {skus: [productId]},
         },
+        type: 'in-app',
       });
     } catch (error) {
       console.error('Purchase request failed:', error);
@@ -258,8 +259,8 @@ const buySubscription = async (subscriptionId: string) => {
   // 3) Request purchase with offers
   await requestPurchase({
     request: {
-      ios: {sku: subscriptionId},
-      android: {
+      apple: {sku: subscriptionId},
+      google: {
         skus: [subscriptionId],
         // Only include subscriptionOffers when offers are available
         ...(subscriptionOffers.length > 0 && {subscriptionOffers}),
@@ -283,12 +284,12 @@ const buySubscriptionWithOffer = async (
 ) => {
   await requestPurchase({
     request: {
-      ios: {
+      apple: {
         sku: subscriptionId,
         // Optional: apply promotional offer
         ...(discountOffer && {withOffer: discountOffer}),
       },
-      android: {skus: [subscriptionId]},
+      google: {skus: [subscriptionId]},
     },
     type: 'subs',
   });
@@ -436,16 +437,27 @@ const buySubscriptionWithOffer = async (
 
 #### requestPurchaseOnPromotedProductIOS
 
-- **Type**: `() => Promise<void>`
+- **Type**: `() => Promise<boolean>`
 - **Description**: Complete the purchase of a promoted product (iOS only)
-  > Removed in v2.9.0: `buyPromotedProductIOS`. Use `requestPurchaseOnPromotedProductIOS` instead.
+  > **Deprecated**: In StoreKit 2, promoted products can be purchased directly via the standard `requestPurchase()` flow. Use `promotedProductListenerIOS` to receive the product ID when a user taps a promoted product, then call `requestPurchase()` with the received SKU directly.
 - **Example**:
 
   ```tsx
+  // Recommended approach (StoreKit 2)
+  promotedProductListenerIOS(async (product) => {
+    await requestPurchase({
+      request: { apple: { sku: product.id } },
+      type: 'in-app',
+    });
+  });
+
+  // Legacy approach (deprecated)
   const completePurchase = async () => {
     try {
-      await requestPurchaseOnPromotedProductIOS();
-      console.log('Promoted product purchase completed');
+      const success = await requestPurchaseOnPromotedProductIOS();
+      if (success) {
+        console.log('Promoted product purchase completed');
+      }
     } catch (error) {
       console.error('Failed to purchase promoted product:', error);
     }
@@ -471,9 +483,10 @@ const IOSPurchaseExample = () => {
   const buyProduct = (product: Product) => {
     requestPurchase({
       request: {
-        ios: {sku: product.id},
-        android: {skus: [product.id]},
+        apple: {sku: product.id},
+        google: {skus: [product.id]},
       },
+      type: 'in-app',
     });
   };
 
@@ -507,9 +520,10 @@ const AndroidPurchaseExample = () => {
   const buyProduct = (product: Product) => {
     requestPurchase({
       request: {
-        ios: {sku: product.id},
-        android: {skus: [product.id]},
+        apple: {sku: product.id},
+        google: {skus: [product.id]},
       },
+      type: 'in-app',
     });
   };
 
@@ -579,9 +593,10 @@ const {requestPurchase} = useIAP({
      try {
        await requestPurchase({
          request: {
-           ios: {sku: productId},
-           android: {skus: [productId]},
+           apple: {sku: productId},
+           google: {skus: [productId]},
          },
+         type: 'in-app',
        });
      } finally {
        setLoading(false);

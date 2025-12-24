@@ -80,9 +80,10 @@ function ProductItem({productId}: {productId: string}) {
     try {
       await requestPurchase({
         request: {
-          ios: {sku: productId},
-          android: {skus: [productId]},
+          apple: {sku: productId},
+          google: {skus: [productId]},
         },
+        type: 'in-app',
       });
     } catch (error) {
       console.error('Purchase request failed:', error);

@@ -425,6 +425,84 @@ describe('Public API (src/index.ts)', () => {
         {sku: 'sub1', offerToken: 'offer-2'},
       ]);
     });
+
+    // New tests for google/apple field support
+    it('supports apple field (recommended) on iOS', async () => {
+      (Platform as any).OS = 'ios';
+      await IAP.requestPurchase({
+        request: {apple: {sku: 'premium_sub'}},
+        type: 'in-app',
+      });
+      const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
+      expect(passed.ios.sku).toBe('premium_sub');
+    });
+
+    it('supports google field (recommended) on Android', async () => {
+      (Platform as any).OS = 'android';
+      await IAP.requestPurchase({
+        request: {google: {skus: ['premium_sub']}},
+        type: 'in-app',
+      });
+      const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
+      expect(passed.android.skus).toEqual(['premium_sub']);
+    });
+
+    it('prefers apple field over ios field when both provided', async () => {
+      (Platform as any).OS = 'ios';
+      await IAP.requestPurchase({
+        request: {
+          apple: {sku: 'apple_sku'},
+          ios: {sku: 'ios_sku'},
+        },
+        type: 'in-app',
+      });
+      const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
+      expect(passed.ios.sku).toBe('apple_sku');
+    });
+
+    it('prefers google field over android field when both provided', async () => {
+      (Platform as any).OS = 'android';
+      await IAP.requestPurchase({
+        request: {
+          google: {skus: ['google_sku']},
+          android: {skus: ['android_sku']},
+        },
+        type: 'in-app',
+      });
+      const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
+      expect(passed.android.skus).toEqual(['google_sku']);
+    });
+
+    it('iOS passes advancedCommerceData through to native', async () => {
+      (Platform as any).OS = 'ios';
+      await IAP.requestPurchase({
+        request: {
+          apple: {
+            sku: 'premium_sub',
+            advancedCommerceData: 'campaign_summer_2025',
+          },
+        },
+        type: 'in-app',
+      });
+      const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
+      expect(passed.ios.advancedCommerceData).toBe('campaign_summer_2025');
+    });
+
+    it('iOS passes advancedCommerceData with JSON format', async () => {
+      (Platform as any).OS = 'ios';
+      const advancedData = '{"signatureInfo": {"token": "affiliate_123"}}';
+      await IAP.requestPurchase({
+        request: {
+          apple: {
+            sku: 'premium_sub',
+            advancedCommerceData: advancedData,
+          },
+        },
+        type: 'subs',
+      });
+      const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
+      expect(passed.ios.advancedCommerceData).toBe(advancedData);
+    });
   });
 
   describe('getAvailablePurchases', () => {

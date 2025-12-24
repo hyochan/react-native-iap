@@ -183,6 +183,9 @@ class HybridRnIap: HybridRnIapSpec {
                 if let withOffer = iosRequest.withOffer {
                     iosPayload["withOffer"] = withOffer
                 }
+                if let advancedCommerceData = iosRequest.advancedCommerceData {
+                    iosPayload["advancedCommerceData"] = advancedCommerceData
+                }
 
                 let cachedType = await MainActor.run { self.productTypeBySku[iosRequest.sku] }
                 let resolvedType = RnIapHelper.parseProductQueryType(cachedType)

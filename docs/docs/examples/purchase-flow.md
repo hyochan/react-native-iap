@@ -42,8 +42,8 @@ await fetchProducts({skus: ['product_id'], type: 'in-app'});
 // Purchase
 await requestPurchase({
   request: {
-    ios: {sku: 'product_id'},
-    android: {skus: ['product_id']},
+    apple: {sku: 'product_id'},
+    google: {skus: ['product_id']},
   },
   type: 'in-app',
 });

@@ -65,12 +65,16 @@ useEffect(() => {
 ```tsx
 await requestPurchase({
   request: {
-    ios: {sku: 'product_id'},
-    android: {skus: ['product_id']},
+    apple: {sku: 'product_id'},
+    google: {skus: ['product_id']},
   },
   type: 'in-app',
 });
 ```
+
+:::note Platform Field Names
+The recommended field names are `apple` and `google`. The older `ios` and `android` fields are still supported for backward compatibility but are deprecated.
+:::
 
 ### Subscriptions
 
@@ -79,8 +83,8 @@ const subscription = subscriptions.find((s) => s.id === 'sub_id');
 
 await requestPurchase({
   request: {
-    ios: {sku: 'sub_id'},
-    android: {
+    apple: {sku: 'sub_id'},
+    google: {
       skus: ['sub_id'],
       subscriptionOffers:
         subscription?.subscriptionOfferDetailsAndroid?.map((offer) => ({
@@ -90,6 +94,22 @@ await requestPurchase({
     },
   },
   type: 'subs',
+});
+```
+
+### Advanced Commerce Data (iOS)
+
+For attribution tracking (campaign tokens, affiliate IDs), use `advancedCommerceData`:
+
+```tsx
+await requestPurchase({
+  request: {
+    apple: {
+      sku: 'premium_sub',
+      advancedCommerceData: 'campaign_summer_2025',
+    },
+  },
+  type: 'in-app',
 });
 ```
 

@@ -751,16 +751,29 @@ Returns: `Promise<Product | null>`
 
 ### requestPurchaseOnPromotedProductIOS()
 
+> **Deprecated**: In StoreKit 2, promoted products can be purchased directly via the standard `requestPurchase()` flow. Use `promotedProductListenerIOS` to receive the product ID when a user taps a promoted product, then call `requestPurchase()` with the received SKU directly.
+
 Initiates the purchase flow for the currently promoted product. Requires iOS 11+.
 
 ```ts
+// Recommended approach (StoreKit 2)
+import {promotedProductListenerIOS, requestPurchase} from 'react-native-iap';
+
+promotedProductListenerIOS(async (product) => {
+  await requestPurchase({
+    request: { apple: { sku: product.id } },
+    type: 'in-app',
+  });
+});
+
+// Legacy approach (deprecated)
 import {requestPurchaseOnPromotedProductIOS} from 'react-native-iap';
 
-await requestPurchaseOnPromotedProductIOS();
+const success = await requestPurchaseOnPromotedProductIOS();
 // Purchase result is delivered via purchase listeners/useIAP callbacks
 ```
 
-Returns: `Promise<void>`
+Returns: `Promise<boolean>` - `true` when the request triggers successfully
 
 ### getPendingTransactionsIOS()
 
