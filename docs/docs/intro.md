@@ -150,4 +150,4 @@ We welcome contributions! Please see our [Contributing Guide](https://github.com
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/hyochan/react-native-iap/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/hyochan/react-native-iap/blob/main/LICENSE.md) file for details.
