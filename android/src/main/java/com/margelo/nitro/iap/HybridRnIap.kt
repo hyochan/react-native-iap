@@ -38,7 +38,6 @@ import dev.hyo.openiap.BillingProgramAndroid as OpenIapBillingProgramAndroid
 import dev.hyo.openiap.LaunchExternalLinkParamsAndroid as OpenIapLaunchExternalLinkParams
 import dev.hyo.openiap.ExternalLinkLaunchModeAndroid as OpenIapExternalLinkLaunchMode
 import dev.hyo.openiap.ExternalLinkTypeAndroid as OpenIapExternalLinkType
-import dev.hyo.openiap.DeveloperBillingLaunchModeAndroid as OpenIapDeveloperBillingLaunchMode
 import dev.hyo.openiap.listener.OpenIapDeveloperProvidedBillingListener
 import dev.hyo.openiap.store.OpenIapStore
 import kotlinx.coroutines.Dispatchers
@@ -1567,14 +1566,6 @@ class HybridRnIap : HybridRnIapSpec() {
             BillingProgramAndroid.EXTERNAL_CONTENT_LINK -> OpenIapBillingProgramAndroid.ExternalContentLink
             BillingProgramAndroid.EXTERNAL_OFFER -> OpenIapBillingProgramAndroid.ExternalOffer
             BillingProgramAndroid.EXTERNAL_PAYMENTS -> OpenIapBillingProgramAndroid.ExternalPayments
-        }
-    }
-
-    private fun mapDeveloperBillingLaunchMode(mode: DeveloperBillingLaunchModeAndroid): OpenIapDeveloperBillingLaunchMode {
-        return when (mode) {
-            DeveloperBillingLaunchModeAndroid.UNSPECIFIED -> OpenIapDeveloperBillingLaunchMode.Unspecified
-            DeveloperBillingLaunchModeAndroid.LAUNCH_IN_EXTERNAL_BROWSER_OR_APP -> OpenIapDeveloperBillingLaunchMode.LaunchInExternalBrowserOrApp
-            DeveloperBillingLaunchModeAndroid.CALLER_WILL_LAUNCH_LINK -> OpenIapDeveloperBillingLaunchMode.CallerWillLaunchLink
         }
     }
 
