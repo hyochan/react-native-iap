@@ -660,5 +660,5 @@ import {fetchProducts} from 'react-native-iap'; // Correct
 
 - [GitHub Issues](https://github.com/hyochan/react-native-iap/issues)
 - [GitHub Discussions](https://github.com/hyochan/react-native-iap/discussions)
-- [API Reference](../api/index)
+- [API Reference](../api/)
 - [Error Handling Guide](./error-handling)
