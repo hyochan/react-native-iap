@@ -55,6 +55,19 @@ import {RnIapConsole} from './utils/debug';
 import {getSuccessFromPurchaseVariant} from './utils/purchase';
 import {parseAppTransactionPayload} from './utils';
 
+// ------------------------------
+// Billing Programs API (Android 8.2.0+)
+// ------------------------------
+
+// Note: BillingProgramAndroid, ExternalLinkLaunchModeAndroid, and ExternalLinkTypeAndroid
+// are exported from './types' (auto-generated from openiap-gql).
+// Import them here for use in this file's interfaces and functions.
+import type {
+  BillingProgramAndroid,
+  ExternalLinkLaunchModeAndroid,
+  ExternalLinkTypeAndroid,
+} from './types';
+
 // Export all types
 export type {
   RnIap,
@@ -2337,40 +2350,6 @@ export const createAlternativeBillingTokenAndroid: MutationField<
     throw error;
   }
 };
-
-// ------------------------------
-// Billing Programs API (Android 8.2.0+)
-// ------------------------------
-
-/**
- * Billing program type for external content links and external offers.
- * @platform Android
- * @since Google Play Billing Library 8.2.0+
- */
-export type BillingProgramAndroid =
-  | 'unspecified'
-  | 'external-content-link'
-  | 'external-offer';
-
-/**
- * Launch mode for external link flow.
- * @platform Android
- * @since Google Play Billing Library 8.2.0+
- */
-export type ExternalLinkLaunchModeAndroid =
-  | 'unspecified'
-  | 'launch-in-external-browser-or-app'
-  | 'caller-will-launch-link';
-
-/**
- * Link type for external link flow.
- * @platform Android
- * @since Google Play Billing Library 8.2.0+
- */
-export type ExternalLinkTypeAndroid =
-  | 'unspecified'
-  | 'link-to-digital-content-offer'
-  | 'link-to-app-download';
 
 /**
  * Parameters for launching an external link (Android 8.2.0+).
