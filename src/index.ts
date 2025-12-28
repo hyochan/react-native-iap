@@ -55,6 +55,19 @@ import {RnIapConsole} from './utils/debug';
 import {getSuccessFromPurchaseVariant} from './utils/purchase';
 import {parseAppTransactionPayload} from './utils';
 
+// ------------------------------
+// Billing Programs API (Android 8.2.0+)
+// ------------------------------
+
+// Note: BillingProgramAndroid, ExternalLinkLaunchModeAndroid, and ExternalLinkTypeAndroid
+// are exported from './types' (auto-generated from openiap-gql).
+// Import them here for use in this file's interfaces and functions.
+import type {
+  BillingProgramAndroid,
+  ExternalLinkLaunchModeAndroid,
+  ExternalLinkTypeAndroid,
+} from './types';
+
 // Export all types
 export type {
   RnIap,
@@ -366,6 +379,98 @@ export const userChoiceBillingListenerAndroid = (
           } catch {}
         }
         userChoiceBillingListenerMap.delete(listener);
+      }
+    },
+  };
+};
+
+/**
+ * Add a listener for developer provided billing events (Android 8.3.0+ only).
+ * Fires when a user selects developer billing in the External Payments flow.
+ *
+ * External Payments is part of Google Play Billing Library 8.3.0+ and allows
+ * showing a side-by-side choice between Google Play Billing and developer's
+ * external payment option directly in the purchase flow. (Japan only)
+ *
+ * @param listener - Function to call when user chooses developer billing
+ * @returns EventSubscription with remove() method to unsubscribe
+ * @platform Android
+ * @since Google Play Billing Library 8.3.0+
+ *
+ * @example
+ * ```typescript
+ * const subscription = developerProvidedBillingListenerAndroid((details) => {
+ *   console.log('User chose developer billing');
+ *   console.log('Token:', details.externalTransactionToken);
+ *
+ *   // Process payment through your external payment system
+ *   await processExternalPayment();
+ *
+ *   // Report transaction to Google Play (within 24 hours)
+ *   await reportToGooglePlay(details.externalTransactionToken);
+ * });
+ *
+ * // Later, remove the listener
+ * subscription.remove();
+ * ```
+ */
+type NitroDeveloperProvidedBillingListener = Parameters<
+  RnIap['addDeveloperProvidedBillingListenerAndroid']
+>[0];
+const developerProvidedBillingListenerMap = new WeakMap<
+  (details: any) => void,
+  NitroDeveloperProvidedBillingListener
+>();
+
+export interface DeveloperProvidedBillingDetailsAndroid {
+  /**
+   * External transaction token used to report transactions made through developer billing.
+   * This token must be used when reporting the external transaction to Google Play.
+   * Must be reported within 24 hours of the transaction.
+   */
+  externalTransactionToken: string;
+}
+
+export const developerProvidedBillingListenerAndroid = (
+  listener: (details: DeveloperProvidedBillingDetailsAndroid) => void,
+): EventSubscription => {
+  if (Platform.OS !== 'android') {
+    RnIapConsole.warn(
+      'developerProvidedBillingListenerAndroid: This listener is only available on Android',
+    );
+    return {remove: () => {}};
+  }
+
+  const wrappedListener: NitroDeveloperProvidedBillingListener = (details) => {
+    listener(details);
+  };
+
+  developerProvidedBillingListenerMap.set(listener, wrappedListener);
+  let attached = false;
+  try {
+    IAP.instance.addDeveloperProvidedBillingListenerAndroid(wrappedListener);
+    attached = true;
+  } catch (e) {
+    const msg = toErrorMessage(e);
+    if (msg.includes('Nitro runtime not installed')) {
+      RnIapConsole.warn(
+        '[developerProvidedBillingListenerAndroid] Nitro not ready yet; listener inert until initConnection()',
+      );
+    } else {
+      throw e;
+    }
+  }
+
+  return {
+    remove: () => {
+      const wrapped = developerProvidedBillingListenerMap.get(listener);
+      if (wrapped) {
+        if (attached) {
+          try {
+            IAP.instance.removeDeveloperProvidedBillingListenerAndroid(wrapped);
+          } catch {}
+        }
+        developerProvidedBillingListenerMap.delete(listener);
       }
     },
   };
@@ -2245,40 +2350,6 @@ export const createAlternativeBillingTokenAndroid: MutationField<
     throw error;
   }
 };
-
-// ------------------------------
-// Billing Programs API (Android 8.2.0+)
-// ------------------------------
-
-/**
- * Billing program type for external content links and external offers.
- * @platform Android
- * @since Google Play Billing Library 8.2.0+
- */
-export type BillingProgramAndroid =
-  | 'unspecified'
-  | 'external-content-link'
-  | 'external-offer';
-
-/**
- * Launch mode for external link flow.
- * @platform Android
- * @since Google Play Billing Library 8.2.0+
- */
-export type ExternalLinkLaunchModeAndroid =
-  | 'unspecified'
-  | 'launch-in-external-browser-or-app'
-  | 'caller-will-launch-link';
-
-/**
- * Link type for external link flow.
- * @platform Android
- * @since Google Play Billing Library 8.2.0+
- */
-export type ExternalLinkTypeAndroid =
-  | 'unspecified'
-  | 'link-to-digital-content-offer'
-  | 'link-to-app-download';
 
 /**
  * Parameters for launching an external link (Android 8.2.0+).

@@ -38,6 +38,7 @@ import dev.hyo.openiap.BillingProgramAndroid as OpenIapBillingProgramAndroid
 import dev.hyo.openiap.LaunchExternalLinkParamsAndroid as OpenIapLaunchExternalLinkParams
 import dev.hyo.openiap.ExternalLinkLaunchModeAndroid as OpenIapExternalLinkLaunchMode
 import dev.hyo.openiap.ExternalLinkTypeAndroid as OpenIapExternalLinkType
+import dev.hyo.openiap.listener.OpenIapDeveloperProvidedBillingListener
 import dev.hyo.openiap.store.OpenIapStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -78,6 +79,7 @@ class HybridRnIap : HybridRnIapSpec() {
     private val purchaseErrorListeners = mutableListOf<(NitroPurchaseResult) -> Unit>()
     private val promotedProductListenersIOS = mutableListOf<(NitroProduct) -> Unit>()
     private val userChoiceBillingListenersAndroid = mutableListOf<(UserChoiceBillingDetails) -> Unit>()
+    private val developerProvidedBillingListenersAndroid = mutableListOf<(DeveloperProvidedBillingDetailsAndroid) -> Unit>()
     private var listenersAttached = false
     private var isInitialized = false
     private var initDeferred: CompletableDeferred<Boolean>? = null
@@ -168,6 +170,19 @@ class HybridRnIap : HybridRnIapSpec() {
                         sendUserChoiceBilling(nitroDetails)
                     }.onFailure { RnIapLog.failure("userChoiceBillingListener", it) }
                 })
+                // Developer Provided Billing listener (External Payments - 8.3.0+)
+                openIap.addDeveloperProvidedBillingListener(OpenIapDeveloperProvidedBillingListener { details ->
+                    runCatching {
+                        RnIapLog.result(
+                            "developerProvidedBillingListener",
+                            mapOf("token" to details.externalTransactionToken)
+                        )
+                        val nitroDetails = DeveloperProvidedBillingDetailsAndroid(
+                            externalTransactionToken = details.externalTransactionToken
+                        )
+                        sendDeveloperProvidedBilling(nitroDetails)
+                    }.onFailure { RnIapLog.failure("developerProvidedBillingListener", it) }
+                })
                 RnIapLog.result("listeners.attach", "attached")
             }
 
@@ -175,12 +190,17 @@ class HybridRnIap : HybridRnIapSpec() {
             val deferred = initDeferred!!
             try {
                 // Convert Nitro config to OpenIAP config
+                // Note: enableBillingProgramAndroid is passed to OpenIapInitConnectionConfig
+                // which handles enabling the billing program internally
                 val openIapConfig = config?.let {
                     OpenIapInitConnectionConfig(
                         alternativeBillingModeAndroid = when (it.alternativeBillingModeAndroid) {
                             com.margelo.nitro.iap.AlternativeBillingModeAndroid.USER_CHOICE -> dev.hyo.openiap.AlternativeBillingModeAndroid.UserChoice
                             com.margelo.nitro.iap.AlternativeBillingModeAndroid.ALTERNATIVE_ONLY -> dev.hyo.openiap.AlternativeBillingModeAndroid.AlternativeOnly
                             else -> null
+                        },
+                        enableBillingProgramAndroid = config.enableBillingProgramAndroid?.let { program ->
+                            mapBillingProgram(program)
                         }
                     )
                 }
@@ -1424,6 +1444,25 @@ class HybridRnIap : HybridRnIapSpec() {
         }
     }
 
+    // Developer Provided Billing listener (External Payments - 8.3.0+)
+    override fun addDeveloperProvidedBillingListenerAndroid(listener: (DeveloperProvidedBillingDetailsAndroid) -> Unit) {
+        synchronized(developerProvidedBillingListenersAndroid) {
+            developerProvidedBillingListenersAndroid.add(listener)
+        }
+    }
+
+    override fun removeDeveloperProvidedBillingListenerAndroid(listener: (DeveloperProvidedBillingDetailsAndroid) -> Unit) {
+        synchronized(developerProvidedBillingListenersAndroid) {
+            developerProvidedBillingListenersAndroid.remove(listener)
+        }
+    }
+
+    private fun sendDeveloperProvidedBilling(details: DeveloperProvidedBillingDetailsAndroid) {
+        synchronized(developerProvidedBillingListenersAndroid) {
+            developerProvidedBillingListenersAndroid.forEach { it(details) }
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Billing Programs API (Android 8.2.0+)
     // -------------------------------------------------------------------------
@@ -1526,6 +1565,7 @@ class HybridRnIap : HybridRnIapSpec() {
             BillingProgramAndroid.UNSPECIFIED -> OpenIapBillingProgramAndroid.Unspecified
             BillingProgramAndroid.EXTERNAL_CONTENT_LINK -> OpenIapBillingProgramAndroid.ExternalContentLink
             BillingProgramAndroid.EXTERNAL_OFFER -> OpenIapBillingProgramAndroid.ExternalOffer
+            BillingProgramAndroid.EXTERNAL_PAYMENTS -> OpenIapBillingProgramAndroid.ExternalPayments
         }
     }
 
