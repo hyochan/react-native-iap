@@ -1083,17 +1083,25 @@ class HybridRnIap: HybridRnIapSpec {
     }
 
     func addUserChoiceBillingListenerAndroid(listener: @escaping (UserChoiceBillingDetails) -> Void) throws {
-        // No-op on iOS
+        RnIapLog.warn("addUserChoiceBillingListenerAndroid is Android-only and has no effect on iOS")
     }
 
     func removeUserChoiceBillingListenerAndroid(listener: @escaping (UserChoiceBillingDetails) -> Void) throws {
-        // No-op on iOS
+        RnIapLog.warn("removeUserChoiceBillingListenerAndroid is Android-only and has no effect on iOS")
+    }
+
+    func addDeveloperProvidedBillingListenerAndroid(listener: @escaping (DeveloperProvidedBillingDetailsAndroid) -> Void) throws {
+        RnIapLog.warn("addDeveloperProvidedBillingListenerAndroid is Android-only and has no effect on iOS")
+    }
+
+    func removeDeveloperProvidedBillingListenerAndroid(listener: @escaping (DeveloperProvidedBillingDetailsAndroid) -> Void) throws {
+        RnIapLog.warn("removeDeveloperProvidedBillingListenerAndroid is Android-only and has no effect on iOS")
     }
 
     // MARK: - Billing Programs API (Android 8.2.0+) - Not supported on iOS
 
     func enableBillingProgramAndroid(program: BillingProgramAndroid) throws {
-        // No-op on iOS - Billing Programs are Android-only
+        RnIapLog.warn("enableBillingProgramAndroid is Android-only and has no effect on iOS")
     }
 
     func isBillingProgramAvailableAndroid(program: BillingProgramAndroid) throws -> Promise<NitroBillingProgramAvailabilityResultAndroid> {
