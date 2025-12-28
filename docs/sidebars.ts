@@ -69,6 +69,11 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
+      type: 'category',
+      label: 'Migrations',
+      items: ['guides/migration-v13-to-v14'],
+    },
+    {
       type: 'doc',
       id: 'sponsors',
       label: 'Sponsors',
