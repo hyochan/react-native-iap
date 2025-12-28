@@ -45,11 +45,18 @@ export type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 // Note: Nitro requires at least 2 values for union types
 export type PurchaseVerificationProvider = 'iapkit' | 'none';
 
-// Billing Programs API types (Android 8.2.0+)
+// Billing Programs API types (Android 8.2.0+, 8.3.0+ for external-payments)
 export type BillingProgramAndroid =
   | 'unspecified'
   | 'external-content-link'
-  | 'external-offer';
+  | 'external-offer'
+  | 'external-payments';
+
+// Developer Billing Launch Mode (Android 8.3.0+)
+export type DeveloperBillingLaunchModeAndroid =
+  | 'unspecified'
+  | 'launch-in-external-browser-or-app'
+  | 'caller-will-launch-link';
 
 export type ExternalLinkLaunchModeAndroid =
   | 'unspecified'
@@ -318,6 +325,19 @@ export interface NitroBillingProgramReportingDetailsAndroid {
   /** The billing program that the reporting details are associated with */
   billingProgram: BillingProgramAndroid;
   /** External transaction token used to report transactions to Google */
+  externalTransactionToken: string;
+}
+
+/**
+ * Details provided when user selects developer billing option (Android 8.3.0+)
+ * Received via DeveloperProvidedBillingListener callback in External Payments flow
+ */
+export interface DeveloperProvidedBillingDetailsAndroid {
+  /**
+   * External transaction token used to report transactions made through developer billing.
+   * This token must be used when reporting the external transaction to Google Play.
+   * Must be reported within 24 hours of the transaction.
+   */
   externalTransactionToken: string;
 }
 
@@ -939,6 +959,33 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
    */
   removeUserChoiceBillingListenerAndroid(
     listener: (details: UserChoiceBillingDetails) => void,
+  ): void;
+
+  /**
+   * Add a listener for developer provided billing events (Android 8.3.0+ only).
+   * Fires when a user selects developer billing in the External Payments flow.
+   *
+   * External Payments is part of Google Play Billing Library 8.3.0+ and allows
+   * showing a side-by-side choice between Google Play Billing and developer's
+   * external payment option directly in the purchase flow. (Japan only)
+   *
+   * @param listener - Function to call when user chooses developer billing
+   * @platform Android
+   * @since Billing Library 8.3.0+
+   */
+  addDeveloperProvidedBillingListenerAndroid(
+    listener: (details: DeveloperProvidedBillingDetailsAndroid) => void,
+  ): void;
+
+  /**
+   * Remove a developer provided billing listener (Android only).
+   *
+   * @param listener - Function to remove from listeners
+   * @platform Android
+   * @since Billing Library 8.3.0+
+   */
+  removeDeveloperProvidedBillingListenerAndroid(
+    listener: (details: DeveloperProvidedBillingDetailsAndroid) => void,
   ): void;
 
   // ╔════════════════════════════════════════════════════════════════════════╗

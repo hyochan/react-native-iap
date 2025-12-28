@@ -493,6 +493,91 @@ Purchases can be in different states:
 
 Handle each state appropriately in your purchase listener.
 
+## developerProvidedBillingListenerAndroid() (Android only)
+
+Android-only listener for External Payments events (Google Play Billing Library 8.3.0+). This fires when a user selects the developer's billing option instead of Google Play billing in the External Payments side-by-side choice dialog. This feature is currently only available in Japan.
+
+```tsx
+import {
+  initConnection,
+  developerProvidedBillingListenerAndroid,
+  enableBillingProgramAndroid,
+} from 'react-native-iap';
+import {Platform} from 'react-native';
+
+const setupExternalPaymentsListener = async () => {
+  if (Platform.OS !== 'android') return;
+
+  // Enable External Payments program BEFORE initConnection
+  enableBillingProgramAndroid('external-payments');
+
+  // Initialize connection
+  await initConnection();
+
+  const subscription = developerProvidedBillingListenerAndroid((details) => {
+    console.log('User selected developer billing');
+    console.log('Token:', details.externalTransactionToken);
+
+    handleExternalPayment(details);
+  });
+
+  // Clean up listener when component unmounts
+  return () => {
+    if (subscription) {
+      subscription.remove();
+    }
+  };
+};
+
+const handleExternalPayment = async (details) => {
+  try {
+    // Step 1: Process payment through your external payment system
+    const paymentResult = await processExternalPayment();
+
+    if (!paymentResult.success) {
+      console.error('External payment failed');
+      return;
+    }
+
+    // Step 2: Report token to Google Play backend within 24 hours
+    await reportTokenToGooglePlay({
+      token: details.externalTransactionToken,
+      paymentResult,
+    });
+
+    console.log('External payment completed successfully');
+  } catch (error) {
+    console.error('Error handling external payment:', error);
+  }
+};
+```
+
+**Parameters:**
+
+- `callback` (function): Function to call when user selects developer billing
+  - `details` (DeveloperProvidedBillingDetailsAndroid): The developer billing details
+    - `externalTransactionToken` (string): Token that must be reported to Google within 24 hours
+
+**Returns:** Subscription object with `remove()` method
+
+**Platform:** Android only (requires Google Play Billing Library 8.3.0+, Japan only)
+
+**Important:**
+
+- Only available in the External Payments program (Japan only)
+- Must enable `external-payments` program BEFORE `initConnection()`
+- Token must be reported to Google Play backend within 24 hours
+- If user selects Google Play billing instead, `purchaseUpdatedListener` will fire as normal
+
+### Difference from User Choice Billing
+
+| Feature | User Choice Billing | External Payments |
+|---------|-------------------|-------------------|
+| Billing Library | 7.0+ | 8.3.0+ |
+| Availability | Eligible regions | Japan only |
+| UI | Separate dialog | Side-by-side in purchase dialog |
+| Listener | `userChoiceBillingListenerAndroid` | `developerProvidedBillingListenerAndroid` |
+
 ## Alternative: useIAP Hook
 
 For simpler usage, consider using the `useIAP` hook which automatically manages listeners:

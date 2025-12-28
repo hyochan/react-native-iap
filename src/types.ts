@@ -66,10 +66,10 @@ export interface AppTransaction {
 }
 
 /**
- * Billing program types for external content links and external offers (Android)
- * Available in Google Play Billing Library 8.2.0+
+ * Billing program types for external content links, external offers, and external payments (Android)
+ * Available in Google Play Billing Library 8.2.0+, EXTERNAL_PAYMENTS added in 8.3.0
  */
-export type BillingProgramAndroid = 'unspecified' | 'external-content-link' | 'external-offer';
+export type BillingProgramAndroid = 'unspecified' | 'external-content-link' | 'external-offer' | 'external-payments';
 
 /**
  * Result of checking billing program availability (Android)
@@ -102,6 +102,41 @@ export interface DeepLinkOptions {
   packageNameAndroid?: (string | null);
   /** Android SKU to open (required on Android) */
   skuAndroid?: (string | null);
+}
+
+/**
+ * Launch mode for developer billing option (Android)
+ * Determines how the external payment URL is launched
+ * Available in Google Play Billing Library 8.3.0+
+ */
+export type DeveloperBillingLaunchModeAndroid = 'unspecified' | 'launch-in-external-browser-or-app' | 'caller-will-launch-link';
+
+/**
+ * Parameters for developer billing option in purchase flow (Android)
+ * Used with BillingFlowParams to enable external payments flow
+ * Available in Google Play Billing Library 8.3.0+
+ */
+export interface DeveloperBillingOptionParamsAndroid {
+  /** The billing program (should be EXTERNAL_PAYMENTS for external payments flow) */
+  billingProgram: BillingProgramAndroid;
+  /** The URI where the external payment will be processed */
+  linkUri: string;
+  /** The launch mode for the external payment link */
+  launchMode: DeveloperBillingLaunchModeAndroid;
+}
+
+/**
+ * Details provided when user selects developer billing option (Android)
+ * Received via DeveloperProvidedBillingListener callback
+ * Available in Google Play Billing Library 8.3.0+
+ */
+export interface DeveloperProvidedBillingDetailsAndroid {
+  /**
+   * External transaction token used to report transactions made through developer billing.
+   * This token must be used when reporting the external transaction to Google Play.
+   * Must be reported within 24 hours of the transaction.
+   */
+  externalTransactionToken: string;
 }
 
 /**
@@ -270,7 +305,7 @@ export interface ExternalPurchaseNoticeResultIOS {
 
 export type FetchProductsResult = ProductOrSubscription[] | Product[] | ProductSubscription[] | null;
 
-export type IapEvent = 'purchase-updated' | 'purchase-error' | 'promoted-product-ios' | 'user-choice-billing-android';
+export type IapEvent = 'purchase-updated' | 'purchase-error' | 'promoted-product-ios' | 'user-choice-billing-android' | 'developer-provided-billing-android';
 
 export type IapPlatform = 'ios' | 'android';
 
@@ -286,6 +321,17 @@ export interface InitConnectionConfig {
    * If not specified, defaults to NONE (standard Google Play billing)
    */
   alternativeBillingModeAndroid?: (AlternativeBillingModeAndroid | null);
+  /**
+   * Enable a specific billing program during initConnection (Android 8.2.0+)
+   * This provides a cleaner alternative to calling enableBillingProgramAndroid() separately
+   * before initConnection().
+   *
+   * Available programs:
+   * - 'external-content-link': For linking to external content
+   * - 'external-offer': For external digital content offers
+   * - 'external-payments': For External Payments program (8.3.0+, Japan only)
+   */
+  enableBillingProgramAndroid?: (BillingProgramAndroid | null);
 }
 
 /**
@@ -926,6 +972,12 @@ export interface RequestPurchaseAndroidProps {
   obfuscatedProfileIdAndroid?: (string | null);
   /** List of product SKUs */
   skus: string[];
+  /**
+   * Developer billing option parameters for external payments flow (8.3.0+).
+   * When provided, the purchase flow will show a side-by-side choice between
+   * Google Play Billing and the developer's external payment option.
+   */
+  developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
 }
 
 export interface RequestPurchaseIosProps {
@@ -1008,6 +1060,12 @@ export interface RequestSubscriptionAndroidProps {
    * Use this instead of replacementModeAndroid for item-level replacement
    */
   subscriptionProductReplacementParams?: (SubscriptionProductReplacementParamsAndroid | null);
+  /**
+   * Developer billing option parameters for external payments flow (8.3.0+).
+   * When provided, the purchase flow will show a side-by-side choice between
+   * Google Play Billing and the developer's external payment option.
+   */
+  developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
 }
 
 export interface RequestSubscriptionIosProps {
@@ -1089,6 +1147,14 @@ export interface Subscription {
    * Only triggered when the user selects alternative billing instead of Google Play billing
    */
   userChoiceBillingAndroid: UserChoiceBillingDetails;
+  /**
+   * Fires when a user selects developer billing in the External Payments flow (Android only)
+   * Triggered when the user chooses to pay via the developer's external payment option
+   * instead of Google Play Billing in the side-by-side choice dialog.
+   * Contains the externalTransactionToken needed to report the transaction.
+   * Available in Google Play Billing Library 8.3.0+
+   */
+  developerProvidedBillingAndroid: DeveloperProvidedBillingDetailsAndroid;
 }
 
 
@@ -1379,6 +1445,7 @@ export type SubscriptionArgsMap = {
   purchaseError: never;
   purchaseUpdated: never;
   userChoiceBillingAndroid: never;
+  developerProvidedBillingAndroid: never;
 };
 
 export type SubscriptionField<K extends keyof Subscription> =

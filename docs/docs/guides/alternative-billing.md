@@ -315,6 +315,79 @@ if (success) {
 - **`link-to-digital-content-offer`**: Link to a digital content offer
 - **`link-to-app-download`**: Link to download an app
 
+### External Payments API (8.3.0+) - Japan Only
+
+:::tip New in 14.6.4
+Google Play Billing Library 8.3.0 introduces the External Payments program, which presents a **side-by-side choice** between Google Play Billing and the developer's external payment option directly in the purchase flow. This is currently only available in Japan.
+:::
+
+External Payments differs from User Choice Billing in that it shows both options side-by-side within the same dialog, rather than requiring a separate dialog.
+
+```typescript
+import {
+  enableBillingProgramAndroid,
+  developerProvidedBillingListenerAndroid,
+  requestPurchase,
+  initConnection,
+} from 'react-native-iap';
+
+// Option A: Enable External Payments via initConnection config (Recommended)
+await initConnection({
+  enableBillingProgramAndroid: 'external-payments',
+});
+
+// Option B: Enable manually BEFORE initConnection
+enableBillingProgramAndroid('external-payments');
+await initConnection();
+
+// Set up listener for when user selects developer billing
+const subscription = developerProvidedBillingListenerAndroid((details) => {
+  console.log('User selected developer billing');
+  console.log('External transaction token:', details.externalTransactionToken);
+
+  // Process payment through your external payment system
+  processExternalPayment(details.externalTransactionToken);
+
+  // Report to Google Play backend within 24 hours
+  reportToGooglePlay(details.externalTransactionToken);
+});
+
+// Request purchase with developer billing option
+await requestPurchase({
+  request: {
+    google: {
+      skus: ['premium_monthly'],
+      developerBillingOption: {
+        billingProgram: 'external-payments',
+        linkUri: 'https://your-website.com/payment',
+        launchMode: 'launch-in-external-browser-or-app',
+      },
+    },
+  },
+  type: 'subs',
+});
+
+// Clean up
+subscription.remove();
+```
+
+#### Key Differences: External Payments vs User Choice Billing
+
+| Feature | User Choice Billing | External Payments |
+|---------|-------------------|-------------------|
+| Billing Library | 7.0+ | 8.3.0+ |
+| Availability | Eligible regions | Japan only |
+| UI | Separate dialog | Side-by-side in purchase dialog |
+| Setup (Config) | `alternativeBillingModeAndroid: 'user-choice'` | `enableBillingProgramAndroid: 'external-payments'` |
+| Setup (Manual) | `initConnection({ alternativeBillingModeAndroid: 'user-choice' })` | `enableBillingProgramAndroid('external-payments')` before initConnection |
+| Listener | `userChoiceBillingListenerAndroid` | `developerProvidedBillingListenerAndroid` |
+| Purchase Props | `useAlternativeBilling: true` | `developerBillingOption: {...}` |
+
+#### Developer Billing Launch Modes
+
+- **`launch-in-external-browser-or-app`**: Google Play launches the external URL directly
+- **`caller-will-launch-link`**: Your app handles launching the URL after Play returns control
+
 ### Legacy Alternative Billing APIs (Pre-8.2.0)
 
 For apps using older Billing Library versions, the legacy APIs are still supported but deprecated:

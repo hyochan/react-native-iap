@@ -1478,6 +1478,52 @@ describe('Public API (src/index.ts)', () => {
     });
   });
 
+  describe('developerProvidedBillingListenerAndroid (External Payments 8.3.0+)', () => {
+    it('should warn and no-op on non-Android', () => {
+      (Platform as any).OS = 'ios';
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const sub = IAP.developerProvidedBillingListenerAndroid(jest.fn());
+      expect(typeof sub.remove).toBe('function');
+      expect(warn).toHaveBeenCalledWith(
+        '[RN-IAP]',
+        'developerProvidedBillingListenerAndroid: This listener is only available on Android',
+      );
+      warn.mockRestore();
+    });
+
+    it('should attach listener and forward details on Android', () => {
+      (Platform as any).OS = 'android';
+      mockIap.addDeveloperProvidedBillingListenerAndroid = jest.fn();
+      mockIap.removeDeveloperProvidedBillingListenerAndroid = jest.fn();
+
+      const listener = jest.fn();
+      const sub = IAP.developerProvidedBillingListenerAndroid(listener);
+
+      expect(
+        mockIap.addDeveloperProvidedBillingListenerAndroid,
+      ).toHaveBeenCalled();
+
+      // Simulate native event
+      const details = {
+        externalTransactionToken: 'external-token-123',
+      };
+      const wrapped =
+        mockIap.addDeveloperProvidedBillingListenerAndroid.mock.calls[0][0];
+      wrapped(details);
+
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          externalTransactionToken: 'external-token-123',
+        }),
+      );
+
+      sub.remove();
+      expect(
+        mockIap.removeDeveloperProvidedBillingListenerAndroid,
+      ).toHaveBeenCalled();
+    });
+  });
+
   describe('Billing Programs API (Android 8.2.0+)', () => {
     beforeEach(() => {
       jest.clearAllMocks();
@@ -1489,6 +1535,14 @@ describe('Public API (src/index.ts)', () => {
         IAP.enableBillingProgramAndroid('external-offer');
         expect(mockIap.enableBillingProgramAndroid).toHaveBeenCalledWith(
           'external-offer',
+        );
+      });
+
+      it('should support external-payments program (8.3.0+)', () => {
+        (Platform as any).OS = 'android';
+        IAP.enableBillingProgramAndroid('external-payments');
+        expect(mockIap.enableBillingProgramAndroid).toHaveBeenCalledWith(
+          'external-payments',
         );
       });
 
