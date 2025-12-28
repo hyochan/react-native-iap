@@ -97,6 +97,16 @@ export interface BillingProgramReportingDetailsAndroid {
   externalTransactionToken: string;
 }
 
+/**
+ * Parameters for creating billing program reporting details (Android)
+ * Used with createBillingProgramReportingDetailsAsync
+ * Available in Google Play Billing Library 8.3.0+
+ */
+export interface BillingProgramReportingDetailsParamsAndroid {
+  /** The billing program to create reporting details for */
+  billingProgram: BillingProgramAndroid;
+}
+
 export interface DeepLinkOptions {
   /** Android package name to target (required on Android) */
   packageNameAndroid?: (string | null);
@@ -119,10 +129,10 @@ export type DeveloperBillingLaunchModeAndroid = 'unspecified' | 'launch-in-exter
 export interface DeveloperBillingOptionParamsAndroid {
   /** The billing program (should be EXTERNAL_PAYMENTS for external payments flow) */
   billingProgram: BillingProgramAndroid;
-  /** The URI where the external payment will be processed */
-  linkUri: string;
   /** The launch mode for the external payment link */
   launchMode: DeveloperBillingLaunchModeAndroid;
+  /** The URI where the external payment will be processed */
+  linkUri: string;
 }
 
 /**
@@ -322,14 +332,9 @@ export interface InitConnectionConfig {
    */
   alternativeBillingModeAndroid?: (AlternativeBillingModeAndroid | null);
   /**
-   * Enable a specific billing program during initConnection (Android 8.2.0+)
-   * This provides a cleaner alternative to calling enableBillingProgramAndroid() separately
-   * before initConnection().
-   *
-   * Available programs:
-   * - 'external-content-link': For linking to external content
-   * - 'external-offer': For external digital content offers
-   * - 'external-payments': For External Payments program (8.3.0+, Japan only)
+   * Enable a specific billing program for Android (8.2.0+)
+   * When set, enables the specified billing program for external transactions.
+   * Use 'external-payments' for Developer Provided Billing (Japan only, 8.3.0+).
    */
   enableBillingProgramAndroid?: (BillingProgramAndroid | null);
 }
@@ -964,6 +969,12 @@ export interface RentalDetailsAndroid {
 }
 
 export interface RequestPurchaseAndroidProps {
+  /**
+   * Developer billing option parameters for external payments flow (8.3.0+).
+   * When provided, the purchase flow will show a side-by-side choice between
+   * Google Play Billing and the developer's external payment option.
+   */
+  developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
   /** Personalized offer flag */
   isOfferPersonalized?: (boolean | null);
   /** Obfuscated account ID */
@@ -972,12 +983,6 @@ export interface RequestPurchaseAndroidProps {
   obfuscatedProfileIdAndroid?: (string | null);
   /** List of product SKUs */
   skus: string[];
-  /**
-   * Developer billing option parameters for external payments flow (8.3.0+).
-   * When provided, the purchase flow will show a side-by-side choice between
-   * Google Play Billing and the developer's external payment option.
-   */
-  developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
 }
 
 export interface RequestPurchaseIosProps {
@@ -1038,6 +1043,12 @@ export interface RequestPurchasePropsByPlatforms {
 export type RequestPurchaseResult = Purchase | Purchase[] | null;
 
 export interface RequestSubscriptionAndroidProps {
+  /**
+   * Developer billing option parameters for external payments flow (8.3.0+).
+   * When provided, the purchase flow will show a side-by-side choice between
+   * Google Play Billing and the developer's external payment option.
+   */
+  developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
   /** Personalized offer flag */
   isOfferPersonalized?: (boolean | null);
   /** Obfuscated account ID */
@@ -1060,12 +1071,6 @@ export interface RequestSubscriptionAndroidProps {
    * Use this instead of replacementModeAndroid for item-level replacement
    */
   subscriptionProductReplacementParams?: (SubscriptionProductReplacementParamsAndroid | null);
-  /**
-   * Developer billing option parameters for external payments flow (8.3.0+).
-   * When provided, the purchase flow will show a side-by-side choice between
-   * Google Play Billing and the developer's external payment option.
-   */
-  developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
 }
 
 export interface RequestSubscriptionIosProps {
@@ -1136,6 +1141,14 @@ export interface RequestVerifyPurchaseWithIapkitResult {
 }
 
 export interface Subscription {
+  /**
+   * Fires when a user selects developer billing in the External Payments flow (Android only)
+   * Triggered when the user chooses to pay via the developer's external payment option
+   * instead of Google Play Billing in the side-by-side choice dialog.
+   * Contains the externalTransactionToken needed to report the transaction.
+   * Available in Google Play Billing Library 8.3.0+
+   */
+  developerProvidedBillingAndroid: DeveloperProvidedBillingDetailsAndroid;
   /** Fires when the App Store surfaces a promoted product (iOS only) */
   promotedProductIOS: string;
   /** Fires when a purchase fails or is cancelled */
@@ -1147,14 +1160,6 @@ export interface Subscription {
    * Only triggered when the user selects alternative billing instead of Google Play billing
    */
   userChoiceBillingAndroid: UserChoiceBillingDetails;
-  /**
-   * Fires when a user selects developer billing in the External Payments flow (Android only)
-   * Triggered when the user chooses to pay via the developer's external payment option
-   * instead of Google Play Billing in the side-by-side choice dialog.
-   * Contains the externalTransactionToken needed to report the transaction.
-   * Available in Google Play Billing Library 8.3.0+
-   */
-  developerProvidedBillingAndroid: DeveloperProvidedBillingDetailsAndroid;
 }
 
 
@@ -1441,11 +1446,11 @@ export type MutationFieldMap = {
 
 // -- Subscription helper types (auto-generated)
 export type SubscriptionArgsMap = {
+  developerProvidedBillingAndroid: never;
   promotedProductIOS: never;
   purchaseError: never;
   purchaseUpdated: never;
   userChoiceBillingAndroid: never;
-  developerProvidedBillingAndroid: never;
 };
 
 export type SubscriptionField<K extends keyof Subscription> =
