@@ -190,14 +190,9 @@ class HybridRnIap : HybridRnIapSpec() {
             // We created it above; reuse the shared instance
             val deferred = initDeferred!!
             try {
-                // Enable billing program if specified in config (before initConnection)
-                config?.enableBillingProgramAndroid?.let { program ->
-                    RnIapLog.payload("enableBillingProgramAndroid.fromConfig", mapOf("program" to program.name))
-                    val openIapProgram = mapBillingProgram(program)
-                    openIapStore.enableBillingProgram(openIapProgram)
-                }
-
                 // Convert Nitro config to OpenIAP config
+                // Note: enableBillingProgramAndroid is passed to OpenIapInitConnectionConfig
+                // which handles enabling the billing program internally
                 val openIapConfig = config?.let {
                     OpenIapInitConnectionConfig(
                         alternativeBillingModeAndroid = when (it.alternativeBillingModeAndroid) {
