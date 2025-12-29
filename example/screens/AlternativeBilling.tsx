@@ -17,8 +17,8 @@ import {
   endConnection,
   presentExternalPurchaseLinkIOS,
   // Billing Programs API (Android 8.2.0+)
-  // Note: enableBillingProgramAndroid must be called BEFORE initConnection
-  // In production, call it at app startup before any IAP initialization
+  // Note: enableBillingProgramAndroid must be set in InitConnectionConfig
+  // For User Choice Billing, use 'user-choice-billing' in enableBillingProgramAndroid
   isBillingProgramAvailableAndroid,
   createBillingProgramReportingDetailsAndroid,
   launchExternalLinkAndroid,
@@ -26,7 +26,6 @@ import {
   developerProvidedBillingListenerAndroid,
   type Product,
   type Purchase,
-  type AlternativeBillingModeAndroid,
   type PurchaseError,
   type BillingProgramAndroid,
   type DeveloperProvidedBillingDetailsAndroid,
@@ -46,52 +45,45 @@ import {CONSUMABLE_PRODUCT_IDS} from '../src/utils/constants';
  * - Must implement deep link to return to app
  *
  * Android (Billing Programs API - Recommended for 8.2.0+):
- * - Step 1: Enable billing program with enableBillingProgramAndroid() BEFORE initConnection
+ * - Step 1: Set enableBillingProgramAndroid in InitConnectionConfig
  * - Step 2: Check availability with isBillingProgramAvailableAndroid()
  * - Step 3: Launch external link with launchExternalLinkAndroid()
  * - Step 4: Create reporting token with createBillingProgramReportingDetailsAndroid()
  * - Must report token to Google Play backend within 24 hours
  *
+ * Android (User Choice Billing - 7.0+):
+ * - Set enableBillingProgramAndroid: 'user-choice-billing' in InitConnectionConfig
+ * - Users choose between Google Play and your payment system
+ * - If user selects Google Play: onPurchaseUpdated callback
+ * - If user selects alternative: userChoiceBillingListener fires
+ *
  * Android (External Payments API - 8.3.0+ Japan only):
- * - Step 1: Enable with enableBillingProgramAndroid('external-payments') or initConnection config
- * - Step 2: Call requestPurchase with developerBillingOption
+ * - Set enableBillingProgramAndroid: 'external-payments' in InitConnectionConfig
+ * - Call requestPurchase with developerBillingOption
  * - Shows side-by-side choice dialog (Google Play vs Developer billing)
  * - If user selects Google Play: purchaseUpdatedListener fires
  * - If user selects Developer billing: developerProvidedBillingListenerAndroid fires
  * - Must report externalTransactionToken to Google Play within 24 hours
  *
- * Android (Legacy - Alternative Billing Only):
- * - Step 1: Check availability with checkAlternativeBillingAvailabilityAndroid()
- * - Step 2: Show information dialog with showAlternativeBillingDialogAndroid()
- * - Step 3: Process payment in your payment system
- * - Step 4: Create token with createAlternativeBillingTokenAndroid()
- * - Must report token to Google Play backend within 24 hours
- * - No onPurchaseUpdated callback
- *
- * Android (Legacy - User Choice Billing):
- * - Call requestPurchase() normally
- * - Google shows selection dialog automatically
- * - If user selects Google Play: onPurchaseUpdated callback
- * - If user selects alternative: No callback (manual flow required)
+ * ⚠️ DEPRECATED APIs (still supported but not recommended):
+ * - alternativeBillingModeAndroid in InitConnectionConfig
+ *   → Use enableBillingProgramAndroid instead:
+ *   - 'user-choice' → 'user-choice-billing'
+ *   - 'alternative-only' → 'external-offer'
  */
 
-// Android Billing Mode types
-type AndroidBillingMode =
-  | 'billing-programs'
-  | 'external-payments'
-  | 'legacy-alternative'
-  | 'legacy-user-choice';
+// Android Billing Mode types - all unified under BillingProgramAndroid
+type AndroidBillingMode = 'billing-programs' | 'external-payments';
 
 function AlternativeBillingScreen() {
   const [externalUrl, setExternalUrl] = useState('https://openiap.dev');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [billingMode, setBillingMode] =
-    useState<AlternativeBillingModeAndroid>('alternative-only');
   const [androidBillingMode, setAndroidBillingMode] =
     useState<AndroidBillingMode>('billing-programs');
   const [billingProgram, setBillingProgram] =
     useState<BillingProgramAndroid>('external-offer');
   const [showModeSelector, setShowModeSelector] = useState(false);
+  const [showProgramSelector, setShowProgramSelector] = useState(false);
   const [purchaseResult, setPurchaseResult] = useState<string>('');
   const [externalPaymentsToken, setExternalPaymentsToken] = useState<
     string | null
@@ -100,18 +92,11 @@ function AlternativeBillingScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
 
-  // Initialize with alternative billing config
-  const {
-    connected,
-    products,
-    fetchProducts,
-    finishTransaction,
-    checkAlternativeBillingAvailabilityAndroid,
-    showAlternativeBillingDialogAndroid,
-    createAlternativeBillingTokenAndroid,
-  } = useIAP({
-    alternativeBillingModeAndroid:
-      Platform.OS === 'android' ? billingMode : undefined,
+  // Initialize with billing program config (recommended over deprecated alternativeBillingModeAndroid)
+  const {connected, products, fetchProducts, finishTransaction} = useIAP({
+    // Use enableBillingProgramAndroid instead of deprecated alternativeBillingModeAndroid
+    enableBillingProgramAndroid:
+      Platform.OS === 'android' ? billingProgram : undefined,
     onPurchaseSuccess: async (purchase: Purchase) => {
       console.log('Purchase successful:', purchase);
       setLastPurchase(purchase);
@@ -193,12 +178,12 @@ function AlternativeBillingScreen() {
     };
   }, []);
 
-  // Reconnect with new billing mode
-  const reconnectWithMode = useCallback(
-    async (newMode: AlternativeBillingModeAndroid) => {
+  // Reconnect with new billing program
+  const reconnectWithBillingProgram = useCallback(
+    async (newProgram: BillingProgramAndroid) => {
       try {
         setIsReconnecting(true);
-        setPurchaseResult('Reconnecting with new billing mode...');
+        setPurchaseResult('Reconnecting with new billing program...');
 
         // End current connection
         await endConnection();
@@ -208,18 +193,14 @@ function AlternativeBillingScreen() {
           setTimeout(() => resolve(), 500);
         });
 
-        // Reinitialize with new mode
+        // Reinitialize with new billing program (recommended API)
         const config =
           Platform.OS === 'android'
-            ? {alternativeBillingModeAndroid: newMode}
+            ? {enableBillingProgramAndroid: newProgram}
             : undefined;
         await initConnection(config);
 
-        setPurchaseResult(
-          `✅ Reconnected with ${
-            newMode === 'alternative-only' ? 'Alternative Only' : 'User Choice'
-          } mode`,
-        );
+        setPurchaseResult(`✅ Reconnected with ${newProgram} program`);
 
         // Reload products
         await fetchProducts({skus: CONSUMABLE_PRODUCT_IDS, type: 'in-app'});
@@ -275,118 +256,6 @@ function AlternativeBillingScreen() {
     },
     [externalUrl],
   );
-
-  // Handle Android Alternative Billing Only (3-step flow)
-  const handleAndroidAlternativeBillingOnly = useCallback(
-    async (product: Product) => {
-      console.log(
-        '[Android] Starting alternative billing only flow:',
-        product.id,
-      );
-
-      setIsProcessing(true);
-      setPurchaseResult('Checking alternative billing availability...');
-
-      try {
-        // Step 1: Check availability
-        const isAvailable = await checkAlternativeBillingAvailabilityAndroid!();
-        console.log('[Android] Alternative billing available:', isAvailable);
-
-        if (!isAvailable) {
-          setPurchaseResult('❌ Alternative billing not available');
-          Alert.alert(
-            'Error',
-            'Alternative billing is not available for this user/device',
-          );
-          setIsProcessing(false);
-          return;
-        }
-
-        setPurchaseResult('Showing information dialog...');
-
-        // Step 2: Show information dialog
-        const userAccepted = await showAlternativeBillingDialogAndroid!();
-        console.log('[Android] User accepted dialog:', userAccepted);
-
-        if (!userAccepted) {
-          setPurchaseResult('ℹ️ User cancelled');
-          setIsProcessing(false);
-          return;
-        }
-
-        setPurchaseResult('Creating token...');
-
-        // Step 2.5: In production, process payment here with your payment system
-        console.log('[Android] ⚠️ Payment processing not implemented (DEMO)');
-
-        // Step 3: Create token (after successful payment)
-        const token = await createAlternativeBillingTokenAndroid!(product.id);
-        console.log('[Android] Token created:', token);
-
-        if (token) {
-          setPurchaseResult(
-            `✅ Alternative billing completed (DEMO)\n\nProduct: ${
-              product.id
-            }\nToken: ${token.substring(
-              0,
-              20,
-            )}...\n\n⚠️ Important:\n1. Process payment with your payment system\n2. Report token to Google Play backend within 24 hours\n3. No onPurchaseUpdated callback`,
-          );
-          Alert.alert(
-            'Demo Complete',
-            'Alternative billing flow completed.\n\nIn production:\n1. Process payment with your system\n2. Report token to Google backend\n3. Validate on your server',
-          );
-        } else {
-          setPurchaseResult('❌ Failed to create reporting token');
-          Alert.alert('Error', 'Failed to create reporting token');
-        }
-      } catch (error: any) {
-        console.error('[Android] Alternative billing error:', error);
-        setPurchaseResult(`❌ Error: ${error.message}`);
-        Alert.alert('Error', error.message);
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [
-      checkAlternativeBillingAvailabilityAndroid,
-      showAlternativeBillingDialogAndroid,
-      createAlternativeBillingTokenAndroid,
-    ],
-  );
-
-  // Handle Android User Choice Billing (Legacy)
-  const handleAndroidUserChoiceBilling = useCallback((product: Product) => {
-    console.log('[Android] Starting user choice billing:', product.id);
-
-    setIsProcessing(true);
-    setPurchaseResult('Showing user choice dialog...');
-
-    requestPurchase({
-      request: {
-        android: {
-          skus: [product.id],
-        },
-      },
-      type: 'in-app',
-      useAlternativeBilling: true,
-    })
-      .then(() => {
-        // Google will show selection dialog
-        // If user selects Google Play: onPurchaseUpdated callback
-        // If user selects alternative: No callback (manual flow required)
-        setPurchaseResult(
-          `🔄 User choice dialog shown\n\nProduct: ${product.id}\n\nIf user selects:\n- Google Play: onPurchaseUpdated callback\n- Alternative: Manual flow required`,
-        );
-        setIsProcessing(false);
-      })
-      .catch((error) => {
-        console.error('[Android] User choice billing error:', error);
-        setPurchaseResult(`❌ Error: ${error.message}`);
-        Alert.alert('Error', error.message);
-        setIsProcessing(false);
-      });
-  }, []);
 
   // Handle Android Billing Programs API (Recommended for 8.2.0+)
   const handleAndroidBillingPrograms = useCallback(async () => {
@@ -512,10 +381,6 @@ function AlternativeBillingScreen() {
           void handleAndroidBillingPrograms();
         } else if (androidBillingMode === 'external-payments') {
           void handleAndroidExternalPayments(product);
-        } else if (androidBillingMode === 'legacy-alternative') {
-          void handleAndroidAlternativeBillingOnly(product);
-        } else {
-          handleAndroidUserChoiceBilling(product);
         }
       }
     },
@@ -524,8 +389,6 @@ function AlternativeBillingScreen() {
       handleIosAlternativeBillingPurchase,
       handleAndroidBillingPrograms,
       handleAndroidExternalPayments,
-      handleAndroidAlternativeBillingOnly,
-      handleAndroidUserChoiceBilling,
     ],
   );
 
@@ -566,12 +429,10 @@ function AlternativeBillingScreen() {
             <>
               <Text style={styles.infoText}>
                 {androidBillingMode === 'billing-programs'
-                  ? '• Billing Programs API (8.2.0+)\n• Recommended for new implementations\n• Uses external-offer or external-content-link\n• Cleaner API with launchExternalLink\n• Must report token within 24h'
-                  : androidBillingMode === 'external-payments'
-                    ? '• External Payments (8.3.0+ - Japan only)\n• Side-by-side choice in purchase dialog\n• User sees Google Play & your option together\n• If Google Play: purchaseUpdatedListener\n• If Developer billing: developerProvidedBillingListener\n• Must report token within 24h'
-                    : androidBillingMode === 'legacy-alternative'
-                      ? '• Alternative Billing Only Mode (Legacy)\n• Users CANNOT use Google Play billing\n• Only your payment system available\n• 3-step manual flow required\n• No onPurchaseUpdated callback\n• Must report to Google within 24h'
-                      : '• User Choice Billing Mode (Legacy)\n• Users choose between:\n  - Google Play (30% fee)\n  - Your payment system (lower fee)\n• Google shows selection dialog\n• If Google Play: onPurchaseUpdated\n• If alternative: Manual flow'}
+                  ? billingProgram === 'user-choice-billing'
+                    ? '• User Choice Billing (7.0+)\n• Users choose between Google Play & your payment\n• If Google Play: purchaseUpdatedListener\n• If alternative: userChoiceBillingListener\n• Must report token within 24h'
+                    : '• Billing Programs API (8.2.0+)\n• Recommended for new implementations\n• Uses external-offer, external-content-link, or user-choice-billing\n• Cleaner API with launchExternalLink\n• Must report token within 24h'
+                  : '• External Payments (8.3.0+ - Japan only)\n• Side-by-side choice in purchase dialog\n• User sees Google Play & your option together\n• If Google Play: purchaseUpdatedListener\n• If Developer billing: developerProvidedBillingListener\n• Must report token within 24h'}
               </Text>
               <Text style={styles.warningText}>
                 ⚠️ Requires approval from Google{'\n'}
@@ -593,11 +454,7 @@ function AlternativeBillingScreen() {
               <Text style={styles.modeSelectorText}>
                 {androidBillingMode === 'billing-programs'
                   ? '🆕 Billing Programs API (8.2.0+)'
-                  : androidBillingMode === 'external-payments'
-                    ? '🇯🇵 External Payments (8.3.0+ Japan)'
-                    : androidBillingMode === 'legacy-alternative'
-                      ? 'Legacy: Alternative Only'
-                      : 'Legacy: User Choice'}
+                  : '🇯🇵 External Payments (8.3.0+ Japan)'}
               </Text>
               <Text style={styles.modeSelectorArrow}>▼</Text>
             </TouchableOpacity>
@@ -606,39 +463,31 @@ function AlternativeBillingScreen() {
             {androidBillingMode === 'billing-programs' && (
               <View style={styles.programSelector}>
                 <Text style={styles.programLabel}>Program Type:</Text>
-                <View style={styles.programOptions}>
-                  <TouchableOpacity
-                    style={[
-                      styles.programOption,
-                      billingProgram === 'external-offer' &&
-                        styles.programOptionSelected,
-                    ]}
-                    onPress={() => setBillingProgram('external-offer')}
-                  >
-                    <Text style={styles.programOptionText}>External Offer</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.programOption,
-                      billingProgram === 'external-content-link' &&
-                        styles.programOptionSelected,
-                    ]}
-                    onPress={() => setBillingProgram('external-content-link')}
-                  >
-                    <Text style={styles.programOptionText}>
-                      External Content
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={styles.modeSelector}
+                  onPress={() => setShowProgramSelector(true)}
+                >
+                  <Text style={styles.modeSelectorText}>
+                    {billingProgram === 'external-offer'
+                      ? 'External Offer (8.2.0+)'
+                      : billingProgram === 'external-content-link'
+                        ? 'External Content Link (8.2.0+)'
+                        : billingProgram === 'user-choice-billing'
+                          ? 'User Choice Billing (7.0+)'
+                          : billingProgram}
+                  </Text>
+                  <Text style={styles.modeSelectorArrow}>▼</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
         ) : null}
 
-        {/* External URL Input (Android Billing Programs, External Payments, or iOS) */}
+        {/* External URL Input (Android Billing Programs except user-choice, External Payments, or iOS) */}
         {Platform.OS === 'ios' ||
         (Platform.OS === 'android' &&
-          (androidBillingMode === 'billing-programs' ||
+          ((androidBillingMode === 'billing-programs' &&
+            billingProgram !== 'user-choice-billing') ||
             androidBillingMode === 'external-payments')) ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>External Purchase URL</Text>
@@ -681,11 +530,7 @@ function AlternativeBillingScreen() {
               Current mode:{' '}
               {androidBillingMode === 'billing-programs'
                 ? `BILLING_PROGRAMS (${billingProgram})`
-                : androidBillingMode === 'external-payments'
-                  ? 'EXTERNAL_PAYMENTS (8.3.0+ Japan)'
-                  : androidBillingMode === 'legacy-alternative'
-                    ? 'LEGACY_ALTERNATIVE_ONLY'
-                    : 'LEGACY_USER_CHOICE'}
+                : 'EXTERNAL_PAYMENTS (8.3.0+ Japan)'}
             </Text>
           ) : null}
         </View>
@@ -762,9 +607,11 @@ function AlternativeBillingScreen() {
                   ? 'Processing...'
                   : Platform.OS === 'ios'
                     ? '🛒 Buy (External URL)'
-                    : billingMode === 'alternative-only'
-                      ? '🛒 Buy (Alternative Only)'
-                      : '🛒 Buy (User Choice)'}
+                    : billingProgram === 'external-offer'
+                      ? '🛒 Buy (External Offer)'
+                      : billingProgram === 'user-choice-billing'
+                        ? '🛒 Buy (User Choice)'
+                        : `🛒 Buy (${billingProgram})`}
               </Text>
             </TouchableOpacity>
           </View>
@@ -868,15 +715,20 @@ function AlternativeBillingScreen() {
                 ]}
                 onPress={() => {
                   setAndroidBillingMode('billing-programs');
+                  // Keep current billing program if already set to a billing-programs option
+                  if (billingProgram === 'external-payments') {
+                    setBillingProgram('external-offer');
+                    void reconnectWithBillingProgram('external-offer');
+                  }
                   setShowModeSelector(false);
                 }}
               >
                 <Text style={styles.modeOptionTitle}>
-                  🆕 Billing Programs API (8.2.0+)
+                  🆕 Billing Programs API (7.0+/8.2.0+)
                 </Text>
                 <Text style={styles.modeOptionDescription}>
-                  Recommended for new apps. Uses external-offer or
-                  external-content-link programs with cleaner API.
+                  Recommended. Includes external-offer, external-content-link,
+                  and user-choice-billing programs.
                 </Text>
               </TouchableOpacity>
 
@@ -889,6 +741,8 @@ function AlternativeBillingScreen() {
                 ]}
                 onPress={() => {
                   setAndroidBillingMode('external-payments');
+                  setBillingProgram('external-payments');
+                  void reconnectWithBillingProgram('external-payments');
                   setShowModeSelector(false);
                 }}
               >
@@ -901,55 +755,98 @@ function AlternativeBillingScreen() {
                 </Text>
               </TouchableOpacity>
 
-              <Text style={styles.modalSectionTitle}>Legacy APIs</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowModeSelector(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
-              {/* Legacy Alternative Billing Only */}
+      {/* Program Selector Modal (Android) */}
+      <Modal
+        visible={showProgramSelector}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowProgramSelector(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView>
+              <Text style={styles.modalTitle}>Select Billing Program</Text>
+
+              {/* External Offer */}
               <TouchableOpacity
                 style={[
                   styles.modeOption,
-                  androidBillingMode === 'legacy-alternative' &&
+                  billingProgram === 'external-offer' &&
                     styles.modeOptionSelected,
                 ]}
                 onPress={() => {
-                  setAndroidBillingMode('legacy-alternative');
-                  setBillingMode('alternative-only');
-                  setShowModeSelector(false);
-                  void reconnectWithMode('alternative-only');
+                  setBillingProgram('external-offer');
+                  void reconnectWithBillingProgram('external-offer');
+                  setShowProgramSelector(false);
                 }}
               >
                 <Text style={styles.modeOptionTitle}>
-                  Legacy: Alternative Billing Only
+                  External Offer (8.2.0+)
                 </Text>
                 <Text style={styles.modeOptionDescription}>
-                  Only your payment system. 3-step manual flow required.
+                  Redirect users to your external payment site. Best for apps
+                  with existing payment infrastructure.
                 </Text>
               </TouchableOpacity>
 
-              {/* Legacy User Choice */}
+              {/* External Content Link */}
               <TouchableOpacity
                 style={[
                   styles.modeOption,
-                  androidBillingMode === 'legacy-user-choice' &&
+                  billingProgram === 'external-content-link' &&
                     styles.modeOptionSelected,
                 ]}
                 onPress={() => {
-                  setAndroidBillingMode('legacy-user-choice');
-                  setBillingMode('user-choice');
-                  setShowModeSelector(false);
-                  void reconnectWithMode('user-choice');
+                  setBillingProgram('external-content-link');
+                  void reconnectWithBillingProgram('external-content-link');
+                  setShowProgramSelector(false);
                 }}
               >
                 <Text style={styles.modeOptionTitle}>
-                  Legacy: User Choice Billing
+                  External Content Link (8.2.0+)
                 </Text>
                 <Text style={styles.modeOptionDescription}>
-                  Users choose between Google Play and your payment system.
+                  Link to external content offers. Suitable for content-based
+                  subscriptions.
+                </Text>
+              </TouchableOpacity>
+
+              {/* User Choice Billing */}
+              <TouchableOpacity
+                style={[
+                  styles.modeOption,
+                  billingProgram === 'user-choice-billing' &&
+                    styles.modeOptionSelected,
+                ]}
+                onPress={() => {
+                  setBillingProgram('user-choice-billing');
+                  void reconnectWithBillingProgram('user-choice-billing');
+                  setShowProgramSelector(false);
+                }}
+              >
+                <Text style={styles.modeOptionTitle}>
+                  User Choice Billing (7.0+)
+                </Text>
+                <Text style={styles.modeOptionDescription}>
+                  Let users choose between Google Play and your payment system.
+                  Shows a selection dialog.
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.modalCloseButton}
-                onPress={() => setShowModeSelector(false)}
+                onPress={() => setShowProgramSelector(false)}
               >
                 <Text style={styles.modalCloseButtonText}>Cancel</Text>
               </TouchableOpacity>

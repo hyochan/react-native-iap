@@ -146,7 +146,7 @@ For Expo projects, add the plugin to your `app.json` or `expo.json`:
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "2.1.20"
+            "kotlinVersion": "2.2.0"
           }
         }
       ]

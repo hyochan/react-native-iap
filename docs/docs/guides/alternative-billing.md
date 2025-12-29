@@ -302,8 +302,12 @@ if (success) {
 
 #### Billing Program Types
 
-- **`external-content-link`**: For linking to external content outside the app
-- **`external-offer`**: For offering digital content purchases outside Google Play
+| Program | Description | Billing Library |
+|---------|-------------|----------------|
+| `external-offer` | External offers for digital content purchases | 8.2.0+ |
+| `external-content-link` | Links to external content outside the app | 8.2.0+ |
+| `user-choice-billing` | User choice between Google Play and alternative billing | 7.0+ (unified API in 14.7.0) |
+| `external-payments` | Side-by-side payment choice (Japan only) | 8.3.0+ |
 
 #### Launch Modes
 
@@ -378,50 +382,59 @@ subscription.remove();
 | Billing Library | 7.0+ | 8.3.0+ |
 | Availability | Eligible regions | Japan only |
 | UI | Separate dialog | Side-by-side in purchase dialog |
-| Setup (Config) | `alternativeBillingModeAndroid: 'user-choice'` | `enableBillingProgramAndroid: 'external-payments'` |
-| Setup (Manual) | `initConnection({ alternativeBillingModeAndroid: 'user-choice' })` | `enableBillingProgramAndroid('external-payments')` before initConnection |
+| Setup (Recommended) | `enableBillingProgramAndroid: 'user-choice-billing'` | `enableBillingProgramAndroid: 'external-payments'` |
+| Setup (Deprecated) | `alternativeBillingModeAndroid: 'user-choice'` | N/A |
 | Listener | `userChoiceBillingListenerAndroid` | `developerProvidedBillingListenerAndroid` |
-| Purchase Props | `useAlternativeBilling: true` | `developerBillingOption: {...}` |
+| Purchase Props | ~~`useAlternativeBilling: true`~~ (deprecated, no effect) | `developerBillingOption: {...}` |
 
 #### Developer Billing Launch Modes
 
 - **`launch-in-external-browser-or-app`**: Google Play launches the external URL directly
 - **`caller-will-launch-link`**: Your app handles launching the URL after Play returns control
 
-### Legacy Alternative Billing APIs (Pre-8.2.0)
+### User Choice Billing (7.0+) - Now via BillingProgramAndroid
 
-For apps using older Billing Library versions, the legacy APIs are still supported but deprecated:
-
-Android supports two alternative billing modes:
-
-1. **Alternative Billing Only**: Users can ONLY use your payment system
-2. **User Choice Billing**: Users choose between Google Play or your payment system
-
-### Configuring Alternative Billing Mode
-
-Set the billing mode when initializing the connection:
+:::tip Updated in v14.7.0
+User Choice Billing is now configured via `enableBillingProgramAndroid: 'user-choice-billing'` instead of the deprecated `alternativeBillingModeAndroid`. This unifies all billing programs under a single API.
+:::
 
 ```typescript
 import {initConnection} from 'react-native-iap';
 
-// Alternative Billing Only mode
+// Recommended: Use enableBillingProgramAndroid
 await initConnection({
-  alternativeBillingModeAndroid: 'alternative-only',
+  enableBillingProgramAndroid: 'user-choice-billing',
 });
 
-// User Choice Billing mode
-await initConnection({
-  alternativeBillingModeAndroid: 'user-choice',
-});
-```
-
-Or use the `useIAP` hook:
-
-```typescript
+// Or with useIAP hook
 import {useIAP} from 'react-native-iap';
 
 const {connected} = useIAP({
-  alternativeBillingModeAndroid: 'alternative-only', // or 'user-choice'
+  enableBillingProgramAndroid: 'user-choice-billing',
+});
+```
+
+### Legacy Alternative Billing APIs (Deprecated)
+
+:::warning Deprecated in v14.7.0
+The `alternativeBillingModeAndroid` option is deprecated. Use `enableBillingProgramAndroid` instead:
+- `'user-choice'` → `'user-choice-billing'`
+- `'alternative-only'` → `'external-offer'`
+:::
+
+For backwards compatibility, the legacy APIs are still supported:
+
+```typescript
+import {initConnection} from 'react-native-iap';
+
+// DEPRECATED: Alternative Billing Only mode
+await initConnection({
+  alternativeBillingModeAndroid: 'alternative-only', // Use enableBillingProgramAndroid: 'external-offer' instead
+});
+
+// DEPRECATED: User Choice Billing mode
+await initConnection({
+  alternativeBillingModeAndroid: 'user-choice', // Use enableBillingProgramAndroid: 'user-choice-billing' instead
 });
 ```
 
@@ -547,9 +560,9 @@ The example demonstrates:
 
 #### "User choice dialog not showing"
 
-- Verify `alternativeBillingModeAndroid: 'user-choice'`
-- Ensure `useAlternativeBilling: true` in request
-- Check Google Play configuration
+- Verify `enableBillingProgramAndroid: 'user-choice-billing'` is set
+- Check Google Play Console configuration
+- Ensure the user is in an eligible region
 
 ## Platform Requirements
 

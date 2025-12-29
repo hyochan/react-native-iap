@@ -34,6 +34,7 @@ import type {
   RequestPurchaseProps,
   RequestPurchaseResult,
   AlternativeBillingModeAndroid,
+  BillingProgramAndroid,
   UserChoiceBillingDetails,
   VerifyPurchaseProps,
   VerifyPurchaseResult,
@@ -105,7 +106,19 @@ export interface UseIapOptions {
   onPurchaseError?: (error: PurchaseError) => void;
   onPromotedProductIOS?: (product: Product) => void;
   onUserChoiceBillingAndroid?: (details: UserChoiceBillingDetails) => void;
+  /**
+   * @deprecated Use enableBillingProgramAndroid instead.
+   * - 'user-choice' → 'user-choice-billing'
+   * - 'alternative-only' → 'external-offer'
+   */
   alternativeBillingModeAndroid?: AlternativeBillingModeAndroid;
+  /**
+   * Enable a specific billing program for Android (8.2.0+)
+   * Use 'user-choice-billing' for User Choice Billing (7.0+).
+   * Use 'external-offer' for External Offer program.
+   * Use 'external-payments' for Developer Provided Billing (Japan only, 8.3.0+).
+   */
+  enableBillingProgramAndroid?: BillingProgramAndroid;
 }
 
 /**
@@ -391,14 +404,29 @@ export function useIAP(options?: UseIapOptions): UseIap {
     }
 
     // Initialize connection with config
-    const config =
-      Platform.OS === 'android' &&
-      optionsRef.current?.alternativeBillingModeAndroid
-        ? {
-            alternativeBillingModeAndroid:
-              optionsRef.current.alternativeBillingModeAndroid,
-          }
-        : undefined;
+    // Prefer enableBillingProgramAndroid over deprecated alternativeBillingModeAndroid
+    let config:
+      | {
+          enableBillingProgramAndroid?: BillingProgramAndroid;
+          alternativeBillingModeAndroid?: AlternativeBillingModeAndroid;
+        }
+      | undefined;
+
+    if (Platform.OS === 'android') {
+      if (optionsRef.current?.enableBillingProgramAndroid) {
+        config = {
+          enableBillingProgramAndroid:
+            optionsRef.current.enableBillingProgramAndroid,
+        };
+      } else if (optionsRef.current?.alternativeBillingModeAndroid) {
+        // Deprecated: use alternativeBillingModeAndroid for backwards compatibility
+        config = {
+          alternativeBillingModeAndroid:
+            optionsRef.current.alternativeBillingModeAndroid,
+        };
+      }
+    }
+
     const result = await initConnection(config);
     setConnected(result);
     if (!result) {

@@ -349,7 +349,13 @@ const handlePurchase = async (productId) => {
 
   setIsPurchasing(true);
   try {
-    await requestPurchase({sku: productId});
+    await requestPurchase({
+      request: {
+        apple: {sku: productId},
+        google: {skus: [productId]},
+      },
+      type: 'in-app',
+    });
   } finally {
     setIsPurchasing(false);
   }

@@ -1033,9 +1033,6 @@ class HybridRnIap : HybridRnIapSpec() {
         return when (state) {
             dev.hyo.openiap.PurchaseState.Purchased -> PurchaseState.PURCHASED
             dev.hyo.openiap.PurchaseState.Pending -> PurchaseState.PENDING
-            dev.hyo.openiap.PurchaseState.Deferred -> PurchaseState.DEFERRED
-            dev.hyo.openiap.PurchaseState.Restored -> PurchaseState.RESTORED
-            dev.hyo.openiap.PurchaseState.Failed -> PurchaseState.FAILED
             dev.hyo.openiap.PurchaseState.Unknown -> PurchaseState.UNKNOWN
         }
     }
@@ -1468,7 +1465,7 @@ class HybridRnIap : HybridRnIapSpec() {
     // -------------------------------------------------------------------------
 
     // Create OpenIapStore lazily for Billing Programs API
-    private val openIapStore: OpenIapStore by lazy { OpenIapStore(context) }
+    private val openIapStore: OpenIapStore by lazy { OpenIapStore(openIap) }
 
     override fun enableBillingProgramAndroid(program: BillingProgramAndroid) {
         RnIapLog.payload("enableBillingProgramAndroid", mapOf("program" to program.name))
@@ -1566,6 +1563,7 @@ class HybridRnIap : HybridRnIapSpec() {
             BillingProgramAndroid.EXTERNAL_CONTENT_LINK -> OpenIapBillingProgramAndroid.ExternalContentLink
             BillingProgramAndroid.EXTERNAL_OFFER -> OpenIapBillingProgramAndroid.ExternalOffer
             BillingProgramAndroid.EXTERNAL_PAYMENTS -> OpenIapBillingProgramAndroid.ExternalPayments
+            BillingProgramAndroid.USER_CHOICE_BILLING -> OpenIapBillingProgramAndroid.UserChoiceBilling
         }
     }
 

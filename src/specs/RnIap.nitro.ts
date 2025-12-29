@@ -45,12 +45,13 @@ export type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 // Note: Nitro requires at least 2 values for union types
 export type PurchaseVerificationProvider = 'iapkit' | 'none';
 
-// Billing Programs API types (Android 8.2.0+, 8.3.0+ for external-payments)
+// Billing Programs API types (Android 8.2.0+, 8.3.0+ for external-payments, 7.0+ for user-choice-billing)
 export type BillingProgramAndroid =
   | 'unspecified'
   | 'external-content-link'
   | 'external-offer'
-  | 'external-payments';
+  | 'external-payments'
+  | 'user-choice-billing';
 
 // Developer Billing Launch Mode (Android 8.3.0+)
 export type DeveloperBillingLaunchModeAndroid =

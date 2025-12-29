@@ -140,6 +140,42 @@ describe('type-bridge utilities', () => {
       expect(result.purchaseState).toBe('purchased');
     });
 
+    it('normalizes restored purchases to purchased state', () => {
+      // Test legacy 'restored' state from native layer (not part of PurchaseState type)
+      const nitroPurchase = {
+        id: 'tx-restored',
+        productId: 'sku-ios',
+        transactionDate: 123,
+        purchaseToken: 'token-ios',
+        platform: 'ios',
+        store: 'apple',
+        quantity: 1,
+        purchaseState: 'restored', // Legacy value from native
+        isAutoRenewing: false,
+      } as unknown as NitroPurchase;
+
+      const result = convertNitroPurchaseToPurchase(nitroPurchase);
+      expect(result.purchaseState).toBe('purchased');
+    });
+
+    it('normalizes deferred purchases to pending state', () => {
+      // Test legacy 'deferred' state from native layer (not part of PurchaseState type)
+      const nitroPurchase = {
+        id: 'tx-deferred',
+        productId: 'sku-ios',
+        transactionDate: 123,
+        purchaseToken: 'token-ios',
+        platform: 'ios',
+        store: 'apple',
+        quantity: 1,
+        purchaseState: 'deferred', // Legacy value from native
+        isAutoRenewing: false,
+      } as unknown as NitroPurchase;
+
+      const result = convertNitroPurchaseToPurchase(nitroPurchase);
+      expect(result.purchaseState).toBe('pending');
+    });
+
     it('converts Android purchases and maps purchase state', () => {
       const nitroPurchase: NitroPurchase = {
         id: 'tx-android',
