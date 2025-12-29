@@ -205,10 +205,10 @@ const buySubscription = (subscriptionId: string, subscription?: any) => {
         sku: subscriptionId,
         appAccountToken: 'user-123',
       },
-      android: {
+      google: {
         skus: [subscriptionId],
         subscriptionOffers:
-          subscription?.subscriptionOfferDetails?.map((offer) => ({
+          subscription?.subscriptionOfferDetailsAndroid?.map((offer) => ({
             sku: subscriptionId,
             offerToken: offer.offerToken,
           })) || [],

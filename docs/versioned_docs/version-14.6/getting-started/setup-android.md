@@ -124,13 +124,15 @@ const AndroidSubscriptionItem = ({
     if (subscription.platform === 'android') {
       requestPurchase({
         request: {
-          skus: [subscription.id],
-          subscriptionOffers: [
-            {
-              sku: subscription.id,
-              offerToken: offer.offerToken,
-            },
-          ],
+          google: {
+            skus: [subscription.id],
+            subscriptionOffers: [
+              {
+                sku: subscription.id,
+                offerToken: offer.offerToken,
+              },
+            ],
+          },
         },
         type: 'subs',
       });
@@ -142,7 +144,7 @@ const AndroidSubscriptionItem = ({
   return (
     <View>
       <Text>{subscription.title}</Text>
-      {subscription.subscriptionOfferDetails?.map((offer) => (
+      {subscription.subscriptionOfferDetailsAndroid?.map((offer) => (
         <TouchableOpacity
           key={offer.offerId}
           onPress={() => handleSubscribe(offer)}

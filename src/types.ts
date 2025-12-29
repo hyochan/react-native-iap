@@ -326,9 +326,9 @@ export interface InitConnectionConfig {
    */
   alternativeBillingModeAndroid?: (AlternativeBillingModeAndroid | null);
   /**
-   * Enable a specific billing program for Android (7.0+)
+   * Enable a specific billing program for Android
    * When set, enables the specified billing program for external transactions.
-   * - USER_CHOICE_BILLING: User can select between Google Play or alternative (7.0+)
+   * - USER_CHOICE_BILLING: User can select between Google Play or alternative (6.1.0+)
    * - EXTERNAL_CONTENT_LINK: Link to external content (8.2.0+)
    * - EXTERNAL_OFFER: External offers for digital content (8.2.0+)
    * - EXTERNAL_PAYMENTS: Developer provided billing, Japan only (8.3.0+)

@@ -64,7 +64,8 @@ await requestPurchase({
 
 1. Get your API key from [IAPKit Dashboard](https://iapkit.com)
 2. Add environment variable:
-   ```
+
+   ```bash
    EXPO_PUBLIC_IAPKIT_API_KEY=your_api_key_here
    ```
 
