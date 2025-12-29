@@ -197,25 +197,39 @@ function AndroidAlternativeBillingOnly({product}: {product: Product}) {
 4. **Create token** - Generate reporting token
 5. **Report to Google** - Send token to Google within 24 hours
 
-## Android - User Choice Billing (Legacy)
+## Android - User Choice Billing
 
-:::warning Legacy API
-This API is for apps using older Billing Library versions (pre-8.2.0). For new implementations, use the [Billing Programs API](#android---billing-programs-api-recommended) instead.
+:::tip Updated in v14.7.0
+User Choice Billing is now configured via `enableBillingProgramAndroid: 'user-choice-billing'` instead of the deprecated `alternativeBillingModeAndroid`.
 :::
 
 Let users choose between Google Play and alternative billing:
 
 ```tsx
 import {Platform, Button} from 'react-native';
-import {useIAP, requestPurchase, type Product} from 'react-native-iap';
+import {
+  useIAP,
+  requestPurchase,
+  userChoiceBillingListenerAndroid,
+  type Product,
+} from 'react-native-iap';
 
 function AndroidUserChoiceBilling({product}: {product: Product}) {
-  // Initialize with user choice mode
+  // Initialize with user choice billing mode (Recommended)
   const {connected} = useIAP({
-    alternativeBillingModeAndroid: 'user-choice',
+    enableBillingProgramAndroid: 'user-choice-billing',
     onPurchaseSuccess: (purchase) => {
       // Fires if user selects Google Play
       console.log('Google Play purchase:', purchase);
+    },
+    onUserChoiceBillingAndroid: (details) => {
+      // Fires if user selects alternative billing
+      console.log('User chose alternative billing');
+      console.log('Products:', details.products);
+      console.log('Token:', details.externalTransactionToken);
+
+      // Report token to Google Play backend within 24 hours
+      // await reportToGooglePlay(details.externalTransactionToken);
     },
   });
 
@@ -226,16 +240,15 @@ function AndroidUserChoiceBilling({product}: {product: Product}) {
       // Google will show selection dialog automatically
       await requestPurchase({
         request: {
-          android: {
+          google: {
             skus: [product.productId],
           },
         },
         type: 'in-app',
-        useAlternativeBilling: true,
       });
 
       // If user selects Google Play: onPurchaseSuccess fires
-      // If user selects alternative: manual flow required
+      // If user selects alternative: onUserChoiceBillingAndroid fires
     } catch (error: any) {
       console.error('Purchase error:', error);
     }
@@ -267,7 +280,42 @@ The complete example includes:
 
 ## Configuration
 
-### Billing Programs API (Recommended for 8.2.0+)
+### Billing Programs API (Recommended)
+
+:::tip New in v14.7.0
+All billing programs are now unified under `enableBillingProgramAndroid`. This includes the new `user-choice-billing` option.
+:::
+
+#### Available Programs
+
+| Program | Description |
+|---------|-------------|
+| `external-offer` | External offers for digital content purchases |
+| `external-content-link` | Links to external content outside the app |
+| `user-choice-billing` | User choice between Google Play and alternative billing |
+| `external-payments` | Side-by-side payment choice (Japan only, 8.3.0+) |
+
+#### Option 1: Via initConnection Config (Recommended)
+
+```tsx
+import {initConnection} from 'react-native-iap';
+
+await initConnection({
+  enableBillingProgramAndroid: 'user-choice-billing',
+});
+```
+
+#### Option 2: Via useIAP Hook
+
+```tsx
+import {useIAP} from 'react-native-iap';
+
+const {connected} = useIAP({
+  enableBillingProgramAndroid: 'user-choice-billing',
+});
+```
+
+#### Option 3: Manual Setup (Before initConnection)
 
 ```tsx
 import {enableBillingProgramAndroid, initConnection} from 'react-native-iap';
@@ -277,19 +325,16 @@ enableBillingProgramAndroid('external-offer');
 await initConnection();
 ```
 
-### Legacy API - useIAP Hook
+### Legacy API (Deprecated)
+
+:::warning Deprecated in v14.7.0
+`alternativeBillingModeAndroid` is deprecated. Use `enableBillingProgramAndroid` instead:
+- `'user-choice'` → `'user-choice-billing'`
+- `'alternative-only'` → `'external-offer'`
+:::
 
 ```tsx
-const {connected} = useIAP({
-  alternativeBillingModeAndroid: 'alternative-only', // or 'user-choice' or 'none'
-});
-```
-
-### Legacy API - Root API
-
-```tsx
-import {initConnection} from 'react-native-iap';
-
+// DEPRECATED
 await initConnection({
   alternativeBillingModeAndroid: 'alternative-only',
 });

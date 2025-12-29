@@ -179,7 +179,11 @@ const handlePromotedProduct = async (product) => {
 
 ## userChoiceBillingListenerAndroid() (Android only)
 
-Android-only listener for User Choice Billing events. This fires when a user selects alternative billing instead of Google Play billing in the User Choice Billing dialog (only in `user-choice` mode).
+Android-only listener for User Choice Billing events. This fires when a user selects alternative billing instead of Google Play billing in the User Choice Billing dialog.
+
+:::tip Updated in v14.7.0
+User Choice Billing is now configured via `enableBillingProgramAndroid: 'user-choice-billing'` instead of the deprecated `alternativeBillingModeAndroid: 'user-choice'`.
+:::
 
 ```tsx
 import {
@@ -191,9 +195,9 @@ import {Platform} from 'react-native';
 const setupUserChoiceBillingListener = async () => {
   if (Platform.OS !== 'android') return;
 
-  // Initialize with user-choice mode
+  // Initialize with user-choice-billing mode (Recommended)
   await initConnection({
-    alternativeBillingModeAndroid: 'user-choice',
+    enableBillingProgramAndroid: 'user-choice-billing',
   });
 
   const subscription = userChoiceBillingListenerAndroid((details) => {
@@ -245,11 +249,11 @@ const handleUserChoiceBilling = async (details) => {
 
 **Returns:** Subscription object with `remove()` method
 
-**Platform:** Android only (requires `user-choice` mode)
+**Platform:** Android only (requires `user-choice-billing` mode)
 
 **Important:**
 
-- Only fires when using `alternativeBillingModeAndroid: 'user-choice'`
+- Only fires when using `enableBillingProgramAndroid: 'user-choice-billing'`
 - Token must be reported to Google Play backend within 24 hours
 - If user selects Google Play billing instead, `purchaseUpdatedListener` will fire as normal
 
@@ -268,9 +272,9 @@ export default function AlternativeBillingComponent() {
     if (Platform.OS !== 'android') return;
 
     const initialize = async () => {
-      // Initialize with user-choice mode
+      // Initialize with user-choice-billing mode (Recommended)
       await initConnection({
-        alternativeBillingModeAndroid: 'user-choice',
+        enableBillingProgramAndroid: 'user-choice-billing',
       });
 
       // Set up listener
@@ -489,9 +493,9 @@ Purchases can be in different states:
 
 - **Purchased**: Successfully completed
 - **Pending**: Awaiting approval (e.g., parental approval)
-- **Failed**: Purchase failed
+- **Unknown**: State could not be determined
 
-Handle each state appropriately in your purchase listener.
+Handle each state appropriately in your purchase listener. Note that purchase failures are reported through `purchaseErrorListener`, not as a purchase state.
 
 ## developerProvidedBillingListenerAndroid() (Android only)
 

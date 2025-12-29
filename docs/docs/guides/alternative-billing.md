@@ -302,8 +302,12 @@ if (success) {
 
 #### Billing Program Types
 
-- **`external-content-link`**: For linking to external content outside the app
-- **`external-offer`**: For offering digital content purchases outside Google Play
+| Program | Description | Billing Library |
+|---------|-------------|----------------|
+| `external-offer` | External offers for digital content purchases | 8.2.0+ |
+| `external-content-link` | Links to external content outside the app | 8.2.0+ |
+| `user-choice-billing` | User choice between Google Play and alternative billing | 7.0+ (unified API in 14.7.0) |
+| `external-payments` | Side-by-side payment choice (Japan only) | 8.3.0+ |
 
 #### Launch Modes
 
@@ -556,9 +560,9 @@ The example demonstrates:
 
 #### "User choice dialog not showing"
 
-- Verify `alternativeBillingModeAndroid: 'user-choice'`
-- Ensure `useAlternativeBilling: true` in request
-- Check Google Play configuration
+- Verify `enableBillingProgramAndroid: 'user-choice-billing'` is set
+- Check Google Play Console configuration
+- Ensure the user is in an eligible region
 
 ## Platform Requirements
 
