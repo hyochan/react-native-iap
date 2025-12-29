@@ -306,7 +306,7 @@ if (success) {
 |---------|-------------|----------------|
 | `external-offer` | External offers for digital content purchases | 8.2.0+ |
 | `external-content-link` | Links to external content outside the app | 8.2.0+ |
-| `user-choice-billing` | User choice between Google Play and alternative billing | 6.1.0+ (unified API in 14.7.0) |
+| `user-choice-billing` | User choice between Google Play and alternative billing | 7.0+ (unified API in 14.7.0) |
 | `external-payments` | Side-by-side payment choice (Japan only) | 8.3.0+ |
 
 #### Launch Modes
