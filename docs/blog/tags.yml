@@ -172,3 +172,23 @@ security:
   label: Security
   permalink: /security
   description: Security features and best practices
+
+storekit2:
+  label: StoreKit 2
+  permalink: /storekit2
+  description: Apple StoreKit 2 framework features
+
+attribution:
+  label: Attribution
+  permalink: /attribution
+  description: Attribution and commerce data tracking
+
+external-payments:
+  label: External Payments
+  permalink: /external-payments
+  description: Google Play External Payments program (Japan)
+
+breaking-change:
+  label: Breaking Change
+  permalink: /breaking-change
+  description: Changes that require code updates

@@ -91,7 +91,9 @@ const AndroidProductItem = ({product}: {product: Product}) => {
   const handlePurchase = () => {
     if (product.platform === 'android') {
       requestPurchase({
-        request: {skus: [product.id]},
+        request: {
+          google: {skus: [product.id]},
+        },
         type: 'in-app',
       });
     }
@@ -108,7 +110,7 @@ const AndroidProductItem = ({product}: {product: Product}) => {
 };
 ```
 
-> **💡 Cross-Platform Note:** This example shows Android-specific usage with `skus`. For cross-platform compatibility, include both `sku` and `skus` in your request object. See the [Core Methods](/docs/api/methods/core-methods#requestpurchase) documentation for details.
+> **💡 Cross-Platform Note:** This example shows Android-specific usage with `google.skus`. For cross-platform compatibility, include both `apple` and `google` in your request object. See the [Core Methods](/docs/api/methods/core-methods#requestpurchase) documentation for details.
 
 ### Android-Specific Subscription Handling
 
@@ -124,13 +126,15 @@ const AndroidSubscriptionItem = ({
     if (subscription.platform === 'android') {
       requestPurchase({
         request: {
-          skus: [subscription.id],
-          subscriptionOffers: [
-            {
-              sku: subscription.id,
-              offerToken: offer.offerToken,
-            },
-          ],
+          google: {
+            skus: [subscription.id],
+            subscriptionOffers: [
+              {
+                sku: subscription.id,
+                offerToken: offer.offerToken,
+              },
+            ],
+          },
         },
         type: 'subs',
       });
@@ -142,7 +146,7 @@ const AndroidSubscriptionItem = ({
   return (
     <View>
       <Text>{subscription.title}</Text>
-      {subscription.subscriptionOfferDetails?.map((offer) => (
+      {subscription.subscriptionOfferDetailsAndroid?.map((offer) => (
         <TouchableOpacity
           key={offer.offerId}
           onPress={() => handleSubscribe(offer)}

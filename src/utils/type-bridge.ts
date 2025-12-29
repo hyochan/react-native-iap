@@ -37,11 +37,8 @@ const STORE_GOOGLE: IapStore = 'google';
 const STORE_HORIZON: IapStore = 'horizon';
 const PRODUCT_TYPE_SUBS: ProductType = 'subs';
 const PRODUCT_TYPE_IN_APP: ProductType = 'in-app';
-const PURCHASE_STATE_DEFERRED: PurchaseState = 'deferred';
-const PURCHASE_STATE_FAILED: PurchaseState = 'failed';
 const PURCHASE_STATE_PENDING: PurchaseState = 'pending';
 const PURCHASE_STATE_PURCHASED: PurchaseState = 'purchased';
-const PURCHASE_STATE_RESTORED: PurchaseState = 'restored';
 const PURCHASE_STATE_UNKNOWN: PurchaseState = 'unknown';
 const PAYMENT_MODE_EMPTY: PaymentModeIOS = 'empty';
 const PAYMENT_MODE_FREE_TRIAL: PaymentModeIOS = 'free-trial';
@@ -147,15 +144,11 @@ function normalizePurchaseState(state: unknown): PurchaseState {
   if (typeof state === 'string') {
     switch (state.toLowerCase()) {
       case PURCHASE_STATE_PURCHASED:
+      case 'restored': // Restored purchases are treated as purchased
         return PURCHASE_STATE_PURCHASED;
       case PURCHASE_STATE_PENDING:
+      case 'deferred': // Deferred is treated as pending
         return PURCHASE_STATE_PENDING;
-      case PURCHASE_STATE_FAILED:
-        return PURCHASE_STATE_FAILED;
-      case PURCHASE_STATE_RESTORED:
-        return PURCHASE_STATE_RESTORED;
-      case PURCHASE_STATE_DEFERRED:
-        return PURCHASE_STATE_DEFERRED;
       default:
         return PURCHASE_STATE_UNKNOWN;
     }

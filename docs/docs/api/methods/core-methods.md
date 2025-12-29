@@ -208,7 +208,7 @@ const buySubscription = (subscriptionId: string, subscription?: any) => {
       android: {
         skus: [subscriptionId],
         subscriptionOffers:
-          subscription?.subscriptionOfferDetails?.map((offer) => ({
+          subscription?.subscriptionOfferDetailsAndroid?.map((offer) => ({
             sku: subscriptionId,
             offerToken: offer.offerToken,
           })) || [],
@@ -228,9 +228,11 @@ const buySubscription = (subscriptionId: string, subscription?: any) => {
 ```tsx
 await requestPurchase({
   request: {
-    sku: productId,
-    quantity: 1,
-    appAccountToken: 'user-account-token',
+    apple: {
+      sku: productId,
+      quantity: 1,
+      appAccountToken: 'user-account-token',
+    },
   },
   type: 'in-app',
 });
@@ -241,9 +243,11 @@ await requestPurchase({
 ```tsx
 await requestPurchase({
   request: {
-    skus: [productId],
-    obfuscatedAccountIdAndroid: 'user-account-id',
-    obfuscatedProfileIdAndroid: 'user-profile-id',
+    google: {
+      skus: [productId],
+      obfuscatedAccountIdAndroid: 'user-account-id',
+      obfuscatedProfileIdAndroid: 'user-profile-id',
+    },
   },
   type: 'in-app',
 });
@@ -690,7 +694,6 @@ interface Purchase {
   // Android-specific properties
   dataAndroid?: string;
   signatureAndroid?: string;
-  purchaseStateAndroid?: number;
   isAcknowledgedAndroid?: boolean;
   packageNameAndroid?: string;
   developerPayloadAndroid?: string;

@@ -39,6 +39,8 @@ export interface ActiveSubscription {
 /**
  * Alternative billing mode for Android
  * Controls which billing system is used
+ * @deprecated Use enableBillingProgramAndroid with BillingProgramAndroid instead.
+ * Use USER_CHOICE_BILLING for user choice billing, EXTERNAL_OFFER for alternative only.
  */
 export type AlternativeBillingModeAndroid = 'none' | 'user-choice' | 'alternative-only';
 
@@ -69,7 +71,7 @@ export interface AppTransaction {
  * Billing program types for external content links, external offers, and external payments (Android)
  * Available in Google Play Billing Library 8.2.0+, EXTERNAL_PAYMENTS added in 8.3.0
  */
-export type BillingProgramAndroid = 'unspecified' | 'external-content-link' | 'external-offer' | 'external-payments';
+export type BillingProgramAndroid = 'unspecified' | 'user-choice-billing' | 'external-content-link' | 'external-offer' | 'external-payments';
 
 /**
  * Result of checking billing program availability (Android)
@@ -95,16 +97,6 @@ export interface BillingProgramReportingDetailsAndroid {
    * This token must be used when reporting the external transaction to Google.
    */
   externalTransactionToken: string;
-}
-
-/**
- * Parameters for creating billing program reporting details (Android)
- * Used with createBillingProgramReportingDetailsAsync
- * Available in Google Play Billing Library 8.3.0+
- */
-export interface BillingProgramReportingDetailsParamsAndroid {
-  /** The billing program to create reporting details for */
-  billingProgram: BillingProgramAndroid;
 }
 
 export interface DeepLinkOptions {
@@ -329,12 +321,17 @@ export interface InitConnectionConfig {
   /**
    * Alternative billing mode for Android
    * If not specified, defaults to NONE (standard Google Play billing)
+   * @deprecated Use enableBillingProgramAndroid instead.
+   * Use USER_CHOICE_BILLING for user choice billing, EXTERNAL_OFFER for alternative only.
    */
   alternativeBillingModeAndroid?: (AlternativeBillingModeAndroid | null);
   /**
-   * Enable a specific billing program for Android (8.2.0+)
+   * Enable a specific billing program for Android (7.0+)
    * When set, enables the specified billing program for external transactions.
-   * Use 'external-payments' for Developer Provided Billing (Japan only, 8.3.0+).
+   * - USER_CHOICE_BILLING: User can select between Google Play or alternative (7.0+)
+   * - EXTERNAL_CONTENT_LINK: Link to external content (8.2.0+)
+   * - EXTERNAL_OFFER: External offers for digital content (8.2.0+)
+   * - EXTERNAL_PAYMENTS: Developer provided billing, Japan only (8.3.0+)
    */
   enableBillingProgramAndroid?: (BillingProgramAndroid | null);
 }
@@ -829,7 +826,7 @@ export interface PurchaseOptions {
   onlyIncludeActiveItemsIOS?: (boolean | null);
 }
 
-export type PurchaseState = 'pending' | 'purchased' | 'failed' | 'restored' | 'deferred' | 'unknown';
+export type PurchaseState = 'pending' | 'purchased' | 'unknown';
 
 export type PurchaseVerificationProvider = 'iapkit';
 

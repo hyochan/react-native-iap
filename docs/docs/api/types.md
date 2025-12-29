@@ -21,14 +21,23 @@ export type IapPlatform = 'android' | 'ios';
 
 export type ProductType = 'in-app' | 'subs';
 
+// Simplified in v14.7.0 - removed unused states
 export type PurchaseState =
-  | 'deferred'
-  | 'failed'
   | 'pending'
   | 'purchased'
-  | 'restored'
   | 'unknown';
 ```
+
+:::info PurchaseState Simplified (v14.7.0)
+In v14.7.0, `PurchaseState` was simplified to only include states that are actually used:
+
+**Removed states:**
+- `failed` - Both platforms return errors instead of Purchase objects on failure
+- `restored` - Restored purchases return as `purchased` state
+- `deferred` - iOS StoreKit 2 has no deferred state; Android uses `pending`
+
+This aligns with how modern StoreKit 2 and Google Play Billing actually work.
+:::
 
 For `ErrorCode` enum and error handling utilities, see [Error Handling](./error-handling).
 
@@ -228,10 +237,13 @@ export type MutationRequestPurchaseArgs =
 New in v14.6.0, the Billing Programs API provides types for Google Play's external billing programs (Billing Library 8.2.0+).
 
 ```ts
+// Updated in v14.7.0 - added user-choice-billing and external-payments
 export type BillingProgramAndroid =
   | 'unspecified'
   | 'external-content-link'
-  | 'external-offer';
+  | 'external-offer'
+  | 'external-payments'      // v14.6.4+ (Billing Library 8.3.0+ - Japan only)
+  | 'user-choice-billing';   // v14.7.0+ (Billing Library 7.0+)
 
 export type ExternalLinkLaunchModeAndroid =
   | 'unspecified'

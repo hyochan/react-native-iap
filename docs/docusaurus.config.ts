@@ -51,9 +51,13 @@ const config: Config = {
           exclude: ['**/node_modules/**'],
           versions: {
             current: {
-              label: '14.6',
+              label: '14.7 (Current)',
               path: '',
               banner: 'none',
+            },
+            '14.6': {
+              label: '14.6',
+              path: '14.6',
             },
             '14.5': {
               label: '14.5',
