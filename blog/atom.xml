@@ -289,7 +289,9 @@
 <div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">npm install react-native-iap@14.5.0</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># or</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">yarn add react-native-iap@14.5.0</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"># or</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">bun add react-native-iap@14.5.0</span><br></span></code></pre></div></div>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="-references">🔗 References<a href="https://hyochan.github.io/react-native-iap/blog/release-14.5.0#-references" class="hash-link" aria-label="Direct link to 🔗 References" title="Direct link to 🔗 References">​</a></h2>
 <ul>
-<li><a href="https://iapkit.com/docs" target="_blank" rel="noopener noreferrer">IAPKit Documentation</a></li>
+<li>
+<a href="https://iapkit.com/" target="_blank" rel="noopener noreferrer">IAPKit Documentation</a>
+</li>
 <li><a href="https://hyochan.github.io/react-native-iap/docs/api/methods/core-methods#verifypurchasewithprovider">verifyPurchaseWithProvider API</a></li>
 <li><a href="https://openiap.dev/" target="_blank" rel="noopener noreferrer">OpenIAP Ecosystem</a></li>
 </ul>
