@@ -5,6 +5,7 @@
   
 [![Version](http://img.shields.io/npm/v/react-native-iap.svg?style=flat-square)](https://npmjs.org/package/react-native-iap)
 [![Download](http://img.shields.io/npm/dm/react-native-iap.svg?style=flat-square)](https://npmjs.org/package/react-native-iap)
+[![OpenIAP](https://img.shields.io/badge/OpenIAP-Compliant-green?style=flat-square)](https://openiap.dev)
 [![Backers and Sponsors](https://img.shields.io/opencollective/all/react-native-iap.svg)](https://opencollective.com/react-native-iap)
 [![CI - Test](https://github.com/hyochan/react-native-iap/actions/workflows/ci-test.yml/badge.svg)](https://github.com/hyochan/react-native-iap/actions/workflows/ci-test.yml)
 [![codecov](https://codecov.io/gh/hyochan/react-native-iap/graph/badge.svg?token=KSYo4rC6cU)](https://codecov.io/gh/hyochan/react-native-iap)
