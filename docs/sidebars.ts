@@ -41,20 +41,30 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'API Reference',
+      link: {
+        type: 'doc',
+        id: 'api/index',
+      },
       items: [
-        'api/index',
+        'api/types',
+        {
+          type: 'category',
+          label: 'Core Methods',
+          link: {type: 'doc', id: 'api/methods/core-methods'},
+          items: [
+            'api/methods/unified-apis',
+            'api/methods/listeners',
+            'api/methods/ios-specific',
+            'api/methods/android-specific',
+          ],
+        },
         'api/use-iap',
         {
           type: 'category',
-          label: 'Methods',
-          items: [
-            'api/methods/core-methods',
-            'api/methods/listeners',
-          ],
+          label: 'Error Handling',
+          link: {type: 'doc', id: 'api/error-handling'},
+          items: ['api/error-codes'],
         },
-        'api/types',
-        'api/error-codes',
-        'api/error-handling',
       ],
     },
     {

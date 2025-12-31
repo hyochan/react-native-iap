@@ -3,6 +3,7 @@ title: Expo Plugin
 ---
 
 import IapKitBanner from "@site/src/uis/IapKitBanner";
+import IapKitLink from "@site/src/uis/IapKitLink";
 
 <IapKitBanner />
 
@@ -61,7 +62,7 @@ When enabled, this option injects preprocessor definitions (`FOLLY_NO_CONFIG=1`,
 
 ### IAPKit API Key
 
-If you're using [IAPKit](https://iapkit.com) for purchase verification, you can configure your API key directly in the plugin. The key will be automatically added to both platforms:
+If you're using <IapKitLink>IAPKit</IapKitLink> for purchase verification, you can configure your API key directly in the plugin. The key will be automatically added to both platforms:
 
 - **Android**: Added as `<meta-data android:name="dev.iapkit.API_KEY" android:value="your-key" />` in `AndroidManifest.xml`
 - **iOS**: Added as `IAPKitAPIKey` in `Info.plist`

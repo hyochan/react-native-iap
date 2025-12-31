@@ -5,6 +5,7 @@ sidebar_position: 6
 ---
 
 import IapKitBanner from "@site/src/uis/IapKitBanner";
+import IapKitLink from "@site/src/uis/IapKitLink";
 
 # Frequently Asked Questions
 
@@ -179,6 +180,63 @@ const restorePurchases = async () => {
   }
 };
 ```
+
+## Subscription Renewals
+
+### Are subscription renewals automatically detected when the app opens?
+
+The behavior differs between platforms:
+
+**iOS (StoreKit 2):**
+- Yes, when a subscription renews server-side and the user opens the app, StoreKit 2 automatically surfaces the renewed transaction
+- `getAvailablePurchases()` and `getActiveSubscriptions()` will include the renewed subscription
+- The `purchaseUpdatedListener` may receive the renewed transaction
+
+**Android (Google Play Billing):**
+- Renewed subscriptions are included when querying purchases via `getAvailablePurchases()`
+- However, the `purchaseUpdatedListener` typically does **not** fire for renewals that occurred while the app was closed
+- You need to actively check subscription status rather than relying on listener events
+
+**Recommended approach:** Use `verifyPurchaseWithProvider` with <IapKitLink>IAPKit</IapKitLink> to check the authoritative subscription status on both platforms:
+
+```tsx
+import {getAvailablePurchases, verifyPurchaseWithProvider} from 'react-native-iap';
+import {Platform} from 'react-native';
+
+async function checkSubscriptionOnAppLaunch(subscriptionId: string) {
+  const purchases = await getAvailablePurchases([subscriptionId]);
+  const purchase = purchases.find(p => p.productId === subscriptionId);
+
+  if (!purchase) {
+    return {isActive: false};
+  }
+
+  // Verify with IAPKit to get authoritative status
+  const result = await verifyPurchaseWithProvider({
+    provider: 'iapkit',
+    iapkit: {
+      apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
+      apple: Platform.OS === 'ios' ? {jws: purchase.purchaseToken!} : undefined,
+      google: Platform.OS === 'android' ? {purchaseToken: purchase.purchaseToken!} : undefined,
+    },
+  });
+
+  // 'entitled' = subscription is active
+  return {
+    isActive: result.iapkit?.state === 'entitled',
+    state: result.iapkit?.state,
+  };
+}
+```
+
+IAPKit returns a `state` field with values like:
+- `entitled` - Active subscription, grant access
+- `expired` - Subscription has expired
+- `canceled` - User or store canceled
+- `pending` - Awaiting payment
+- `inauthentic` - Verification failed, may be fraudulent
+
+For more details, see the [Subscription Renewal Detection guide](./subscription-validation#subscription-renewal-detection).
 
 ## Purchase Verification
 

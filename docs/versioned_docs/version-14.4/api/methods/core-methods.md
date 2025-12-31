@@ -5,6 +5,7 @@ sidebar_position: 1
 ---
 
 import IapKitBanner from "@site/src/uis/IapKitBanner";
+import IapKitLink from "@site/src/uis/IapKitLink";
 
 # Core Methods
 
@@ -610,7 +611,7 @@ type IapkitPurchaseState =
 - Cross-platform purchase verification with a unified API
 - Enhanced security through external verification services
 
-> **Note:** You need an IAPKit API key to use this feature. Visit [iapkit.com](https://iapkit.com) to get started.
+> **Note:** You need an IAPKit API key to use this feature. Visit <IapKitLink>iapkit.com</IapKitLink> to get started.
 
 ### Error Handling & Purchase Identifiers
 

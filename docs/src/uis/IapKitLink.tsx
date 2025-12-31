@@ -1,14 +1,11 @@
 import React, {useCallback} from 'react';
+import {IAPKIT_URL, TRACKING_URL} from '../constants';
 
 interface IapKitLinkProps {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
 }
-
-const IAPKIT_URL = 'https://iapkit.com';
-const TRACKING_URL =
-  'https://www.hyo.dev/api/ad-banner/cmjf0l2460003249hfyh029dm';
 
 export default function IapKitLink({
   children,

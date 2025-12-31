@@ -6,6 +6,7 @@ description: Understand how React Native IAP surfaces StoreKit 2 subscription da
 ---
 
 import IapKitBanner from "@site/src/uis/IapKitBanner";
+import IapKitLink from "@site/src/uis/IapKitLink";
 
 <IapKitBanner />
 
@@ -169,12 +170,196 @@ const latestState = statuses[0]?.state ?? 'unknown';
 - `latestTransactionIOS` returns the full `Purchase` object tied to the most recent status entry—useful when storing transaction IDs on your backend.
 - `currentEntitlementIOS` shortcuts to the single entitlement for a SKU if you do not need the full array.
 
+## Subscription renewal detection
+
+A common question is whether subscription renewals are automatically detected when the user opens the app. The behavior differs between platforms:
+
+### iOS (StoreKit 2)
+
+When a subscription renews server-side and the user subsequently opens the app, StoreKit 2 automatically surfaces the renewed transaction through `Transaction.currentEntitlements`. This means:
+
+- `getAvailablePurchases()` will include the renewed subscription
+- `getActiveSubscriptions()` will show updated expiration dates
+- The `purchaseUpdatedListener` may receive the renewed transaction
+
+### Android (Google Play Billing)
+
+Android behaves similarly—renewed subscriptions are included when querying purchases. However, Google Play Billing does not proactively push renewal events to the app like iOS does. Instead:
+
+- `getAvailablePurchases()` returns all active subscriptions (including renewed ones)
+- `getActiveSubscriptions()` reflects current subscription status
+- The `purchaseUpdatedListener` typically does not fire for renewals that occurred while the app was closed
+
+### Recommended approach: Verify with IAPKit
+
+Rather than relying solely on listener events for renewals, we recommend using `verifyPurchaseWithProvider` with <IapKitLink>IAPKit</IapKitLink> to check the authoritative subscription status:
+
+```tsx
+import {
+  getAvailablePurchases,
+  verifyPurchaseWithProvider,
+} from 'react-native-iap';
+import {Platform} from 'react-native';
+
+async function checkSubscriptionStatus(subscriptionId: string) {
+  // 1. Get current purchases from the store
+  const purchases = await getAvailablePurchases([subscriptionId]);
+  const purchase = purchases.find((p) => p.productId === subscriptionId);
+
+  if (!purchase) {
+    return {isActive: false, state: 'expired'};
+  }
+
+  // 2. Verify with IAPKit to get authoritative status
+  const result = await verifyPurchaseWithProvider({
+    provider: 'iapkit',
+    iapkit: {
+      apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
+      apple:
+        Platform.OS === 'ios' ? {jws: purchase.purchaseToken!} : undefined,
+      google:
+        Platform.OS === 'android'
+          ? {purchaseToken: purchase.purchaseToken!}
+          : undefined,
+    },
+  });
+
+  // 3. Check the state from IAPKit
+  const state = result.iapkit?.state;
+  const isActive = state === 'entitled';
+
+  return {
+    isActive,
+    state,
+    isValid: result.iapkit?.isValid,
+  };
+}
+```
+
+### IAPKit purchase states
+
+IAPKit returns a unified `state` field that indicates the current status of the purchase:
+
+| State | Description |
+| --- | --- |
+| `entitled` | Subscription is active and valid—grant access |
+| `expired` | Subscription has expired |
+| `canceled` | Subscription was canceled by the user or store |
+| `pending` | Purchase is pending (e.g., awaiting payment) |
+| `pending-acknowledgment` | Purchase needs acknowledgment (Android) |
+| `ready-to-consume` | Consumable is ready to be consumed |
+| `consumed` | Consumable has been consumed |
+| `inauthentic` | Purchase verification failed—may be fraudulent |
+| `unknown` | State could not be determined |
+
+### Example: App launch subscription check
+
+Here's a complete example for checking subscription status when the app launches:
+
+```tsx
+import {useEffect, useState} from 'react';
+import {Platform} from 'react-native';
+import {
+  useIAP,
+  verifyPurchaseWithProvider,
+  IapkitPurchaseState,
+} from 'react-native-iap';
+
+interface SubscriptionStatus {
+  isActive: boolean;
+  state: IapkitPurchaseState | null;
+  expirationDate?: number;
+}
+
+export function useSubscriptionStatus(subscriptionIds: string[]) {
+  const {connected, getAvailablePurchases, availablePurchases} = useIAP();
+  const [status, setStatus] = useState<SubscriptionStatus>({
+    isActive: false,
+    state: null,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!connected) return;
+
+    async function checkStatus() {
+      try {
+        // Fetch current purchases
+        await getAvailablePurchases(subscriptionIds);
+      } catch (error) {
+        console.error('Failed to fetch purchases:', error);
+        setLoading(false);
+      }
+    }
+
+    checkStatus();
+  }, [connected, getAvailablePurchases, subscriptionIds]);
+
+  useEffect(() => {
+    if (!connected || availablePurchases.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    async function verifyPurchases() {
+      for (const purchase of availablePurchases) {
+        if (!subscriptionIds.includes(purchase.productId)) continue;
+
+        try {
+          const result = await verifyPurchaseWithProvider({
+            provider: 'iapkit',
+            iapkit: {
+              apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
+              apple:
+                Platform.OS === 'ios'
+                  ? {jws: purchase.purchaseToken!}
+                  : undefined,
+              google:
+                Platform.OS === 'android'
+                  ? {purchaseToken: purchase.purchaseToken!}
+                  : undefined,
+            },
+          });
+
+          if (result.iapkit?.state === 'entitled') {
+            setStatus({
+              isActive: true,
+              state: result.iapkit.state,
+              expirationDate: purchase.expirationDateIOS,
+            });
+            break;
+          }
+        } catch (error) {
+          console.error('Verification failed:', error);
+        }
+      }
+
+      setLoading(false);
+    }
+
+    verifyPurchases();
+  }, [connected, availablePurchases, subscriptionIds]);
+
+  return {status, loading};
+}
+```
+
+### Why use IAPKit for renewal verification?
+
+1. **Authoritative source**: IAPKit queries the actual store servers, ensuring you get the true subscription status
+2. **Cross-platform consistency**: Same API and response format for both iOS and Android
+3. **Fraud prevention**: Detects invalid or tampered purchases
+4. **No server setup**: Eliminates the need to build and maintain your own receipt validation server
+5. **Handles edge cases**: Properly handles grace periods, billing retries, and other complex subscription states
+
+> For more information about IAPKit, visit <IapKitLink>iapkit.com</IapKitLink> and see the [OpenIAP IAPKit Purchase States documentation](https://www.openiap.dev/docs/apis#iapkit-purchase-states).
+
 ## Server-side validation and trials
 
-If you already maintain a server, Apple’s `/verifyReceipt` endpoint exposes flags like `is_trial_period` and `is_in_intro_offer_period` for each transaction in the receipt (see Apple’s [Latest Receipt Info](https://developer.apple.com/documentation/appstorereceipts/responsebody/latest_receipt_info) documentation). React Native IAP’s `validateReceipt` API does **not** merge iOS and Android fields into a single structure; it returns platform-specific payloads:
+If you already maintain a server, Apple's `/verifyReceipt` endpoint exposes flags like `is_trial_period` and `is_in_intro_offer_period` for each transaction in the receipt (see Apple's [Latest Receipt Info](https://developer.apple.com/documentation/appstorereceipts/responsebody/latest_receipt_info) documentation). React Native IAP's `validateReceipt` API does **not** merge iOS and Android fields into a single structure; it returns platform-specific payloads:
 
 - **iOS (`ReceiptValidationResultIOS`)** – Includes `isValid`, `receiptData`, `jwsRepresentation`, and an optional `latestTransaction` converted to the shared `Purchase` shape. You must parse the Base64 `receiptData` on your server (or call `/verifyReceipt`) to inspect `is_trial_period` and similar flags.
-- **Android (`ReceiptValidationResultAndroid`)** – Mirrors Google Play’s server response with fields such as `autoRenewing`, `expiryTimeMillis`, `purchaseDate`, `productId`, and `raw receipt` metadata (`term`, `termSku`, etc.).
+- **Android (`ReceiptValidationResultAndroid`)** – Mirrors Google Play's server response with fields such as `autoRenewing`, `expiryTimeMillis`, `purchaseDate`, `productId`, and `raw receipt` metadata (`term`, `termSku`, etc.).
 
 Because the library simply forwards the underlying store data, any additional aggregation (for example, emitting a unified object that contains both Apple transaction fields and the raw Play Billing response) must be performed in your own backend.
 
@@ -183,6 +368,7 @@ We recommend the following layering:
 1. Use `subscriptionStatusIOS` for fast, on-device checks when UI needs to react immediately.
 2. Periodically upload receipts (via [`getReceiptDataIOS`](../api/methods/core-methods.md#getreceiptdataios)) to your backend for authoritative validation and entitlement provisioning.
 3. Recalculate client caches (`getAvailablePurchases`) after server reconciliation to ensure consistency across devices.
+4. **Use `verifyPurchaseWithProvider` with IAPKit** for a unified, cross-platform subscription status check without maintaining your own validation server.
 
 ## Putting everything together
 

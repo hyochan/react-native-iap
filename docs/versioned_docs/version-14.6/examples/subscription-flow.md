@@ -5,6 +5,7 @@ sidebar_position: 2
 ---
 
 import IapKitBanner from "@site/src/uis/IapKitBanner";
+import IapKitLink from "@site/src/uis/IapKitLink";
 
 # Subscriptions Flow
 
@@ -103,11 +104,11 @@ await requestPurchase({
 
 ## IAPKit Server Verification
 
-[IAPKit](https://iapkit.com) provides server-side subscription verification without your own infrastructure.
+<IapKitLink>IAPKit</IapKitLink> provides server-side subscription verification without your own infrastructure.
 
 ### Setup
 
-1. Get your API key from [IAPKit Dashboard](https://iapkit.com)
+1. Get your API key from <IapKitLink>IAPKit Dashboard</IapKitLink>
 2. Add environment variable:
 
    ```bash

@@ -5,6 +5,7 @@ sidebar_position: 2
 ---
 
 import IapKitBanner from "@site/src/uis/IapKitBanner";
+import IapKitLink from "@site/src/uis/IapKitLink";
 
 # Subscriptions Flow
 
@@ -103,42 +104,129 @@ await requestPurchase({
 
 ## IAPKit Server Verification
 
-[IAPKit](https://iapkit.com) provides server-side subscription verification without your own infrastructure.
+<IapKitLink>IAPKit</IapKitLink> provides server-side subscription verification without your own infrastructure. Get started at **<IapKitLink>iapkit.com</IapKitLink>**.
 
 ### Setup
 
-1. Get your API key from [IAPKit Dashboard](https://iapkit.com)
+1. Get your API key from <IapKitLink>IAPKit Dashboard</IapKitLink>
 2. Add environment variable:
    ```
    EXPO_PUBLIC_IAPKIT_API_KEY=your_api_key_here
    ```
 
-### Usage
+### Complete Verification Flow
 
 ```tsx
-import {verifyPurchaseWithProvider} from 'react-native-iap';
+import {useIAP, verifyPurchaseWithProvider, ErrorCode} from 'react-native-iap';
+import {Platform, Alert} from 'react-native';
 
-const {finishTransaction} = useIAP({
-  onPurchaseSuccess: async (purchase) => {
-    const result = await verifyPurchaseWithProvider({
-      provider: 'iapkit',
-      iapkit: {
-        apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
-        apple: {jws: purchase.purchaseToken!},
-        google: {purchaseToken: purchase.purchaseToken!},
-      },
-    });
+function SubscriptionScreen() {
+  const {
+    connected,
+    subscriptions,
+    fetchProducts,
+    requestPurchase,
+    finishTransaction,
+  } = useIAP({
+    onPurchaseSuccess: async (purchase) => {
+      // Step 1: Verify purchase with IAPKit
+      try {
+        const result = await verifyPurchaseWithProvider({
+          provider: 'iapkit',
+          iapkit: {
+            apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
+            apple:
+              Platform.OS === 'ios'
+                ? {jws: purchase.purchaseToken!}
+                : undefined,
+            google:
+              Platform.OS === 'android'
+                ? {purchaseToken: purchase.purchaseToken!}
+                : undefined,
+          },
+        });
 
-    if (result.iapkit.isValid) {
-      await finishTransaction({purchase});
-    }
-  },
-});
+        // Step 2: Check verification result
+        if (result.iapkit?.isValid && result.iapkit?.state === 'entitled') {
+          // Step 3: Grant access to user
+          await grantPremiumAccess(purchase.productId);
+
+          // Step 4: Finish transaction
+          await finishTransaction({purchase, isConsumable: false});
+
+          Alert.alert('Success', 'Subscription activated!');
+        } else {
+          console.warn('Verification failed:', result.iapkit?.state);
+          Alert.alert('Error', 'Could not verify purchase');
+        }
+      } catch (error) {
+        console.error('Verification error:', error);
+        // Still finish transaction to avoid stuck state
+        await finishTransaction({purchase, isConsumable: false});
+      }
+    },
+    onPurchaseError: (error) => {
+      if (error.code !== ErrorCode.UserCancelled) {
+        Alert.alert('Purchase Failed', error.message);
+      }
+    },
+  });
+
+  // ... rest of component
+}
+```
+
+### IAPKit Purchase States
+
+After verification, check the `state` field to determine the subscription status:
+
+| State | Action |
+|-------|--------|
+| `entitled` | Grant access - subscription is active |
+| `expired` | Revoke access - subscription has expired |
+| `canceled` | User or store canceled the subscription |
+| `pending` | Payment is pending |
+| `pending-acknowledgment` | Needs acknowledgment (Android) |
+| `inauthentic` | Verification failed - may be fraudulent |
+
+### Checking Subscription Status on App Launch
+
+```tsx
+import {getAvailablePurchases, verifyPurchaseWithProvider} from 'react-native-iap';
+import {Platform} from 'react-native';
+
+async function checkSubscriptionOnLaunch(subscriptionId: string) {
+  // Step 1: Get purchases from store
+  const purchases = await getAvailablePurchases([subscriptionId]);
+  const purchase = purchases.find(p => p.productId === subscriptionId);
+
+  if (!purchase) {
+    return {isActive: false, state: 'expired'};
+  }
+
+  // Step 2: Verify with IAPKit for authoritative status
+  const result = await verifyPurchaseWithProvider({
+    provider: 'iapkit',
+    iapkit: {
+      apiKey: process.env.EXPO_PUBLIC_IAPKIT_API_KEY!,
+      apple: Platform.OS === 'ios' ? {jws: purchase.purchaseToken!} : undefined,
+      google: Platform.OS === 'android' ? {purchaseToken: purchase.purchaseToken!} : undefined,
+    },
+  });
+
+  return {
+    isActive: result.iapkit?.state === 'entitled',
+    state: result.iapkit?.state,
+    isValid: result.iapkit?.isValid,
+  };
+}
 ```
 
 ### Testing
 
 The [example app](https://github.com/hyochan/react-native-iap/blob/main/example/screens/SubscriptionFlow.tsx) has built-in IAPKit support. Set your API key and test subscription verification.
+
+> For more details about IAPKit verification, see the [OpenIAP IAPKit documentation](https://www.openiap.dev/docs/apis#iapkit-purchase-states).
 
 ## Key Points
 
