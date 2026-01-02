@@ -1,0 +1,1283 @@
+# react-native-iap - Complete AI Reference
+
+> High-performance in-app purchase library for React Native using Nitro Modules, supporting iOS StoreKit 2 and Android Play Billing 8.x
+
+This document provides comprehensive API documentation for AI assistants to help developers implement in-app purchases with react-native-iap.
+
+## Table of Contents
+
+1. [Installation](#installation)
+2. [useIAP Hook](#useiap-hook)
+3. [Direct API Functions](#direct-api-functions)
+4. [Types](#types)
+5. [Error Handling](#error-handling)
+6. [Platform-Specific APIs](#platform-specific-apis)
+7. [Common Patterns](#common-patterns)
+8. [Troubleshooting](#troubleshooting)
+
+---
+
+## Installation
+
+### Package Installation
+
+```bash
+npm install react-native-iap react-native-nitro-modules
+# or
+yarn add react-native-iap react-native-nitro-modules
+```
+
+### iOS Setup
+
+```bash
+cd ios && pod install
+```
+
+Add StoreKit capability in Xcode:
+1. Open your project in Xcode
+2. Select your app target
+3. Go to "Signing & Capabilities"
+4. Click "+ Capability" and add "In-App Purchase"
+
+### Android Setup
+
+Add Kotlin 2.0+ in `android/build.gradle`:
+
+```gradle
+buildscript {
+    ext {
+        kotlinVersion = "2.1.20"
+    }
+}
+```
+
+### Expo Configuration
+
+```json
+{
+  "expo": {
+    "plugins": [
+      "react-native-iap",
+      ["expo-build-properties", {"android": {"kotlinVersion": "2.2.0"}}]
+    ]
+  }
+}
+```
+
+### Prerequisites
+
+- React Native 0.79+ (Nitro Modules requirement)
+- iOS 15+ for StoreKit 2 features
+- Android API 21+
+- Custom development client (not Expo Go)
+
+---
+
+## useIAP Hook
+
+The primary interface for in-app purchases in React components.
+
+### Import
+
+```tsx
+import {useIAP} from 'react-native-iap';
+```
+
+### Signature
+
+```tsx
+function useIAP(options?: UseIAPOptions): UseIAPReturn;
+```
+
+### Options
+
+```tsx
+interface UseIAPOptions {
+  onPurchaseSuccess?: (purchase: Purchase) => void;
+  onPurchaseError?: (error: PurchaseError) => void;
+  shouldAutoSyncPurchases?: boolean;
+  onPromotedProductIOS?: (product: Product) => void;
+}
+```
+
+### Return Value
+
+```tsx
+interface UseIAPReturn {
+  // State
+  connected: boolean;
+  products: Product[];
+  subscriptions: ProductSubscription[];
+  availablePurchases: Purchase[];
+  activeSubscriptions: ActiveSubscription[];
+  promotedProductIOS?: Product;
+  currentPurchaseError: PurchaseError | null;
+
+  // Methods (return void, update state)
+  fetchProducts: (params: {skus: string[]; type: 'in-app' | 'subs'}) => Promise<void>;
+  requestPurchase: (props: RequestPurchaseProps) => Promise<void>;
+  finishTransaction: (params: {purchase: Purchase; isConsumable?: boolean}) => Promise<void>;
+  getAvailablePurchases: () => Promise<void>;
+
+  // Methods (return values)
+  getActiveSubscriptions: (ids?: string[]) => Promise<ActiveSubscription[]>;
+  hasActiveSubscriptions: (ids?: string[]) => Promise<boolean>;
+  verifyPurchase: (props: VerifyPurchaseProps) => Promise<VerifyPurchaseResult>;
+  verifyPurchaseWithProvider: (props: VerifyPurchaseWithProviderProps) => Promise<VerifyPurchaseWithProviderResult>;
+
+  // iOS-specific
+  getPromotedProductIOS: () => Promise<Product | null>;
+  requestPurchaseOnPromotedProductIOS: () => Promise<boolean>;
+}
+```
+
+### Important Behavior
+
+- **Auto-connects**: Calls `initConnection()` on mount, `endConnection()` on unmount
+- **Void-returning methods**: `fetchProducts`, `requestPurchase`, `getAvailablePurchases` return `Promise<void>` and update internal state
+- **Use callbacks**: Always handle purchases via `onPurchaseSuccess` and `onPurchaseError`
+
+### Basic Example
+
+```tsx
+import {useIAP, ErrorCode} from 'react-native-iap';
+
+function Store() {
+  const {
+    connected,
+    products,
+    fetchProducts,
+    requestPurchase,
+    finishTransaction,
+  } = useIAP({
+    onPurchaseSuccess: async (purchase) => {
+      // 1. Verify on your backend
+      const isValid = await verifyOnServer(purchase);
+
+      // 2. Grant entitlement
+      if (isValid) {
+        await grantPurchase(purchase);
+      }
+
+      // 3. Finish transaction
+      await finishTransaction({
+        purchase,
+        isConsumable: true, // true for consumables
+      });
+    },
+    onPurchaseError: (error) => {
+      if (error.code !== ErrorCode.UserCancelled) {
+        Alert.alert('Purchase Failed', error.message);
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (connected) {
+      fetchProducts({
+        skus: ['product_1', 'product_2'],
+        type: 'in-app',
+      });
+    }
+  }, [connected]);
+
+  const buy = (productId: string) => {
+    requestPurchase({
+      request: {
+        apple: {sku: productId},
+        google: {skus: [productId]},
+      },
+      type: 'in-app',
+    });
+  };
+
+  return (
+    <View>
+      {products.map((product) => (
+        <Button
+          key={product.id}
+          title={`${product.title} - ${product.displayPrice}`}
+          onPress={() => buy(product.id)}
+        />
+      ))}
+    </View>
+  );
+}
+```
+
+---
+
+## Direct API Functions
+
+For use outside React components or when you need more control.
+
+### initConnection
+
+Initialize store connection. Required before any other operations.
+
+```tsx
+import {initConnection} from 'react-native-iap';
+
+await initConnection(); // Returns Promise<boolean>
+```
+
+### endConnection
+
+Clean up store connection.
+
+```tsx
+import {endConnection} from 'react-native-iap';
+
+await endConnection(); // Returns Promise<boolean>
+```
+
+### fetchProducts
+
+Fetch product metadata from store.
+
+```tsx
+import {fetchProducts} from 'react-native-iap';
+
+// In-app products
+const products = await fetchProducts({
+  skus: ['coins_100', 'coins_500'],
+  type: 'in-app',
+});
+
+// Subscriptions
+const subscriptions = await fetchProducts({
+  skus: ['monthly_premium', 'yearly_premium'],
+  type: 'subs',
+});
+```
+
+**Parameters:**
+- `skus: string[]` - Product IDs to fetch
+- `type: 'in-app' | 'subs'` - Product type
+
+**Returns:** `Promise<Product[]>`
+
+### requestPurchase
+
+Initiate a purchase. Result is delivered via listeners or callbacks.
+
+```tsx
+import {requestPurchase} from 'react-native-iap';
+
+// Product purchase
+await requestPurchase({
+  request: {
+    apple: {
+      sku: 'product_id',
+      quantity: 1,
+      appAccountToken: 'user-uuid', // Optional
+    },
+    google: {
+      skus: ['product_id'],
+      obfuscatedAccountIdAndroid: 'user-id', // Optional
+    },
+  },
+  type: 'in-app',
+});
+
+// Subscription purchase
+await requestPurchase({
+  request: {
+    apple: {sku: 'subscription_id'},
+    google: {
+      skus: ['subscription_id'],
+      subscriptionOffers: [
+        {sku: 'subscription_id', offerToken: 'token_from_fetch'},
+      ],
+    },
+  },
+  type: 'subs',
+});
+```
+
+**Platform Differences:**
+- iOS: Single SKU per purchase (`sku: string`)
+- Android: Multiple SKUs allowed (`skus: string[]`)
+
+### finishTransaction
+
+Complete a purchase transaction. **Must be called after verification.**
+
+```tsx
+import {finishTransaction} from 'react-native-iap';
+
+await finishTransaction({
+  purchase,
+  isConsumable: true, // true for consumables, false for non-consumables
+});
+```
+
+### getAvailablePurchases
+
+Restore previous purchases.
+
+```tsx
+import {getAvailablePurchases} from 'react-native-iap';
+
+const purchases = await getAvailablePurchases();
+
+for (const purchase of purchases) {
+  // Validate and restore
+}
+```
+
+**iOS Options:**
+- `onlyIncludeActiveItemsIOS?: boolean` (default: true)
+- `alsoPublishToEventListenerIOS?: boolean`
+
+### getActiveSubscriptions
+
+Get active subscriptions with status details.
+
+```tsx
+import {getActiveSubscriptions} from 'react-native-iap';
+
+// All active subscriptions
+const all = await getActiveSubscriptions();
+
+// Specific subscriptions
+const specific = await getActiveSubscriptions(['premium_monthly', 'premium_yearly']);
+```
+
+**Returns:** `Promise<ActiveSubscription[]>`
+
+### hasActiveSubscriptions
+
+Check if user has active subscriptions.
+
+```tsx
+import {hasActiveSubscriptions} from 'react-native-iap';
+
+const hasAny = await hasActiveSubscriptions();
+const hasPremium = await hasActiveSubscriptions(['premium_monthly', 'premium_yearly']);
+```
+
+**Returns:** `Promise<boolean>`
+
+### deepLinkToSubscriptions
+
+Open native subscription management UI.
+
+```tsx
+import {deepLinkToSubscriptions} from 'react-native-iap';
+
+await deepLinkToSubscriptions({
+  skuAndroid: 'subscription_id', // Android only
+});
+```
+
+### getStorefront
+
+Get current storefront country code.
+
+```tsx
+import {getStorefront} from 'react-native-iap';
+
+const storefront = await getStorefront(); // e.g., "US", "KR"
+```
+
+### Event Listeners
+
+```tsx
+import {
+  purchaseUpdatedListener,
+  purchaseErrorListener,
+  promotedProductListenerIOS,
+  userChoiceBillingListenerAndroid,
+  developerProvidedBillingListenerAndroid,
+} from 'react-native-iap';
+
+// Purchase success
+const unsubscribePurchase = purchaseUpdatedListener((purchase) => {
+  // Handle successful purchase
+});
+
+// Purchase error
+const unsubscribeError = purchaseErrorListener((error) => {
+  // Handle error
+});
+
+// iOS promoted products
+const unsubscribePromoted = promotedProductListenerIOS((product) => {
+  // Handle promoted product tap
+});
+
+// Android user choice billing
+const unsubscribeUserChoice = userChoiceBillingListenerAndroid((details) => {
+  // Handle alternative billing selection
+});
+
+// Cleanup
+unsubscribePurchase.remove();
+unsubscribeError.remove();
+unsubscribePromoted.remove();
+unsubscribeUserChoice.remove();
+```
+
+---
+
+## Types
+
+### Product
+
+```tsx
+interface ProductCommon {
+  id: string;
+  title: string;
+  description: string;
+  type: 'in-app' | 'subs';
+  displayName?: string;
+  displayPrice: string;
+  currency: string;
+  price?: number;
+  store: 'apple' | 'google' | 'horizon' | 'unknown';
+}
+
+interface ProductIOS extends ProductCommon {
+  displayNameIOS: string;
+  isFamilyShareableIOS: boolean;
+  jsonRepresentationIOS: string;
+  typeIOS: 'consumable' | 'non-consumable' | 'auto-renewable-subscription' | 'non-renewing-subscription';
+  subscriptionInfoIOS?: SubscriptionInfoIOS;
+}
+
+interface ProductAndroid extends ProductCommon {
+  nameAndroid: string;
+  oneTimePurchaseOfferDetailsAndroid?: ProductAndroidOneTimePurchaseOfferDetail[];
+  subscriptionOfferDetailsAndroid?: ProductSubscriptionAndroidOfferDetails[];
+}
+
+type Product = ProductIOS | ProductAndroid;
+```
+
+### ProductSubscription
+
+```tsx
+interface ProductSubscriptionIOS extends ProductCommon {
+  discountsIOS?: DiscountIOS[];
+  introductoryPriceIOS?: string;
+  introductoryPricePaymentModeIOS: PaymentModeIOS;
+  subscriptionPeriodNumberIOS?: string;
+  subscriptionPeriodUnitIOS?: SubscriptionPeriodIOS;
+}
+
+interface ProductSubscriptionAndroid extends ProductCommon {
+  subscriptionOfferDetailsAndroid: ProductSubscriptionAndroidOfferDetails[];
+}
+
+interface ProductSubscriptionAndroidOfferDetails {
+  basePlanId: string;
+  offerId?: string;
+  offerTags: string[];
+  offerToken: string;
+  pricingPhases: PricingPhasesAndroid;
+}
+```
+
+### Purchase
+
+```tsx
+interface PurchaseCommon {
+  id: string;
+  productId: string;
+  store: 'apple' | 'google' | 'horizon' | 'unknown';
+  purchaseState: 'pending' | 'purchased' | 'unknown';
+  transactionDate: number;
+  quantity: number;
+  isAutoRenewing: boolean;
+  purchaseToken?: string;
+  ids?: string[];
+  currentPlanId?: string;
+}
+
+interface PurchaseIOS extends PurchaseCommon {
+  appAccountToken?: string;
+  environmentIOS?: 'Sandbox' | 'Production';
+  expirationDateIOS?: number;
+  originalTransactionIdentifierIOS?: string;
+  originalTransactionDateIOS?: number;
+  offerIOS?: PurchaseOfferIOS;
+  renewalInfoIOS?: RenewalInfoIOS;
+  transactionId: string;
+}
+
+interface PurchaseAndroid extends PurchaseCommon {
+  autoRenewingAndroid?: boolean;
+  packageNameAndroid?: string;
+  signatureAndroid?: string;
+  dataAndroid?: string;
+  isAcknowledgedAndroid?: boolean;
+  isSuspendedAndroid?: boolean;
+  obfuscatedAccountIdAndroid?: string;
+  obfuscatedProfileIdAndroid?: string;
+}
+
+type Purchase = PurchaseIOS | PurchaseAndroid;
+```
+
+### ActiveSubscription
+
+```tsx
+interface ActiveSubscription {
+  productId: string;
+  isActive: boolean;
+  transactionId: string;
+  transactionDate: number;
+  purchaseToken?: string;
+  purchaseTokenAndroid?: string;
+  currentPlanId?: string;
+  // iOS
+  expirationDateIOS?: number;
+  daysUntilExpirationIOS?: number;
+  environmentIOS?: string;
+  willExpireSoon?: boolean;
+  renewalInfoIOS?: RenewalInfoIOS;
+  // Android
+  autoRenewingAndroid?: boolean;
+  basePlanIdAndroid?: string;
+}
+```
+
+### RenewalInfoIOS
+
+```tsx
+interface RenewalInfoIOS {
+  willAutoRenew: boolean;
+  autoRenewPreference?: string;
+  expirationReason?: string;
+  gracePeriodExpirationDate?: number;
+  isInBillingRetry?: boolean;
+  pendingUpgradeProductId?: string;
+  priceIncreaseStatus?: string;
+  renewalDate?: number;
+  renewalOfferId?: string;
+  renewalOfferType?: string;
+}
+```
+
+### RequestPurchaseProps
+
+```tsx
+interface RequestPurchaseProps {
+  request: {
+    apple?: RequestPurchaseIosProps;
+    google?: RequestPurchaseAndroidProps;
+  };
+  type?: 'in-app' | 'subs';
+  useAlternativeBilling?: boolean;
+}
+
+interface RequestPurchaseIosProps {
+  sku: string;
+  quantity?: number;
+  appAccountToken?: string;
+  advancedCommerceData?: string;
+  andDangerouslyFinishTransactionAutomatically?: boolean;
+  withOffer?: DiscountOfferInputIOS;
+}
+
+interface RequestPurchaseAndroidProps {
+  skus: string[];
+  obfuscatedAccountIdAndroid?: string;
+  obfuscatedProfileIdAndroid?: string;
+  isOfferPersonalized?: boolean;
+  subscriptionOffers?: Array<{sku: string; offerToken: string}>;
+  purchaseTokenAndroid?: string;
+  replacementModeAndroid?: number;
+  developerBillingOption?: DeveloperBillingOptionParamsAndroid;
+}
+
+interface RequestSubscriptionAndroidProps extends RequestPurchaseAndroidProps {
+  subscriptionOffers?: AndroidSubscriptionOfferInput[];
+  subscriptionProductReplacementParams?: SubscriptionProductReplacementParamsAndroid;
+}
+```
+
+### VerifyPurchaseWithProviderProps
+
+```tsx
+interface VerifyPurchaseWithProviderProps {
+  provider: 'iapkit';
+  iapkit: {
+    apiKey?: string;
+    apple?: {jws: string};
+    google?: {purchaseToken: string};
+  };
+}
+
+interface VerifyPurchaseWithProviderResult {
+  provider: 'iapkit';
+  iapkit?: RequestVerifyPurchaseWithIapkitResult;
+  errors?: VerifyPurchaseWithProviderError[];
+}
+
+interface RequestVerifyPurchaseWithIapkitResult {
+  isValid: boolean;
+  state: IapkitPurchaseState;
+  store: 'apple' | 'google';
+}
+
+type IapkitPurchaseState =
+  | 'entitled'
+  | 'pending-acknowledgment'
+  | 'pending'
+  | 'canceled'
+  | 'expired'
+  | 'ready-to-consume'
+  | 'consumed'
+  | 'unknown'
+  | 'inauthentic';
+```
+
+---
+
+## Error Handling
+
+### ErrorCode Enum
+
+```tsx
+import {ErrorCode} from 'react-native-iap';
+
+enum ErrorCode {
+  Unknown = 'unknown',
+  UserCancelled = 'user-cancelled',
+  UserError = 'user-error',
+  ItemUnavailable = 'item-unavailable',
+  RemoteError = 'remote-error',
+  NetworkError = 'network-error',
+  ServiceError = 'service-error',
+  ReceiptFailed = 'receipt-failed',
+  ReceiptFinished = 'receipt-finished',
+  ReceiptFinishedFailed = 'receipt-finished-failed',
+  NotPrepared = 'not-prepared',
+  NotEnded = 'not-ended',
+  AlreadyOwned = 'already-owned',
+  DeveloperError = 'developer-error',
+  BillingResponseJsonParseError = 'billing-response-json-parse-error',
+  DeferredPayment = 'deferred-payment',
+  Interrupted = 'interrupted',
+  IapNotAvailable = 'iap-not-available',
+  PurchaseError = 'purchase-error',
+  SyncError = 'sync-error',
+  TransactionValidationFailed = 'transaction-validation-failed',
+  ActivityUnavailable = 'activity-unavailable',
+  AlreadyPrepared = 'already-prepared',
+  Pending = 'pending',
+  ConnectionClosed = 'connection-closed',
+  InitConnection = 'init-connection',
+  ServiceDisconnected = 'service-disconnected',
+  QueryProduct = 'query-product',
+  SkuNotFound = 'sku-not-found',
+  SkuOfferMismatch = 'sku-offer-mismatch',
+  ItemNotOwned = 'item-not-owned',
+  BillingUnavailable = 'billing-unavailable',
+  FeatureNotSupported = 'feature-not-supported',
+  EmptySkuList = 'empty-sku-list',
+  PurchaseVerificationFailed = 'purchase-verification-failed',
+  PurchaseVerificationFinished = 'purchase-verification-finished',
+  PurchaseVerificationFinishFailed = 'purchase-verification-finish-failed',
+}
+```
+
+### PurchaseError Interface
+
+```tsx
+interface PurchaseError {
+  message: string;
+  code: ErrorCode;
+  productId?: string;
+}
+```
+
+### Error Utilities
+
+```tsx
+import {
+  isUserCancelledError,
+  getUserFriendlyErrorMessage,
+} from 'react-native-iap';
+
+// Check if user cancelled
+if (isUserCancelledError(error)) {
+  // User cancelled - no action needed
+}
+
+// Get user-friendly message
+const message = getUserFriendlyErrorMessage(error);
+```
+
+### Error Handling Pattern
+
+```tsx
+const {requestPurchase} = useIAP({
+  onPurchaseError: (error) => {
+    switch (error.code) {
+      case ErrorCode.UserCancelled:
+        // Silent - user cancelled
+        break;
+      case ErrorCode.NetworkError:
+        Alert.alert('Network Error', 'Please check your connection');
+        break;
+      case ErrorCode.ItemUnavailable:
+        Alert.alert('Unavailable', 'This item is not available');
+        break;
+      case ErrorCode.AlreadyOwned:
+        Alert.alert('Already Owned', 'You already own this item');
+        // Trigger restore
+        break;
+      case ErrorCode.BillingUnavailable:
+        Alert.alert('Error', 'Purchases not available on this device');
+        break;
+      case ErrorCode.SkuOfferMismatch:
+        Alert.alert('Error', 'Subscription offer mismatch');
+        break;
+      default:
+        Alert.alert('Purchase Failed', error.message);
+    }
+  },
+});
+```
+
+---
+
+## Platform-Specific APIs
+
+### iOS-Specific
+
+```tsx
+import {
+  clearTransactionIOS,
+  getPromotedProductIOS,
+  getPendingTransactionsIOS,
+  subscriptionStatusIOS,
+  currentEntitlementIOS,
+  latestTransactionIOS,
+  showManageSubscriptionsIOS,
+  beginRefundRequestIOS,
+  presentCodeRedemptionSheetIOS,
+  syncIOS,
+  getAppTransactionIOS,
+  getReceiptDataIOS,
+  getTransactionJwsIOS,
+  isEligibleForIntroOfferIOS,
+  isTransactionVerifiedIOS,
+  // Alternative Billing (iOS 16+)
+  canPresentExternalPurchaseNoticeIOS,
+  presentExternalPurchaseNoticeSheetIOS,
+  presentExternalPurchaseLinkIOS,
+} from 'react-native-iap';
+
+// Clear pending transactions
+await clearTransactionIOS();
+
+// Get subscription status
+const status = await subscriptionStatusIOS(productId);
+
+// Show refund request
+const result = await beginRefundRequestIOS(transactionId);
+
+// Show subscription management
+const changedPurchases = await showManageSubscriptionsIOS();
+
+// Present code redemption
+await presentCodeRedemptionSheetIOS();
+
+// Force sync
+await syncIOS();
+
+// Check intro offer eligibility
+const eligible = await isEligibleForIntroOfferIOS(subscriptionGroupId);
+
+// Get app transaction (iOS 16+)
+const appTransaction = await getAppTransactionIOS();
+```
+
+### Android-Specific
+
+```tsx
+import {
+  acknowledgePurchaseAndroid,
+  consumePurchaseAndroid,
+  // Alternative Billing
+  checkAlternativeBillingAvailabilityAndroid,
+  showAlternativeBillingDialogAndroid,
+  createAlternativeBillingTokenAndroid,
+  // Billing Programs (8.2+)
+  isBillingProgramAvailableAndroid,
+  createBillingProgramReportingDetailsAndroid,
+  launchExternalLinkAndroid,
+} from 'react-native-iap';
+
+// Manually acknowledge (usually handled by finishTransaction)
+await acknowledgePurchaseAndroid(purchaseToken);
+
+// Manually consume
+await consumePurchaseAndroid(purchaseToken);
+
+// Check alternative billing availability
+const available = await checkAlternativeBillingAvailabilityAndroid();
+
+// Show alternative billing dialog
+const accepted = await showAlternativeBillingDialogAndroid();
+
+// Create alternative billing token
+const token = await createAlternativeBillingTokenAndroid();
+
+// Check billing program availability (8.2+)
+const programResult = await isBillingProgramAvailableAndroid('external-offer');
+
+// Launch external link (8.2+)
+await launchExternalLinkAndroid({
+  billingProgram: 'external-offer',
+  launchMode: 'launch-in-external-browser-or-app',
+  linkType: 'link-to-digital-content-offer',
+  linkUri: 'https://your-external-link.com',
+});
+```
+
+### Alternative Billing Flow (Android)
+
+```tsx
+// 1. Check availability
+const available = await checkAlternativeBillingAvailabilityAndroid();
+
+if (available) {
+  // 2. Show dialog before payment
+  const accepted = await showAlternativeBillingDialogAndroid();
+
+  if (accepted) {
+    // 3. Process payment through your payment system
+    await processExternalPayment();
+
+    // 4. Create token for Google Play reporting
+    const token = await createAlternativeBillingTokenAndroid();
+
+    // 5. Report to your backend (must report to Google within 24h)
+    await reportToBackend(token);
+  }
+}
+```
+
+---
+
+## Common Patterns
+
+### Complete Purchase Flow
+
+```tsx
+function PurchaseScreen() {
+  const {
+    connected,
+    products,
+    fetchProducts,
+    requestPurchase,
+    finishTransaction,
+  } = useIAP({
+    onPurchaseSuccess: async (purchase) => {
+      try {
+        // 1. Verify with your backend or IAPKit
+        const result = await verifyPurchaseWithProvider({
+          provider: 'iapkit',
+          iapkit: {
+            apple: {jws: purchase.purchaseToken ?? ''},
+            google: {purchaseToken: purchase.purchaseToken ?? ''},
+          },
+        });
+
+        // 2. Check verification result
+        if (result.iapkit?.isValid) {
+          // 3. Grant entitlement
+          await grantPurchaseToUser(purchase.productId);
+        }
+
+        // 4. Always finish transaction
+        await finishTransaction({
+          purchase,
+          isConsumable: purchase.productId.includes('coins'),
+        });
+      } catch (error) {
+        console.error('Purchase completion failed:', error);
+        // Still finish to avoid stuck transactions
+        await finishTransaction({purchase, isConsumable: false});
+      }
+    },
+    onPurchaseError: (error) => {
+      if (error.code !== ErrorCode.UserCancelled) {
+        Alert.alert('Error', getUserFriendlyErrorMessage(error));
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (connected) {
+      fetchProducts({
+        skus: ['coins_100', 'coins_500', 'premium_unlock'],
+        type: 'in-app',
+      });
+    }
+  }, [connected]);
+
+  if (!connected) {
+    return <ActivityIndicator />;
+  }
+
+  return (
+    <FlatList
+      data={products}
+      renderItem={({item}) => (
+        <ProductItem
+          product={item}
+          onPurchase={() => {
+            requestPurchase({
+              request: {
+                apple: {sku: item.id},
+                google: {skus: [item.id]},
+              },
+              type: 'in-app',
+            });
+          }}
+        />
+      )}
+    />
+  );
+}
+```
+
+### Subscription Flow with Android Offers
+
+```tsx
+function SubscriptionScreen() {
+  const {
+    connected,
+    subscriptions,
+    fetchProducts,
+    requestPurchase,
+    finishTransaction,
+  } = useIAP({
+    onPurchaseSuccess: async (purchase) => {
+      await finishTransaction({purchase, isConsumable: false});
+    },
+  });
+
+  useEffect(() => {
+    if (connected) {
+      fetchProducts({
+        skus: ['monthly_premium', 'yearly_premium'],
+        type: 'subs',
+      });
+    }
+  }, [connected]);
+
+  const buySubscription = (subscription: ProductSubscription) => {
+    // Build Android offers from fetched subscription data
+    const offers = subscription.subscriptionOfferDetailsAndroid?.map((offer) => ({
+      sku: subscription.id,
+      offerToken: offer.offerToken,
+    })) || [];
+
+    requestPurchase({
+      request: {
+        apple: {sku: subscription.id},
+        google: {
+          skus: [subscription.id],
+          ...(offers.length > 0 && {subscriptionOffers: offers}),
+        },
+      },
+      type: 'subs',
+    });
+  };
+
+  return (
+    <View>
+      {subscriptions.map((sub) => (
+        <Button
+          key={sub.id}
+          title={`${sub.title} - ${sub.displayPrice}`}
+          onPress={() => buySubscription(sub)}
+        />
+      ))}
+    </View>
+  );
+}
+```
+
+### Subscription Upgrade/Downgrade (Android)
+
+```tsx
+const upgradeSubscription = async (
+  newSubscriptionId: string,
+  currentPurchaseToken: string,
+) => {
+  const subscription = subscriptions.find(s => s.id === newSubscriptionId);
+  const offers = subscription?.subscriptionOfferDetailsAndroid?.map((offer) => ({
+    sku: newSubscriptionId,
+    offerToken: offer.offerToken,
+  })) || [];
+
+  await requestPurchase({
+    request: {
+      apple: {sku: newSubscriptionId},
+      google: {
+        skus: [newSubscriptionId],
+        subscriptionOffers: offers,
+        purchaseTokenAndroid: currentPurchaseToken,
+        subscriptionProductReplacementParams: {
+          oldProductId: 'old_subscription_id',
+          replacementMode: 'with-time-proration',
+        },
+      },
+    },
+    type: 'subs',
+  });
+};
+```
+
+### Restore Purchases
+
+```tsx
+function RestoreButton() {
+  const {getAvailablePurchases, availablePurchases, finishTransaction} = useIAP();
+  const [restoring, setRestoring] = useState(false);
+
+  const restore = async () => {
+    setRestoring(true);
+    try {
+      await getAvailablePurchases();
+
+      for (const purchase of availablePurchases) {
+        // Validate each purchase
+        const isValid = await verifyOnBackend(purchase);
+
+        if (isValid) {
+          await grantPurchase(purchase.productId);
+        }
+      }
+
+      Alert.alert('Success', `Restored ${availablePurchases.length} purchases`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to restore purchases');
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  return (
+    <Button
+      title={restoring ? 'Restoring...' : 'Restore Purchases'}
+      onPress={restore}
+      disabled={restoring}
+    />
+  );
+}
+```
+
+### Check Subscription Status
+
+```tsx
+function usePremiumAccess() {
+  const {hasActiveSubscriptions, getActiveSubscriptions} = useIAP();
+  const [isPremium, setIsPremium] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const hasPremium = await hasActiveSubscriptions([
+          'monthly_premium',
+          'yearly_premium',
+        ]);
+        setIsPremium(hasPremium);
+
+        if (hasPremium) {
+          const subs = await getActiveSubscriptions();
+          const activeSub = subs[0];
+
+          if (activeSub?.willExpireSoon) {
+            // Show renewal reminder
+          }
+
+          // Check iOS renewal info
+          if (activeSub?.renewalInfoIOS) {
+            if (activeSub.renewalInfoIOS.isInBillingRetry) {
+              // Show billing issue notice
+            }
+            if (activeSub.renewalInfoIOS.pendingUpgradeProductId) {
+              // Show pending upgrade notice
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check subscription:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAccess();
+  }, []);
+
+  return {isPremium, loading};
+}
+```
+
+### iOS Promotional Offers
+
+```tsx
+import {requestPurchase} from 'react-native-iap';
+
+const purchaseWithPromotionalOffer = async (
+  productId: string,
+  offer: DiscountOfferInputIOS,
+) => {
+  await requestPurchase({
+    request: {
+      apple: {
+        sku: productId,
+        withOffer: {
+          identifier: offer.identifier,
+          keyIdentifier: offer.keyIdentifier,
+          nonce: offer.nonce,
+          signature: offer.signature,
+          timestamp: offer.timestamp,
+        },
+      },
+      google: {skus: [productId]},
+    },
+    type: 'subs',
+  });
+};
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**1. "Nitro runtime not installed"**
+```tsx
+// Ensure react-native-nitro-modules is installed
+npm install react-native-nitro-modules
+
+// Import before using IAP
+import 'react-native-nitro-modules';
+```
+
+**2. "IAP not connected"**
+```tsx
+// Always check connected before operations
+const {connected} = useIAP();
+
+useEffect(() => {
+  if (connected) {
+    fetchProducts({...});
+  }
+}, [connected]);
+```
+
+**3. "Products not found"**
+- Verify product IDs match exactly in store console
+- iOS: Check App Store Connect agreements and tax forms
+- Android: Publish app to at least internal testing track
+- Wait 24-48 hours after creating products
+
+**4. "Cannot purchase in Expo Go"**
+- IAP requires custom dev client
+- Run: `eas build --profile development`
+
+**5. Android Kotlin version error**
+```json
+{
+  "expo": {
+    "plugins": [
+      ["expo-build-properties", {"android": {"kotlinVersion": "2.2.0"}}]
+    ]
+  }
+}
+```
+
+Or in `android/build.gradle`:
+```gradle
+buildscript {
+    ext {
+        kotlinVersion = "2.1.20"
+    }
+}
+```
+
+**6. Transaction stuck**
+```tsx
+// Always finish transactions
+await finishTransaction({purchase, isConsumable: true});
+
+// iOS: Clear stuck transactions
+await clearTransactionIOS();
+```
+
+**7. Android subscription offers missing**
+```tsx
+// Must fetch products first to get offer tokens
+await fetchProducts({skus: ['sub_id'], type: 'subs'});
+
+// Then use offers from fetched subscription
+const sub = subscriptions.find(s => s.id === 'sub_id');
+const offers = sub?.subscriptionOfferDetailsAndroid?.map(o => ({
+  sku: sub.id,
+  offerToken: o.offerToken,
+}));
+
+// Only include offers if available
+await requestPurchase({
+  request: {
+    google: {
+      skus: ['sub_id'],
+      ...(offers?.length && {subscriptionOffers: offers}),
+    },
+  },
+  type: 'subs',
+});
+```
+
+**8. SkuOfferMismatch error (Android)**
+- Ensure subscription offers are correctly built from `fetchProducts` response
+- Each offer needs both `sku` and `offerToken`
+- Only include `subscriptionOffers` when purchasing subscriptions
+
+### Debug Tips
+
+```tsx
+// Log all purchases
+purchaseUpdatedListener((purchase) => {
+  console.log('Purchase:', JSON.stringify(purchase, null, 2));
+});
+
+// Log all errors
+purchaseErrorListener((error) => {
+  console.log('Error:', JSON.stringify(error, null, 2));
+});
+
+// Check store environment (iOS)
+console.log('Environment:', purchase.environmentIOS); // Sandbox | Production
+
+// Check acknowledgment (Android)
+console.log('Acknowledged:', purchase.isAcknowledgedAndroid);
+
+// Check suspension (Android 8.1+)
+console.log('Suspended:', purchase.isSuspendedAndroid);
+```
+
+---
+
+## Links
+
+- [GitHub Repository](https://github.com/hyochan/react-native-iap)
+- [NPM Package](https://npmjs.com/package/react-native-iap)
+- [Full Documentation](https://hyochan.github.io/react-native-iap/)
+- [OpenIAP Specification](https://openiap.dev)
+- [Example App](https://github.com/hyochan/react-native-iap/tree/main/example)
+- [IAPKit](https://iapkit.com)
