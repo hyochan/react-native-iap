@@ -85,6 +85,11 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'doc',
+      id: 'guides/ai-assistants',
+      label: 'AI Assistants',
+    },
+    {
+      type: 'doc',
       id: 'sponsors',
       label: 'Sponsors',
     },

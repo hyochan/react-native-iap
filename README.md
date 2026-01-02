@@ -165,6 +165,17 @@ React Native IAP is **OpenIAP compliant**. For detailed store configuration:
 - **[iOS Setup →](https://www.openiap.dev/docs/ios-setup)** - App Store Connect configuration
 - **[Android Setup →](https://www.openiap.dev/docs/android-setup)** - Google Play Console configuration
 
+## 🤖 Using with AI Assistants
+
+React Native IAP provides AI-friendly documentation for Cursor, GitHub Copilot, Claude, and ChatGPT.
+
+**[📖 AI Assistants Guide →](https://hyochan.github.io/react-native-iap/docs/guides/ai-assistants)**
+
+Quick links:
+
+- [llms.txt](https://hyochan.github.io/react-native-iap/llms.txt) - Quick reference
+- [llms-full.txt](https://hyochan.github.io/react-native-iap/llms-full.txt) - Full API reference
+
 ## 🎯 What's Next?
 
 **[📖 Visit our comprehensive documentation site →](https://hyochan.github.io/react-native-iap)**
