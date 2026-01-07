@@ -60,22 +60,50 @@ function Store() {
 
 The main interface for in-app purchases. Auto-manages connection lifecycle.
 
+**Design Pattern:** The hook follows React's state-driven pattern. Methods return `Promise<void>` and update internal state. You must read data from the returned state variables, not from method return values.
+
 ```tsx
 const {
+  // ═══════════════════════════════════════════════════════════════
+  // STATE VARIABLES (read data from these)
+  // ═══════════════════════════════════════════════════════════════
   connected,           // boolean - IAP service ready
-  products,            // Product[] - fetched products
-  subscriptions,       // ProductSubscription[] - fetched subscriptions
-  availablePurchases,  // Purchase[] - restorable purchases
-  activeSubscriptions, // ActiveSubscription[] - active subscriptions
-  fetchProducts,       // ({skus, type}) => Promise<void>
-  requestPurchase,     // (props) => Promise<void>
-  finishTransaction,   // ({purchase, isConsumable}) => Promise<void>
+  products,            // Product[] - populated by fetchProducts()
+  subscriptions,       // ProductSubscription[] - populated by fetchProducts()
+  availablePurchases,  // Purchase[] - populated by getAvailablePurchases()
+  activeSubscriptions, // ActiveSubscription[] - populated by getActiveSubscriptions()
+
+  // ═══════════════════════════════════════════════════════════════
+  // METHODS (return Promise<void>, update state above)
+  // ═══════════════════════════════════════════════════════════════
+  fetchProducts,            // ({skus, type}) => Promise<void>
+  requestPurchase,          // (props) => Promise<void>
+  finishTransaction,        // ({purchase, isConsumable}) => Promise<void>
   getAvailablePurchases,    // () => Promise<void>
-  getActiveSubscriptions,   // (ids?) => Promise<ActiveSubscription[]>
+  restorePurchases,         // () => Promise<void>
+
+  // ═══════════════════════════════════════════════════════════════
+  // METHODS THAT RETURN VALUES (exceptions to the pattern)
+  // ═══════════════════════════════════════════════════════════════
+  getActiveSubscriptions,   // (ids?) => Promise<ActiveSubscription[]> (also updates state)
   hasActiveSubscriptions,   // (ids?) => Promise<boolean>
   verifyPurchase,           // (props) => Promise<VerifyPurchaseResult>
   verifyPurchaseWithProvider, // (props) => Promise<result>
 } = useIAP(options);
+```
+
+**Usage Pattern:**
+```tsx
+// ✅ CORRECT: Call method, then read from state
+await fetchProducts({skus: ['product1'], type: 'in-app'});
+console.log(products); // Read from state variable
+
+await getAvailablePurchases();
+console.log(availablePurchases); // Read from state variable
+
+// ❌ WRONG: Don't expect return values from methods
+const result = await fetchProducts({...}); // result is void!
+const purchases = await getAvailablePurchases(); // purchases is void!
 ```
 
 **Options:**
@@ -84,7 +112,7 @@ const {
 
 ### Direct API Functions
 
-For use outside React components:
+For use outside React components. Unlike hook methods, these return data directly.
 
 ```tsx
 import {
@@ -93,13 +121,15 @@ import {
   fetchProducts,      // ({skus, type}) => Promise<Product[]>
   requestPurchase,    // (props) => Promise<Purchase | Purchase[] | null>
   finishTransaction,  // ({purchase, isConsumable}) => Promise<void>
-  getAvailablePurchases,   // () => Promise<Purchase[]>
+  getAvailablePurchases,   // (options?) => Promise<Purchase[]> - returns Purchase array directly
   getActiveSubscriptions,  // (ids?) => Promise<ActiveSubscription[]>
   hasActiveSubscriptions,  // (ids?) => Promise<boolean>
   deepLinkToSubscriptions, // ({skuAndroid?}) => Promise<void>
   getStorefront,           // () => Promise<string>
 } from 'react-native-iap';
 ```
+
+**Note:** The root API `getAvailablePurchases` returns `Promise<Purchase[]>`, while the hook's `getAvailablePurchases` returns `Promise<void>` and updates internal state.
 
 ### Event Listeners
 
