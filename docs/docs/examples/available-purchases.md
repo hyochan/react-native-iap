@@ -18,14 +18,35 @@ The complete working example can be found at [example/screens/AvailablePurchases
 Note that the example code was heavily vibe-coded with Claude and is quite verbose/messy for demonstration purposes - use it as a reference only.
 :::
 
-## Restore Flow
+## Important: Hook vs Root API
+
+There are two ways to use `getAvailablePurchases()`, and they behave differently:
+
+| API | Return Type | How to Access Data |
+|-----|-------------|-------------------|
+| **useIAP Hook** | `Promise<void>` | Read from `availablePurchases` state after calling |
+| **Root API** (direct import) | `Promise<Purchase[]>` | Returned directly from the function |
+
+```tsx
+// ✅ useIAP Hook - returns void, updates state
+const { getAvailablePurchases, availablePurchases } = useIAP();
+await getAvailablePurchases(); // returns void
+console.log(availablePurchases); // read from state
+
+// ✅ Root API - returns data directly
+import { getAvailablePurchases } from 'react-native-iap';
+const purchases = await getAvailablePurchases(); // returns Purchase[]
+```
+
+## Restore Flow (Using Hook)
 
 - Ensure the store connection is active (handled by `useIAP`)
 - Call both `getAvailablePurchases()` and `getActiveSubscriptions()`
+- Read restored items from hook state (`availablePurchases`, `activeSubscriptions`)
 - Validate on your server and grant entitlements
 
 ```tsx
-import React from 'react';
+import React, {useCallback} from 'react';
 import {Alert} from 'react-native';
 import {useIAP} from 'react-native-iap';
 
@@ -34,26 +55,30 @@ export default function AvailablePurchasesScreen() {
     connected,
     getAvailablePurchases,
     getActiveSubscriptions,
+    availablePurchases,
     activeSubscriptions,
     finishTransaction,
   } = useIAP();
 
-  const restore = async () => {
+  const restore = useCallback(async () => {
     if (!connected) return;
-    const [purchases] = await Promise.all([
+
+    // Both methods return void and update internal state
+    await Promise.all([
       getAvailablePurchases(),
       getActiveSubscriptions(),
     ]);
 
-    for (const p of purchases) {
+    // Read from hook state (availablePurchases is now updated)
+    for (const p of availablePurchases) {
       // TODO: validate on your backend first
       // await grantEntitlement(p)
       // Non-consumables and subscriptions typically don't require consumption
       await finishTransaction({purchase: p, isConsumable: false});
     }
 
-    Alert.alert('Restored', `Restored ${purchases.length} purchases`);
-  };
+    Alert.alert('Restored', `Restored ${availablePurchases.length} purchases`);
+  }, [connected, getAvailablePurchases, getActiveSubscriptions, availablePurchases, finishTransaction]);
 
   return null; // Render your UI and call restore() from a button
 }

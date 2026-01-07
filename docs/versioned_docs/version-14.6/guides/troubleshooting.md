@@ -162,6 +162,7 @@ const {finishTransaction} = useIAP({
 **Important - Transaction Acknowledgment Requirements**:
 
 - **iOS**: Unfinished transactions remain in the queue indefinitely until `finishTransaction` is called
+  - **Note**: Transactions do NOT auto-finish by default. You must explicitly call `finishTransaction` after validating the purchase. Only set `andDangerouslyFinishTransactionAutomatically: true` if you understand the security implications (skipping server-side validation).
 - **Android**: Purchases must be acknowledged within **3 days (72 hours)** or they will be **automatically refunded**
   - For consumable products: Use `finishTransaction({purchase, isConsumable: true})`
   - For non-consumables/subscriptions: Use `finishTransaction({purchase})` or `finishTransaction({purchase, isConsumable: false})`

@@ -358,16 +358,16 @@ describe('Public API (src/index.ts)', () => {
       );
     });
 
-    it('iOS subs auto-sets andDangerouslyFinishTransactionAutomatically when not provided', async () => {
+    it('iOS subs does not auto-set andDangerouslyFinishTransactionAutomatically when not provided', async () => {
       (Platform as any).OS = 'ios';
       await IAP.requestPurchase({
         request: {ios: {sku: 'sub1'}},
         type: 'subs',
       });
       const passed = mockIap.requestPurchase.mock.calls.pop()?.[0];
-      expect(passed.ios.andDangerouslyFinishTransactionAutomatically).toBe(
-        true,
-      );
+      expect(
+        passed.ios.andDangerouslyFinishTransactionAutomatically,
+      ).toBeUndefined();
     });
 
     it('iOS passes withOffer through to native', async () => {

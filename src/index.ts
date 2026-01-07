@@ -1206,16 +1206,11 @@ export const requestPurchase: MutationField<'requestPurchase'> = async (
         sku: iosRequest.sku,
       };
 
-      const explicitAutoFinish =
-        iosRequest.andDangerouslyFinishTransactionAutomatically ?? undefined;
-      const autoFinish =
-        explicitAutoFinish !== undefined
-          ? explicitAutoFinish
-          : isSubs
-            ? true
-            : undefined;
-      if (autoFinish !== undefined) {
-        iosPayload.andDangerouslyFinishTransactionAutomatically = autoFinish;
+      if (
+        iosRequest.andDangerouslyFinishTransactionAutomatically !== undefined
+      ) {
+        iosPayload.andDangerouslyFinishTransactionAutomatically =
+          iosRequest.andDangerouslyFinishTransactionAutomatically;
       }
       if (iosRequest.appAccountToken) {
         iosPayload.appAccountToken = iosRequest.appAccountToken;
