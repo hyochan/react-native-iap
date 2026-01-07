@@ -238,14 +238,17 @@ const {finishTransaction} = useIAP({
 **Prevention**: Handle pending transactions on app startup:
 
 ```tsx
-const {getAvailablePurchases, finishTransaction} = useIAP();
+const {getAvailablePurchases, availablePurchases, finishTransaction} = useIAP();
 
+// Fetch available purchases on mount
 useEffect(() => {
-  const checkPendingPurchases = async () => {
-    // Get all unfinished transactions
-    const purchases = await getAvailablePurchases();
+  getAvailablePurchases();
+}, []);
 
-    for (const purchase of purchases) {
+// Process purchases when availablePurchases state updates
+useEffect(() => {
+  const processPendingPurchases = async () => {
+    for (const purchase of availablePurchases) {
       // If already processed, just finish the transaction
       if (await isAlreadyProcessed(purchase)) {
         await finishTransaction({purchase}); // isConsumable: false by default
@@ -257,8 +260,10 @@ useEffect(() => {
     }
   };
 
-  checkPendingPurchases();
-}, []);
+  if (availablePurchases.length > 0) {
+    processPendingPurchases();
+  }
+}, [availablePurchases]);
 ```
 
 **Important Notes**:
