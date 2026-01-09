@@ -1,0 +1,1293 @@
+export interface ActiveSubscription {
+    autoRenewingAndroid?: (boolean | null);
+    basePlanIdAndroid?: (string | null);
+    /**
+     * The current plan identifier. This is:
+     * - On Android: the basePlanId (e.g., "premium", "premium-year")
+     * - On iOS: the productId (e.g., "com.example.premium_monthly", "com.example.premium_yearly")
+     * This provides a unified way to identify which specific plan/tier the user is subscribed to.
+     */
+    currentPlanId?: (string | null);
+    daysUntilExpirationIOS?: (number | null);
+    environmentIOS?: (string | null);
+    expirationDateIOS?: (number | null);
+    isActive: boolean;
+    productId: string;
+    purchaseToken?: (string | null);
+    /** Required for subscription upgrade/downgrade on Android */
+    purchaseTokenAndroid?: (string | null);
+    /**
+     * Renewal information from StoreKit 2 (iOS only). Contains details about subscription renewal status,
+     * pending upgrades/downgrades, and auto-renewal preferences.
+     */
+    renewalInfoIOS?: (RenewalInfoIOS | null);
+    transactionDate: number;
+    transactionId: string;
+    /**
+     * @deprecated iOS only - use daysUntilExpirationIOS instead.
+     * Whether the subscription will expire soon (within 7 days).
+     * Consider using daysUntilExpirationIOS for more precise control.
+     */
+    willExpireSoon?: (boolean | null);
+}
+/**
+ * Alternative billing mode for Android
+ * Controls which billing system is used
+ * @deprecated Use enableBillingProgramAndroid with BillingProgramAndroid instead.
+ * Use USER_CHOICE_BILLING for user choice billing, EXTERNAL_OFFER for alternative only.
+ */
+export type AlternativeBillingModeAndroid = 'none' | 'user-choice' | 'alternative-only';
+export interface AndroidSubscriptionOfferInput {
+    /** Offer token */
+    offerToken: string;
+    /** Product SKU */
+    sku: string;
+}
+export interface AppTransaction {
+    appId: number;
+    appTransactionId?: (string | null);
+    appVersion: string;
+    appVersionId: number;
+    bundleId: string;
+    deviceVerification: string;
+    deviceVerificationNonce: string;
+    environment: string;
+    originalAppVersion: string;
+    originalPlatform?: (string | null);
+    originalPurchaseDate: number;
+    preorderDate?: (number | null);
+    signedDate: number;
+}
+/**
+ * Billing program types for external content links, external offers, and external payments (Android)
+ * Available in Google Play Billing Library 8.2.0+, EXTERNAL_PAYMENTS added in 8.3.0
+ */
+export type BillingProgramAndroid = 'unspecified' | 'user-choice-billing' | 'external-content-link' | 'external-offer' | 'external-payments';
+/**
+ * Result of checking billing program availability (Android)
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export interface BillingProgramAvailabilityResultAndroid {
+    /** The billing program that was checked */
+    billingProgram: BillingProgramAndroid;
+    /** Whether the billing program is available for the user */
+    isAvailable: boolean;
+}
+/**
+ * Reporting details for transactions made outside of Google Play Billing (Android)
+ * Contains the external transaction token needed for reporting
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export interface BillingProgramReportingDetailsAndroid {
+    /** The billing program that the reporting details are associated with */
+    billingProgram: BillingProgramAndroid;
+    /**
+     * External transaction token used to report transactions made outside of Google Play Billing.
+     * This token must be used when reporting the external transaction to Google.
+     */
+    externalTransactionToken: string;
+}
+export interface DeepLinkOptions {
+    /** Android package name to target (required on Android) */
+    packageNameAndroid?: (string | null);
+    /** Android SKU to open (required on Android) */
+    skuAndroid?: (string | null);
+}
+/**
+ * Launch mode for developer billing option (Android)
+ * Determines how the external payment URL is launched
+ * Available in Google Play Billing Library 8.3.0+
+ */
+export type DeveloperBillingLaunchModeAndroid = 'unspecified' | 'launch-in-external-browser-or-app' | 'caller-will-launch-link';
+/**
+ * Parameters for developer billing option in purchase flow (Android)
+ * Used with BillingFlowParams to enable external payments flow
+ * Available in Google Play Billing Library 8.3.0+
+ */
+export interface DeveloperBillingOptionParamsAndroid {
+    /** The billing program (should be EXTERNAL_PAYMENTS for external payments flow) */
+    billingProgram: BillingProgramAndroid;
+    /** The launch mode for the external payment link */
+    launchMode: DeveloperBillingLaunchModeAndroid;
+    /** The URI where the external payment will be processed */
+    linkUri: string;
+}
+/**
+ * Details provided when user selects developer billing option (Android)
+ * Received via DeveloperProvidedBillingListener callback
+ * Available in Google Play Billing Library 8.3.0+
+ */
+export interface DeveloperProvidedBillingDetailsAndroid {
+    /**
+     * External transaction token used to report transactions made through developer billing.
+     * This token must be used when reporting the external transaction to Google Play.
+     * Must be reported within 24 hours of the transaction.
+     */
+    externalTransactionToken: string;
+}
+/**
+ * Discount amount details for one-time purchase offers (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface DiscountAmountAndroid {
+    /** Discount amount in micro-units (1,000,000 = 1 unit of currency) */
+    discountAmountMicros: string;
+    /** Formatted discount amount with currency sign (e.g., "$4.99") */
+    formattedDiscountAmount: string;
+}
+/**
+ * Discount display information for one-time purchase offers (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface DiscountDisplayInfoAndroid {
+    /**
+     * Absolute discount amount details
+     * Only returned for fixed amount discounts
+     */
+    discountAmount?: (DiscountAmountAndroid | null);
+    /**
+     * Percentage discount (e.g., 33 for 33% off)
+     * Only returned for percentage-based discounts
+     */
+    percentageDiscount?: (number | null);
+}
+export interface DiscountIOS {
+    identifier: string;
+    localizedPrice?: (string | null);
+    numberOfPeriods: number;
+    paymentMode: PaymentModeIOS;
+    price: string;
+    priceAmount: number;
+    subscriptionPeriod: string;
+    type: string;
+}
+export interface DiscountOfferIOS {
+    /** Discount identifier */
+    identifier: string;
+    /** Key identifier for validation */
+    keyIdentifier: string;
+    /** Cryptographic nonce */
+    nonce: string;
+    /** Signature for validation */
+    signature: string;
+    /** Timestamp of discount offer */
+    timestamp: number;
+}
+export interface DiscountOfferInputIOS {
+    /** Discount identifier */
+    identifier: string;
+    /** Key identifier for validation */
+    keyIdentifier: string;
+    /** Cryptographic nonce */
+    nonce: string;
+    /** Signature for validation */
+    signature: string;
+    /** Timestamp of discount offer */
+    timestamp: number;
+}
+export interface EntitlementIOS {
+    jsonRepresentation: string;
+    sku: string;
+    transactionId: string;
+}
+export declare enum ErrorCode {
+    ActivityUnavailable = "activity-unavailable",
+    AlreadyOwned = "already-owned",
+    AlreadyPrepared = "already-prepared",
+    BillingResponseJsonParseError = "billing-response-json-parse-error",
+    BillingUnavailable = "billing-unavailable",
+    ConnectionClosed = "connection-closed",
+    DeferredPayment = "deferred-payment",
+    DeveloperError = "developer-error",
+    EmptySkuList = "empty-sku-list",
+    FeatureNotSupported = "feature-not-supported",
+    IapNotAvailable = "iap-not-available",
+    InitConnection = "init-connection",
+    Interrupted = "interrupted",
+    ItemNotOwned = "item-not-owned",
+    ItemUnavailable = "item-unavailable",
+    NetworkError = "network-error",
+    NotEnded = "not-ended",
+    NotPrepared = "not-prepared",
+    Pending = "pending",
+    PurchaseError = "purchase-error",
+    PurchaseVerificationFailed = "purchase-verification-failed",
+    PurchaseVerificationFinishFailed = "purchase-verification-finish-failed",
+    PurchaseVerificationFinished = "purchase-verification-finished",
+    QueryProduct = "query-product",
+    ReceiptFailed = "receipt-failed",
+    ReceiptFinished = "receipt-finished",
+    ReceiptFinishedFailed = "receipt-finished-failed",
+    RemoteError = "remote-error",
+    ServiceDisconnected = "service-disconnected",
+    ServiceError = "service-error",
+    SkuNotFound = "sku-not-found",
+    SkuOfferMismatch = "sku-offer-mismatch",
+    SyncError = "sync-error",
+    TransactionValidationFailed = "transaction-validation-failed",
+    Unknown = "unknown",
+    UserCancelled = "user-cancelled",
+    UserError = "user-error"
+}
+/**
+ * Launch mode for external link flow (Android)
+ * Determines how the external URL is launched
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export type ExternalLinkLaunchModeAndroid = 'unspecified' | 'launch-in-external-browser-or-app' | 'caller-will-launch-link';
+/**
+ * Link type for external link flow (Android)
+ * Specifies the type of external link destination
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export type ExternalLinkTypeAndroid = 'unspecified' | 'link-to-digital-content-offer' | 'link-to-app-download';
+/**
+ * External offer availability result (Android)
+ * @deprecated Use BillingProgramAvailabilityResultAndroid with isBillingProgramAvailableAsync instead
+ * Available in Google Play Billing Library 6.2.0+, deprecated in 8.2.0
+ */
+export interface ExternalOfferAvailabilityResultAndroid {
+    /** Whether external offers are available for the user */
+    isAvailable: boolean;
+}
+/**
+ * External offer reporting details (Android)
+ * @deprecated Use BillingProgramReportingDetailsAndroid with createBillingProgramReportingDetailsAsync instead
+ * Available in Google Play Billing Library 6.2.0+, deprecated in 8.2.0
+ */
+export interface ExternalOfferReportingDetailsAndroid {
+    /** External transaction token for reporting external offer transactions */
+    externalTransactionToken: string;
+}
+/** Result of presenting an external purchase link (iOS 18.2+) */
+export interface ExternalPurchaseLinkResultIOS {
+    /** Optional error message if the presentation failed */
+    error?: (string | null);
+    /** Whether the user completed the external purchase flow */
+    success: boolean;
+}
+/** User actions on external purchase notice sheet (iOS 18.2+) */
+export type ExternalPurchaseNoticeAction = 'continue' | 'dismissed';
+/** Result of presenting external purchase notice sheet (iOS 18.2+) */
+export interface ExternalPurchaseNoticeResultIOS {
+    /** Optional error message if the presentation failed */
+    error?: (string | null);
+    /** Notice result indicating user action */
+    result: ExternalPurchaseNoticeAction;
+}
+export type FetchProductsResult = ProductOrSubscription[] | Product[] | ProductSubscription[] | null;
+export type IapEvent = 'purchase-updated' | 'purchase-error' | 'promoted-product-ios' | 'user-choice-billing-android' | 'developer-provided-billing-android';
+export type IapPlatform = 'ios' | 'android';
+export type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
+/** Unified purchase states from IAPKit verification response. */
+export type IapkitPurchaseState = 'entitled' | 'pending-acknowledgment' | 'pending' | 'canceled' | 'expired' | 'ready-to-consume' | 'consumed' | 'unknown' | 'inauthentic';
+/** Connection initialization configuration */
+export interface InitConnectionConfig {
+    /**
+     * Alternative billing mode for Android
+     * If not specified, defaults to NONE (standard Google Play billing)
+     * @deprecated Use enableBillingProgramAndroid instead.
+     * Use USER_CHOICE_BILLING for user choice billing, EXTERNAL_OFFER for alternative only.
+     */
+    alternativeBillingModeAndroid?: (AlternativeBillingModeAndroid | null);
+    /**
+     * Enable a specific billing program for Android (7.0+)
+     * When set, enables the specified billing program for external transactions.
+     * - USER_CHOICE_BILLING: User can select between Google Play or alternative (7.0+)
+     * - EXTERNAL_CONTENT_LINK: Link to external content (8.2.0+)
+     * - EXTERNAL_OFFER: External offers for digital content (8.2.0+)
+     * - EXTERNAL_PAYMENTS: Developer provided billing, Japan only (8.3.0+)
+     */
+    enableBillingProgramAndroid?: (BillingProgramAndroid | null);
+}
+/**
+ * Parameters for launching an external link (Android)
+ * Used with launchExternalLink to initiate external offer or app install flows
+ * Available in Google Play Billing Library 8.2.0+
+ */
+export interface LaunchExternalLinkParamsAndroid {
+    /** The billing program (EXTERNAL_CONTENT_LINK or EXTERNAL_OFFER) */
+    billingProgram: BillingProgramAndroid;
+    /** The external link launch mode */
+    launchMode: ExternalLinkLaunchModeAndroid;
+    /** The type of the external link */
+    linkType: ExternalLinkTypeAndroid;
+    /** The URI where the content will be accessed from */
+    linkUri: string;
+}
+/**
+ * Limited quantity information for one-time purchase offers (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface LimitedQuantityInfoAndroid {
+    /** Maximum quantity a user can purchase */
+    maximumQuantity: number;
+    /** Remaining quantity the user can still purchase */
+    remainingQuantity: number;
+}
+export interface Mutation {
+    /** Acknowledge a non-consumable purchase or subscription */
+    acknowledgePurchaseAndroid: Promise<boolean>;
+    /** Initiate a refund request for a product (iOS 15+) */
+    beginRefundRequestIOS?: Promise<(string | null)>;
+    /**
+     * Check if alternative billing is available for this user/device
+     * Step 1 of alternative billing flow
+     *
+     * Returns true if available, false otherwise
+     * Throws OpenIapError.NotPrepared if billing client not ready
+     */
+    checkAlternativeBillingAvailabilityAndroid: Promise<boolean>;
+    /** Clear pending transactions from the StoreKit payment queue */
+    clearTransactionIOS: Promise<boolean>;
+    /** Consume a purchase token so it can be repurchased */
+    consumePurchaseAndroid: Promise<boolean>;
+    /**
+     * Create external transaction token for Google Play reporting
+     * Step 3 of alternative billing flow
+     * Must be called AFTER successful payment in your payment system
+     * Token must be reported to Google Play backend within 24 hours
+     *
+     * Returns token string, or null if creation failed
+     * Throws OpenIapError.NotPrepared if billing client not ready
+     */
+    createAlternativeBillingTokenAndroid?: Promise<(string | null)>;
+    /**
+     * Create reporting details for a billing program
+     * Replaces the deprecated createExternalOfferReportingDetailsAsync API
+     *
+     * Available in Google Play Billing Library 8.2.0+
+     * Returns external transaction token needed for reporting external transactions
+     * Throws OpenIapError.NotPrepared if billing client not ready
+     */
+    createBillingProgramReportingDetailsAndroid: Promise<BillingProgramReportingDetailsAndroid>;
+    /** Open the native subscription management surface */
+    deepLinkToSubscriptions: Promise<void>;
+    /** Close the platform billing connection */
+    endConnection: Promise<boolean>;
+    /** Finish a transaction after validating receipts */
+    finishTransaction: Promise<void>;
+    /** Establish the platform billing connection */
+    initConnection: Promise<boolean>;
+    /**
+     * Check if a billing program is available for the current user
+     * Replaces the deprecated isExternalOfferAvailableAsync API
+     *
+     * Available in Google Play Billing Library 8.2.0+
+     * Returns availability result with isAvailable flag
+     * Throws OpenIapError.NotPrepared if billing client not ready
+     */
+    isBillingProgramAvailableAndroid: Promise<BillingProgramAvailabilityResultAndroid>;
+    /**
+     * Launch external link flow for external billing programs
+     * Replaces the deprecated showExternalOfferInformationDialog API
+     *
+     * Available in Google Play Billing Library 8.2.0+
+     * Shows Play Store dialog and optionally launches external URL
+     * Throws OpenIapError.NotPrepared if billing client not ready
+     */
+    launchExternalLinkAndroid: Promise<boolean>;
+    /** Present the App Store code redemption sheet */
+    presentCodeRedemptionSheetIOS: Promise<boolean>;
+    /** Present external purchase custom link with StoreKit UI (iOS 18.2+) */
+    presentExternalPurchaseLinkIOS: Promise<ExternalPurchaseLinkResultIOS>;
+    /** Present external purchase notice sheet (iOS 18.2+) */
+    presentExternalPurchaseNoticeSheetIOS: Promise<ExternalPurchaseNoticeResultIOS>;
+    /** Initiate a purchase flow; rely on events for final state */
+    requestPurchase?: Promise<(Purchase | Purchase[] | null)>;
+    /**
+     * Purchase the promoted product surfaced by the App Store.
+     *
+     * @deprecated Use promotedProductListenerIOS to receive the productId,
+     * then call requestPurchase with that SKU instead. In StoreKit 2,
+     * promoted products can be purchased directly via the standard purchase flow.
+     * @deprecated Use promotedProductListenerIOS + requestPurchase instead
+     */
+    requestPurchaseOnPromotedProductIOS: boolean;
+    /** Restore completed purchases across platforms */
+    restorePurchases: Promise<void>;
+    /**
+     * Show alternative billing information dialog to user
+     * Step 2 of alternative billing flow
+     * Must be called BEFORE processing payment in your payment system
+     *
+     * Returns true if user accepted, false if user canceled
+     * Throws OpenIapError.NotPrepared if billing client not ready
+     */
+    showAlternativeBillingDialogAndroid: Promise<boolean>;
+    /** Open subscription management UI and return changed purchases (iOS 15+) */
+    showManageSubscriptionsIOS: Promise<PurchaseIOS[]>;
+    /** Force a StoreKit sync for transactions (iOS 15+) */
+    syncIOS: Promise<boolean>;
+    /**
+     * Validate purchase receipts with the configured providers
+     * @deprecated Use verifyPurchase
+     */
+    validateReceipt: Promise<VerifyPurchaseResult>;
+    /** Verify purchases with the configured providers */
+    verifyPurchase: Promise<VerifyPurchaseResult>;
+    /** Verify purchases with a specific provider (e.g., IAPKit) */
+    verifyPurchaseWithProvider: Promise<VerifyPurchaseWithProviderResult>;
+}
+export type MutationAcknowledgePurchaseAndroidArgs = string;
+export type MutationBeginRefundRequestIosArgs = string;
+export type MutationConsumePurchaseAndroidArgs = string;
+export type MutationCreateBillingProgramReportingDetailsAndroidArgs = BillingProgramAndroid;
+export type MutationDeepLinkToSubscriptionsArgs = (DeepLinkOptions | null) | undefined;
+export interface MutationFinishTransactionArgs {
+    isConsumable?: (boolean | null);
+    purchase: PurchaseInput;
+}
+export type MutationInitConnectionArgs = (InitConnectionConfig | null) | undefined;
+export type MutationIsBillingProgramAvailableAndroidArgs = BillingProgramAndroid;
+export type MutationLaunchExternalLinkAndroidArgs = LaunchExternalLinkParamsAndroid;
+export type MutationPresentExternalPurchaseLinkIosArgs = string;
+export type MutationRequestPurchaseArgs = {
+    /** Per-platform purchase request props */
+    request: RequestPurchasePropsByPlatforms;
+    type: 'in-app';
+    /** Use alternative billing (Google Play alternative billing, Apple external purchase link) */
+    useAlternativeBilling?: boolean | null;
+} | {
+    /** Per-platform subscription request props */
+    request: RequestSubscriptionPropsByPlatforms;
+    type: 'subs';
+    /** Use alternative billing (Google Play alternative billing, Apple external purchase link) */
+    useAlternativeBilling?: boolean | null;
+};
+export type MutationValidateReceiptArgs = VerifyPurchaseProps;
+export type MutationVerifyPurchaseArgs = VerifyPurchaseProps;
+export type MutationVerifyPurchaseWithProviderArgs = VerifyPurchaseWithProviderProps;
+export type PaymentModeIOS = 'empty' | 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
+/**
+ * Pre-order details for one-time purchase products (Android)
+ * Available in Google Play Billing Library 8.1.0+
+ */
+export interface PreorderDetailsAndroid {
+    /**
+     * Pre-order presale end time in milliseconds since epoch.
+     * This is when the presale period ends and the product will be released.
+     */
+    preorderPresaleEndTimeMillis: string;
+    /**
+     * Pre-order release time in milliseconds since epoch.
+     * This is when the product will be available to users who pre-ordered.
+     */
+    preorderReleaseTimeMillis: string;
+}
+export interface PricingPhaseAndroid {
+    billingCycleCount: number;
+    billingPeriod: string;
+    formattedPrice: string;
+    priceAmountMicros: string;
+    priceCurrencyCode: string;
+    recurrenceMode: number;
+}
+export interface PricingPhasesAndroid {
+    pricingPhaseList: PricingPhaseAndroid[];
+}
+export type Product = ProductAndroid | ProductIOS;
+export interface ProductAndroid extends ProductCommon {
+    currency: string;
+    debugDescription?: (string | null);
+    description: string;
+    displayName?: (string | null);
+    displayPrice: string;
+    id: string;
+    nameAndroid: string;
+    /**
+     * One-time purchase offer details including discounts (Android)
+     * Returns all eligible offers. Available in Google Play Billing Library 7.0+
+     */
+    oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail[] | null);
+    platform: 'android';
+    price?: (number | null);
+    subscriptionOfferDetailsAndroid?: (ProductSubscriptionAndroidOfferDetails[] | null);
+    title: string;
+    type: 'in-app';
+}
+/**
+ * One-time purchase offer details (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface ProductAndroidOneTimePurchaseOfferDetail {
+    /**
+     * Discount display information
+     * Only available for discounted offers
+     */
+    discountDisplayInfo?: (DiscountDisplayInfoAndroid | null);
+    formattedPrice: string;
+    /**
+     * Full (non-discounted) price in micro-units
+     * Only available for discounted offers
+     */
+    fullPriceMicros?: (string | null);
+    /** Limited quantity information */
+    limitedQuantityInfo?: (LimitedQuantityInfoAndroid | null);
+    /** Offer ID */
+    offerId?: (string | null);
+    /** List of offer tags */
+    offerTags: string[];
+    /** Offer token for use in BillingFlowParams when purchasing */
+    offerToken: string;
+    /**
+     * Pre-order details for products available for pre-order
+     * Available in Google Play Billing Library 8.1.0+
+     */
+    preorderDetailsAndroid?: (PreorderDetailsAndroid | null);
+    priceAmountMicros: string;
+    priceCurrencyCode: string;
+    /** Rental details for rental offers */
+    rentalDetailsAndroid?: (RentalDetailsAndroid | null);
+    /** Valid time window for the offer */
+    validTimeWindow?: (ValidTimeWindowAndroid | null);
+}
+export interface ProductCommon {
+    currency: string;
+    debugDescription?: (string | null);
+    description: string;
+    displayName?: (string | null);
+    displayPrice: string;
+    id: string;
+    platform: 'android' | 'ios';
+    price?: (number | null);
+    title: string;
+    type: 'in-app' | 'subs';
+}
+export interface ProductIOS extends ProductCommon {
+    currency: string;
+    debugDescription?: (string | null);
+    description: string;
+    displayName?: (string | null);
+    displayNameIOS: string;
+    displayPrice: string;
+    id: string;
+    isFamilyShareableIOS: boolean;
+    jsonRepresentationIOS: string;
+    platform: 'ios';
+    price?: (number | null);
+    subscriptionInfoIOS?: (SubscriptionInfoIOS | null);
+    title: string;
+    type: 'in-app';
+    typeIOS: ProductTypeIOS;
+}
+export type ProductOrSubscription = Product | ProductSubscription;
+export type ProductQueryType = 'in-app' | 'subs' | 'all';
+export interface ProductRequest {
+    skus: string[];
+    type?: (ProductQueryType | null);
+}
+export type ProductSubscription = ProductSubscriptionAndroid | ProductSubscriptionIOS;
+export interface ProductSubscriptionAndroid extends ProductCommon {
+    currency: string;
+    debugDescription?: (string | null);
+    description: string;
+    displayName?: (string | null);
+    displayPrice: string;
+    id: string;
+    nameAndroid: string;
+    /**
+     * One-time purchase offer details including discounts (Android)
+     * Returns all eligible offers. Available in Google Play Billing Library 7.0+
+     */
+    oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail[] | null);
+    platform: 'android';
+    price?: (number | null);
+    subscriptionOfferDetailsAndroid: ProductSubscriptionAndroidOfferDetails[];
+    title: string;
+    type: 'subs';
+}
+export interface ProductSubscriptionAndroidOfferDetails {
+    basePlanId: string;
+    offerId?: (string | null);
+    offerTags: string[];
+    offerToken: string;
+    pricingPhases: PricingPhasesAndroid;
+}
+export interface ProductSubscriptionIOS extends ProductCommon {
+    currency: string;
+    debugDescription?: (string | null);
+    description: string;
+    discountsIOS?: (DiscountIOS[] | null);
+    displayName?: (string | null);
+    displayNameIOS: string;
+    displayPrice: string;
+    id: string;
+    introductoryPriceAsAmountIOS?: (string | null);
+    introductoryPriceIOS?: (string | null);
+    introductoryPriceNumberOfPeriodsIOS?: (string | null);
+    introductoryPricePaymentModeIOS: PaymentModeIOS;
+    introductoryPriceSubscriptionPeriodIOS?: (SubscriptionPeriodIOS | null);
+    isFamilyShareableIOS: boolean;
+    jsonRepresentationIOS: string;
+    platform: 'ios';
+    price?: (number | null);
+    subscriptionInfoIOS?: (SubscriptionInfoIOS | null);
+    subscriptionPeriodNumberIOS?: (string | null);
+    subscriptionPeriodUnitIOS?: (SubscriptionPeriodIOS | null);
+    title: string;
+    type: 'subs';
+    typeIOS: ProductTypeIOS;
+}
+export type ProductType = 'in-app' | 'subs';
+export type ProductTypeIOS = 'consumable' | 'non-consumable' | 'auto-renewable-subscription' | 'non-renewing-subscription';
+export type Purchase = PurchaseAndroid | PurchaseIOS;
+export interface PurchaseAndroid extends PurchaseCommon {
+    autoRenewingAndroid?: (boolean | null);
+    currentPlanId?: (string | null);
+    dataAndroid?: (string | null);
+    developerPayloadAndroid?: (string | null);
+    id: string;
+    ids?: (string[] | null);
+    isAcknowledgedAndroid?: (boolean | null);
+    isAutoRenewing: boolean;
+    /**
+     * Whether the subscription is suspended (Android)
+     * A suspended subscription means the user's payment method failed and they need to fix it.
+     * Users should be directed to the subscription center to resolve the issue.
+     * Do NOT grant entitlements for suspended subscriptions.
+     * Available in Google Play Billing Library 8.1.0+
+     */
+    isSuspendedAndroid?: (boolean | null);
+    obfuscatedAccountIdAndroid?: (string | null);
+    obfuscatedProfileIdAndroid?: (string | null);
+    packageNameAndroid?: (string | null);
+    /** @deprecated Use store instead */
+    platform: IapPlatform;
+    productId: string;
+    purchaseState: PurchaseState;
+    purchaseToken?: (string | null);
+    quantity: number;
+    signatureAndroid?: (string | null);
+    /** Store where purchase was made */
+    store: IapStore;
+    transactionDate: number;
+    transactionId?: (string | null);
+}
+export interface PurchaseCommon {
+    /**
+     * The current plan identifier. This is:
+     * - On Android: the basePlanId (e.g., "premium", "premium-year")
+     * - On iOS: the productId (e.g., "com.example.premium_monthly", "com.example.premium_yearly")
+     * This provides a unified way to identify which specific plan/tier the user is subscribed to.
+     */
+    currentPlanId?: (string | null);
+    id: string;
+    ids?: (string[] | null);
+    isAutoRenewing: boolean;
+    /** @deprecated Use store instead */
+    platform: IapPlatform;
+    productId: string;
+    purchaseState: PurchaseState;
+    /** Unified purchase token (iOS JWS, Android purchaseToken) */
+    purchaseToken?: (string | null);
+    quantity: number;
+    /** Store where purchase was made */
+    store: IapStore;
+    transactionDate: number;
+}
+export interface PurchaseError {
+    code: ErrorCode;
+    message: string;
+    productId?: (string | null);
+}
+export interface PurchaseIOS extends PurchaseCommon {
+    appAccountToken?: (string | null);
+    appBundleIdIOS?: (string | null);
+    countryCodeIOS?: (string | null);
+    currencyCodeIOS?: (string | null);
+    currencySymbolIOS?: (string | null);
+    currentPlanId?: (string | null);
+    environmentIOS?: (string | null);
+    expirationDateIOS?: (number | null);
+    id: string;
+    ids?: (string[] | null);
+    isAutoRenewing: boolean;
+    isUpgradedIOS?: (boolean | null);
+    offerIOS?: (PurchaseOfferIOS | null);
+    originalTransactionDateIOS?: (number | null);
+    originalTransactionIdentifierIOS?: (string | null);
+    ownershipTypeIOS?: (string | null);
+    /** @deprecated Use store instead */
+    platform: IapPlatform;
+    productId: string;
+    purchaseState: PurchaseState;
+    purchaseToken?: (string | null);
+    quantity: number;
+    quantityIOS?: (number | null);
+    reasonIOS?: (string | null);
+    reasonStringRepresentationIOS?: (string | null);
+    renewalInfoIOS?: (RenewalInfoIOS | null);
+    revocationDateIOS?: (number | null);
+    revocationReasonIOS?: (string | null);
+    /** Store where purchase was made */
+    store: IapStore;
+    storefrontCountryCodeIOS?: (string | null);
+    subscriptionGroupIdIOS?: (string | null);
+    transactionDate: number;
+    transactionId: string;
+    transactionReasonIOS?: (string | null);
+    webOrderLineItemIdIOS?: (string | null);
+}
+export type PurchaseInput = Purchase;
+export interface PurchaseOfferIOS {
+    id: string;
+    paymentMode: string;
+    type: string;
+}
+export interface PurchaseOptions {
+    /** Also emit results through the iOS event listeners */
+    alsoPublishToEventListenerIOS?: (boolean | null);
+    /** Limit to currently active items on iOS */
+    onlyIncludeActiveItemsIOS?: (boolean | null);
+}
+export type PurchaseState = 'pending' | 'purchased' | 'unknown';
+export type PurchaseVerificationProvider = 'iapkit';
+export interface Query {
+    /** Check if external purchase notice sheet can be presented (iOS 18.2+) */
+    canPresentExternalPurchaseNoticeIOS: Promise<boolean>;
+    /** Get current StoreKit 2 entitlements (iOS 15+) */
+    currentEntitlementIOS?: Promise<(PurchaseIOS | null)>;
+    /** Retrieve products or subscriptions from the store */
+    fetchProducts: Promise<(ProductOrSubscription[] | Product[] | ProductSubscription[] | null)>;
+    /** Get active subscriptions (filters by subscriptionIds when provided) */
+    getActiveSubscriptions: Promise<ActiveSubscription[]>;
+    /** Fetch the current app transaction (iOS 16+) */
+    getAppTransactionIOS?: Promise<(AppTransaction | null)>;
+    /** Get all available purchases for the current user */
+    getAvailablePurchases: Promise<Purchase[]>;
+    /** Retrieve all pending transactions in the StoreKit queue */
+    getPendingTransactionsIOS: Promise<PurchaseIOS[]>;
+    /** Get the currently promoted product (iOS 11+) */
+    getPromotedProductIOS?: Promise<(ProductIOS | null)>;
+    /** Get base64-encoded receipt data for validation */
+    getReceiptDataIOS?: Promise<(string | null)>;
+    /** Get the current storefront country code */
+    getStorefront: Promise<string>;
+    /**
+     * Get the current App Store storefront country code
+     * @deprecated Use getStorefront
+     */
+    getStorefrontIOS: Promise<string>;
+    /** Get the transaction JWS (StoreKit 2) */
+    getTransactionJwsIOS?: Promise<(string | null)>;
+    /** Check whether the user has active subscriptions */
+    hasActiveSubscriptions: Promise<boolean>;
+    /** Check introductory offer eligibility for a subscription group */
+    isEligibleForIntroOfferIOS: Promise<boolean>;
+    /** Verify a StoreKit 2 transaction signature */
+    isTransactionVerifiedIOS: Promise<boolean>;
+    /** Get the latest transaction for a product using StoreKit 2 */
+    latestTransactionIOS?: Promise<(PurchaseIOS | null)>;
+    /** Get StoreKit 2 subscription status details (iOS 15+) */
+    subscriptionStatusIOS: Promise<SubscriptionStatusIOS[]>;
+    /**
+     * Validate a receipt for a specific product
+     * @deprecated Use verifyPurchase
+     */
+    validateReceiptIOS: Promise<VerifyPurchaseResultIOS>;
+}
+export type QueryCurrentEntitlementIosArgs = string;
+export type QueryFetchProductsArgs = ProductRequest;
+export type QueryGetActiveSubscriptionsArgs = (string[] | null) | undefined;
+export type QueryGetAvailablePurchasesArgs = (PurchaseOptions | null) | undefined;
+export type QueryGetTransactionJwsIosArgs = string;
+export type QueryHasActiveSubscriptionsArgs = (string[] | null) | undefined;
+export type QueryIsEligibleForIntroOfferIosArgs = string;
+export type QueryIsTransactionVerifiedIosArgs = string;
+export type QueryLatestTransactionIosArgs = string;
+export type QuerySubscriptionStatusIosArgs = string;
+export type QueryValidateReceiptIosArgs = VerifyPurchaseProps;
+export interface RefundResultIOS {
+    message?: (string | null);
+    status: string;
+}
+/**
+ * Subscription renewal information from Product.SubscriptionInfo.RenewalInfo
+ * https://developer.apple.com/documentation/storekit/product/subscriptioninfo/renewalinfo
+ */
+export interface RenewalInfoIOS {
+    autoRenewPreference?: (string | null);
+    /**
+     * When subscription expires due to cancellation/billing issue
+     * Possible values: "VOLUNTARY", "BILLING_ERROR", "DID_NOT_AGREE_TO_PRICE_INCREASE", "PRODUCT_NOT_AVAILABLE", "UNKNOWN"
+     */
+    expirationReason?: (string | null);
+    /**
+     * Grace period expiration date (milliseconds since epoch)
+     * When set, subscription is in grace period (billing issue but still has access)
+     */
+    gracePeriodExpirationDate?: (number | null);
+    /**
+     * True if subscription failed to renew due to billing issue and is retrying
+     * Note: Not directly available in RenewalInfo, available in Status
+     */
+    isInBillingRetry?: (boolean | null);
+    jsonRepresentation?: (string | null);
+    /**
+     * Product ID that will be used on next renewal (when user upgrades/downgrades)
+     * If set and different from current productId, subscription will change on expiration
+     */
+    pendingUpgradeProductId?: (string | null);
+    /**
+     * User's response to subscription price increase
+     * Possible values: "AGREED", "PENDING", null (no price increase)
+     */
+    priceIncreaseStatus?: (string | null);
+    /**
+     * Expected renewal date (milliseconds since epoch)
+     * For active subscriptions, when the next renewal/charge will occur
+     */
+    renewalDate?: (number | null);
+    /** Offer ID applied to next renewal (promotional offer, subscription offer code, etc.) */
+    renewalOfferId?: (string | null);
+    /**
+     * Type of offer applied to next renewal
+     * Possible values: "PROMOTIONAL", "SUBSCRIPTION_OFFER_CODE", "WIN_BACK", etc.
+     */
+    renewalOfferType?: (string | null);
+    willAutoRenew: boolean;
+}
+/**
+ * Rental details for one-time purchase products that can be rented (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface RentalDetailsAndroid {
+    /**
+     * Rental expiration period in ISO 8601 format
+     * Time after rental period ends when user can still extend
+     */
+    rentalExpirationPeriod?: (string | null);
+    /** Rental period in ISO 8601 format (e.g., P7D for 7 days) */
+    rentalPeriod: string;
+}
+export interface RequestPurchaseAndroidProps {
+    /**
+     * Developer billing option parameters for external payments flow (8.3.0+).
+     * When provided, the purchase flow will show a side-by-side choice between
+     * Google Play Billing and the developer's external payment option.
+     */
+    developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
+    /** Personalized offer flag */
+    isOfferPersonalized?: (boolean | null);
+    /** Obfuscated account ID */
+    obfuscatedAccountIdAndroid?: (string | null);
+    /** Obfuscated profile ID */
+    obfuscatedProfileIdAndroid?: (string | null);
+    /** List of product SKUs */
+    skus: string[];
+}
+export interface RequestPurchaseIosProps {
+    /**
+     * Advanced commerce data token (iOS 15+).
+     * Used with StoreKit 2's Product.PurchaseOption.custom API for passing
+     * campaign tokens, affiliate IDs, or other attribution data.
+     * The data is formatted as JSON: {"signatureInfo": {"token": "<value>"}}
+     */
+    advancedCommerceData?: (string | null);
+    /** Auto-finish transaction (dangerous) */
+    andDangerouslyFinishTransactionAutomatically?: (boolean | null);
+    /** App account token for user tracking */
+    appAccountToken?: (string | null);
+    /** Purchase quantity */
+    quantity?: (number | null);
+    /** Product SKU */
+    sku: string;
+    /** Discount offer to apply */
+    withOffer?: (DiscountOfferInputIOS | null);
+}
+export type RequestPurchaseProps = {
+    /** Per-platform purchase request props */
+    request: RequestPurchasePropsByPlatforms;
+    type: 'in-app';
+    /** Use alternative billing (Google Play alternative billing, Apple external purchase link) */
+    useAlternativeBilling?: boolean | null;
+} | {
+    /** Per-platform subscription request props */
+    request: RequestSubscriptionPropsByPlatforms;
+    type: 'subs';
+    /** Use alternative billing (Google Play alternative billing, Apple external purchase link) */
+    useAlternativeBilling?: boolean | null;
+};
+/**
+ * Platform-specific purchase request parameters.
+ *
+ * Note: "Platforms" refers to the SDK/OS level (apple, google), not the store.
+ * - apple: Always targets App Store
+ * - google: Targets Play Store by default, or Horizon when built with horizon flavor
+ *   (determined at build time, not runtime)
+ */
+export interface RequestPurchasePropsByPlatforms {
+    /** @deprecated Use google instead */
+    android?: (RequestPurchaseAndroidProps | null);
+    /** Apple-specific purchase parameters */
+    apple?: (RequestPurchaseIosProps | null);
+    /** Google-specific purchase parameters */
+    google?: (RequestPurchaseAndroidProps | null);
+    /** @deprecated Use apple instead */
+    ios?: (RequestPurchaseIosProps | null);
+}
+export type RequestPurchaseResult = Purchase | Purchase[] | null;
+export interface RequestSubscriptionAndroidProps {
+    /**
+     * Developer billing option parameters for external payments flow (8.3.0+).
+     * When provided, the purchase flow will show a side-by-side choice between
+     * Google Play Billing and the developer's external payment option.
+     */
+    developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
+    /** Personalized offer flag */
+    isOfferPersonalized?: (boolean | null);
+    /** Obfuscated account ID */
+    obfuscatedAccountIdAndroid?: (string | null);
+    /** Obfuscated profile ID */
+    obfuscatedProfileIdAndroid?: (string | null);
+    /** Purchase token for upgrades/downgrades */
+    purchaseTokenAndroid?: (string | null);
+    /**
+     * Replacement mode for subscription changes
+     * @deprecated Use subscriptionProductReplacementParams instead for item-level replacement (8.1.0+)
+     */
+    replacementModeAndroid?: (number | null);
+    /** List of subscription SKUs */
+    skus: string[];
+    /** Subscription offers */
+    subscriptionOffers?: (AndroidSubscriptionOfferInput[] | null);
+    /**
+     * Product-level replacement parameters (8.1.0+)
+     * Use this instead of replacementModeAndroid for item-level replacement
+     */
+    subscriptionProductReplacementParams?: (SubscriptionProductReplacementParamsAndroid | null);
+}
+export interface RequestSubscriptionIosProps {
+    /**
+     * Advanced commerce data token (iOS 15+).
+     * Used with StoreKit 2's Product.PurchaseOption.custom API for passing
+     * campaign tokens, affiliate IDs, or other attribution data.
+     * The data is formatted as JSON: {"signatureInfo": {"token": "<value>"}}
+     */
+    advancedCommerceData?: (string | null);
+    andDangerouslyFinishTransactionAutomatically?: (boolean | null);
+    appAccountToken?: (string | null);
+    quantity?: (number | null);
+    sku: string;
+    withOffer?: (DiscountOfferInputIOS | null);
+}
+/**
+ * Platform-specific subscription request parameters.
+ *
+ * Note: "Platforms" refers to the SDK/OS level (apple, google), not the store.
+ * - apple: Always targets App Store
+ * - google: Targets Play Store by default, or Horizon when built with horizon flavor
+ *   (determined at build time, not runtime)
+ */
+export interface RequestSubscriptionPropsByPlatforms {
+    /** @deprecated Use google instead */
+    android?: (RequestSubscriptionAndroidProps | null);
+    /** Apple-specific subscription parameters */
+    apple?: (RequestSubscriptionIosProps | null);
+    /** Google-specific subscription parameters */
+    google?: (RequestSubscriptionAndroidProps | null);
+    /** @deprecated Use apple instead */
+    ios?: (RequestSubscriptionIosProps | null);
+}
+export interface RequestVerifyPurchaseWithIapkitAppleProps {
+    /** The JWS token returned with the purchase response. */
+    jws: string;
+}
+export interface RequestVerifyPurchaseWithIapkitGoogleProps {
+    /** The token provided to the user's device when the product or subscription was purchased. */
+    purchaseToken: string;
+}
+/**
+ * Platform-specific verification parameters for IAPKit.
+ *
+ * - apple: Verifies via App Store (JWS token)
+ * - google: Verifies via Play Store (purchase token)
+ */
+export interface RequestVerifyPurchaseWithIapkitProps {
+    /** API key used for the Authorization header (Bearer {apiKey}). */
+    apiKey?: (string | null);
+    /** Apple App Store verification parameters. */
+    apple?: (RequestVerifyPurchaseWithIapkitAppleProps | null);
+    /** Google Play Store verification parameters. */
+    google?: (RequestVerifyPurchaseWithIapkitGoogleProps | null);
+}
+export interface RequestVerifyPurchaseWithIapkitResult {
+    /** Whether the purchase is valid (not falsified). */
+    isValid: boolean;
+    /** The current state of the purchase. */
+    state: IapkitPurchaseState;
+    store: IapStore;
+}
+export interface Subscription {
+    /**
+     * Fires when a user selects developer billing in the External Payments flow (Android only)
+     * Triggered when the user chooses to pay via the developer's external payment option
+     * instead of Google Play Billing in the side-by-side choice dialog.
+     * Contains the externalTransactionToken needed to report the transaction.
+     * Available in Google Play Billing Library 8.3.0+
+     */
+    developerProvidedBillingAndroid: DeveloperProvidedBillingDetailsAndroid;
+    /** Fires when the App Store surfaces a promoted product (iOS only) */
+    promotedProductIOS: string;
+    /** Fires when a purchase fails or is cancelled */
+    purchaseError: PurchaseError;
+    /** Fires when a purchase completes successfully or a pending purchase resolves */
+    purchaseUpdated: Purchase;
+    /**
+     * Fires when a user selects alternative billing in the User Choice Billing dialog (Android only)
+     * Only triggered when the user selects alternative billing instead of Google Play billing
+     */
+    userChoiceBillingAndroid: UserChoiceBillingDetails;
+}
+export interface SubscriptionInfoIOS {
+    introductoryOffer?: (SubscriptionOfferIOS | null);
+    promotionalOffers?: (SubscriptionOfferIOS[] | null);
+    subscriptionGroupId: string;
+    subscriptionPeriod: SubscriptionPeriodValueIOS;
+}
+export interface SubscriptionOfferIOS {
+    displayPrice: string;
+    id: string;
+    paymentMode: PaymentModeIOS;
+    period: SubscriptionPeriodValueIOS;
+    periodCount: number;
+    price: number;
+    type: SubscriptionOfferTypeIOS;
+}
+export type SubscriptionOfferTypeIOS = 'introductory' | 'promotional';
+export type SubscriptionPeriodIOS = 'day' | 'week' | 'month' | 'year' | 'empty';
+export interface SubscriptionPeriodValueIOS {
+    unit: SubscriptionPeriodIOS;
+    value: number;
+}
+/**
+ * Product-level subscription replacement parameters (Android)
+ * Used with setSubscriptionProductReplacementParams in BillingFlowParams.ProductDetailsParams
+ * Available in Google Play Billing Library 8.1.0+
+ */
+export interface SubscriptionProductReplacementParamsAndroid {
+    /** The old product ID that needs to be replaced */
+    oldProductId: string;
+    /** The replacement mode for this product change */
+    replacementMode: SubscriptionReplacementModeAndroid;
+}
+/**
+ * Replacement mode for subscription changes (Android)
+ * These modes determine how the subscription replacement affects billing.
+ * Available in Google Play Billing Library 8.1.0+
+ */
+export type SubscriptionReplacementModeAndroid = 'unknown-replacement-mode' | 'with-time-proration' | 'charge-prorated-price' | 'charge-full-price' | 'without-proration' | 'deferred' | 'keep-existing';
+export interface SubscriptionStatusIOS {
+    renewalInfo?: (RenewalInfoIOS | null);
+    state: string;
+}
+/**
+ * User Choice Billing event details (Android)
+ * Fired when a user selects alternative billing in the User Choice Billing dialog
+ */
+export interface UserChoiceBillingDetails {
+    /** Token that must be reported to Google Play within 24 hours */
+    externalTransactionToken: string;
+    /** List of product IDs selected by the user */
+    products: string[];
+}
+/**
+ * Valid time window for when an offer is available (Android)
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface ValidTimeWindowAndroid {
+    /** End time in milliseconds since epoch */
+    endTimeMillis: string;
+    /** Start time in milliseconds since epoch */
+    startTimeMillis: string;
+}
+/**
+ * Apple App Store verification parameters.
+ * Used for server-side receipt validation via App Store Server API.
+ */
+export interface VerifyPurchaseAppleOptions {
+    /** Product SKU to validate */
+    sku: string;
+}
+/**
+ * Google Play Store verification parameters.
+ * Used for server-side receipt validation via Google Play Developer API.
+ *
+ * ⚠️ SECURITY: Contains sensitive tokens (accessToken, purchaseToken). Do not log or persist this data.
+ */
+export interface VerifyPurchaseGoogleOptions {
+    /**
+     * Google OAuth2 access token for API authentication.
+     * ⚠️ Sensitive: Do not log this value.
+     */
+    accessToken: string;
+    /** Whether this is a subscription purchase (affects API endpoint used) */
+    isSub?: (boolean | null);
+    /** Android package name (e.g., com.example.app) */
+    packageName: string;
+    /**
+     * Purchase token from the purchase response.
+     * ⚠️ Sensitive: Do not log this value.
+     */
+    purchaseToken: string;
+    /** Product SKU to validate */
+    sku: string;
+}
+/**
+ * Meta Horizon (Quest) verification parameters.
+ * Used for server-side entitlement verification via Meta's S2S API.
+ * POST https://graph.oculus.com/$APP_ID/verify_entitlement
+ *
+ * ⚠️ SECURITY: Contains sensitive token (accessToken). Do not log or persist this data.
+ */
+export interface VerifyPurchaseHorizonOptions {
+    /**
+     * Access token for Meta API authentication (OC|$APP_ID|$APP_SECRET or User Access Token).
+     * ⚠️ Sensitive: Do not log this value.
+     */
+    accessToken: string;
+    /** The SKU for the add-on item, defined in Meta Developer Dashboard */
+    sku: string;
+    /** The user ID of the user whose purchase you want to verify */
+    userId: string;
+}
+/**
+ * Platform-specific purchase verification parameters.
+ *
+ * - apple: Verifies via App Store Server API
+ * - google: Verifies via Google Play Developer API
+ * - horizon: Verifies via Meta's S2S API (verify_entitlement endpoint)
+ */
+export interface VerifyPurchaseProps {
+    /** Apple App Store verification parameters. */
+    apple?: (VerifyPurchaseAppleOptions | null);
+    /** Google Play Store verification parameters. */
+    google?: (VerifyPurchaseGoogleOptions | null);
+    /** Meta Horizon (Quest) verification parameters. */
+    horizon?: (VerifyPurchaseHorizonOptions | null);
+}
+export type VerifyPurchaseResult = VerifyPurchaseResultAndroid | VerifyPurchaseResultHorizon | VerifyPurchaseResultIOS;
+export interface VerifyPurchaseResultAndroid {
+    autoRenewing: boolean;
+    betaProduct: boolean;
+    cancelDate?: (number | null);
+    cancelReason?: (string | null);
+    deferredDate?: (number | null);
+    deferredSku?: (string | null);
+    freeTrialEndDate: number;
+    gracePeriodEndDate: number;
+    parentProductId: string;
+    productId: string;
+    productType: string;
+    purchaseDate: number;
+    quantity: number;
+    receiptId: string;
+    renewalDate: number;
+    term: string;
+    termSku: string;
+    testTransaction: boolean;
+}
+/**
+ * Result from Meta Horizon verify_entitlement API.
+ * Returns verification status and grant time for the entitlement.
+ */
+export interface VerifyPurchaseResultHorizon {
+    /** Unix timestamp (seconds) when the entitlement was granted. */
+    grantTime?: (number | null);
+    /** Whether the entitlement verification succeeded. */
+    success: boolean;
+}
+export interface VerifyPurchaseResultIOS {
+    /** Whether the receipt is valid */
+    isValid: boolean;
+    /** JWS representation */
+    jwsRepresentation: string;
+    /** Latest transaction if available */
+    latestTransaction?: (Purchase | null);
+    /** Receipt data string */
+    receiptData: string;
+}
+export interface VerifyPurchaseWithProviderError {
+    code?: (string | null);
+    message: string;
+}
+export interface VerifyPurchaseWithProviderProps {
+    iapkit?: (RequestVerifyPurchaseWithIapkitProps | null);
+    provider: PurchaseVerificationProvider;
+}
+export interface VerifyPurchaseWithProviderResult {
+    /** Error details if verification failed */
+    errors?: (VerifyPurchaseWithProviderError[] | null);
+    /** IAPKit verification result */
+    iapkit?: (RequestVerifyPurchaseWithIapkitResult | null);
+    provider: PurchaseVerificationProvider;
+}
+export type VoidResult = void;
+export type QueryArgsMap = {
+    canPresentExternalPurchaseNoticeIOS: never;
+    currentEntitlementIOS: QueryCurrentEntitlementIosArgs;
+    fetchProducts: QueryFetchProductsArgs;
+    getActiveSubscriptions: QueryGetActiveSubscriptionsArgs;
+    getAppTransactionIOS: never;
+    getAvailablePurchases: QueryGetAvailablePurchasesArgs;
+    getPendingTransactionsIOS: never;
+    getPromotedProductIOS: never;
+    getReceiptDataIOS: never;
+    getStorefront: never;
+    getStorefrontIOS: never;
+    getTransactionJwsIOS: QueryGetTransactionJwsIosArgs;
+    hasActiveSubscriptions: QueryHasActiveSubscriptionsArgs;
+    isEligibleForIntroOfferIOS: QueryIsEligibleForIntroOfferIosArgs;
+    isTransactionVerifiedIOS: QueryIsTransactionVerifiedIosArgs;
+    latestTransactionIOS: QueryLatestTransactionIosArgs;
+    subscriptionStatusIOS: QuerySubscriptionStatusIosArgs;
+    validateReceiptIOS: QueryValidateReceiptIosArgs;
+};
+export type QueryField<K extends keyof Query> = QueryArgsMap[K] extends never ? () => NonNullable<Query[K]> : undefined extends QueryArgsMap[K] ? (args?: QueryArgsMap[K]) => NonNullable<Query[K]> : (args: QueryArgsMap[K]) => NonNullable<Query[K]>;
+export type QueryFieldMap = {
+    [K in keyof Query]?: QueryField<K>;
+};
+export type MutationArgsMap = {
+    acknowledgePurchaseAndroid: MutationAcknowledgePurchaseAndroidArgs;
+    beginRefundRequestIOS: MutationBeginRefundRequestIosArgs;
+    checkAlternativeBillingAvailabilityAndroid: never;
+    clearTransactionIOS: never;
+    consumePurchaseAndroid: MutationConsumePurchaseAndroidArgs;
+    createAlternativeBillingTokenAndroid: never;
+    createBillingProgramReportingDetailsAndroid: MutationCreateBillingProgramReportingDetailsAndroidArgs;
+    deepLinkToSubscriptions: MutationDeepLinkToSubscriptionsArgs;
+    endConnection: never;
+    finishTransaction: MutationFinishTransactionArgs;
+    initConnection: MutationInitConnectionArgs;
+    isBillingProgramAvailableAndroid: MutationIsBillingProgramAvailableAndroidArgs;
+    launchExternalLinkAndroid: MutationLaunchExternalLinkAndroidArgs;
+    presentCodeRedemptionSheetIOS: never;
+    presentExternalPurchaseLinkIOS: MutationPresentExternalPurchaseLinkIosArgs;
+    presentExternalPurchaseNoticeSheetIOS: never;
+    requestPurchase: MutationRequestPurchaseArgs;
+    requestPurchaseOnPromotedProductIOS: never;
+    restorePurchases: never;
+    showAlternativeBillingDialogAndroid: never;
+    showManageSubscriptionsIOS: never;
+    syncIOS: never;
+    validateReceipt: MutationValidateReceiptArgs;
+    verifyPurchase: MutationVerifyPurchaseArgs;
+    verifyPurchaseWithProvider: MutationVerifyPurchaseWithProviderArgs;
+};
+export type MutationField<K extends keyof Mutation> = MutationArgsMap[K] extends never ? () => NonNullable<Mutation[K]> : undefined extends MutationArgsMap[K] ? (args?: MutationArgsMap[K]) => NonNullable<Mutation[K]> : (args: MutationArgsMap[K]) => NonNullable<Mutation[K]>;
+export type MutationFieldMap = {
+    [K in keyof Mutation]?: MutationField<K>;
+};
+export type SubscriptionArgsMap = {
+    developerProvidedBillingAndroid: never;
+    promotedProductIOS: never;
+    purchaseError: never;
+    purchaseUpdated: never;
+    userChoiceBillingAndroid: never;
+};
+export type SubscriptionField<K extends keyof Subscription> = SubscriptionArgsMap[K] extends never ? () => NonNullable<Subscription[K]> : undefined extends SubscriptionArgsMap[K] ? (args?: SubscriptionArgsMap[K]) => NonNullable<Subscription[K]> : (args: SubscriptionArgsMap[K]) => NonNullable<Subscription[K]>;
+export type SubscriptionFieldMap = {
+    [K in keyof Subscription]?: SubscriptionField<K>;
+};
+//# sourceMappingURL=types.d.ts.map
