@@ -12335,16 +12335,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-nitro-modules@npm:^0.31.1":
-  version: 0.31.1
-  resolution: "react-native-nitro-modules@npm:0.31.1"
-  peerDependencies:
-    react: "*"
-    react-native: "*"
-  checksum: a3c9ebb2d4b3959caa9fafe6b50c3cfab6c7a518f000686a4eeb1a9c11646c7646cf8320810e04530a91dae2e867d9dfa4a06579bb682341301e3174cfd17b3b
-  languageName: node
-  linkType: hard
-
 "react-native-nitro-modules@npm:^0.32.1":
   version: 0.32.1
   resolution: "react-native-nitro-modules@npm:0.32.1"
@@ -12843,7 +12833,7 @@ __metadata:
     react-native: 0.81.1
     react-native-dotenv: ^3.4.11
     react-native-monorepo-config: ^0.1.9
-    react-native-nitro-modules: ^0.31.1
+    react-native-nitro-modules: ^0.32.1
     react-native-safe-area-context: ^5.6.1
     react-native-screens: ^4.15.4
     react-test-renderer: 19.1.0
