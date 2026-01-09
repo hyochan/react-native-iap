@@ -38,9 +38,18 @@ class HybridRnIap: HybridRnIapSpec {
 
     
     
-    func initConnection(config: InitConnectionConfig?) throws -> Promise<Bool> {
+    func initConnection(config: Variant_NullType_InitConnectionConfig?) throws -> Promise<Bool> {
         return Promise.async {
-            RnIapLog.payload("initConnection", config?.alternativeBillingModeAndroid)
+            let decodedConfig: InitConnectionConfig? = {
+                guard let config else { return nil }
+                switch config {
+                case .first:
+                    return nil
+                case .second(let value):
+                    return value
+                }
+            }()
+            RnIapLog.payload("initConnection", decodedConfig?.alternativeBillingModeAndroid)
             self.attachListenersIfNeeded()
 
             if self.isInitialized || self.isInitializing {
@@ -142,9 +151,9 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<RequestPurchaseResult?> {
+    func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<RequestPurchaseResult> {
         return Promise.async {
-            let defaultResult: RequestPurchaseResult? = .third([])
+            let defaultResult: RequestPurchaseResult = .third([])
             RnIapLog.payload(
                 "requestPurchase", [
                     "hasIOS": request.ios != nil,
@@ -455,7 +464,7 @@ class HybridRnIap: HybridRnIapSpec {
         return try getStorefront()
     }
     
-    func getAppTransactionIOS() throws -> Promise<String?> {
+    func getAppTransactionIOS() throws -> Promise<Variant_NullType_String> {
         return Promise.async {
             do {
                 RnIapLog.payload("getAppTransactionIOS", nil)
@@ -479,33 +488,33 @@ class HybridRnIap: HybridRnIapSpec {
                         let jsonData = try JSONSerialization.data(withJSONObject: result, options: [])
                         let string = String(data: jsonData, encoding: .utf8)
                         RnIapLog.result("getAppTransactionIOS", "<appTransaction>")
-                        return string
+                        return Variant_NullType_String.fromOptional(string)
                     }
                     RnIapLog.result("getAppTransactionIOS", nil)
-                    return nil
+                    return Variant_NullType_String.fromOptional(nil)
                 } else {
                     RnIapLog.result("getAppTransactionIOS", nil)
-                    return nil
+                    return Variant_NullType_String.fromOptional(nil)
                 }
             } catch {
                 RnIapLog.failure("getAppTransactionIOS", error: error)
-                return nil
+                return Variant_NullType_String.fromOptional(nil)
             }
         }
     }
     
-    func getPromotedProductIOS() throws -> Promise<NitroProduct?> {
+    func getPromotedProductIOS() throws -> Promise<Variant_NullType_NitroProduct> {
         return Promise.async {
             try self.ensureConnection()
             do {
                 RnIapLog.payload("getPromotedProductIOS", nil)
                 guard let product = try await OpenIapModule.shared.getPromotedProductIOS() else {
                     RnIapLog.result("getPromotedProductIOS", nil)
-                    return nil
+                    return Variant_NullType_NitroProduct.fromOptional(nil)
                 }
                 let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(product))
                 RnIapLog.result("getPromotedProductIOS", payload)
-                return RnIapHelper.convertProductDictionary(payload)
+                return Variant_NullType_NitroProduct.fromOptional(RnIapHelper.convertProductDictionary(payload))
             } catch let purchaseError as PurchaseError {
                 RnIapLog.failure("getPromotedProductIOS", error: purchaseError)
                 throw OpenIapException.from(purchaseError)
@@ -516,7 +525,7 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
 
-    func requestPromotedProductIOS() throws -> Promise<NitroProduct?> {
+    func requestPromotedProductIOS() throws -> Promise<Variant_NullType_NitroProduct> {
         return try getPromotedProductIOS()
     }
     
@@ -563,7 +572,7 @@ class HybridRnIap: HybridRnIapSpec {
     
     // Additional iOS-only functions for feature parity with expo-iap
     
-    func subscriptionStatusIOS(sku: String) throws -> Promise<[NitroSubscriptionStatus]?> {
+    func subscriptionStatusIOS(sku: String) throws -> Promise<Variant_NullType__NitroSubscriptionStatus_> {
         return Promise.async {
             try self.ensureConnection()
             do {
@@ -571,7 +580,7 @@ class HybridRnIap: HybridRnIapSpec {
                 let statuses = try await OpenIapModule.shared.subscriptionStatusIOS(sku: sku)
                 let payloads = statuses.map { RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode($0)) }
                 RnIapLog.result("subscriptionStatusIOS", payloads)
-                return payloads.map { payload in
+                return .second(payloads.map { payload in
                     let stateValue: Double
                     if let numeric = RnIapHelper.doubleValue(payload["state"]) {
                         stateValue = numeric
@@ -586,15 +595,15 @@ class HybridRnIap: HybridRnIapSpec {
                         renewalInfo = RnIapHelper.convertRenewalInfo(RnIapHelper.sanitizeDictionary(renewalPayload))
                     }
                     return NitroSubscriptionStatus(state: stateValue, platform: platform, renewalInfo: renewalInfo)
-                }
+                })
             } catch {
                 RnIapLog.failure("subscriptionStatusIOS", error: error)
-                return []
+                return .second([])
             }
         }
     }
     
-    func currentEntitlementIOS(sku: String) throws -> Promise<NitroPurchase?> {
+    func currentEntitlementIOS(sku: String) throws -> Promise<Variant_NullType_NitroPurchase> {
         return Promise.async {
             try self.ensureConnection()
             do {
@@ -609,10 +618,10 @@ class HybridRnIap: HybridRnIapSpec {
                             self.purchasePayloadById[identifier] = raw
                         }
                     }
-                    return RnIapHelper.convertPurchaseDictionary(payload)
+                    return Variant_NullType_NitroPurchase.fromOptional(RnIapHelper.convertPurchaseDictionary(payload))
                 }
                 RnIapLog.result("currentEntitlementIOS", nil)
-                return Optional<NitroPurchase>.none
+                return Variant_NullType_NitroPurchase.fromOptional(nil)
             } catch {
                 RnIapLog.failure("currentEntitlementIOS", error: error)
                 throw OpenIapException.make(code: .skuNotFound, productId: sku)
@@ -620,7 +629,7 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
 
-    func latestTransactionIOS(sku: String) throws -> Promise<NitroPurchase?> {
+    func latestTransactionIOS(sku: String) throws -> Promise<Variant_NullType_NitroPurchase> {
         return Promise.async {
             try self.ensureConnection()
             do {
@@ -635,10 +644,10 @@ class HybridRnIap: HybridRnIapSpec {
                             self.purchasePayloadById[identifier] = raw
                         }
                     }
-                    return RnIapHelper.convertPurchaseDictionary(payload)
+                    return Variant_NullType_NitroPurchase.fromOptional(RnIapHelper.convertPurchaseDictionary(payload))
                 }
                 RnIapLog.result("latestTransactionIOS", nil)
-                return Optional<NitroPurchase>.none
+                return Variant_NullType_NitroPurchase.fromOptional(nil)
             } catch {
                 RnIapLog.failure("latestTransactionIOS", error: error)
                 throw OpenIapException.make(code: .skuNotFound, productId: sku)
@@ -807,7 +816,7 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
     
-    func getTransactionJwsIOS(sku: String) throws -> Promise<String?> {
+    func getTransactionJwsIOS(sku: String) throws -> Promise<Variant_NullType_String> {
         return Promise.async {
             try self.ensureConnection()
             do {
@@ -815,7 +824,7 @@ class HybridRnIap: HybridRnIapSpec {
                 let jws = try await OpenIapModule.shared.getTransactionJwsIOS(sku: sku)
                 let maskedJws: Any? = (jws == nil) ? nil : "<jws>"
                 RnIapLog.result("getTransactionJwsIOS", maskedJws)
-                return jws
+                return Variant_NullType_String.fromOptional(jws)
             } catch {
                 RnIapLog.failure("getTransactionJwsIOS", error: error)
                 throw OpenIapException.make(code: .transactionValidationFailed, message: "Can't find transaction for sku \(sku)")
@@ -823,16 +832,16 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
 
-    func beginRefundRequestIOS(sku: String) throws -> Promise<String?> {
+    func beginRefundRequestIOS(sku: String) throws -> Promise<Variant_NullType_String> {
         return Promise.async {
             do {
                 RnIapLog.payload("beginRefundRequestIOS", ["sku": sku])
                 let result = try await OpenIapModule.shared.beginRefundRequestIOS(sku: sku)
                 RnIapLog.result("beginRefundRequestIOS", result)
-                return result
+                return Variant_NullType_String.fromOptional(result)
             } catch {
                 RnIapLog.failure("beginRefundRequestIOS", error: error)
-                return nil
+                return Variant_NullType_String.fromOptional(nil)
             }
         }
     }
@@ -1076,7 +1085,7 @@ class HybridRnIap: HybridRnIapSpec {
         }
     }
 
-    func createAlternativeBillingTokenAndroid(sku: String?) throws -> Promise<String?> {
+    func createAlternativeBillingTokenAndroid(sku: Variant_NullType_String?) throws -> Promise<Variant_NullType_String> {
         return Promise.async {
             throw OpenIapException.make(code: .featureNotSupported)
         }
@@ -1212,5 +1221,26 @@ class HybridRnIap: HybridRnIapSpec {
                 throw err
             }
         }
+    }
+}
+
+private extension Variant_NullType_String {
+    static func fromOptional(_ value: String?) -> Self {
+        guard let value else { return .first(NullType()) }
+        return .second(value)
+    }
+}
+
+private extension Variant_NullType_NitroProduct {
+    static func fromOptional(_ value: NitroProduct?) -> Self {
+        guard let value else { return .first(NullType()) }
+        return .second(value)
+    }
+}
+
+private extension Variant_NullType_NitroPurchase {
+    static func fromOptional(_ value: NitroPurchase?) -> Self {
+        guard let value else { return .first(NullType()) }
+        return .second(value)
     }
 }
