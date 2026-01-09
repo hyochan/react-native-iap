@@ -11234,18 +11234,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nitrogen@npm:^0.31.1":
-  version: 0.31.1
-  resolution: "nitrogen@npm:0.31.1"
+"nitrogen@npm:^0.32.1":
+  version: 0.32.1
+  resolution: "nitrogen@npm:0.32.1"
   dependencies:
     chalk: ^5.3.0
-    react-native-nitro-modules: ^0.31.1
+    react-native-nitro-modules: ^0.32.1
     ts-morph: ^27.0.0
     yargs: ^18.0.0
     zod: ^4.0.5
   bin:
     nitrogen: lib/index.js
-  checksum: c241d96700e6182281470ccbe0f89140f513cec33a30d6d3f07f6c1c8af3d04afce9240d98b3b6ff61e152fddbe8ff877401d1e6a401a864cbb760fff149d579
+  checksum: 0cfb4721552976bb3584fc695153990a8bb8469c4bf49c796465bd62cef3f32fe6cfabe90cf832a1ef7f4846f012946101d8e19e4c74cded0deae0563f35a210
   languageName: node
   linkType: hard
 
@@ -12300,18 +12300,18 @@ __metadata:
     husky: ^8.0.3
     jest: ^30.1.1
     lint-staged: ^15.2.0
-    nitrogen: ^0.31.1
+    nitrogen: ^0.32.1
     prettier: ^3.3.3
     react: 19.1.0
     react-native: 0.81.1
     react-native-builder-bob: ^0.38.4
-    react-native-nitro-modules: ^0.31.1
+    react-native-nitro-modules: ^0.32.1
     react-test-renderer: ^19.1.1
     typescript: ^5.9.2
   peerDependencies:
     react: "*"
     react-native: "*"
-    react-native-nitro-modules: ^0.31.1
+    react-native-nitro-modules: ^0.32.1
   languageName: unknown
   linkType: soft
 
@@ -12342,6 +12342,16 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: a3c9ebb2d4b3959caa9fafe6b50c3cfab6c7a518f000686a4eeb1a9c11646c7646cf8320810e04530a91dae2e867d9dfa4a06579bb682341301e3174cfd17b3b
+  languageName: node
+  linkType: hard
+
+"react-native-nitro-modules@npm:^0.32.1":
+  version: 0.32.1
+  resolution: "react-native-nitro-modules@npm:0.32.1"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 766a54fff577d9800457bf018753b07af18f76084be996e3cf58049029f9724cb8bb02ecce688a12f1e1cab0dad729de3ee2b15e4c9f54c26fc2c1c6597060f6
   languageName: node
   linkType: hard
 
