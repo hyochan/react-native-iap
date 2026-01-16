@@ -277,6 +277,30 @@ export function convertNitroProductToProduct(
       iosProduct.discountsIOS = null;
     }
 
+    // Parse standardized subscriptionOffers (cross-platform, OpenIAP 1.3.10+)
+    if (nitroProduct.subscriptionOffers) {
+      try {
+        iosProduct.subscriptionOffers = JSON.parse(
+          nitroProduct.subscriptionOffers,
+        );
+      } catch {
+        iosProduct.subscriptionOffers = null;
+      }
+    } else {
+      iosProduct.subscriptionOffers = null;
+    }
+
+    // Parse standardized discountOffers (cross-platform, OpenIAP 1.3.10+)
+    if (nitroProduct.discountOffers) {
+      try {
+        iosProduct.discountOffers = JSON.parse(nitroProduct.discountOffers);
+      } catch {
+        iosProduct.discountOffers = null;
+      }
+    } else {
+      iosProduct.discountOffers = null;
+    }
+
     return iosProduct as Product;
   }
 
@@ -289,6 +313,30 @@ export function convertNitroProductToProduct(
       nitroProduct.subscriptionOfferDetailsAndroid,
     ),
   };
+
+  // Parse standardized subscriptionOffers (cross-platform, OpenIAP 1.3.10+)
+  if (nitroProduct.subscriptionOffers) {
+    try {
+      androidProduct.subscriptionOffers = JSON.parse(
+        nitroProduct.subscriptionOffers,
+      );
+    } catch {
+      androidProduct.subscriptionOffers = null;
+    }
+  } else {
+    androidProduct.subscriptionOffers = null;
+  }
+
+  // Parse standardized discountOffers (cross-platform, OpenIAP 1.3.10+)
+  if (nitroProduct.discountOffers) {
+    try {
+      androidProduct.discountOffers = JSON.parse(nitroProduct.discountOffers);
+    } catch {
+      androidProduct.discountOffers = null;
+    }
+  } else {
+    androidProduct.discountOffers = null;
+  }
 
   if (type === PRODUCT_TYPE_SUBS) {
     if (!Array.isArray(androidProduct.subscriptionOfferDetailsAndroid)) {

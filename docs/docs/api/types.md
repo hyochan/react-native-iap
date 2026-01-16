@@ -137,6 +137,120 @@ export interface RentalDetailsAndroid {
 }
 ```
 
+### Cross-Platform Offer Types (v14.8.0+)
+
+Starting from v14.8.0, products include **standardized cross-platform offer types** that work consistently across iOS and Android. These new types replace the platform-specific `subscriptionInfoIOS` and `subscriptionOfferDetailsAndroid` with unified structures.
+
+#### SubscriptionOffer
+
+The `subscriptionOffers` field is available on both `ProductIOS` and `ProductAndroid` for subscription products:
+
+```ts
+export interface SubscriptionOffer {
+  /** Unique identifier for the offer */
+  id: string;
+  /** Formatted display price (e.g., "$9.99/month" or "Free") */
+  displayPrice: string;
+  /** Numeric price value */
+  price: number;
+  /** Type of offer: 'introductory' or 'promotional' */
+  type: DiscountOfferType;
+  /** Currency code (ISO 4217, e.g., "USD") */
+  currency?: string | null;
+  /** Payment mode during the offer period */
+  paymentMode?: PaymentMode | null;
+  /** Subscription period for this offer */
+  period?: SubscriptionPeriod | null;
+  /** Number of periods the offer applies */
+  periodCount?: number | null;
+  // iOS-specific fields
+  /** [iOS] Key identifier for signature validation */
+  keyIdentifierIOS?: string | null;
+  /** [iOS] Number of billing periods for this discount */
+  numberOfPeriodsIOS?: number | null;
+  // Android-specific fields
+  /** [Android] Base plan identifier */
+  basePlanIdAndroid?: string | null;
+  /** [Android] Offer token required for purchase */
+  offerTokenAndroid?: string | null;
+  /** [Android] List of tags associated with this offer */
+  offerTagsAndroid?: string[] | null;
+  /** [Android] Pricing phases for this subscription offer */
+  pricingPhasesAndroid?: PricingPhasesAndroid | null;
+}
+
+export type DiscountOfferType = 'introductory' | 'promotional';
+export type PaymentMode = 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
+
+export interface SubscriptionPeriod {
+  unit: SubscriptionPeriodUnit;
+  value: number;
+}
+
+export type SubscriptionPeriodUnit = 'day' | 'week' | 'month' | 'year' | 'unknown';
+```
+
+#### DiscountOffer
+
+The `discountOffers` field is available on both platforms for one-time purchase products with discounts:
+
+```ts
+export interface DiscountOffer {
+  /** Currency code (ISO 4217, e.g., "USD") */
+  currency: string;
+  /** Formatted display price (e.g., "$4.99") */
+  displayPrice: string;
+  /** Numeric price value */
+  price: number;
+  /** Unique identifier for the offer (Android only) */
+  id?: string | null;
+  // Android-specific fields
+  /** [Android] Fixed discount amount in micro-units */
+  discountAmountMicrosAndroid?: string | null;
+  /** [Android] Formatted discount amount (e.g., "$5.00 OFF") */
+  formattedDiscountAmountAndroid?: string | null;
+  /** [Android] Original full price in micro-units before discount */
+  fullPriceMicrosAndroid?: string | null;
+  /** [Android] Offer token required for purchase */
+  offerTokenAndroid?: string | null;
+  /** [Android] List of tags associated with this offer */
+  offerTagsAndroid?: string[] | null;
+  /** [Android] Limited quantity information */
+  limitedQuantityInfoAndroid?: LimitedQuantityInfoAndroid | null;
+  /** [Android] Time window when the offer is valid */
+  validTimeWindowAndroid?: ValidTimeWindowAndroid | null;
+}
+```
+
+#### Usage Example
+
+```tsx
+import {fetchProducts} from 'react-native-iap';
+
+const products = await fetchProducts({skus: ['premium_monthly']});
+
+// Access cross-platform subscription offers
+products.forEach(product => {
+  if (product.subscriptionOffers) {
+    product.subscriptionOffers.forEach(offer => {
+      console.log(`Offer: ${offer.id}`);
+      console.log(`Type: ${offer.type}`); // 'introductory' or 'promotional'
+      console.log(`Price: ${offer.displayPrice}`);
+      console.log(`Payment Mode: ${offer.paymentMode}`); // 'free-trial', etc.
+
+      // Platform-specific details
+      if (offer.offerTokenAndroid) {
+        console.log(`Android Token: ${offer.offerTokenAndroid}`);
+      }
+    });
+  }
+});
+```
+
+:::tip Deprecation Notice
+The platform-specific fields `subscriptionInfoIOS` and `subscriptionOfferDetailsAndroid` are now deprecated. Use the unified `subscriptionOffers` and `discountOffers` fields for new implementations.
+:::
+
 ## Purchase Types
 
 Purchases share the `PurchaseCommon` shape and discriminate on the same `platform` union. Both variants expose the unified `purchaseToken` field for server validation.

@@ -124,6 +124,30 @@ enum RnIapHelper {
         if let introductoryPeriod = dictionary["introductoryPriceSubscriptionPeriodIOS"] as? String { product.introductoryPriceSubscriptionPeriodIOS = introductoryPeriod }
         if let displayNameIOS = dictionary["displayNameIOS"] as? String { product.displayName = displayNameIOS }
 
+        // Handle subscriptionOffers - standardized cross-platform offers (OpenIAP 1.3.10+)
+        if let offersArray = dictionary["subscriptionOffers"] as? [[String: Any]], !offersArray.isEmpty {
+            do {
+                let jsonData = try JSONSerialization.data(withJSONObject: offersArray, options: [])
+                if let jsonString = String(data: jsonData, encoding: .utf8) {
+                    product.subscriptionOffers = jsonString
+                }
+            } catch {
+                NSLog("⚠️ [RnIapHelper] Failed to serialize subscriptionOffers: \(error)")
+            }
+        }
+
+        // Handle discountOffers - standardized cross-platform offers for one-time purchases (OpenIAP 1.3.10+)
+        if let discountOffersArray = dictionary["discountOffers"] as? [[String: Any]], !discountOffersArray.isEmpty {
+            do {
+                let jsonData = try JSONSerialization.data(withJSONObject: discountOffersArray, options: [])
+                if let jsonString = String(data: jsonData, encoding: .utf8) {
+                    product.discountOffers = jsonString
+                }
+            } catch {
+                NSLog("⚠️ [RnIapHelper] Failed to serialize discountOffers: \(error)")
+            }
+        }
+
         return product
     }
 

@@ -520,6 +520,11 @@ export interface NitroProduct {
   introductoryPriceSubscriptionPeriodIOS?: string | null;
   subscriptionPeriodNumberIOS?: number | null;
   subscriptionPeriodUnitIOS?: string | null;
+  // Cross-platform standardized offer fields (JSON serialized)
+  /** Standardized subscription offers (JSON string) - cross-platform */
+  subscriptionOffers?: string | null;
+  /** Standardized discount offers for one-time purchases (JSON string) - cross-platform */
+  discountOffers?: string | null;
   // Android specific fields
   nameAndroid?: string | null;
   originalPriceAndroid?: string | null;
