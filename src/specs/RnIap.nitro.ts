@@ -23,6 +23,7 @@ import type {
   RequestSubscriptionAndroidProps,
   UserChoiceBillingDetails,
   PaymentModeIOS,
+  SubscriptionProductReplacementParamsAndroid,
 } from '../types';
 
 // Nitro-compatible enum types (Nitro doesn't support inline string unions from types.ts)
@@ -125,8 +126,14 @@ export interface NitroRequestPurchaseAndroid {
   obfuscatedProfileIdAndroid?: RequestSubscriptionAndroidProps['obfuscatedProfileIdAndroid'];
   isOfferPersonalized?: RequestSubscriptionAndroidProps['isOfferPersonalized'];
   subscriptionOffers?: AndroidSubscriptionOfferInput[] | null;
+  /** @deprecated Use subscriptionProductReplacementParams instead for item-level replacement (8.1.0+) */
   replacementModeAndroid?: RequestSubscriptionAndroidProps['replacementModeAndroid'];
   purchaseTokenAndroid?: RequestSubscriptionAndroidProps['purchaseTokenAndroid'];
+  /**
+   * Product-level replacement parameters (8.1.0+)
+   * Use this instead of replacementModeAndroid for item-level replacement
+   */
+  subscriptionProductReplacementParams?: SubscriptionProductReplacementParamsAndroid | null;
 }
 
 export interface NitroPurchaseRequest {

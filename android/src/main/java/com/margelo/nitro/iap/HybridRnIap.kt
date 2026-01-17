@@ -27,6 +27,8 @@ import dev.hyo.openiap.RequestPurchaseResultPurchase
 import dev.hyo.openiap.RequestPurchaseResultPurchases
 import dev.hyo.openiap.RequestSubscriptionAndroidProps
 import dev.hyo.openiap.RequestSubscriptionPropsByPlatforms
+import dev.hyo.openiap.SubscriptionProductReplacementParamsAndroid as OpenIapSubscriptionProductReplacementParams
+import dev.hyo.openiap.SubscriptionReplacementModeAndroid as OpenIapSubscriptionReplacementMode
 import dev.hyo.openiap.VerifyPurchaseGoogleOptions
 import dev.hyo.openiap.VerifyPurchaseProps
 import dev.hyo.openiap.VerifyPurchaseResultAndroid
@@ -414,6 +416,15 @@ class HybridRnIap : HybridRnIapSpec() {
                 val requestProps = when (queryType) {
                     ProductQueryType.Subs -> {
                         val replacementMode = (androidRequest.replacementModeAndroid as? Number)?.toInt()
+
+                        // Parse subscriptionProductReplacementParams (8.1.0+)
+                        val subscriptionProductReplacementParams = androidRequest.subscriptionProductReplacementParams?.let { params ->
+                            OpenIapSubscriptionProductReplacementParams(
+                                oldProductId = params.oldProductId,
+                                replacementMode = parseSubscriptionReplacementMode(params.replacementMode)
+                            )
+                        }
+
                         val androidProps = RequestSubscriptionAndroidProps(
                             isOfferPersonalized = androidRequest.isOfferPersonalized,
                             obfuscatedAccountIdAndroid = androidRequest.obfuscatedAccountIdAndroid,
@@ -421,7 +432,8 @@ class HybridRnIap : HybridRnIapSpec() {
                             purchaseTokenAndroid = androidRequest.purchaseTokenAndroid,
                             replacementModeAndroid = replacementMode,
                             skus = androidRequest.skus.toList(),
-                            subscriptionOffers = normalizedOffers
+                            subscriptionOffers = normalizedOffers,
+                            subscriptionProductReplacementParams = subscriptionProductReplacementParams
                         )
                         RequestPurchaseProps(
                             request = RequestPurchaseProps.Request.Subscription(
@@ -792,6 +804,21 @@ class HybridRnIap : HybridRnIapSpec() {
             "subs", "subscription", "subscriptions" -> ProductQueryType.Subs
             "all" -> ProductQueryType.All
             else -> ProductQueryType.InApp
+        }
+    }
+
+    /**
+     * Parse subscription replacement mode from Nitro enum to OpenIAP enum (8.1.0+)
+     */
+    private fun parseSubscriptionReplacementMode(mode: SubscriptionReplacementModeAndroid): OpenIapSubscriptionReplacementMode {
+        return when (mode) {
+            SubscriptionReplacementModeAndroid.WITH_TIME_PRORATION -> OpenIapSubscriptionReplacementMode.WithTimeProration
+            SubscriptionReplacementModeAndroid.CHARGE_PRORATED_PRICE -> OpenIapSubscriptionReplacementMode.ChargeProRatedPrice
+            SubscriptionReplacementModeAndroid.CHARGE_FULL_PRICE -> OpenIapSubscriptionReplacementMode.ChargeFullPrice
+            SubscriptionReplacementModeAndroid.WITHOUT_PRORATION -> OpenIapSubscriptionReplacementMode.WithoutProration
+            SubscriptionReplacementModeAndroid.DEFERRED -> OpenIapSubscriptionReplacementMode.Deferred
+            SubscriptionReplacementModeAndroid.KEEP_EXISTING -> OpenIapSubscriptionReplacementMode.KeepExisting
+            SubscriptionReplacementModeAndroid.UNKNOWN_REPLACEMENT_MODE -> OpenIapSubscriptionReplacementMode.UnknownReplacementMode
         }
     }
 
