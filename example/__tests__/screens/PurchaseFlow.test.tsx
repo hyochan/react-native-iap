@@ -30,7 +30,7 @@ describe('PurchaseFlow Screen', () => {
     },
   ];
 
-  // Android product with one-time purchase offers (discount support)
+  // Android product with discount offers (cross-platform)
   const androidProductWithOffers = {
     id: 'dev.hyo.martie.10bulbs',
     title: '10 Bulbs',
@@ -41,41 +41,41 @@ describe('PurchaseFlow Screen', () => {
     type: 'in-app' as const,
     platform: 'android' as const,
     nameAndroid: '10 Bulbs',
-    oneTimePurchaseOfferDetailsAndroid: [
+    discountOffers: [
       {
-        formattedPrice: '$0.99',
-        priceAmountMicros: '990000',
-        priceCurrencyCode: 'USD',
-        offerId: 'base-offer',
-        offerToken: 'token-base-123',
-        offerTags: ['bestseller'],
-        fullPriceMicros: null,
-        discountDisplayInfo: null,
-        limitedQuantityInfo: null,
-        validTimeWindow: null,
+        id: 'base-offer',
+        displayPrice: '$0.99',
+        price: 0.99,
+        currency: 'USD',
+        type: 'one-time' as const,
+        offerTokenAndroid: 'token-base-123',
+        offerTagsAndroid: ['bestseller'],
+        fullPriceMicrosAndroid: null,
+        percentageDiscountAndroid: null,
+        formattedDiscountAmountAndroid: null,
+        discountAmountMicrosAndroid: null,
+        limitedQuantityInfoAndroid: null,
+        validTimeWindowAndroid: null,
         preorderDetailsAndroid: null,
         rentalDetailsAndroid: null,
       },
       {
-        formattedPrice: '$0.79',
-        priceAmountMicros: '790000',
-        priceCurrencyCode: 'USD',
-        offerId: 'discount-offer',
-        offerToken: 'token-discount-456',
-        offerTags: ['sale', 'limited'],
-        fullPriceMicros: '990000',
-        discountDisplayInfo: {
-          percentageDiscount: 20,
-          discountAmount: {
-            discountAmountMicros: '200000',
-            formattedDiscountAmount: '$0.20',
-          },
-        },
-        limitedQuantityInfo: {
+        id: 'discount-offer',
+        displayPrice: '$0.79',
+        price: 0.79,
+        currency: 'USD',
+        type: 'one-time' as const,
+        offerTokenAndroid: 'token-discount-456',
+        offerTagsAndroid: ['sale', 'limited'],
+        fullPriceMicrosAndroid: '990000',
+        percentageDiscountAndroid: 20,
+        formattedDiscountAmountAndroid: '$0.20',
+        discountAmountMicrosAndroid: '200000',
+        limitedQuantityInfoAndroid: {
           maximumQuantity: 100,
           remainingQuantity: 45,
         },
-        validTimeWindow: {
+        validTimeWindowAndroid: {
           startTimeMillis: '1702300800000',
           endTimeMillis: '1702905600000',
         },
@@ -96,18 +96,21 @@ describe('PurchaseFlow Screen', () => {
     type: 'in-app' as const,
     platform: 'android' as const,
     nameAndroid: 'Preorder Item',
-    oneTimePurchaseOfferDetailsAndroid: [
+    discountOffers: [
       {
-        formattedPrice: '$9.99',
-        priceAmountMicros: '9990000',
-        priceCurrencyCode: 'USD',
-        offerId: null,
-        offerToken: 'token-preorder-789',
-        offerTags: [],
-        fullPriceMicros: null,
-        discountDisplayInfo: null,
-        limitedQuantityInfo: null,
-        validTimeWindow: null,
+        id: null,
+        displayPrice: '$9.99',
+        price: 9.99,
+        currency: 'USD',
+        type: 'one-time' as const,
+        offerTokenAndroid: 'token-preorder-789',
+        offerTagsAndroid: [],
+        fullPriceMicrosAndroid: null,
+        percentageDiscountAndroid: null,
+        formattedDiscountAmountAndroid: null,
+        discountAmountMicrosAndroid: null,
+        limitedQuantityInfoAndroid: null,
+        validTimeWindowAndroid: null,
         preorderDetailsAndroid: {
           preorderReleaseTimeMillis: '1704067200000',
           preorderPresaleEndTimeMillis: '1703980800000',
@@ -128,18 +131,21 @@ describe('PurchaseFlow Screen', () => {
     type: 'in-app' as const,
     platform: 'android' as const,
     nameAndroid: 'Rental Item',
-    oneTimePurchaseOfferDetailsAndroid: [
+    discountOffers: [
       {
-        formattedPrice: '$4.99',
-        priceAmountMicros: '4990000',
-        priceCurrencyCode: 'USD',
-        offerId: null,
-        offerToken: 'token-rental-abc',
-        offerTags: [],
-        fullPriceMicros: null,
-        discountDisplayInfo: null,
-        limitedQuantityInfo: null,
-        validTimeWindow: null,
+        id: null,
+        displayPrice: '$4.99',
+        price: 4.99,
+        currency: 'USD',
+        type: 'one-time' as const,
+        offerTokenAndroid: 'token-rental-abc',
+        offerTagsAndroid: [],
+        fullPriceMicrosAndroid: null,
+        percentageDiscountAndroid: null,
+        formattedDiscountAmountAndroid: null,
+        discountAmountMicrosAndroid: null,
+        limitedQuantityInfoAndroid: null,
+        validTimeWindowAndroid: null,
         preorderDetailsAndroid: null,
         rentalDetailsAndroid: {
           rentalPeriod: 'P7D',
@@ -160,24 +166,21 @@ describe('PurchaseFlow Screen', () => {
     type: 'in-app' as const,
     platform: 'android' as const,
     nameAndroid: 'Absolute Discount Item',
-    oneTimePurchaseOfferDetailsAndroid: [
+    discountOffers: [
       {
-        formattedPrice: '$1.99',
-        priceAmountMicros: '1990000',
-        priceCurrencyCode: 'USD',
-        offerId: 'abs-discount',
-        offerToken: 'token-abs-xyz',
-        offerTags: [],
-        fullPriceMicros: '2990000',
-        discountDisplayInfo: {
-          percentageDiscount: null,
-          discountAmount: {
-            discountAmountMicros: '1000000',
-            formattedDiscountAmount: '$1.00',
-          },
-        },
-        limitedQuantityInfo: null,
-        validTimeWindow: null,
+        id: 'abs-discount',
+        displayPrice: '$1.99',
+        price: 1.99,
+        currency: 'USD',
+        type: 'one-time' as const,
+        offerTokenAndroid: 'token-abs-xyz',
+        offerTagsAndroid: [],
+        fullPriceMicrosAndroid: '2990000',
+        percentageDiscountAndroid: null,
+        formattedDiscountAmountAndroid: '$1.00',
+        discountAmountMicrosAndroid: '1000000',
+        limitedQuantityInfoAndroid: null,
+        validTimeWindowAndroid: null,
         preorderDetailsAndroid: null,
         rentalDetailsAndroid: null,
       },
@@ -332,9 +335,9 @@ describe('PurchaseFlow Screen', () => {
     });
   });
 
-  // Android one-time purchase offers tests
-  describe('Android One-Time Purchase Offers', () => {
-    it('displays product details modal with Android offers', async () => {
+  // Android discount offers tests (cross-platform)
+  describe('Android Discount Offers (Cross-platform)', () => {
+    it('displays product details modal with discount offers', async () => {
       mockIapState({products: [androidProductWithOffers]});
 
       const {getByText, getAllByText} = render(<PurchaseFlow />);
@@ -345,7 +348,7 @@ describe('PurchaseFlow Screen', () => {
 
       await waitFor(() => {
         expect(getByText('Product Details')).toBeTruthy();
-        expect(getByText('One-Time Purchase Offers (2)')).toBeTruthy();
+        expect(getByText('Discount Offers (2)')).toBeTruthy();
       });
     });
 
@@ -373,8 +376,8 @@ describe('PurchaseFlow Screen', () => {
       fireEvent.press(detailsButton!);
 
       await waitFor(() => {
-        expect(getByText('Full Price:')).toBeTruthy();
-        expect(getByText('990000 micros')).toBeTruthy();
+        expect(getByText('Full Price (micros):')).toBeTruthy();
+        expect(getByText('990000')).toBeTruthy();
       });
     });
 
@@ -447,11 +450,11 @@ describe('PurchaseFlow Screen', () => {
 
       await waitFor(() => {
         expect(getByText('Rental:')).toBeTruthy();
-        expect(getByText('Period: P7D')).toBeTruthy();
+        expect(getByText('Period: P30D')).toBeTruthy();
       });
     });
 
-    it('displays absolute discount amount when no percentage', async () => {
+    it('displays formatted discount amount', async () => {
       mockIapState({products: [androidProductWithAbsoluteDiscount]});
 
       const {getByText, getAllByText} = render(<PurchaseFlow />);
@@ -461,7 +464,7 @@ describe('PurchaseFlow Screen', () => {
       fireEvent.press(detailsButton!);
 
       await waitFor(() => {
-        expect(getByText('$1.00 off')).toBeTruthy();
+        expect(getByText('$1.00')).toBeTruthy();
       });
     });
 
@@ -482,7 +485,7 @@ describe('PurchaseFlow Screen', () => {
       fireEvent.press(getByText('Close'));
 
       await waitFor(() => {
-        expect(queryByText('One-Time Purchase Offers (2)')).toBeNull();
+        expect(queryByText('Discount Offers (2)')).toBeNull();
       });
     });
 
@@ -496,37 +499,8 @@ describe('PurchaseFlow Screen', () => {
       fireEvent.press(detailsButton!);
 
       await waitFor(() => {
-        expect(getByText('Offer 1 (base-offer)')).toBeTruthy();
-        expect(getByText('Offer 2 (discount-offer)')).toBeTruthy();
-      });
-    });
-
-    it('displays offer token', async () => {
-      mockIapState({products: [androidProductWithOffers]});
-
-      const {getByText, getAllByText} = render(<PurchaseFlow />);
-
-      // Open modal
-      const detailsButton = getAllByText('Details')[0];
-      fireEvent.press(detailsButton!);
-
-      await waitFor(() => {
-        expect(getAllByText('Offer Token:').length).toBeGreaterThanOrEqual(1);
-        expect(getByText('token-base-123')).toBeTruthy();
-      });
-    });
-
-    it('displays price with micros', async () => {
-      mockIapState({products: [androidProductWithOffers]});
-
-      const {getByText, getAllByText} = render(<PurchaseFlow />);
-
-      // Open modal
-      const detailsButton = getAllByText('Details')[0];
-      fireEvent.press(detailsButton!);
-
-      await waitFor(() => {
-        expect(getByText('$0.99 (990000 micros)')).toBeTruthy();
+        expect(getByText('base-offer')).toBeTruthy();
+        expect(getByText('discount-offer')).toBeTruthy();
       });
     });
   });

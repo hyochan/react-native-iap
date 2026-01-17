@@ -31,13 +31,11 @@ import {
 } from '../src/hooks/useVerificationMethod';
 import type {
   Product,
-  ProductAndroid,
   Purchase,
   PurchaseError,
   VerifyPurchaseWithProviderProps,
 } from 'react-native-iap';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
-import AndroidOneTimeOfferDetails from '../src/components/AndroidOneTimeOfferDetails';
 
 const CONSUMABLE_PRODUCT_ID_SET = new Set(CONSUMABLE_PRODUCT_IDS);
 const NON_CONSUMABLE_PRODUCT_ID_SET = new Set(NON_CONSUMABLE_PRODUCT_IDS);
@@ -386,15 +384,128 @@ function PurchaseFlow({
                     </>
                   )}
 
-                  {/* Android One-Time Purchase Offers */}
-                  {selectedProduct.platform === 'android' &&
-                    'oneTimePurchaseOfferDetailsAndroid' in selectedProduct && (
-                      <AndroidOneTimeOfferDetails
-                        offers={
-                          (selectedProduct as ProductAndroid)
-                            .oneTimePurchaseOfferDetailsAndroid ?? []
-                        }
-                      />
+                  {/* Discount Offers (Cross-platform) */}
+                  {'discountOffers' in selectedProduct &&
+                    selectedProduct.discountOffers &&
+                    Array.isArray(selectedProduct.discountOffers) &&
+                    selectedProduct.discountOffers.length > 0 && (
+                      <View style={styles.offersSection}>
+                        <Text style={styles.offersSectionTitle}>
+                          Discount Offers (
+                          {selectedProduct.discountOffers.length})
+                        </Text>
+                        {selectedProduct.discountOffers.map((offer, idx) => (
+                          <View key={offer.id || idx} style={styles.offerCard}>
+                            <Text style={styles.offerTitle}>
+                              {offer.id || `Offer ${idx + 1}`}
+                            </Text>
+                            <Text style={styles.offerLabel}>Price:</Text>
+                            <Text style={styles.offerValue}>
+                              {offer.displayPrice}
+                            </Text>
+                            {offer.fullPriceMicrosAndroid && (
+                              <>
+                                <Text style={styles.offerLabel}>
+                                  Full Price (micros):
+                                </Text>
+                                <Text style={styles.offerValue}>
+                                  {offer.fullPriceMicrosAndroid}
+                                </Text>
+                              </>
+                            )}
+                            {offer.percentageDiscountAndroid && (
+                              <Text style={styles.offerValueDiscount}>
+                                {offer.percentageDiscountAndroid}% off
+                              </Text>
+                            )}
+                            {offer.formattedDiscountAmountAndroid && (
+                              <>
+                                <Text style={styles.offerLabel}>Discount:</Text>
+                                <Text style={styles.offerValueDiscount}>
+                                  {offer.formattedDiscountAmountAndroid}
+                                </Text>
+                              </>
+                            )}
+                            {offer.validTimeWindowAndroid && (
+                              <>
+                                <Text style={styles.offerLabel}>
+                                  Valid Window:
+                                </Text>
+                                <Text style={styles.offerValue}>
+                                  {new Date(
+                                    Number(
+                                      offer.validTimeWindowAndroid
+                                        .startTimeMillis,
+                                    ),
+                                  ).toLocaleDateString()}{' '}
+                                  -{' '}
+                                  {new Date(
+                                    Number(
+                                      offer.validTimeWindowAndroid
+                                        .endTimeMillis,
+                                    ),
+                                  ).toLocaleDateString()}
+                                </Text>
+                              </>
+                            )}
+                            {offer.limitedQuantityInfoAndroid && (
+                              <>
+                                <Text style={styles.offerLabel}>
+                                  Limited Quantity:
+                                </Text>
+                                <Text style={styles.offerValue}>
+                                  {
+                                    offer.limitedQuantityInfoAndroid
+                                      .remainingQuantity
+                                  }{' '}
+                                  /{' '}
+                                  {
+                                    offer.limitedQuantityInfoAndroid
+                                      .maximumQuantity
+                                  }{' '}
+                                  remaining
+                                </Text>
+                              </>
+                            )}
+                            {offer.preorderDetailsAndroid && (
+                              <>
+                                <Text style={styles.offerLabel}>
+                                  Pre-order Release:
+                                </Text>
+                                <Text style={styles.offerValue}>
+                                  {new Date(
+                                    Number(
+                                      offer.preorderDetailsAndroid
+                                        .preorderReleaseTimeMillis,
+                                    ),
+                                  ).toLocaleDateString()}
+                                </Text>
+                              </>
+                            )}
+                            {offer.rentalDetailsAndroid && (
+                              <>
+                                <Text style={styles.offerLabel}>Rental:</Text>
+                                <Text style={styles.offerValue}>
+                                  Period:{' '}
+                                  {
+                                    offer.rentalDetailsAndroid
+                                      .rentalExpirationPeriod
+                                  }
+                                </Text>
+                              </>
+                            )}
+                            {Array.isArray(offer.offerTagsAndroid) &&
+                              offer.offerTagsAndroid.length > 0 && (
+                                <>
+                                  <Text style={styles.offerLabel}>Tags:</Text>
+                                  <Text style={styles.offerValue}>
+                                    {offer.offerTagsAndroid.join(', ')}
+                                  </Text>
+                                </>
+                              )}
+                          </View>
+                        ))}
+                      </View>
                     )}
                 </>
               )}

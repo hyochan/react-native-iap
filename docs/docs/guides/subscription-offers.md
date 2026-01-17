@@ -23,6 +23,51 @@ Subscription offers represent different pricing plans for the same subscription 
 - **Introductory Offers**: Special pricing for new subscribers (free trial, discounted period)
 - **Promotional Offers**: Limited-time discounts configured in the app stores
 
+## Cross-Platform Types (v14.8.0+)
+
+Starting with v14.8.0, react-native-iap provides cross-platform `SubscriptionOffer` and `DiscountOffer` types that unify iOS and Android offer handling:
+
+```tsx
+interface SubscriptionOffer {
+  id: string;                      // Unique offer identifier
+  displayPrice: string;            // Formatted price (e.g., "$4.99/mo" or "Free")
+  price: number;                   // Numeric price
+  type: 'introductory' | 'promotional';
+  paymentMode?: 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
+  period?: { unit: 'day' | 'week' | 'month' | 'year'; value: number };
+  periodCount?: number;
+  // Android specific
+  basePlanIdAndroid?: string;
+  offerTokenAndroid?: string;      // Required for Android purchases
+  pricingPhasesAndroid?: PricingPhasesAndroid;
+  offerTagsAndroid?: string[];
+  // iOS specific
+  keyIdentifierIOS?: string;
+  numberOfPeriodsIOS?: number;
+}
+
+interface DiscountOffer {
+  currency: string;
+  displayPrice: string;
+  price: number;
+  id?: string;
+  // Android specific
+  offerTokenAndroid?: string;
+  discountAmountMicrosAndroid?: string;
+  formattedDiscountAmountAndroid?: string;
+  fullPriceMicrosAndroid?: string;
+  validTimeWindowAndroid?: ValidTimeWindowAndroid;
+  limitedQuantityInfoAndroid?: LimitedQuantityInfoAndroid;
+}
+```
+
+:::note Deprecated Types
+The following types are deprecated in favor of the cross-platform types above:
+- `subscriptionOfferDetailsAndroid` → Use `subscriptionOffers`
+- `oneTimePurchaseOfferDetailsAndroid` → Use `discountOffers`
+- `subscriptionInfoIOS` → Use `subscriptionOffers`
+:::
+
 ## Platform Differences
 
 At a glance:
@@ -59,16 +104,14 @@ const SubscriptionComponent = () => {
     }
   }, [connected]);
 
-  // 2) Access offer details from fetched subscriptions
+  // 2) Access offer details from fetched subscriptions (cross-platform)
   const subscription = subscriptions.find((s) => s.id === 'premium_monthly');
 
-  if (subscription?.subscriptionOfferDetailsAndroid) {
-    console.log(
-      'Available offers:',
-      subscription.subscriptionOfferDetailsAndroid,
-    );
-    // Each offer contains: basePlanId*, offerId?, offerTags, offerToken, pricingPhases
-    // *Note: basePlanId has limitations - see "Android basePlanId Limitation" section below
+  if (subscription?.subscriptionOffers) {
+    console.log('Available offers:', subscription.subscriptionOffers);
+    // Each offer contains: id, displayPrice, price, type, paymentMode, period
+    // Android specific: basePlanIdAndroid, offerTokenAndroid, pricingPhasesAndroid
+    // iOS specific: keyIdentifierIOS, numberOfPeriodsIOS
   }
 };
 ```
@@ -80,15 +123,13 @@ const purchaseSubscription = async (subscriptionId: string) => {
   const subscription = subscriptions.find((s) => s.id === subscriptionId);
   if (!subscription) return;
 
-  // Build subscriptionOffers from fetched data with proper filtering
-  const subscriptionOffers = (
-    subscription.subscriptionOfferDetailsAndroid ?? []
-  )
+  // Build subscriptionOffers from cross-platform data with proper filtering
+  const subscriptionOffers = (subscription.subscriptionOffers ?? [])
     .map((offer) =>
-      offer?.offerToken
+      offer?.offerTokenAndroid
         ? {
             sku: subscriptionId,
-            offerToken: offer.offerToken,
+            offerToken: offer.offerTokenAndroid,
           }
         : null,
     )
@@ -117,23 +158,29 @@ const purchaseSubscription = async (subscriptionId: string) => {
 
 #### Understanding Offer Details
 
-Each `subscriptionOfferDetailsAndroid` item contains:
+Each `subscriptionOffers` item (cross-platform `SubscriptionOffer`) contains:
 
 ```tsx
-interface ProductSubscriptionAndroidOfferDetails {
-  basePlanId: string; // Base plan identifier (⚠️ see limitation below)
-  offerId?: string | null; // Offer identifier (null for base plan)
-  offerTags: string[]; // Tags associated with the offer
-  offerToken: string; // Token required for purchase
-  pricingPhases: PricingPhasesAndroid; // Pricing information
+interface SubscriptionOffer {
+  id: string;                  // Unique offer identifier
+  displayPrice: string;        // Formatted price display (e.g., "$4.99/mo")
+  price: number;               // Numeric price value
+  type: 'introductory' | 'promotional';
+  paymentMode?: 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
+  period?: { unit: 'day' | 'week' | 'month' | 'year'; value: number };
+  // Android specific
+  basePlanIdAndroid?: string;  // Base plan identifier (⚠️ see limitation below)
+  offerTokenAndroid?: string;  // Token required for purchase
+  pricingPhasesAndroid?: PricingPhasesAndroid; // Pricing phases info
+  offerTagsAndroid?: string[]; // Tags associated with the offer
 }
 ```
 
-#### Android `basePlanId` Limitation {#baseplanid-limitation}
+#### Android `basePlanIdAndroid` Limitation {#baseplanid-limitation}
 
 :::caution Client-Side Limitation
 
-The `basePlanId` is available when fetching products, but **not** when retrieving purchases via `getAvailablePurchases()`. This is a limitation of Google Play Billing Library - the purchase token alone doesn't reveal which base plan was purchased.
+The `basePlanIdAndroid` is available when fetching products, but **not** when retrieving purchases via `getAvailablePurchases()`. This is a limitation of Google Play Billing Library - the purchase token alone doesn't reveal which base plan was purchased.
 
 See [GitHub Issue #3096](https://github.com/hyochan/react-native-iap/issues/3096) for more details.
 
@@ -142,7 +189,7 @@ See [GitHub Issue #3096](https://github.com/hyochan/react-native-iap/issues/3096
 **Why this matters:**
 
 - If you have multiple base plans (e.g., `monthly`, `yearly`, `premium`), you cannot determine which plan the user is subscribed to using client-side APIs alone
-- The `basePlanId` is only available from `subscriptionOfferDetailsAndroid` at the time of purchase, not from restored purchases
+- The `basePlanIdAndroid` is only available from `subscriptionOffers` at the time of purchase, not from restored purchases
 
 **Solution: Server-Side Verification with <IapKitLink>IAPKit</IapKitLink>**
 
@@ -165,6 +212,24 @@ const verifyAndroidSubscription = async (purchase: Purchase) => {
 ```
 
 The server response includes `offerDetails.basePlanId` in the `lineItems` array, allowing you to identify exactly which subscription plan the user purchased.
+
+#### Discount Offers for One-Time Products (Android)
+
+Starting with v14.8.0, Android one-time products can have discount offers via the `discountOffers` field:
+
+```tsx
+const product = products.find((p) => p.id === 'premium_unlock');
+
+if (product?.discountOffers && product.discountOffers.length > 0) {
+  product.discountOffers.forEach((offer) => {
+    console.log('Discount offer:', offer.id);
+    console.log('Display price:', offer.displayPrice);
+    console.log('Full price (micros):', offer.fullPriceMicrosAndroid);
+    console.log('Discount amount:', offer.formattedDiscountAmountAndroid);
+    console.log('Percentage off:', offer.percentageDiscountAndroid);
+  });
+}
+```
 
 See <IapKitLink>IAPKit documentation</IapKitLink> for setup instructions and API details.
 
@@ -393,24 +458,15 @@ const selectOffer = (
   subscription: ProductSubscription,
   offerType: 'base' | 'introductory',
 ) => {
-  if (Platform.OS === 'ios') {
-    // iOS: Return introductory offer if requested and available
-    if (offerType === 'introductory') {
-      return subscription.subscriptionInfoIOS?.introductoryOffer ?? null;
-    }
-    // Base plan doesn't need explicit selection
-    return null;
-  }
-
-  // Android: Select offer based on type
-  const offers = subscription.subscriptionOfferDetailsAndroid ?? [];
+  // Use cross-platform subscriptionOffers
+  const offers = subscription.subscriptionOffers ?? [];
 
   if (offerType === 'base') {
-    // Find base plan (no offerId)
-    return offers.find((offer) => !offer.offerId);
+    // Find base plan (type is not introductory/promotional)
+    return offers.find((offer) => offer.type !== 'introductory' && offer.type !== 'promotional');
   } else {
     // Find introductory offer
-    return offers.find((offer) => offer.offerId?.includes('introductory'));
+    return offers.find((offer) => offer.type === 'introductory');
   }
 };
 
@@ -424,11 +480,11 @@ const purchaseWithSelectedOffer = async (
   const selectedOffer = selectOffer(subscription, offerType);
 
   if (Platform.OS === 'android') {
-    const subscriptionOffers = selectedOffer
+    const subscriptionOffers = selectedOffer?.offerTokenAndroid
       ? [
           {
             sku: subscriptionId,
-            offerToken: selectedOffer.offerToken,
+            offerToken: selectedOffer.offerTokenAndroid,
           },
         ]
       : [];
