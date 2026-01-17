@@ -163,12 +163,54 @@ interface Product {
   currency: string;
   type: 'in-app' | 'subs';
   store: 'apple' | 'google' | 'horizon';
-  // iOS specific
+  // Cross-platform standardized offers (v14.8.0+)
+  subscriptionOffers?: SubscriptionOffer[];  // For subscriptions
+  discountOffers?: DiscountOffer[];          // For one-time purchases
+  // iOS specific (deprecated - use subscriptionOffers)
   displayNameIOS?: string;
   isFamilyShareableIOS?: boolean;
   subscriptionInfoIOS?: SubscriptionInfoIOS;
-  // Android specific
+  // Android specific (deprecated - use subscriptionOffers)
   subscriptionOfferDetailsAndroid?: SubscriptionOfferDetails[];
+}
+```
+
+### SubscriptionOffer (v14.8.0+)
+
+Cross-platform subscription offer type:
+
+```tsx
+interface SubscriptionOffer {
+  id: string;                      // Unique offer identifier
+  displayPrice: string;            // Formatted price (e.g., "$4.99/mo" or "Free")
+  price: number;                   // Numeric price
+  type: 'introductory' | 'promotional';
+  paymentMode?: 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
+  period?: { unit: 'day' | 'week' | 'month' | 'year'; value: number };
+  periodCount?: number;
+  // Android specific
+  basePlanIdAndroid?: string;
+  offerTokenAndroid?: string;      // Required for Android purchases
+  // iOS specific
+  keyIdentifierIOS?: string;
+  numberOfPeriodsIOS?: number;
+}
+```
+
+### DiscountOffer (v14.8.0+)
+
+Cross-platform discount offer for one-time purchases:
+
+```tsx
+interface DiscountOffer {
+  currency: string;
+  displayPrice: string;
+  price: number;
+  id?: string;
+  // Android specific
+  offerTokenAndroid?: string;
+  discountAmountMicrosAndroid?: string;
+  formattedDiscountAmountAndroid?: string;
 }
 ```
 
