@@ -260,7 +260,7 @@ describe('type-bridge utilities', () => {
       expect(result.discountOffers).toBeNull();
     });
 
-    it('handles invalid JSON in subscriptionOffers gracefully', () => {
+    it('handles invalid JSON in subscriptionOffers gracefully for Android subscription', () => {
       const nitroProduct: NitroProduct = {
         id: 'com.example.product',
         title: 'Test Product',
@@ -272,7 +272,8 @@ describe('type-bridge utilities', () => {
 
       const result = convertNitroProductToProduct(nitroProduct) as any;
 
-      expect(result.subscriptionOffers).toBeNull();
+      // Android subscription type requires non-nullable subscriptionOffers, so it defaults to empty array
+      expect(result.subscriptionOffers).toEqual([]);
     });
   });
 

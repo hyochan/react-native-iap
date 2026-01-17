@@ -339,8 +339,13 @@ export function convertNitroProductToProduct(
   }
 
   if (type === PRODUCT_TYPE_SUBS) {
+    // Ensure subscriptionOfferDetailsAndroid is always an array for subscriptions
     if (!Array.isArray(androidProduct.subscriptionOfferDetailsAndroid)) {
       androidProduct.subscriptionOfferDetailsAndroid = [];
+    }
+    // Ensure subscriptionOffers is always an array for subscriptions (non-nullable in ProductSubscriptionAndroid)
+    if (!Array.isArray(androidProduct.subscriptionOffers)) {
+      androidProduct.subscriptionOffers = [];
     }
   }
 
