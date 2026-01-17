@@ -813,7 +813,7 @@ class HybridRnIap : HybridRnIapSpec() {
     private fun parseSubscriptionReplacementMode(mode: SubscriptionReplacementModeAndroid): OpenIapSubscriptionReplacementMode {
         return when (mode) {
             SubscriptionReplacementModeAndroid.WITH_TIME_PRORATION -> OpenIapSubscriptionReplacementMode.WithTimeProration
-            SubscriptionReplacementModeAndroid.CHARGE_PRORATED_PRICE -> OpenIapSubscriptionReplacementMode.ChargeProRatedPrice
+            SubscriptionReplacementModeAndroid.CHARGE_PRORATED_PRICE -> OpenIapSubscriptionReplacementMode.ChargeProratedPrice
             SubscriptionReplacementModeAndroid.CHARGE_FULL_PRICE -> OpenIapSubscriptionReplacementMode.ChargeFullPrice
             SubscriptionReplacementModeAndroid.WITHOUT_PRORATION -> OpenIapSubscriptionReplacementMode.WithoutProration
             SubscriptionReplacementModeAndroid.DEFERRED -> OpenIapSubscriptionReplacementMode.Deferred
