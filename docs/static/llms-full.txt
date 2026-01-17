@@ -443,16 +443,74 @@ interface ProductIOS extends ProductCommon {
   isFamilyShareableIOS: boolean;
   jsonRepresentationIOS: string;
   typeIOS: 'consumable' | 'non-consumable' | 'auto-renewable-subscription' | 'non-renewing-subscription';
-  subscriptionInfoIOS?: SubscriptionInfoIOS;
+  subscriptionInfoIOS?: SubscriptionInfoIOS;  // @deprecated - use subscriptionOffers
+  // Cross-platform standardized offers (v14.8.0+)
+  subscriptionOffers?: SubscriptionOffer[];
+  discountOffers?: DiscountOffer[];
 }
 
 interface ProductAndroid extends ProductCommon {
   nameAndroid: string;
   oneTimePurchaseOfferDetailsAndroid?: ProductAndroidOneTimePurchaseOfferDetail[];
   subscriptionOfferDetailsAndroid?: ProductSubscriptionAndroidOfferDetails[];
+  // Cross-platform standardized offers (v14.8.0+)
+  subscriptionOffers?: SubscriptionOffer[];
+  discountOffers?: DiscountOffer[];
 }
 
 type Product = ProductIOS | ProductAndroid;
+```
+
+### SubscriptionOffer (v14.8.0+)
+
+Cross-platform subscription offer type that unifies iOS and Android offer structures:
+
+```tsx
+interface SubscriptionOffer {
+  id: string;                      // Unique offer identifier
+  displayPrice: string;            // Formatted price (e.g., "$4.99/mo" or "Free")
+  price: number;                   // Numeric price value
+  type: 'introductory' | 'promotional';  // Offer type
+  currency?: string;               // ISO 4217 currency code
+  paymentMode?: 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
+  period?: SubscriptionPeriod;     // Duration of one billing period
+  periodCount?: number;            // Number of periods the offer applies
+  // iOS-specific
+  keyIdentifierIOS?: string;       // For signature validation
+  numberOfPeriodsIOS?: number;     // Number of billing periods
+  localizedPriceIOS?: string;      // Localized price string
+  // Android-specific
+  basePlanIdAndroid?: string;      // Base plan identifier
+  offerTokenAndroid?: string;      // Required for Android purchases
+  offerTagsAndroid?: string[];     // Tags for offer filtering
+  pricingPhasesAndroid?: PricingPhasesAndroid;  // Detailed pricing phases
+}
+
+interface SubscriptionPeriod {
+  unit: 'day' | 'week' | 'month' | 'year' | 'unknown';
+  value: number;
+}
+```
+
+### DiscountOffer (v14.8.0+)
+
+Cross-platform discount offer for one-time purchases:
+
+```tsx
+interface DiscountOffer {
+  currency: string;                // ISO 4217 currency code
+  displayPrice: string;            // Formatted discounted price
+  price: number;                   // Numeric price value
+  id?: string;                     // Offer identifier (Android)
+  // Android-specific
+  offerTokenAndroid?: string;      // Required for purchasing with discount
+  offerTagsAndroid?: string[];     // Tags for offer filtering
+  discountAmountMicrosAndroid?: string;  // Discount in micros
+  formattedDiscountAmountAndroid?: string;  // e.g., "$5.00 OFF"
+  fullPriceMicrosAndroid?: string; // Original price before discount
+  limitedQuantityInfoAndroid?: LimitedQuantityInfoAndroid;
+  validTimeWindowAndroid?: ValidTimeWindowAndroid;
+}
 ```
 
 ### ProductSubscription

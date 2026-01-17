@@ -277,6 +277,30 @@ export function convertNitroProductToProduct(
       iosProduct.discountsIOS = null;
     }
 
+    // Parse standardized subscriptionOffers (cross-platform, OpenIAP 1.3.10+)
+    if (nitroProduct.subscriptionOffers) {
+      try {
+        iosProduct.subscriptionOffers = JSON.parse(
+          nitroProduct.subscriptionOffers,
+        );
+      } catch {
+        iosProduct.subscriptionOffers = null;
+      }
+    } else {
+      iosProduct.subscriptionOffers = null;
+    }
+
+    // Parse standardized discountOffers (cross-platform, OpenIAP 1.3.10+)
+    if (nitroProduct.discountOffers) {
+      try {
+        iosProduct.discountOffers = JSON.parse(nitroProduct.discountOffers);
+      } catch {
+        iosProduct.discountOffers = null;
+      }
+    } else {
+      iosProduct.discountOffers = null;
+    }
+
     return iosProduct as Product;
   }
 
@@ -290,9 +314,38 @@ export function convertNitroProductToProduct(
     ),
   };
 
+  // Parse standardized subscriptionOffers (cross-platform, OpenIAP 1.3.10+)
+  if (nitroProduct.subscriptionOffers) {
+    try {
+      androidProduct.subscriptionOffers = JSON.parse(
+        nitroProduct.subscriptionOffers,
+      );
+    } catch {
+      androidProduct.subscriptionOffers = null;
+    }
+  } else {
+    androidProduct.subscriptionOffers = null;
+  }
+
+  // Parse standardized discountOffers (cross-platform, OpenIAP 1.3.10+)
+  if (nitroProduct.discountOffers) {
+    try {
+      androidProduct.discountOffers = JSON.parse(nitroProduct.discountOffers);
+    } catch {
+      androidProduct.discountOffers = null;
+    }
+  } else {
+    androidProduct.discountOffers = null;
+  }
+
   if (type === PRODUCT_TYPE_SUBS) {
+    // Ensure subscriptionOfferDetailsAndroid is always an array for subscriptions
     if (!Array.isArray(androidProduct.subscriptionOfferDetailsAndroid)) {
       androidProduct.subscriptionOfferDetailsAndroid = [];
+    }
+    // Ensure subscriptionOffers is always an array for subscriptions (non-nullable in ProductSubscriptionAndroid)
+    if (!Array.isArray(androidProduct.subscriptionOffers)) {
+      androidProduct.subscriptionOffers = [];
     }
   }
 

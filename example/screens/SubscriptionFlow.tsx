@@ -21,7 +21,7 @@ import {
   type Purchase,
   type PurchaseError,
   type VerifyPurchaseWithProviderProps,
-  type ProductSubscriptionAndroidOfferDetails,
+  type SubscriptionOffer,
   ErrorCode,
 } from 'react-native-iap';
 import {IAPKIT_API_KEY} from '@env';
@@ -33,7 +33,6 @@ import {
   type VerificationMethod,
 } from '../src/hooks/useVerificationMethod';
 import PurchaseSummaryRow from '../src/components/PurchaseSummaryRow';
-import AndroidOneTimeOfferDetails from '../src/components/AndroidOneTimeOfferDetails';
 
 type ExtendedPurchase = Purchase & {
   purchaseTokenAndroid?: string;
@@ -369,10 +368,9 @@ function SubscriptionFlow({
                 // Android subscription replacement
                 const targetSubWithDetails =
                   targetSubscription as ProductSubscriptionAndroid;
-                const androidOffers =
-                  targetSubWithDetails.subscriptionOfferDetailsAndroid;
+                const androidOffers = targetSubWithDetails.subscriptionOffers;
                 const targetOffer = androidOffers?.find(
-                  (offer) => offer.basePlanId === targetBasePlanId,
+                  (offer) => offer.basePlanIdAndroid === targetBasePlanId,
                 );
 
                 if (!targetOffer) {
@@ -418,15 +416,15 @@ function SubscriptionFlow({
                   skus: [targetProductId],
                   currentBasePlanId,
                   targetBasePlanId,
-                  offerToken: targetOffer.offerToken,
+                  offerToken: targetOffer.offerTokenAndroid,
                   replacementMode,
                   purchaseToken: tokenString
                     ? `<${tokenString.substring(0, 10)}...>`
                     : 'missing',
                   allOffers: androidOffers?.map((o) => ({
-                    basePlanId: o.basePlanId,
-                    offerId: o.offerId,
-                    offerToken: o.offerToken?.substring(0, 20) + '...',
+                    basePlanId: o.basePlanIdAndroid,
+                    offerId: o.id,
+                    offerToken: o.offerTokenAndroid?.substring(0, 20) + '...',
                   })),
                 });
 
@@ -438,7 +436,7 @@ function SubscriptionFlow({
                       subscriptionOffers: [
                         {
                           sku: targetProductId,
-                          offerToken: targetOffer.offerToken,
+                          offerToken: targetOffer.offerTokenAndroid ?? '',
                         },
                       ],
                       replacementModeAndroid: replacementMode,
@@ -489,18 +487,17 @@ function SubscriptionFlow({
 
     const jsonString = JSON.stringify(selectedSubscription, null, 2);
 
-    // Check for Android offers
+    // Check for subscription offers (cross-platform)
     const hasSubscriptionOffers =
-      selectedSubscription.platform === 'android' &&
-      'subscriptionOfferDetailsAndroid' in selectedSubscription &&
-      selectedSubscription.subscriptionOfferDetailsAndroid &&
-      selectedSubscription.subscriptionOfferDetailsAndroid.length > 0;
+      'subscriptionOffers' in selectedSubscription &&
+      selectedSubscription.subscriptionOffers &&
+      selectedSubscription.subscriptionOffers.length > 0;
 
-    const hasOneTimeOffers =
-      selectedSubscription.platform === 'android' &&
-      'oneTimePurchaseOfferDetailsAndroid' in selectedSubscription &&
-      selectedSubscription.oneTimePurchaseOfferDetailsAndroid &&
-      selectedSubscription.oneTimePurchaseOfferDetailsAndroid.length > 0;
+    // Check for discount offers (cross-platform)
+    const hasDiscountOffers =
+      'discountOffers' in selectedSubscription &&
+      selectedSubscription.discountOffers &&
+      selectedSubscription.discountOffers.length > 0;
 
     return (
       <View style={styles.modalContent}>
@@ -517,85 +514,155 @@ function SubscriptionFlow({
             {selectedSubscription.displayPrice}
           </Text>
 
-          {/* Android Subscription Offers */}
+          {/* Subscription Offers (Cross-platform) */}
           {hasSubscriptionOffers && (
             <View style={styles.offersSection}>
               <Text style={styles.offersSectionTitle}>
                 Subscription Offers (
-                {
-                  (selectedSubscription as ProductSubscriptionAndroid)
-                    .subscriptionOfferDetailsAndroid.length
-                }
-                )
+                {selectedSubscription.subscriptionOffers!.length})
               </Text>
-              {(
-                selectedSubscription as ProductSubscriptionAndroid
-              ).subscriptionOfferDetailsAndroid.map(
-                (
-                  offer: ProductSubscriptionAndroidOfferDetails,
-                  index: number,
-                ) => (
-                  <View key={offer.offerToken} style={styles.offerCard}>
+              {selectedSubscription.subscriptionOffers!.map(
+                (offer: SubscriptionOffer, index: number) => (
+                  <View
+                    key={offer.offerTokenAndroid || offer.id || index}
+                    style={styles.offerCard}
+                  >
                     <Text style={styles.offerTitle}>
-                      Offer {index + 1}
-                      {offer.offerId ? ` (${offer.offerId})` : ''}
+                      {offer.id || `Offer ${index + 1}`}
                     </Text>
 
-                    <Text style={styles.offerDetailLabel}>Base Plan ID:</Text>
-                    <Text style={styles.offerValue}>{offer.basePlanId}</Text>
+                    <Text style={styles.offerDetailLabel}>Price:</Text>
+                    <Text style={styles.offerValue}>{offer.displayPrice}</Text>
 
-                    {offer.pricingPhases.pricingPhaseList.length > 0 && (
+                    <Text style={styles.offerDetailLabel}>Type:</Text>
+                    <Text style={styles.offerValue}>{offer.type}</Text>
+
+                    {offer.paymentMode && (
                       <>
                         <Text style={styles.offerDetailLabel}>
-                          Pricing Phases:
+                          Payment Mode:
                         </Text>
-                        {offer.pricingPhases.pricingPhaseList.map(
-                          (phase, phaseIndex) => (
-                            <View key={phaseIndex} style={styles.pricingPhase}>
-                              <Text style={styles.phaseText}>
-                                Phase {phaseIndex + 1}: {phase.formattedPrice} /{' '}
-                                {phase.billingPeriod}
-                              </Text>
-                              <Text style={styles.phaseDetail}>
-                                Cycles: {phase.billingCycleCount}, Mode:{' '}
-                                {phase.recurrenceMode}
-                              </Text>
-                            </View>
-                          ),
-                        )}
-                      </>
-                    )}
-
-                    {offer.offerTags.length > 0 && (
-                      <>
-                        <Text style={styles.offerDetailLabel}>Tags:</Text>
                         <Text style={styles.offerValue}>
-                          {offer.offerTags.join(', ')}
+                          {offer.paymentMode}
                         </Text>
                       </>
                     )}
 
-                    <Text style={styles.offerDetailLabel}>Offer Token:</Text>
-                    <Text
-                      style={[styles.offerValue, styles.offerTokenText]}
-                      numberOfLines={2}
-                    >
-                      {offer.offerToken}
-                    </Text>
+                    {offer.period && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>Period:</Text>
+                        <Text style={styles.offerValue}>
+                          {offer.period.value} {offer.period.unit}
+                        </Text>
+                      </>
+                    )}
+
+                    {offer.basePlanIdAndroid && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>
+                          Base Plan ID:
+                        </Text>
+                        <Text style={styles.offerValue}>
+                          {offer.basePlanIdAndroid}
+                        </Text>
+                      </>
+                    )}
+
+                    {offer.pricingPhasesAndroid?.pricingPhaseList &&
+                      offer.pricingPhasesAndroid.pricingPhaseList.length >
+                        0 && (
+                        <>
+                          <Text style={styles.offerDetailLabel}>
+                            Pricing Phases:
+                          </Text>
+                          {offer.pricingPhasesAndroid.pricingPhaseList.map(
+                            (phase, phaseIndex) => (
+                              <View
+                                key={phaseIndex}
+                                style={styles.pricingPhase}
+                              >
+                                <Text style={styles.phaseText}>
+                                  Phase {phaseIndex + 1}: {phase.formattedPrice}{' '}
+                                  / {phase.billingPeriod}
+                                </Text>
+                                <Text style={styles.phaseDetail}>
+                                  Cycles: {phase.billingCycleCount}, Mode:{' '}
+                                  {phase.recurrenceMode}
+                                </Text>
+                              </View>
+                            ),
+                          )}
+                        </>
+                      )}
+
+                    {Array.isArray(offer.offerTagsAndroid) &&
+                      offer.offerTagsAndroid.length > 0 && (
+                        <>
+                          <Text style={styles.offerDetailLabel}>Tags:</Text>
+                          <Text style={styles.offerValue}>
+                            {offer.offerTagsAndroid.join(', ')}
+                          </Text>
+                        </>
+                      )}
+
+                    {offer.offerTokenAndroid && (
+                      <>
+                        <Text style={styles.offerDetailLabel}>
+                          Offer Token:
+                        </Text>
+                        <Text
+                          style={[styles.offerValue, styles.offerTokenText]}
+                          numberOfLines={2}
+                        >
+                          {offer.offerTokenAndroid}
+                        </Text>
+                      </>
+                    )}
                   </View>
                 ),
               )}
             </View>
           )}
 
-          {/* Android One-Time Purchase Offers */}
-          {hasOneTimeOffers && (
-            <AndroidOneTimeOfferDetails
-              offers={
-                (selectedSubscription as ProductSubscriptionAndroid)
-                  .oneTimePurchaseOfferDetailsAndroid ?? []
-              }
-            />
+          {/* Discount Offers (Cross-platform) */}
+          {hasDiscountOffers && (
+            <View style={styles.offersSection}>
+              <Text style={styles.offersSectionTitle}>
+                Discount Offers ({selectedSubscription.discountOffers!.length})
+              </Text>
+              {selectedSubscription.discountOffers!.map((offer, idx) => (
+                <View key={offer.id || idx} style={styles.offerCard}>
+                  <Text style={styles.offerTitle}>
+                    {offer.id || `Offer ${idx + 1}`}
+                  </Text>
+                  <Text style={styles.offerDetailLabel}>Price:</Text>
+                  <Text style={styles.offerValue}>{offer.displayPrice}</Text>
+                  {offer.fullPriceMicrosAndroid && (
+                    <>
+                      <Text style={styles.offerDetailLabel}>
+                        Full Price (micros):
+                      </Text>
+                      <Text style={styles.offerValue}>
+                        {offer.fullPriceMicrosAndroid}
+                      </Text>
+                    </>
+                  )}
+                  {offer.percentageDiscountAndroid && (
+                    <Text style={styles.offerValueDiscount}>
+                      {offer.percentageDiscountAndroid}% off
+                    </Text>
+                  )}
+                  {offer.formattedDiscountAmountAndroid && (
+                    <>
+                      <Text style={styles.offerDetailLabel}>Discount:</Text>
+                      <Text style={styles.offerValueDiscount}>
+                        {offer.formattedDiscountAmountAndroid}
+                      </Text>
+                    </>
+                  )}
+                </View>
+              ))}
+            </View>
           )}
 
           {/* Raw JSON Section */}
@@ -679,16 +746,23 @@ function SubscriptionFlow({
   };
 
   const renderSubscriptionPrice = (subscription: ProductSubscription) => {
+    // Use cross-platform subscriptionOffers first
     if (
-      'subscriptionOfferDetailsAndroid' in subscription &&
-      subscription.subscriptionOfferDetailsAndroid
+      'subscriptionOffers' in subscription &&
+      subscription.subscriptionOffers
     ) {
-      const offers = subscription.subscriptionOfferDetailsAndroid;
+      const offers = subscription.subscriptionOffers;
       if (offers && offers.length > 0) {
         const firstOffer = offers[0];
-        if (firstOffer && firstOffer.pricingPhases) {
-          const pricingPhaseList = firstOffer.pricingPhases.pricingPhaseList;
-          if (pricingPhaseList && pricingPhaseList.length > 0) {
+        // Use displayPrice from offer if available
+        if (firstOffer?.displayPrice) {
+          return firstOffer.displayPrice;
+        }
+        // Fallback to pricingPhasesAndroid
+        if (firstOffer?.pricingPhasesAndroid?.pricingPhaseList) {
+          const pricingPhaseList =
+            firstOffer.pricingPhasesAndroid.pricingPhaseList;
+          if (pricingPhaseList.length > 0) {
             const firstPhase = pricingPhaseList[0];
             if (firstPhase) {
               return firstPhase.formattedPrice;
@@ -1600,20 +1674,19 @@ function SubscriptionFlowContainer() {
           JSON.stringify(purchaseData, null, 2),
         );
 
-        // Map offerToken to basePlanId using fetched subscription data
+        // Map offerToken to basePlanId using fetched subscription data (cross-platform)
         if (purchaseData.offerToken) {
           const premiumSub = subscriptions.find(
             (s) => s.id === 'dev.hyo.martie.premium',
           ) as ProductSubscriptionAndroid;
-          const matchingOffer =
-            premiumSub?.subscriptionOfferDetailsAndroid?.find(
-              (offer) => offer.offerToken === purchaseData.offerToken,
-            );
-          if (matchingOffer?.basePlanId) {
-            setLastPurchasedPlan(matchingOffer.basePlanId);
+          const matchingOffer = premiumSub?.subscriptionOffers?.find(
+            (offer) => offer.offerTokenAndroid === purchaseData.offerToken,
+          );
+          if (matchingOffer?.basePlanIdAndroid) {
+            setLastPurchasedPlan(matchingOffer.basePlanIdAndroid);
             console.log(
               'Detected plan from offerToken (Android):',
-              matchingOffer.basePlanId,
+              matchingOffer.basePlanIdAndroid,
             );
           } else {
             // Fallback if we can't find the matching offer
@@ -1920,15 +1993,17 @@ function SubscriptionFlowContainer() {
           }
         }
 
-        // Android specific fields
-        if (
-          Platform.OS === 'android' &&
-          'subscriptionOfferDetailsAndroid' in sub
-        ) {
+        // Cross-platform subscription offers
+        if ('subscriptionOffers' in sub && sub.subscriptionOffers) {
           console.log(
-            `      • subscriptionOfferDetailsAndroid: ${
-              sub.subscriptionOfferDetailsAndroid?.length || 0
-            } offer(s)`,
+            `      • subscriptionOffers: ${sub.subscriptionOffers.length || 0} offer(s)`,
+          );
+        }
+
+        // Cross-platform discount offers
+        if ('discountOffers' in sub && sub.discountOffers) {
+          console.log(
+            `      • discountOffers: ${sub.discountOffers.length || 0} offer(s)`,
           );
         }
       });
@@ -2070,7 +2145,7 @@ function SubscriptionFlowContainer() {
   //
   // Android: Requires subscriptionOffers with offerToken
   //          Each offer represents a base plan (monthly/yearly) or promotional offer
-  //          The offerToken is obtained from subscriptionOfferDetailsAndroid
+  //          The offerToken is obtained from subscriptionOffers (cross-platform type)
   const handleSubscription = useCallback(
     (itemId: string) => {
       setIsProcessing(true);
@@ -2088,14 +2163,13 @@ function SubscriptionFlowContainer() {
             skus: [itemId],
             subscriptionOffers:
               subscription &&
-              'subscriptionOfferDetailsAndroid' in subscription &&
-              (subscription as ProductSubscriptionAndroid)
-                .subscriptionOfferDetailsAndroid
+              'subscriptionOffers' in subscription &&
+              (subscription as ProductSubscriptionAndroid).subscriptionOffers
                 ? (
                     subscription as ProductSubscriptionAndroid
-                  ).subscriptionOfferDetailsAndroid.map((offer) => ({
+                  ).subscriptionOffers.map((offer) => ({
                     sku: itemId,
-                    offerToken: offer.offerToken,
+                    offerToken: offer.offerTokenAndroid ?? '',
                   }))
                 : [],
           },

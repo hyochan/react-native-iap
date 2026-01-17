@@ -443,6 +443,104 @@ function AllProducts() {
                         )}
                       </View>
                     )}
+
+                  {/* Cross-Platform Standardized Subscription Offers (v14.8.0+) */}
+                  {'subscriptionOffers' in selectedProduct &&
+                    selectedProduct.subscriptionOffers &&
+                    selectedProduct.subscriptionOffers.length > 0 && (
+                      <View style={styles.offersSection}>
+                        <Text style={styles.offersSectionTitle}>
+                          Cross-Platform Subscription Offers (
+                          {selectedProduct.subscriptionOffers.length})
+                        </Text>
+                        <Text style={styles.offersSectionSubtitle}>
+                          Standardized offers for both iOS and Android
+                        </Text>
+                        {selectedProduct.subscriptionOffers.map(
+                          (offer, index: number) => (
+                            <View
+                              key={offer.id || `offer-${index}`}
+                              style={[
+                                styles.offerCard,
+                                styles.standardizedOffer,
+                              ]}
+                            >
+                              <Text style={styles.offerTitle}>
+                                {offer.id || `Offer ${index + 1}`}
+                              </Text>
+
+                              <View style={styles.offerRow}>
+                                <Text style={styles.offerLabel}>Type:</Text>
+                                <Text
+                                  style={[styles.offerValue, styles.offerBadge]}
+                                >
+                                  {offer.type}
+                                </Text>
+                              </View>
+
+                              <View style={styles.offerRow}>
+                                <Text style={styles.offerLabel}>Price:</Text>
+                                <Text style={styles.offerValue}>
+                                  {offer.displayPrice}
+                                </Text>
+                              </View>
+
+                              {offer.paymentMode && (
+                                <View style={styles.offerRow}>
+                                  <Text style={styles.offerLabel}>
+                                    Payment Mode:
+                                  </Text>
+                                  <Text style={styles.offerValue}>
+                                    {offer.paymentMode}
+                                  </Text>
+                                </View>
+                              )}
+
+                              {offer.period && (
+                                <View style={styles.offerRow}>
+                                  <Text style={styles.offerLabel}>Period:</Text>
+                                  <Text style={styles.offerValue}>
+                                    {offer.period.value} {offer.period.unit}
+                                    {offer.periodCount
+                                      ? ` × ${offer.periodCount}`
+                                      : ''}
+                                  </Text>
+                                </View>
+                              )}
+
+                              {/* Android-specific fields */}
+                              {offer.basePlanIdAndroid && (
+                                <View style={styles.offerRow}>
+                                  <Text style={styles.offerLabel}>
+                                    Base Plan (Android):
+                                  </Text>
+                                  <Text style={styles.offerValue}>
+                                    {offer.basePlanIdAndroid}
+                                  </Text>
+                                </View>
+                              )}
+
+                              {offer.offerTokenAndroid && (
+                                <>
+                                  <Text style={styles.offerLabel}>
+                                    Offer Token (Android):
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.offerValue,
+                                      styles.offerToken,
+                                    ]}
+                                    numberOfLines={2}
+                                  >
+                                    {offer.offerTokenAndroid}
+                                  </Text>
+                                </>
+                              )}
+                            </View>
+                          ),
+                        )}
+                      </View>
+                    )}
                 </>
               )}
             </ScrollView>
@@ -697,6 +795,31 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#999',
     fontFamily: 'monospace',
+  },
+  standardizedOffer: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#4CAF50',
+  },
+  offerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  offerBadge: {
+    backgroundColor: '#e8f5e9',
+    color: '#2e7d32',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontSize: 11,
+    fontWeight: '600',
+    overflow: 'hidden',
+  },
+  offersSectionSubtitle: {
+    fontSize: 11,
+    color: '#888',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   pricingPhase: {
     backgroundColor: '#e3f2fd',

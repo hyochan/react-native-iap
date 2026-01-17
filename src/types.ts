@@ -169,6 +169,11 @@ export interface DiscountDisplayInfoAndroid {
   percentageDiscount?: (number | null);
 }
 
+/**
+ * Discount information returned from the store.
+ * @deprecated Use the standardized SubscriptionOffer type instead for cross-platform compatibility.
+ * @see https://openiap.dev/docs/types#subscription-offer
+ */
 export interface DiscountIOS {
   identifier: string;
   localizedPrice?: (string | null);
@@ -180,6 +185,79 @@ export interface DiscountIOS {
   type: string;
 }
 
+/**
+ * Standardized one-time product discount offer.
+ * Provides a unified interface for one-time purchase discounts across platforms.
+ *
+ * Currently supported on Android (Google Play Billing 7.0+).
+ * iOS does not support one-time purchase discounts in the same way.
+ *
+ * @see https://openiap.dev/docs/features/discount
+ */
+export interface DiscountOffer {
+  /** Currency code (ISO 4217, e.g., "USD") */
+  currency: string;
+  /**
+   * [Android] Fixed discount amount in micro-units.
+   * Only present for fixed amount discounts.
+   */
+  discountAmountMicrosAndroid?: (string | null);
+  /** Formatted display price string (e.g., "$4.99") */
+  displayPrice: string;
+  /** [Android] Formatted discount amount string (e.g., "$5.00 OFF"). */
+  formattedDiscountAmountAndroid?: (string | null);
+  /**
+   * [Android] Original full price in micro-units before discount.
+   * Divide by 1,000,000 to get the actual price.
+   * Use for displaying strikethrough original price.
+   */
+  fullPriceMicrosAndroid?: (string | null);
+  /**
+   * Unique identifier for the offer.
+   * - iOS: Not applicable (one-time discounts not supported)
+   * - Android: offerId from ProductAndroidOneTimePurchaseOfferDetail
+   */
+  id?: (string | null);
+  /**
+   * [Android] Limited quantity information.
+   * Contains maximumQuantity and remainingQuantity.
+   */
+  limitedQuantityInfoAndroid?: (LimitedQuantityInfoAndroid | null);
+  /** [Android] List of tags associated with this offer. */
+  offerTagsAndroid?: (string[] | null);
+  /**
+   * [Android] Offer token required for purchase.
+   * Must be passed to requestPurchase() when purchasing with this offer.
+   */
+  offerTokenAndroid?: (string | null);
+  /**
+   * [Android] Percentage discount (e.g., 33 for 33% off).
+   * Only present for percentage-based discounts.
+   */
+  percentageDiscountAndroid?: (number | null);
+  /**
+   * [Android] Pre-order details if this is a pre-order offer.
+   * Available in Google Play Billing Library 8.1.0+
+   */
+  preorderDetailsAndroid?: (PreorderDetailsAndroid | null);
+  /** Numeric price value */
+  price: number;
+  /** [Android] Rental details if this is a rental offer. */
+  rentalDetailsAndroid?: (RentalDetailsAndroid | null);
+  /** Type of discount offer */
+  type: DiscountOfferType;
+  /**
+   * [Android] Valid time window for the offer.
+   * Contains startTimeMillis and endTimeMillis.
+   */
+  validTimeWindowAndroid?: (ValidTimeWindowAndroid | null);
+}
+
+/**
+ * iOS DiscountOffer (output type).
+ * @deprecated Use the standardized SubscriptionOffer type instead for cross-platform compatibility.
+ * @see https://openiap.dev/docs/types#subscription-offer
+ */
 export interface DiscountOfferIOS {
   /** Discount identifier */
   identifier: string;
@@ -205,6 +283,12 @@ export interface DiscountOfferInputIOS {
   /** Timestamp of discount offer */
   timestamp: number;
 }
+
+/**
+ * Discount offer type enumeration.
+ * Categorizes the type of discount or promotional offer.
+ */
+export type DiscountOfferType = 'introductory' | 'promotional' | 'one-time';
 
 export interface EntitlementIOS {
   jsonRepresentation: string;
@@ -517,6 +601,12 @@ export type MutationVerifyPurchaseArgs = VerifyPurchaseProps;
 
 export type MutationVerifyPurchaseWithProviderArgs = VerifyPurchaseWithProviderProps;
 
+/**
+ * Payment mode for subscription offers.
+ * Determines how the user pays during the offer period.
+ */
+export type PaymentMode = 'free-trial' | 'pay-as-you-go' | 'pay-up-front' | 'unknown';
+
 export type PaymentModeIOS = 'empty' | 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
 
 /**
@@ -555,6 +645,12 @@ export interface ProductAndroid extends ProductCommon {
   currency: string;
   debugDescription?: (string | null);
   description: string;
+  /**
+   * Standardized discount offers for one-time products.
+   * Cross-platform type with Android-specific fields using suffix.
+   * @see https://openiap.dev/docs/types#discount-offer
+   */
+  discountOffers?: (DiscountOffer[] | null);
   displayName?: (string | null);
   displayPrice: string;
   id: string;
@@ -562,18 +658,32 @@ export interface ProductAndroid extends ProductCommon {
   /**
    * One-time purchase offer details including discounts (Android)
    * Returns all eligible offers. Available in Google Play Billing Library 7.0+
+   * @deprecated Use discountOffers instead for cross-platform compatibility.
+   * @deprecated Use discountOffers instead
    */
   oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail[] | null);
   platform: 'android';
   price?: (number | null);
+  /**
+   * @deprecated Use subscriptionOffers instead for cross-platform compatibility.
+   * @deprecated Use subscriptionOffers instead
+   */
   subscriptionOfferDetailsAndroid?: (ProductSubscriptionAndroidOfferDetails[] | null);
+  /**
+   * Standardized subscription offers.
+   * Cross-platform type with Android-specific fields using suffix.
+   * @see https://openiap.dev/docs/types#subscription-offer
+   */
+  subscriptionOffers?: (SubscriptionOffer[] | null);
   title: string;
   type: 'in-app';
 }
 
 /**
- * One-time purchase offer details (Android)
+ * One-time purchase offer details (Android).
  * Available in Google Play Billing Library 7.0+
+ * @deprecated Use the standardized DiscountOffer type instead for cross-platform compatibility.
+ * @see https://openiap.dev/docs/types#discount-offer
  */
 export interface ProductAndroidOneTimePurchaseOfferDetail {
   /**
@@ -633,7 +743,18 @@ export interface ProductIOS extends ProductCommon {
   jsonRepresentationIOS: string;
   platform: 'ios';
   price?: (number | null);
+  /**
+   * @deprecated Use subscriptionOffers instead for cross-platform compatibility.
+   * @deprecated Use subscriptionOffers instead
+   */
   subscriptionInfoIOS?: (SubscriptionInfoIOS | null);
+  /**
+   * Standardized subscription offers.
+   * Cross-platform type with iOS-specific fields using suffix.
+   * Note: iOS does not support one-time product discounts.
+   * @see https://openiap.dev/docs/types#subscription-offer
+   */
+  subscriptionOffers?: (SubscriptionOffer[] | null);
   title: string;
   type: 'in-app';
   typeIOS: ProductTypeIOS;
@@ -654,6 +775,12 @@ export interface ProductSubscriptionAndroid extends ProductCommon {
   currency: string;
   debugDescription?: (string | null);
   description: string;
+  /**
+   * Standardized discount offers for one-time products.
+   * Cross-platform type with Android-specific fields using suffix.
+   * @see https://openiap.dev/docs/types#discount-offer
+   */
+  discountOffers?: (DiscountOffer[] | null);
   displayName?: (string | null);
   displayPrice: string;
   id: string;
@@ -661,15 +788,32 @@ export interface ProductSubscriptionAndroid extends ProductCommon {
   /**
    * One-time purchase offer details including discounts (Android)
    * Returns all eligible offers. Available in Google Play Billing Library 7.0+
+   * @deprecated Use discountOffers instead for cross-platform compatibility.
+   * @deprecated Use discountOffers instead
    */
   oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail[] | null);
   platform: 'android';
   price?: (number | null);
+  /**
+   * @deprecated Use subscriptionOffers instead for cross-platform compatibility.
+   * @deprecated Use subscriptionOffers instead
+   */
   subscriptionOfferDetailsAndroid: ProductSubscriptionAndroidOfferDetails[];
+  /**
+   * Standardized subscription offers.
+   * Cross-platform type with Android-specific fields using suffix.
+   * @see https://openiap.dev/docs/types#subscription-offer
+   */
+  subscriptionOffers: SubscriptionOffer[];
   title: string;
   type: 'subs';
 }
 
+/**
+ * Subscription offer details (Android).
+ * @deprecated Use the standardized SubscriptionOffer type instead for cross-platform compatibility.
+ * @see https://openiap.dev/docs/types#subscription-offer
+ */
 export interface ProductSubscriptionAndroidOfferDetails {
   basePlanId: string;
   offerId?: (string | null);
@@ -682,6 +826,10 @@ export interface ProductSubscriptionIOS extends ProductCommon {
   currency: string;
   debugDescription?: (string | null);
   description: string;
+  /**
+   * @deprecated Use subscriptionOffers instead for cross-platform compatibility.
+   * @deprecated Use subscriptionOffers instead
+   */
   discountsIOS?: (DiscountIOS[] | null);
   displayName?: (string | null);
   displayNameIOS: string;
@@ -696,7 +844,17 @@ export interface ProductSubscriptionIOS extends ProductCommon {
   jsonRepresentationIOS: string;
   platform: 'ios';
   price?: (number | null);
+  /**
+   * @deprecated Use subscriptionOffers instead for cross-platform compatibility.
+   * @deprecated Use subscriptionOffers instead
+   */
   subscriptionInfoIOS?: (SubscriptionInfoIOS | null);
+  /**
+   * Standardized subscription offers.
+   * Cross-platform type with iOS-specific fields using suffix.
+   * @see https://openiap.dev/docs/types#subscription-offer
+   */
+  subscriptionOffers?: (SubscriptionOffer[] | null);
   subscriptionPeriodNumberIOS?: (string | null);
   subscriptionPeriodUnitIOS?: (SubscriptionPeriodIOS | null);
   title: string;
@@ -1167,6 +1325,86 @@ export interface SubscriptionInfoIOS {
   subscriptionPeriod: SubscriptionPeriodValueIOS;
 }
 
+/**
+ * Standardized subscription discount/promotional offer.
+ * Provides a unified interface for subscription offers across iOS and Android.
+ *
+ * Both platforms support subscription offers with different implementations:
+ * - iOS: Introductory offers, promotional offers with server-side signatures
+ * - Android: Offer tokens with pricing phases
+ *
+ * @see https://openiap.dev/docs/types/ios#discount-offer
+ * @see https://openiap.dev/docs/types/android#subscription-offer
+ */
+export interface SubscriptionOffer {
+  /**
+   * [Android] Base plan identifier.
+   * Identifies which base plan this offer belongs to.
+   */
+  basePlanIdAndroid?: (string | null);
+  /** Currency code (ISO 4217, e.g., "USD") */
+  currency?: (string | null);
+  /** Formatted display price string (e.g., "$9.99/month") */
+  displayPrice: string;
+  /**
+   * Unique identifier for the offer.
+   * - iOS: Discount identifier from App Store Connect
+   * - Android: offerId from ProductSubscriptionAndroidOfferDetails
+   */
+  id: string;
+  /**
+   * [iOS] Key identifier for signature validation.
+   * Used with server-side signature generation for promotional offers.
+   */
+  keyIdentifierIOS?: (string | null);
+  /** [iOS] Localized price string. */
+  localizedPriceIOS?: (string | null);
+  /**
+   * [iOS] Cryptographic nonce (UUID) for signature validation.
+   * Must be generated server-side for each purchase attempt.
+   */
+  nonceIOS?: (string | null);
+  /** [iOS] Number of billing periods for this discount. */
+  numberOfPeriodsIOS?: (number | null);
+  /** [Android] List of tags associated with this offer. */
+  offerTagsAndroid?: (string[] | null);
+  /**
+   * [Android] Offer token required for purchase.
+   * Must be passed to requestPurchase() when purchasing with this offer.
+   */
+  offerTokenAndroid?: (string | null);
+  /** Payment mode during the offer period */
+  paymentMode?: (PaymentMode | null);
+  /** Subscription period for this offer */
+  period?: (SubscriptionPeriod | null);
+  /** Number of periods the offer applies */
+  periodCount?: (number | null);
+  /** Numeric price value */
+  price: number;
+  /**
+   * [Android] Pricing phases for this subscription offer.
+   * Contains detailed pricing information for each phase (trial, intro, regular).
+   */
+  pricingPhasesAndroid?: (PricingPhasesAndroid | null);
+  /**
+   * [iOS] Server-generated signature for promotional offer validation.
+   * Required when applying promotional offers on iOS.
+   */
+  signatureIOS?: (string | null);
+  /**
+   * [iOS] Timestamp when the signature was generated.
+   * Used for signature validation.
+   */
+  timestampIOS?: (number | null);
+  /** Type of subscription offer (Introductory or Promotional) */
+  type: DiscountOfferType;
+}
+
+/**
+ * iOS subscription offer details.
+ * @deprecated Use the standardized SubscriptionOffer type instead for cross-platform compatibility.
+ * @see https://openiap.dev/docs/types#subscription-offer
+ */
 export interface SubscriptionOfferIOS {
   displayPrice: string;
   id: string;
@@ -1179,7 +1417,18 @@ export interface SubscriptionOfferIOS {
 
 export type SubscriptionOfferTypeIOS = 'introductory' | 'promotional';
 
+/** Subscription period value combining unit and count. */
+export interface SubscriptionPeriod {
+  /** The period unit (day, week, month, year) */
+  unit: SubscriptionPeriodUnit;
+  /** The number of units (e.g., 1 for monthly, 3 for quarterly) */
+  value: number;
+}
+
 export type SubscriptionPeriodIOS = 'day' | 'week' | 'month' | 'year' | 'empty';
+
+/** Subscription period unit for cross-platform use. */
+export type SubscriptionPeriodUnit = 'day' | 'week' | 'month' | 'year' | 'unknown';
 
 export interface SubscriptionPeriodValueIOS {
   unit: SubscriptionPeriodIOS;
