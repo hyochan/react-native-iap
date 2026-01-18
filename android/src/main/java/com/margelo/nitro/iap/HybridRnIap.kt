@@ -523,16 +523,19 @@ class HybridRnIap : HybridRnIapSpec() {
                 includeSuspendedAndroid = includeSuspended
             )
 
+            // Always use getAvailablePurchases with purchaseOptions to respect includeSuspended
+            // Then filter by type if specified
+            val allPurchases = openIap.getAvailablePurchases(purchaseOptions)
             val result: List<OpenIapPurchase> = if (normalizedType != null) {
                 val typeEnum = parseProductQueryType(normalizedType)
                 RnIapLog.payload(
                     "getAvailablePurchases.native",
                     mapOf("type" to typeEnum.rawValue, "includeSuspended" to includeSuspended)
                 )
-                openIap.getAvailableItems(typeEnum)
+                allPurchases.filter { it.type.rawValue == typeEnum.rawValue }
             } else {
                 RnIapLog.payload("getAvailablePurchases.native", mapOf("type" to "all", "includeSuspended" to includeSuspended))
-                openIap.getAvailablePurchases(purchaseOptions)
+                allPurchases
             }
             RnIapLog.result(
                 "getAvailablePurchases",

@@ -68,7 +68,14 @@ The connection can be in several states:
 - **Error**: Connection failed
 
 ```tsx
-const {connected, connectionError} = useIAP();
+const [connectionError, setConnectionError] = useState<Error | null>(null);
+
+const {connected} = useIAP({
+  onPurchaseError: (error) => {
+    // Handle connection and other errors
+    setConnectionError(error);
+  },
+});
 
 if (connectionError) {
   return <ErrorView error={connectionError} />;
