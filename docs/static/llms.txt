@@ -229,8 +229,17 @@ interface Purchase {
   // Android specific
   autoRenewingAndroid?: boolean;
   packageNameAndroid?: string;
+  isSuspendedAndroid?: boolean;  // v14.7.3+, Billing Library 8.1+
 }
 ```
+
+### ProductStatusAndroid (v14.7.3+, Billing Library 8.0+)
+
+```tsx
+type ProductStatusAndroid = 'ok' | 'not-found' | 'no-offers-available' | 'unknown';
+```
+
+Products now include `productStatusAndroid` field to explain why a product couldn't be fetched.
 
 ### ErrorCode
 
@@ -281,6 +290,46 @@ await requestPurchase({
 });
 ```
 
+### iOS Subscription Offers (v14.7.3+)
+
+```tsx
+// Win-back offers (iOS 18+)
+await requestPurchase({
+  request: {
+    apple: {
+      sku: 'monthly_sub',
+      winBackOffer: { offerId: 'win_back_50_percent' },
+    },
+  },
+  type: 'subs',
+});
+
+// JWS promotional offers (iOS 15+, WWDC 2025)
+await requestPurchase({
+  request: {
+    apple: {
+      sku: 'monthly_sub',
+      promotionalOfferJWS: {
+        jws: 'eyJ...server-signed-jws...',
+        offerId: 'promo_offer_id',
+      },
+    },
+  },
+  type: 'subs',
+});
+
+// Override introductory offer eligibility (iOS 15+)
+await requestPurchase({
+  request: {
+    apple: {
+      sku: 'monthly_sub',
+      introductoryOfferEligibility: true, // Force eligibility
+    },
+  },
+  type: 'subs',
+});
+```
+
 ### Restore Purchases
 
 ```tsx
@@ -293,6 +342,22 @@ const restore = async () => {
     // Validate and restore each
   }
 };
+```
+
+### Include Suspended Subscriptions (Android 8.1+)
+
+```tsx
+// By default, suspended subscriptions are excluded
+// To include them:
+const purchases = await getAvailablePurchases({
+  android: { includeSuspended: true }
+});
+
+// Check for suspended subscriptions
+purchases.filter(p => p.isSuspendedAndroid).forEach(p => {
+  // DO NOT grant entitlements for suspended subscriptions
+  // Direct user to resolve payment issues
+});
 ```
 
 ### Check Active Subscriptions

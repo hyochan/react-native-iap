@@ -186,6 +186,19 @@ class HybridRnIap: HybridRnIapSpec {
                 if let advancedCommerceData = iosRequest.advancedCommerceData {
                     iosPayload["advancedCommerceData"] = advancedCommerceData
                 }
+                // WWDC 2025 / iOS 18+ subscription offer fields
+                if let introductoryOfferEligibility = iosRequest.introductoryOfferEligibility {
+                    iosPayload["introductoryOfferEligibility"] = introductoryOfferEligibility
+                }
+                if let promotionalOfferJWS = iosRequest.promotionalOfferJWS {
+                    iosPayload["promotionalOfferJWS"] = [
+                        "jws": promotionalOfferJWS.jws,
+                        "offerId": promotionalOfferJWS.offerId
+                    ]
+                }
+                if let winBackOffer = iosRequest.winBackOffer {
+                    iosPayload["winBackOffer"] = ["offerId": winBackOffer.offerId]
+                }
 
                 let cachedType = await MainActor.run { self.productTypeBySku[iosRequest.sku] }
                 let resolvedType = RnIapHelper.parseProductQueryType(cachedType)
