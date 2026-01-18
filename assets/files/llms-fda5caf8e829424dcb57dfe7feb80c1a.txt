@@ -163,7 +163,7 @@ interface Product {
   currency: string;
   type: 'in-app' | 'subs';
   store: 'apple' | 'google' | 'horizon';
-  // Cross-platform standardized offers (v14.8.0+)
+  // Cross-platform standardized offers (v14.7.2+)
   subscriptionOffers?: SubscriptionOffer[];  // For subscriptions
   discountOffers?: DiscountOffer[];          // For one-time purchases
   // iOS specific (deprecated - use subscriptionOffers)
@@ -175,7 +175,7 @@ interface Product {
 }
 ```
 
-### SubscriptionOffer (v14.8.0+)
+### SubscriptionOffer (v14.7.2+)
 
 Cross-platform subscription offer type:
 
@@ -197,7 +197,7 @@ interface SubscriptionOffer {
 }
 ```
 
-### DiscountOffer (v14.8.0+)
+### DiscountOffer (v14.7.2+)
 
 Cross-platform discount offer for one-time purchases:
 

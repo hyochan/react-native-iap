@@ -444,7 +444,7 @@ interface ProductIOS extends ProductCommon {
   jsonRepresentationIOS: string;
   typeIOS: 'consumable' | 'non-consumable' | 'auto-renewable-subscription' | 'non-renewing-subscription';
   subscriptionInfoIOS?: SubscriptionInfoIOS;  // @deprecated - use subscriptionOffers
-  // Cross-platform standardized offers (v14.8.0+)
+  // Cross-platform standardized offers (v14.7.2+)
   subscriptionOffers?: SubscriptionOffer[];
   discountOffers?: DiscountOffer[];
 }
@@ -453,7 +453,7 @@ interface ProductAndroid extends ProductCommon {
   nameAndroid: string;
   oneTimePurchaseOfferDetailsAndroid?: ProductAndroidOneTimePurchaseOfferDetail[];
   subscriptionOfferDetailsAndroid?: ProductSubscriptionAndroidOfferDetails[];
-  // Cross-platform standardized offers (v14.8.0+)
+  // Cross-platform standardized offers (v14.7.2+)
   subscriptionOffers?: SubscriptionOffer[];
   discountOffers?: DiscountOffer[];
 }
@@ -461,7 +461,7 @@ interface ProductAndroid extends ProductCommon {
 type Product = ProductIOS | ProductAndroid;
 ```
 
-### SubscriptionOffer (v14.8.0+)
+### SubscriptionOffer (v14.7.2+)
 
 Cross-platform subscription offer type that unifies iOS and Android offer structures:
 
@@ -492,7 +492,7 @@ interface SubscriptionPeriod {
 }
 ```
 
-### DiscountOffer (v14.8.0+)
+### DiscountOffer (v14.7.2+)
 
 Cross-platform discount offer for one-time purchases:
 
