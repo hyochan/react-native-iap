@@ -501,9 +501,11 @@ class HybridRnIap : HybridRnIapSpec() {
             val androidOptions = options?.android
             initConnection(null).await()
 
+            val includeSuspended = androidOptions?.includeSuspended ?: false
+
             RnIapLog.payload(
                 "getAvailablePurchases",
-                mapOf("type" to androidOptions?.type?.name)
+                mapOf("type" to androidOptions?.type?.name, "includeSuspended" to includeSuspended)
             )
 
             val typeName = androidOptions?.type?.name?.lowercase()
@@ -516,16 +518,21 @@ class HybridRnIap : HybridRnIapSpec() {
                 else -> null
             }
 
+            // Create PurchaseOptions with includeSuspendedAndroid
+            val purchaseOptions = dev.hyo.openiap.PurchaseOptions(
+                includeSuspendedAndroid = includeSuspended
+            )
+
             val result: List<OpenIapPurchase> = if (normalizedType != null) {
                 val typeEnum = parseProductQueryType(normalizedType)
                 RnIapLog.payload(
                     "getAvailablePurchases.native",
-                    mapOf("type" to typeEnum.rawValue)
+                    mapOf("type" to typeEnum.rawValue, "includeSuspended" to includeSuspended)
                 )
                 openIap.getAvailableItems(typeEnum)
             } else {
-                RnIapLog.payload("getAvailablePurchases.native", mapOf("type" to "all"))
-                openIap.getAvailablePurchases(null)
+                RnIapLog.payload("getAvailablePurchases.native", mapOf("type" to "all", "includeSuspended" to includeSuspended))
+                openIap.getAvailablePurchases(purchaseOptions)
             }
             RnIapLog.result(
                 "getAvailablePurchases",
@@ -1045,6 +1052,13 @@ class HybridRnIap : HybridRnIapSpec() {
             else -> null
         }
 
+        // Extract productStatusAndroid (OpenIAP 1.3.14+, Billing Library 8.0+)
+        val productStatusAndroid = when (product) {
+            is ProductAndroid -> product.productStatusAndroid?.rawValue
+            is ProductSubscriptionAndroid -> product.productStatusAndroid?.rawValue
+            else -> null
+        }
+
         // Serialize standardized cross-platform subscriptionOffers (OpenIAP 1.3.10+)
         val standardizedSubsOffers = when (product) {
             is ProductSubscriptionAndroid -> product.subscriptionOffers
@@ -1097,10 +1111,11 @@ class HybridRnIap : HybridRnIapSpec() {
             subscriptionPeriodAndroid = subscriptionPeriodAndroid,
             freeTrialPeriodAndroid = freeTrialPeriodAndroid,
             subscriptionOfferDetailsAndroid = subscriptionOffersJson,
-            oneTimePurchaseOfferDetailsAndroid = oneTimeOffersNitro
+            oneTimePurchaseOfferDetailsAndroid = oneTimeOffersNitro,
+            productStatusAndroid = productStatusAndroid
         )
     }
-    
+
     // Purchase state is provided as enum value by OpenIAP
     
     private fun convertToNitroPurchase(purchase: OpenIapPurchase): NitroPurchase {

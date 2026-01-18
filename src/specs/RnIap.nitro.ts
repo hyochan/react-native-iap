@@ -12,6 +12,7 @@ import type {
   ExternalPurchaseNoticeResultIOS,
   MutationFinishTransactionArgs,
   ProductCommon,
+  PromotionalOfferJwsInputIOS,
   PurchaseCommon,
   PurchaseOptions,
   VerifyPurchaseAppleOptions,
@@ -24,6 +25,7 @@ import type {
   UserChoiceBillingDetails,
   PaymentModeIOS,
   SubscriptionProductReplacementParamsAndroid,
+  WinBackOfferInputIOS,
 } from '../types';
 
 // Nitro-compatible enum types (Nitro doesn't support inline string unions from types.ts)
@@ -118,6 +120,27 @@ export interface NitroRequestPurchaseIos {
    * @platform iOS
    */
   advancedCommerceData?: RequestPurchaseIosProps['advancedCommerceData'];
+  /**
+   * Override introductory offer eligibility (iOS 15+, WWDC 2025).
+   * Set to true to indicate the user is eligible for introductory offer,
+   * or false to indicate they are not. When nil, the system determines eligibility.
+   * Back-deployed to iOS 15.
+   * @platform iOS
+   */
+  introductoryOfferEligibility?: boolean | null;
+  /**
+   * JWS promotional offer (iOS 15+, WWDC 2025).
+   * New signature format using compact JWS string for promotional offers.
+   * Back-deployed to iOS 15.
+   * @platform iOS
+   */
+  promotionalOfferJWS?: PromotionalOfferJwsInputIOS | null;
+  /**
+   * Win-back offer to apply (iOS 18+).
+   * Used to re-engage churned subscribers with a discount or free trial.
+   * @platform iOS
+   */
+  winBackOffer?: WinBackOfferInputIOS | null;
 }
 
 export interface NitroRequestPurchaseAndroid {
@@ -161,6 +184,13 @@ type NitroAvailablePurchasesAndroidType = 'inapp' | 'subs';
 
 export interface NitroAvailablePurchasesAndroidOptions {
   type?: NitroAvailablePurchasesAndroidType;
+  /**
+   * Include suspended subscriptions in the result (Android 8.1+).
+   * Suspended subscriptions have isSuspendedAndroid=true and should NOT be granted entitlements.
+   * Users should be directed to the subscription center to resolve payment issues.
+   * Default: false (only active subscriptions are returned)
+   */
+  includeSuspended?: boolean | null;
 }
 
 export interface NitroAvailablePurchasesOptions {
@@ -543,6 +573,14 @@ export interface NitroProduct {
   freeTrialPeriodAndroid?: string | null;
   subscriptionOfferDetailsAndroid?: string | null;
   oneTimePurchaseOfferDetailsAndroid?: NitroOneTimePurchaseOfferDetail[] | null;
+  /**
+   * Product-level status code indicating fetch result (Android 8.0+)
+   * OK = product fetched successfully
+   * NOT_FOUND = SKU doesn't exist
+   * NO_OFFERS_AVAILABLE = user not eligible for any offers
+   * Available in Google Play Billing Library 8.0.0+
+   */
+  productStatusAndroid?: string | null;
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════╗

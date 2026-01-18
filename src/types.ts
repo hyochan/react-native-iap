@@ -99,6 +99,22 @@ export interface BillingProgramReportingDetailsAndroid {
   externalTransactionToken: string;
 }
 
+/**
+ * Extended billing result with sub-response code (Android)
+ * Available in Google Play Billing Library 8.0.0+
+ */
+export interface BillingResultAndroid {
+  /** Debug message from the billing library */
+  debugMessage?: (string | null);
+  /** The response code from the billing operation */
+  responseCode: number;
+  /**
+   * Sub-response code for more granular error information (8.0+).
+   * Provides additional context when responseCode indicates an error.
+   */
+  subResponseCode?: (SubResponseCodeAndroid | null);
+}
+
 export interface DeepLinkOptions {
   /** Android package name to target (required on Android) */
   packageNameAndroid?: (string | null);
@@ -525,7 +541,7 @@ export interface Mutation {
    * promoted products can be purchased directly via the standard purchase flow.
    * @deprecated Use promotedProductListenerIOS + requestPurchase instead
    */
-  requestPurchaseOnPromotedProductIOS: boolean;
+  requestPurchaseOnPromotedProductIOS: Promise<boolean>;
   /** Restore completed purchases across platforms */
   restorePurchases: Promise<void>;
   /**
@@ -665,6 +681,14 @@ export interface ProductAndroid extends ProductCommon {
   platform: 'android';
   price?: (number | null);
   /**
+   * Product-level status code indicating fetch result (Android 8.0+)
+   * OK = product fetched successfully
+   * NOT_FOUND = SKU doesn't exist
+   * NO_OFFERS_AVAILABLE = user not eligible for any offers
+   * Available in Google Play Billing Library 8.0.0+
+   */
+  productStatusAndroid?: (ProductStatusAndroid | null);
+  /**
    * @deprecated Use subscriptionOffers instead for cross-platform compatibility.
    * @deprecated Use subscriptionOffers instead
    */
@@ -769,6 +793,14 @@ export interface ProductRequest {
   type?: (ProductQueryType | null);
 }
 
+/**
+ * Status code for individual products returned from queryProductDetailsAsync (Android)
+ * Prior to 8.0, products that couldn't be fetched were simply not returned.
+ * With 8.0+, these products are returned with a status code explaining why.
+ * Available in Google Play Billing Library 8.0.0+
+ */
+export type ProductStatusAndroid = 'ok' | 'not-found' | 'no-offers-available' | 'unknown';
+
 export type ProductSubscription = ProductSubscriptionAndroid | ProductSubscriptionIOS;
 
 export interface ProductSubscriptionAndroid extends ProductCommon {
@@ -794,6 +826,14 @@ export interface ProductSubscriptionAndroid extends ProductCommon {
   oneTimePurchaseOfferDetailsAndroid?: (ProductAndroidOneTimePurchaseOfferDetail[] | null);
   platform: 'android';
   price?: (number | null);
+  /**
+   * Product-level status code indicating fetch result (Android 8.0+)
+   * OK = product fetched successfully
+   * NOT_FOUND = SKU doesn't exist
+   * NO_OFFERS_AVAILABLE = user not eligible for any offers
+   * Available in Google Play Billing Library 8.0.0+
+   */
+  productStatusAndroid?: (ProductStatusAndroid | null);
   /**
    * @deprecated Use subscriptionOffers instead for cross-platform compatibility.
    * @deprecated Use subscriptionOffers instead
@@ -865,6 +905,23 @@ export interface ProductSubscriptionIOS extends ProductCommon {
 export type ProductType = 'in-app' | 'subs';
 
 export type ProductTypeIOS = 'consumable' | 'non-consumable' | 'auto-renewable-subscription' | 'non-renewing-subscription';
+
+/**
+ * JWS promotional offer input for iOS 15+ (StoreKit 2, WWDC 2025).
+ * New signature format using compact JWS string for promotional offers.
+ * This provides a simpler alternative to the legacy signature-based promotional offers.
+ * Back-deployed to iOS 15.
+ */
+export interface PromotionalOfferJwsInputIOS {
+  /**
+   * Compact JWS string signed by your server.
+   * The JWS should contain the promotional offer signature data.
+   * Format: header.payload.signature (base64url encoded)
+   */
+  jws: string;
+  /** The promotional offer identifier from App Store Connect */
+  offerId: string;
+}
 
 export type Purchase = PurchaseAndroid | PurchaseIOS;
 
@@ -980,6 +1037,13 @@ export interface PurchaseOfferIOS {
 export interface PurchaseOptions {
   /** Also emit results through the iOS event listeners */
   alsoPublishToEventListenerIOS?: (boolean | null);
+  /**
+   * Include suspended subscriptions in the result (Android 8.1+).
+   * Suspended subscriptions have isSuspendedAndroid=true and should NOT be granted entitlements.
+   * Users should be directed to the subscription center to resolve payment issues.
+   * Default: false (only active subscriptions are returned)
+   */
+  includeSuspendedAndroid?: (boolean | null);
   /** Limit to currently active items on iOS */
   onlyIncludeActiveItemsIOS?: (boolean | null);
 }
@@ -1156,7 +1220,10 @@ export interface RequestPurchaseIosProps {
   quantity?: (number | null);
   /** Product SKU */
   sku: string;
-  /** Discount offer to apply */
+  /**
+   * Promotional offer to apply (subscriptions only, ignored for one-time purchases).
+   * iOS only supports promotional offers for auto-renewable subscriptions.
+   */
   withOffer?: (DiscountOfferInputIOS | null);
 }
 
@@ -1238,8 +1305,32 @@ export interface RequestSubscriptionIosProps {
   advancedCommerceData?: (string | null);
   andDangerouslyFinishTransactionAutomatically?: (boolean | null);
   appAccountToken?: (string | null);
+  /**
+   * Override introductory offer eligibility (iOS 15+, WWDC 2025).
+   * Set to true to indicate the user is eligible for introductory offer,
+   * or false to indicate they are not. When nil, the system determines eligibility.
+   * Back-deployed to iOS 15.
+   */
+  introductoryOfferEligibility?: (boolean | null);
+  /**
+   * JWS promotional offer (iOS 15+, WWDC 2025).
+   * New signature format using compact JWS string for promotional offers.
+   * Back-deployed to iOS 15.
+   */
+  promotionalOfferJWS?: (PromotionalOfferJwsInputIOS | null);
   quantity?: (number | null);
   sku: string;
+  /**
+   * Win-back offer to apply (iOS 18+)
+   * Used to re-engage churned subscribers with a discount or free trial.
+   * The offer is available when the customer is eligible and can be discovered
+   * via StoreKit Message (automatic) or subscription offer APIs.
+   */
+  winBackOffer?: (WinBackOfferInputIOS | null);
+  /**
+   * Promotional offer to apply for subscription purchases.
+   * Requires server-signed offer with nonce, timestamp, keyId, and signature.
+   */
   withOffer?: (DiscountOfferInputIOS | null);
 }
 
@@ -1294,6 +1385,12 @@ export interface RequestVerifyPurchaseWithIapkitResult {
   state: IapkitPurchaseState;
   store: IapStore;
 }
+
+/**
+ * Sub-response codes for more granular purchase error information (Android)
+ * Available in Google Play Billing Library 8.0.0+
+ */
+export type SubResponseCodeAndroid = 'no-applicable-sub-response-code' | 'payment-declined-due-to-insufficient-funds' | 'user-ineligible';
 
 export interface Subscription {
   /**
@@ -1415,7 +1512,7 @@ export interface SubscriptionOfferIOS {
   type: SubscriptionOfferTypeIOS;
 }
 
-export type SubscriptionOfferTypeIOS = 'introductory' | 'promotional';
+export type SubscriptionOfferTypeIOS = 'introductory' | 'promotional' | 'win-back';
 
 /** Subscription period value combining unit and count. */
 export interface SubscriptionPeriod {
@@ -1615,6 +1712,16 @@ export interface VerifyPurchaseWithProviderResult {
 
 export type VoidResult = void;
 
+/**
+ * Win-back offer input for iOS 18+ (StoreKit 2)
+ * Win-back offers are used to re-engage churned subscribers.
+ * The offer is automatically presented via StoreKit Message when eligible,
+ * or can be applied programmatically during purchase.
+ */
+export interface WinBackOfferInputIOS {
+  /** The win-back offer ID from App Store Connect */
+  offerId: string;
+}
 // -- Query helper types (auto-generated)
 export type QueryArgsMap = {
   canPresentExternalPurchaseNoticeIOS: never;

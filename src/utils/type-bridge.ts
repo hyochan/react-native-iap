@@ -312,6 +312,8 @@ export function convertNitroProductToProduct(
     subscriptionOfferDetailsAndroid: parseSubscriptionOffers(
       nitroProduct.subscriptionOfferDetailsAndroid,
     ),
+    // Product status (Billing Library 8.0+, OpenIAP 1.3.14+)
+    productStatusAndroid: nitroProduct.productStatusAndroid ?? null,
   };
 
   // Parse standardized subscriptionOffers (cross-platform, OpenIAP 1.3.10+)
