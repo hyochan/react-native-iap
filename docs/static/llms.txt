@@ -229,11 +229,11 @@ interface Purchase {
   // Android specific
   autoRenewingAndroid?: boolean;
   packageNameAndroid?: string;
-  isSuspendedAndroid?: boolean;  // v14.8.0+, Billing Library 8.1+
+  isSuspendedAndroid?: boolean;  // v14.7.3+, Billing Library 8.1+
 }
 ```
 
-### ProductStatusAndroid (v14.8.0+, Billing Library 8.0+)
+### ProductStatusAndroid (v14.7.3+, Billing Library 8.0+)
 
 ```tsx
 type ProductStatusAndroid = 'ok' | 'not-found' | 'no-offers-available' | 'unknown';
@@ -290,7 +290,7 @@ await requestPurchase({
 });
 ```
 
-### iOS Subscription Offers (v14.8.0+)
+### iOS Subscription Offers (v14.7.3+)
 
 ```tsx
 // Win-back offers (iOS 18+)
