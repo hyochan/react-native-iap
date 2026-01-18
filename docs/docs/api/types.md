@@ -137,9 +137,9 @@ export interface RentalDetailsAndroid {
 }
 ```
 
-### Cross-Platform Offer Types (v14.8.0+)
+### Cross-Platform Offer Types (v14.7.2+)
 
-Starting from v14.8.0, products include **standardized cross-platform offer types** that work consistently across iOS and Android. These new types replace the platform-specific `subscriptionInfoIOS` and `subscriptionOfferDetailsAndroid` with unified structures.
+Starting from v14.7.2, products include **standardized cross-platform offer types** that work consistently across iOS and Android. These new types replace the platform-specific `subscriptionInfoIOS` and `subscriptionOfferDetailsAndroid` with unified structures.
 
 #### SubscriptionOffer
 

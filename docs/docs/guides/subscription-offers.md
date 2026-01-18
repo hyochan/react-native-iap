@@ -23,9 +23,9 @@ Subscription offers represent different pricing plans for the same subscription 
 - **Introductory Offers**: Special pricing for new subscribers (free trial, discounted period)
 - **Promotional Offers**: Limited-time discounts configured in the app stores
 
-## Cross-Platform Types (v14.8.0+)
+## Cross-Platform Types (v14.7.2+)
 
-Starting with v14.8.0, react-native-iap provides cross-platform `SubscriptionOffer` and `DiscountOffer` types that unify iOS and Android offer handling:
+Starting with v14.7.2, react-native-iap provides cross-platform `SubscriptionOffer` and `DiscountOffer` types that unify iOS and Android offer handling:
 
 ```tsx
 interface SubscriptionOffer {
@@ -215,7 +215,7 @@ The server response includes `offerDetails.basePlanId` in the `lineItems` array,
 
 #### Discount Offers for One-Time Products (Android)
 
-Starting with v14.8.0, Android one-time products can have discount offers via the `discountOffers` field:
+Starting with v14.7.2, Android one-time products can have discount offers via the `discountOffers` field:
 
 ```tsx
 const product = products.find((p) => p.id === 'premium_unlock');

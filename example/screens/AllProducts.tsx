@@ -444,7 +444,7 @@ function AllProducts() {
                       </View>
                     )}
 
-                  {/* Cross-Platform Standardized Subscription Offers (v14.8.0+) */}
+                  {/* Cross-Platform Standardized Subscription Offers (v14.7.2+) */}
                   {'subscriptionOffers' in selectedProduct &&
                     selectedProduct.subscriptionOffers &&
                     selectedProduct.subscriptionOffers.length > 0 && (
