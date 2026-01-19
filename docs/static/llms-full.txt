@@ -95,7 +95,7 @@ function useIAP(options?: UseIAPOptions): UseIAPReturn;
 interface UseIAPOptions {
   onPurchaseSuccess?: (purchase: Purchase) => void;
   onPurchaseError?: (error: PurchaseError) => void;
-  shouldAutoSyncPurchases?: boolean;
+  onError?: (error: Error) => void; // Non-purchase errors (fetchProducts, getAvailablePurchases, etc.)
   onPromotedProductIOS?: (product: Product) => void;
 }
 ```
@@ -136,6 +136,7 @@ interface UseIAPReturn {
 - **Auto-connects**: Calls `initConnection()` on mount, `endConnection()` on unmount
 - **Void-returning methods**: `fetchProducts`, `requestPurchase`, `getAvailablePurchases` return `Promise<void>` and update internal state
 - **Use callbacks**: Always handle purchases via `onPurchaseSuccess` and `onPurchaseError`
+- **Error handling**: Use `onPurchaseError` for purchase-related errors and `onError` for non-purchase errors (fetchProducts, getAvailablePurchases, etc.)
 
 ### Basic Example
 
@@ -169,6 +170,11 @@ function Store() {
       if (error.code !== ErrorCode.UserCancelled) {
         Alert.alert('Purchase Failed', error.message);
       }
+    },
+    onError: (error) => {
+      // Handle non-purchase errors (fetchProducts, getAvailablePurchases, etc.)
+      console.error('IAP operation failed:', error.message);
+      Alert.alert('Error', 'Failed to load products. Please try again.');
     },
   });
 

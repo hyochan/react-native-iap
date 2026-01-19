@@ -104,6 +104,8 @@ type UseIap = {
 export interface UseIapOptions {
   onPurchaseSuccess?: (purchase: Purchase) => void;
   onPurchaseError?: (error: PurchaseError) => void;
+  /** Callback for non-purchase errors (fetchProducts, getAvailablePurchases, etc.) */
+  onError?: (error: Error) => void;
   onPromotedProductIOS?: (product: Product) => void;
   onUserChoiceBillingAndroid?: (details: UserChoiceBillingDetails) => void;
   /**
@@ -253,6 +255,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
         );
       } catch (error) {
         RnIapConsole.error('Error fetching products:', error);
+        if (optionsRef.current?.onError) {
+          optionsRef.current.onError(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+        }
       }
     },
     [mergeWithDuplicateCheck],
@@ -268,6 +275,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
         setAvailablePurchases(result);
       } catch (error) {
         RnIapConsole.error('Error fetching available purchases:', error);
+        if (optionsRef.current?.onError) {
+          optionsRef.current.onError(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+        }
       }
     },
     [],
@@ -281,8 +293,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
         return result;
       } catch (error) {
         RnIapConsole.error('Error getting active subscriptions:', error);
-        // Don't clear existing activeSubscriptions on error - preserve current state
-        // This prevents the UI from showing empty state when there are temporary network issues
+        if (optionsRef.current?.onError) {
+          optionsRef.current.onError(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+        }
         return [];
       }
     },
@@ -295,6 +310,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
         return await hasActiveSubscriptions(subscriptionIds);
       } catch (error) {
         RnIapConsole.error('Error checking active subscriptions:', error);
+        if (optionsRef.current?.onError) {
+          optionsRef.current.onError(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+        }
         return false;
       }
     },
@@ -469,8 +489,13 @@ export function useIAP(options?: UseIapOptions): UseIap {
       try {
         await restorePurchasesTopLevel();
         await getAvailablePurchasesInternal();
-      } catch (e) {
-        RnIapConsole.warn('Failed to restore purchases:', e);
+      } catch (error) {
+        RnIapConsole.warn('Failed to restore purchases:', error);
+        if (optionsRef.current?.onError) {
+          optionsRef.current.onError(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+        }
       }
     },
     getPromotedProductIOS,
