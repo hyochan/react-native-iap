@@ -182,6 +182,15 @@ export function useIAP(options?: UseIapOptions): UseIap {
     subscriptionsRefState.current = subscriptions;
   }, [subscriptions]);
 
+  // Helper function to invoke onError callback
+  const invokeOnError = useCallback((error: unknown) => {
+    if (optionsRef.current?.onError) {
+      optionsRef.current.onError(
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }, []);
+
   const fetchProductsInternal = useCallback(
     async (params: {
       skus: string[];
@@ -255,14 +264,10 @@ export function useIAP(options?: UseIapOptions): UseIap {
         );
       } catch (error) {
         RnIapConsole.error('Error fetching products:', error);
-        if (optionsRef.current?.onError) {
-          optionsRef.current.onError(
-            error instanceof Error ? error : new Error(String(error)),
-          );
-        }
+        invokeOnError(error);
       }
     },
-    [mergeWithDuplicateCheck],
+    [mergeWithDuplicateCheck, invokeOnError],
   );
 
   const getAvailablePurchasesInternal = useCallback(
@@ -275,14 +280,10 @@ export function useIAP(options?: UseIapOptions): UseIap {
         setAvailablePurchases(result);
       } catch (error) {
         RnIapConsole.error('Error fetching available purchases:', error);
-        if (optionsRef.current?.onError) {
-          optionsRef.current.onError(
-            error instanceof Error ? error : new Error(String(error)),
-          );
-        }
+        invokeOnError(error);
       }
     },
-    [],
+    [invokeOnError],
   );
 
   const getActiveSubscriptionsInternal = useCallback(
@@ -293,15 +294,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
         return result;
       } catch (error) {
         RnIapConsole.error('Error getting active subscriptions:', error);
-        if (optionsRef.current?.onError) {
-          optionsRef.current.onError(
-            error instanceof Error ? error : new Error(String(error)),
-          );
-        }
+        invokeOnError(error);
         return [];
       }
     },
-    [],
+    [invokeOnError],
   );
 
   const hasActiveSubscriptionsInternal = useCallback(
@@ -310,15 +307,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
         return await hasActiveSubscriptions(subscriptionIds);
       } catch (error) {
         RnIapConsole.error('Error checking active subscriptions:', error);
-        if (optionsRef.current?.onError) {
-          optionsRef.current.onError(
-            error instanceof Error ? error : new Error(String(error)),
-          );
-        }
+        invokeOnError(error);
         return false;
       }
     },
-    [],
+    [invokeOnError],
   );
 
   const finishTransaction = useCallback(
@@ -491,11 +484,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
         await getAvailablePurchasesInternal();
       } catch (error) {
         RnIapConsole.warn('Failed to restore purchases:', error);
-        if (optionsRef.current?.onError) {
-          optionsRef.current.onError(
-            error instanceof Error ? error : new Error(String(error)),
-          );
-        }
+        invokeOnError(error);
       }
     },
     getPromotedProductIOS,
