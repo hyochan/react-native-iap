@@ -1397,6 +1397,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 }
 
                 val props = dev.hyo.openiap.VerifyPurchaseWithProviderProps.fromJson(propsMap)
+                    ?: throw Exception("Failed to parse VerifyPurchaseWithProviderProps")
                 val result = openIap.verifyPurchaseWithProvider(props)
 
                 RnIapLog.result("verifyPurchaseWithProvider", mapOf("provider" to result.provider, "hasIapkit" to (result.iapkit != null)))
