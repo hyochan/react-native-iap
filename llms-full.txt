@@ -280,7 +280,8 @@ await requestPurchase({
     },
     google: {
       skus: ['product_id'],
-      obfuscatedAccountIdAndroid: 'user-id', // Optional
+      obfuscatedAccountId: 'user-id', // Optional
+      offerToken: 'discount_token', // Optional (7.0+) - for one-time purchase discounts
     },
   },
   type: 'in-app',
@@ -647,17 +648,17 @@ interface RequestPurchaseIosProps {
 
 interface RequestPurchaseAndroidProps {
   skus: string[];
-  obfuscatedAccountIdAndroid?: string;
-  obfuscatedProfileIdAndroid?: string;
+  obfuscatedAccountId?: string;
+  obfuscatedProfileId?: string;
   isOfferPersonalized?: boolean;
-  subscriptionOffers?: Array<{sku: string; offerToken: string}>;
-  purchaseTokenAndroid?: string;
-  replacementModeAndroid?: number;
+  offerToken?: string; // For one-time purchase discounts (7.0+)
   developerBillingOption?: DeveloperBillingOptionParamsAndroid;
 }
 
 interface RequestSubscriptionAndroidProps extends RequestPurchaseAndroidProps {
   subscriptionOffers?: AndroidSubscriptionOfferInput[];
+  purchaseToken?: string;
+  replacementMode?: number;
   subscriptionProductReplacementParams?: SubscriptionProductReplacementParamsAndroid;
 }
 ```
@@ -1089,7 +1090,7 @@ const upgradeSubscription = async (
       google: {
         skus: [newSubscriptionId],
         subscriptionOffers: offers,
-        purchaseTokenAndroid: currentPurchaseToken,
+        purchaseToken: currentPurchaseToken,
         subscriptionProductReplacementParams: {
           oldProductId: 'old_subscription_id',
           replacementMode: 'with-time-proration',
