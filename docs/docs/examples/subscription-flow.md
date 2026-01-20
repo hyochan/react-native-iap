@@ -86,8 +86,8 @@ await requestPurchase({
     google: {
       skus: ['premium_yearly'],
       subscriptionOffers: [...],
-      purchaseTokenAndroid: currentPurchase.purchaseToken, // Required
-      replacementModeAndroid: 1, // WITH_TIME_PRORATION
+      purchaseToken: currentPurchase.purchaseToken, // Required
+      replacementMode: 1, // WITH_TIME_PRORATION
     },
   },
   type: 'subs',
@@ -231,7 +231,7 @@ The [example app](https://github.com/hyochan/react-native-iap/blob/main/example/
 ## Key Points
 
 - **iOS**: Use subscription groups for automatic plan management
-- **Android**: Must include `subscriptionOffers` and `purchaseTokenAndroid` for upgrades
+- **Android**: Must include `subscriptionOffers` and `purchaseToken` for upgrades
 - **Validation**: Always validate receipts on your server before granting access
 - **Hook callbacks**: Use `onPurchaseSuccess` instead of promise chaining
 

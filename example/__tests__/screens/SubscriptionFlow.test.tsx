@@ -389,7 +389,7 @@ describe('SubscriptionFlow Screen', () => {
     });
   });
 
-  it.skip('excludes obfuscatedProfileIdAndroid for subscription upgrades/downgrades (Android)', async () => {
+  it.skip('excludes obfuscatedProfileId for subscription upgrades/downgrades (Android)', async () => {
     // Mock Platform to be Android
     Platform.OS = 'android';
     // Mock getAvailablePurchases to return purchase with token
@@ -405,7 +405,7 @@ describe('SubscriptionFlow Screen', () => {
       ]);
     });
 
-    // For upgrade/downgrade, purchaseTokenAndroid should be included but obfuscatedProfileIdAndroid should not
+    // For upgrade/downgrade, purchaseToken should be included but obfuscatedProfileId should not
     mockIapState({
       activeSubscriptions: [
         {
@@ -491,18 +491,16 @@ describe('SubscriptionFlow Screen', () => {
         expect(lastCall[0]).toBeDefined();
 
         const androidRequest = lastCall[0].request?.android;
-        // Should have purchaseTokenAndroid for upgrade
-        expect(androidRequest?.purchaseTokenAndroid).toBe(
-          'mock-purchase-token-123',
-        );
-        // Should NOT have obfuscatedProfileIdAndroid for upgrade
-        expect(androidRequest?.obfuscatedProfileIdAndroid).toBeUndefined();
+        // Should have purchaseToken for upgrade
+        expect(androidRequest?.purchaseToken).toBe('mock-purchase-token-123');
+        // Should NOT have obfuscatedProfileId for upgrade
+        expect(androidRequest?.obfuscatedProfileId).toBeUndefined();
       },
       {timeout: 3000},
     );
   });
 
-  it('includes obfuscatedProfileIdAndroid for new subscriptions', () => {
+  it('includes obfuscatedProfileId for new subscriptions', () => {
     mockIapState({
       subscriptions: [sampleSubscription],
       activeSubscriptions: [], // No active subscriptions
@@ -520,9 +518,9 @@ describe('SubscriptionFlow Screen', () => {
       requestPurchaseMock.mock.calls[requestPurchaseMock.mock.calls.length - 1];
     if (lastCall && lastCall[0]) {
       const androidRequest = lastCall[0].request?.android;
-      // Should NOT have purchaseTokenAndroid for new purchase
-      expect(androidRequest?.purchaseTokenAndroid).toBeUndefined();
-      // obfuscatedProfileIdAndroid can be included for new purchases (but is optional)
+      // Should NOT have purchaseToken for new purchase
+      expect(androidRequest?.purchaseToken).toBeUndefined();
+      // obfuscatedProfileId can be included for new purchases (but is optional)
     }
   });
 });

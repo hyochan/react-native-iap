@@ -501,9 +501,9 @@ await requestPurchase({
       quantity: 1,
       appAccountToken: 'user-123',
     },
-    android: {
+    google: {
       skus: [productId],
-      obfuscatedAccountIdAndroid: 'user-123',
+      obfuscatedAccountId: 'user-123',
     },
   },
   type: 'in-app',
