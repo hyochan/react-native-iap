@@ -1263,6 +1263,10 @@ export const requestPurchase: MutationField<'requestPurchase'> = async (
           androidPayload.replacementModeAndroid =
             subsRequest.replacementModeAndroid;
         }
+        if (subsRequest.subscriptionProductReplacementParams) {
+          androidPayload.subscriptionProductReplacementParams =
+            subsRequest.subscriptionProductReplacementParams;
+        }
         androidPayload.subscriptionOffers = (
           subsRequest.subscriptionOffers ?? []
         )

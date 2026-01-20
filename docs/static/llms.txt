@@ -108,7 +108,8 @@ const purchases = await getAvailablePurchases(); // purchases is void!
 
 **Options:**
 - `onPurchaseSuccess?: (purchase: Purchase) => void` - Success callback
-- `onPurchaseError?: (error: PurchaseError) => void` - Error callback
+- `onPurchaseError?: (error: PurchaseError) => void` - Purchase error callback
+- `onError?: (error: Error) => void` - Non-purchase error callback (fetchProducts, getAvailablePurchases, etc.)
 
 ### Direct API Functions
 

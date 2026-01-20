@@ -104,6 +104,8 @@ type UseIap = {
 export interface UseIapOptions {
   onPurchaseSuccess?: (purchase: Purchase) => void;
   onPurchaseError?: (error: PurchaseError) => void;
+  /** Callback for non-purchase errors (fetchProducts, getAvailablePurchases, etc.) */
+  onError?: (error: Error) => void;
   onPromotedProductIOS?: (product: Product) => void;
   onUserChoiceBillingAndroid?: (details: UserChoiceBillingDetails) => void;
   /**
@@ -180,6 +182,15 @@ export function useIAP(options?: UseIapOptions): UseIap {
     subscriptionsRefState.current = subscriptions;
   }, [subscriptions]);
 
+  // Helper function to invoke onError callback
+  const invokeOnError = useCallback((error: unknown) => {
+    if (optionsRef.current?.onError) {
+      optionsRef.current.onError(
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  }, []);
+
   const fetchProductsInternal = useCallback(
     async (params: {
       skus: string[];
@@ -253,9 +264,10 @@ export function useIAP(options?: UseIapOptions): UseIap {
         );
       } catch (error) {
         RnIapConsole.error('Error fetching products:', error);
+        invokeOnError(error);
       }
     },
-    [mergeWithDuplicateCheck],
+    [mergeWithDuplicateCheck, invokeOnError],
   );
 
   const getAvailablePurchasesInternal = useCallback(
@@ -268,9 +280,10 @@ export function useIAP(options?: UseIapOptions): UseIap {
         setAvailablePurchases(result);
       } catch (error) {
         RnIapConsole.error('Error fetching available purchases:', error);
+        invokeOnError(error);
       }
     },
-    [],
+    [invokeOnError],
   );
 
   const getActiveSubscriptionsInternal = useCallback(
@@ -281,12 +294,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
         return result;
       } catch (error) {
         RnIapConsole.error('Error getting active subscriptions:', error);
-        // Don't clear existing activeSubscriptions on error - preserve current state
-        // This prevents the UI from showing empty state when there are temporary network issues
+        invokeOnError(error);
         return [];
       }
     },
-    [],
+    [invokeOnError],
   );
 
   const hasActiveSubscriptionsInternal = useCallback(
@@ -295,10 +307,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
         return await hasActiveSubscriptions(subscriptionIds);
       } catch (error) {
         RnIapConsole.error('Error checking active subscriptions:', error);
+        invokeOnError(error);
         return false;
       }
     },
-    [],
+    [invokeOnError],
   );
 
   const finishTransaction = useCallback(
@@ -469,8 +482,9 @@ export function useIAP(options?: UseIapOptions): UseIap {
       try {
         await restorePurchasesTopLevel();
         await getAvailablePurchasesInternal();
-      } catch (e) {
-        RnIapConsole.warn('Failed to restore purchases:', e);
+      } catch (error) {
+        RnIapConsole.warn('Failed to restore purchases:', error);
+        invokeOnError(error);
       }
     },
     getPromotedProductIOS,

@@ -426,6 +426,81 @@ describe('Public API (src/index.ts)', () => {
       ]);
     });
 
+    it('Android subs forwards subscriptionProductReplacementParams when provided', async () => {
+      (Platform as any).OS = 'android';
+      await IAP.requestPurchase({
+        request: {
+          google: {
+            skus: ['new_sub'],
+            subscriptionOffers: [{sku: 'new_sub', offerToken: 'offer-token'}],
+            subscriptionProductReplacementParams: {
+              oldProductId: 'old_sub',
+              replacementMode: 'with-time-proration',
+            },
+          },
+        },
+        type: 'subs',
+      });
+      const [lastCallArgs] = mockIap.requestPurchase.mock.lastCall;
+      expect(lastCallArgs.android.subscriptionProductReplacementParams).toEqual(
+        {
+          oldProductId: 'old_sub',
+          replacementMode: 'with-time-proration',
+        },
+      );
+    });
+
+    it('Android subs does not include subscriptionProductReplacementParams when not provided', async () => {
+      (Platform as any).OS = 'android';
+      await IAP.requestPurchase({
+        request: {
+          google: {
+            skus: ['sub1'],
+            subscriptionOffers: [{sku: 'sub1', offerToken: 'token'}],
+          },
+        },
+        type: 'subs',
+      });
+      const [lastCallArgs] = mockIap.requestPurchase.mock.lastCall;
+      expect(
+        lastCallArgs.android.subscriptionProductReplacementParams,
+      ).toBeUndefined();
+    });
+
+    it('Android subs supports all replacement modes', async () => {
+      (Platform as any).OS = 'android';
+      const replacementModes = [
+        'unknown-replacement-mode',
+        'with-time-proration',
+        'charge-prorated-price',
+        'charge-full-price',
+        'without-proration',
+        'deferred',
+        'keep-existing',
+      ] as const;
+
+      for (const mode of replacementModes) {
+        await IAP.requestPurchase({
+          request: {
+            google: {
+              skus: ['new_sub'],
+              subscriptionOffers: [{sku: 'new_sub', offerToken: 'token'}],
+              subscriptionProductReplacementParams: {
+                oldProductId: 'old_sub',
+                replacementMode: mode,
+              },
+            },
+          },
+          type: 'subs',
+        });
+        const [lastCallArgs] = mockIap.requestPurchase.mock.lastCall;
+        expect(
+          lastCallArgs.android.subscriptionProductReplacementParams
+            .replacementMode,
+        ).toBe(mode);
+      }
+    });
+
     // New tests for google/apple field support
     it('supports apple field (recommended) on iOS', async () => {
       (Platform as any).OS = 'ios';

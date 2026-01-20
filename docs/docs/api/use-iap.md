@@ -62,7 +62,7 @@ const {
 interface UseIAPOptions {
   onPurchaseSuccess?: (purchase: Purchase) => void;
   onPurchaseError?: (error: PurchaseError) => void;
-  shouldAutoSyncPurchases?: boolean; // Controls auto sync behavior inside the hook
+  onError?: (error: Error) => void; // Non-purchase errors (fetchProducts, getAvailablePurchases, etc.)
   onPromotedProductIOS?: (product: Product) => void; // iOS promoted products
 }
 ```
@@ -94,6 +94,41 @@ interface UseIAPOptions {
       Alert.alert('Purchase Failed', error.message);
     }
   };
+  ```
+
+#### onError
+
+- **Type**: `(error: Error) => void`
+- **Description**: Called when non-purchase operations fail (e.g., `fetchProducts`, `getAvailablePurchases`, `getActiveSubscriptions`, `restorePurchases`). Use this callback to handle errors from query operations that are not related to the purchase flow itself.
+- **Example**:
+
+  ```tsx
+  onError: (error) => {
+    // Handle non-purchase errors (network issues, query failures, etc.)
+    console.error('IAP operation failed:', error.message);
+    Alert.alert('Error', 'Failed to load products. Please check your connection.');
+  };
+  ```
+
+- **Full Example with Both Error Callbacks**:
+
+  ```tsx
+  const {fetchProducts, requestPurchase} = useIAP({
+    onPurchaseSuccess: (purchase) => {
+      console.log('Purchase successful:', purchase.productId);
+    },
+    onPurchaseError: (error) => {
+      // Purchase-specific errors (user cancelled, payment failed, etc.)
+      if (error.code !== ErrorCode.UserCancelled) {
+        Alert.alert('Purchase Failed', error.message);
+      }
+    },
+    onError: (error) => {
+      // Non-purchase errors (fetchProducts failed, network issues, etc.)
+      console.error('Operation failed:', error.message);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    },
+  });
   ```
 
 #### autoFinishTransactions
