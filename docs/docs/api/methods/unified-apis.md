@@ -172,7 +172,7 @@ const buySubscription = (subscriptionId: string, subscription?: any) => {
 
 ### Detailed Platform Examples
 
-#### iOS Only
+#### Cross-Platform (Recommended)
 
 ```tsx
 await requestPurchase({
@@ -182,12 +182,16 @@ await requestPurchase({
       quantity: 1,
       appAccountToken: 'user-account-token',
     },
+    google: {
+      skus: [productId],
+      obfuscatedAccountId: 'user-account-id',
+    },
   },
   type: 'in-app',
 });
 ```
 
-#### iOS with Advanced Commerce Data (iOS 15+)
+#### With Advanced Commerce Data (iOS 15+)
 
 Use `advancedCommerceData` to pass attribution data (campaign tokens, affiliate IDs) during purchase:
 
@@ -198,19 +202,26 @@ await requestPurchase({
       sku: productId,
       advancedCommerceData: 'campaign_summer_2025',
     },
+    google: {
+      skus: [productId],
+    },
   },
   type: 'in-app',
 });
 ```
 
-#### Android Only
+#### With One-Time Purchase Discount (Android 7.0+)
 
 ```tsx
 await requestPurchase({
   request: {
-    skus: [productId],
-    obfuscatedAccountIdAndroid: 'user-account-id',
-    obfuscatedProfileIdAndroid: 'user-profile-id',
+    apple: {
+      sku: productId,
+    },
+    google: {
+      skus: [productId],
+      offerToken: discountOffer.offerTokenAndroid, // From product.discountOffers
+    },
   },
   type: 'in-app',
 });
@@ -226,9 +237,10 @@ await requestPurchase({
     - `quantity?` (number, iOS only): Purchase quantity
     - `appAccountToken?` (string, iOS only): User identifier for purchase verification
     - `advancedCommerceData?` (string, iOS only): Campaign token or attribution data for StoreKit 2's `Product.PurchaseOption.custom` API (iOS 15+)
-    - `obfuscatedAccountIdAndroid?` (string, Android only): Obfuscated account ID
-    - `obfuscatedProfileIdAndroid?` (string, Android only): Obfuscated profile ID
+    - `obfuscatedAccountId?` (string, Android only): Obfuscated account ID
+    - `obfuscatedProfileId?` (string, Android only): Obfuscated profile ID
     - `isOfferPersonalized?` (boolean, Android only): Whether offer is personalized
+    - `offerToken?` (string, Android 7.0+ only): Offer token for one-time purchase discounts
   - `type?` ('in-app' | 'subs'): Purchase type, defaults to 'in-app'
 
 **Returns:** `Promise<Purchase | Purchase[] | void>`

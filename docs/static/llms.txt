@@ -291,6 +291,41 @@ await requestPurchase({
 });
 ```
 
+### Subscription Upgrade/Downgrade (Android)
+
+```tsx
+await requestPurchase({
+  request: {
+    apple: {sku: 'premium_yearly'},
+    google: {
+      skus: ['premium_yearly'],
+      subscriptionOffers: offers,
+      purchaseToken: currentPurchaseToken,  // Required for upgrades
+      replacementMode: 1,  // WITH_TIME_PRORATION
+    },
+  },
+  type: 'subs',
+});
+```
+
+### One-Time Purchase Discount (Android 7.0+, v14.7.4+)
+
+```tsx
+const product = products.find(p => p.id === 'premium_unlock');
+const discountOffer = product?.discountOffers?.[0];
+
+await requestPurchase({
+  request: {
+    apple: {sku: 'premium_unlock'},
+    google: {
+      skus: ['premium_unlock'],
+      offerToken: discountOffer?.offerTokenAndroid,  // Apply discount
+    },
+  },
+  type: 'in-app',
+});
+```
+
 ### iOS Subscription Offers (v14.7.3+)
 
 ```tsx

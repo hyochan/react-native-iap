@@ -145,16 +145,22 @@ export interface NitroRequestPurchaseIos {
 
 export interface NitroRequestPurchaseAndroid {
   skus: RequestSubscriptionAndroidProps['skus'];
-  obfuscatedAccountIdAndroid?: RequestSubscriptionAndroidProps['obfuscatedAccountIdAndroid'];
-  obfuscatedProfileIdAndroid?: RequestSubscriptionAndroidProps['obfuscatedProfileIdAndroid'];
+  obfuscatedAccountId?: RequestSubscriptionAndroidProps['obfuscatedAccountId'];
+  obfuscatedProfileId?: RequestSubscriptionAndroidProps['obfuscatedProfileId'];
   isOfferPersonalized?: RequestSubscriptionAndroidProps['isOfferPersonalized'];
+  /**
+   * Offer token for one-time purchase discounts (7.0+).
+   * Pass the offerToken from oneTimePurchaseOfferDetailsAndroid or discountOffers
+   * to apply a discount offer to the purchase.
+   */
+  offerToken?: string | null;
   subscriptionOffers?: AndroidSubscriptionOfferInput[] | null;
   /** @deprecated Use subscriptionProductReplacementParams instead for item-level replacement (8.1.0+) */
-  replacementModeAndroid?: RequestSubscriptionAndroidProps['replacementModeAndroid'];
-  purchaseTokenAndroid?: RequestSubscriptionAndroidProps['purchaseTokenAndroid'];
+  replacementMode?: RequestSubscriptionAndroidProps['replacementMode'];
+  purchaseToken?: RequestSubscriptionAndroidProps['purchaseToken'];
   /**
    * Product-level replacement parameters (8.1.0+)
-   * Use this instead of replacementModeAndroid for item-level replacement
+   * Use this instead of replacementMode for item-level replacement
    */
   subscriptionProductReplacementParams?: SubscriptionProductReplacementParamsAndroid | null;
 }

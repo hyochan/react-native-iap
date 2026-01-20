@@ -415,7 +415,7 @@ class HybridRnIap : HybridRnIapSpec() {
 
                 val requestProps = when (queryType) {
                     ProductQueryType.Subs -> {
-                        val replacementMode = (androidRequest.replacementModeAndroid as? Number)?.toInt()
+                        val replacementMode = (androidRequest.replacementMode as? Number)?.toInt()
 
                         // Parse subscriptionProductReplacementParams (8.1.0+)
                         val subscriptionProductReplacementParams = androidRequest.subscriptionProductReplacementParams?.let { params ->
@@ -427,10 +427,10 @@ class HybridRnIap : HybridRnIapSpec() {
 
                         val androidProps = RequestSubscriptionAndroidProps(
                             isOfferPersonalized = androidRequest.isOfferPersonalized,
-                            obfuscatedAccountIdAndroid = androidRequest.obfuscatedAccountIdAndroid,
-                            obfuscatedProfileIdAndroid = androidRequest.obfuscatedProfileIdAndroid,
-                            purchaseTokenAndroid = androidRequest.purchaseTokenAndroid,
-                            replacementModeAndroid = replacementMode,
+                            obfuscatedAccountId = androidRequest.obfuscatedAccountId,
+                            obfuscatedProfileId = androidRequest.obfuscatedProfileId,
+                            purchaseToken = androidRequest.purchaseToken,
+                            replacementMode = replacementMode,
                             skus = androidRequest.skus.toList(),
                             subscriptionOffers = normalizedOffers,
                             subscriptionProductReplacementParams = subscriptionProductReplacementParams
@@ -445,8 +445,9 @@ class HybridRnIap : HybridRnIapSpec() {
                     ProductQueryType.InApp, ProductQueryType.All -> {
                         val androidProps = RequestPurchaseAndroidProps(
                             isOfferPersonalized = androidRequest.isOfferPersonalized,
-                            obfuscatedAccountIdAndroid = androidRequest.obfuscatedAccountIdAndroid,
-                            obfuscatedProfileIdAndroid = androidRequest.obfuscatedProfileIdAndroid,
+                            obfuscatedAccountId = androidRequest.obfuscatedAccountId,
+                            obfuscatedProfileId = androidRequest.obfuscatedProfileId,
+                            offerToken = androidRequest.offerToken,
                             skus = androidRequest.skus.toList()
                         )
                         RequestPurchaseProps(
@@ -1396,6 +1397,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 }
 
                 val props = dev.hyo.openiap.VerifyPurchaseWithProviderProps.fromJson(propsMap)
+                    ?: throw Exception("Failed to parse VerifyPurchaseWithProviderProps")
                 val result = openIap.verifyPurchaseWithProvider(props)
 
                 RnIapLog.result("verifyPurchaseWithProvider", mapOf("provider" to result.provider, "hasIapkit" to (result.iapkit != null)))

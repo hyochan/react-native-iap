@@ -438,7 +438,7 @@ function SubscriptionFlow({
                 // Make the request with proper token
                 void requestPurchase({
                   request: {
-                    android: {
+                    google: {
                       skus: [targetProductId],
                       subscriptionOffers: [
                         {
@@ -446,8 +446,8 @@ function SubscriptionFlow({
                           offerToken: targetOffer.offerToken,
                         },
                       ],
-                      replacementModeAndroid: replacementMode,
-                      purchaseTokenAndroid: tokenString,
+                      replacementMode: replacementMode,
+                      purchaseToken: tokenString,
                     },
                   },
                   type: 'subs',

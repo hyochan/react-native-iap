@@ -1194,12 +1194,21 @@ export interface RequestPurchaseAndroidProps {
    * Google Play Billing and the developer's external payment option.
    */
   developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
-  /** Personalized offer flag */
+  /**
+   * Personalized offer flag.
+   * When true, indicates the price was customized for this user.
+   */
   isOfferPersonalized?: (boolean | null);
   /** Obfuscated account ID */
-  obfuscatedAccountIdAndroid?: (string | null);
+  obfuscatedAccountId?: (string | null);
   /** Obfuscated profile ID */
-  obfuscatedProfileIdAndroid?: (string | null);
+  obfuscatedProfileId?: (string | null);
+  /**
+   * Offer token for one-time purchase discounts (7.0+).
+   * Pass the offerToken from oneTimePurchaseOfferDetailsAndroid or discountOffers
+   * to apply a discount offer to the purchase.
+   */
+  offerToken?: (string | null);
   /** List of product SKUs */
   skus: string[];
 }
@@ -1271,26 +1280,29 @@ export interface RequestSubscriptionAndroidProps {
    * Google Play Billing and the developer's external payment option.
    */
   developerBillingOption?: (DeveloperBillingOptionParamsAndroid | null);
-  /** Personalized offer flag */
+  /**
+   * Personalized offer flag.
+   * When true, indicates the price was customized for this user.
+   */
   isOfferPersonalized?: (boolean | null);
   /** Obfuscated account ID */
-  obfuscatedAccountIdAndroid?: (string | null);
+  obfuscatedAccountId?: (string | null);
   /** Obfuscated profile ID */
-  obfuscatedProfileIdAndroid?: (string | null);
+  obfuscatedProfileId?: (string | null);
   /** Purchase token for upgrades/downgrades */
-  purchaseTokenAndroid?: (string | null);
+  purchaseToken?: (string | null);
   /**
    * Replacement mode for subscription changes
    * @deprecated Use subscriptionProductReplacementParams instead for item-level replacement (8.1.0+)
    */
-  replacementModeAndroid?: (number | null);
+  replacementMode?: (number | null);
   /** List of subscription SKUs */
   skus: string[];
   /** Subscription offers */
   subscriptionOffers?: (AndroidSubscriptionOfferInput[] | null);
   /**
    * Product-level replacement parameters (8.1.0+)
-   * Use this instead of replacementModeAndroid for item-level replacement
+   * Use this instead of replacementMode for item-level replacement
    */
   subscriptionProductReplacementParams?: (SubscriptionProductReplacementParamsAndroid | null);
 }

@@ -1241,27 +1241,31 @@ export const requestPurchase: MutationField<'requestPurchase'> = async (
         skus: androidRequest.skus,
       };
 
-      if (androidRequest.obfuscatedAccountIdAndroid) {
-        androidPayload.obfuscatedAccountIdAndroid =
-          androidRequest.obfuscatedAccountIdAndroid;
+      if (androidRequest.obfuscatedAccountId) {
+        androidPayload.obfuscatedAccountId = androidRequest.obfuscatedAccountId;
       }
-      if (androidRequest.obfuscatedProfileIdAndroid) {
-        androidPayload.obfuscatedProfileIdAndroid =
-          androidRequest.obfuscatedProfileIdAndroid;
+      if (androidRequest.obfuscatedProfileId) {
+        androidPayload.obfuscatedProfileId = androidRequest.obfuscatedProfileId;
       }
       if (androidRequest.isOfferPersonalized != null) {
         androidPayload.isOfferPersonalized = androidRequest.isOfferPersonalized;
       }
 
+      // One-time purchase offerToken (Android 7.0+)
+      if (!isSubs) {
+        const purchaseRequest = androidRequest as RequestPurchaseAndroidProps;
+        if (purchaseRequest.offerToken) {
+          androidPayload.offerToken = purchaseRequest.offerToken;
+        }
+      }
+
       if (isSubs) {
         const subsRequest = androidRequest as RequestSubscriptionAndroidProps;
-        if (subsRequest.purchaseTokenAndroid) {
-          androidPayload.purchaseTokenAndroid =
-            subsRequest.purchaseTokenAndroid;
+        if (subsRequest.purchaseToken) {
+          androidPayload.purchaseToken = subsRequest.purchaseToken;
         }
-        if (subsRequest.replacementModeAndroid != null) {
-          androidPayload.replacementModeAndroid =
-            subsRequest.replacementModeAndroid;
+        if (subsRequest.replacementMode != null) {
+          androidPayload.replacementMode = subsRequest.replacementMode;
         }
         if (subsRequest.subscriptionProductReplacementParams) {
           androidPayload.subscriptionProductReplacementParams =
