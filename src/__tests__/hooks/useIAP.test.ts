@@ -285,5 +285,68 @@ describe('hooks/useIAP (renderer)', () => {
       expect(onError).toHaveBeenCalledWith(expect.any(Error));
       expect(onError.mock.calls[0][0].message).toBe(stringError);
     });
+
+    it('calls onError when initConnection fails', async () => {
+      const initError = new Error('Failed to initialize connection');
+      jest.spyOn(IAP, 'initConnection').mockRejectedValueOnce(initError);
+
+      const onError = jest.fn();
+      const Harness = () => {
+        useIAP({onError});
+        return null;
+      };
+
+      await act(async () => {
+        TestRenderer.create(React.createElement(Harness));
+      });
+
+      // Wait for initConnection to be called and fail
+      await act(async () => {});
+
+      expect(onError).toHaveBeenCalledWith(initError);
+    });
+
+    it('does not throw unhandled exception when initConnection fails with onError', async () => {
+      const initError = new Error('Store unavailable');
+      jest.spyOn(IAP, 'initConnection').mockRejectedValueOnce(initError);
+
+      const onError = jest.fn();
+      const Harness = () => {
+        useIAP({onError});
+        return null;
+      };
+
+      // This should not throw an unhandled promise rejection
+      await act(async () => {
+        TestRenderer.create(React.createElement(Harness));
+      });
+
+      await act(async () => {});
+
+      // onError should be called, error should be handled gracefully
+      expect(onError).toHaveBeenCalledWith(initError);
+    });
+
+    it('handles initConnection failure without onError callback', async () => {
+      const initError = new Error('Connection failed');
+      const initConnectionSpy = jest
+        .spyOn(IAP, 'initConnection')
+        .mockRejectedValueOnce(initError);
+
+      // No onError callback - should not throw unhandled exception
+      const Harness = () => {
+        useIAP();
+        return null;
+      };
+
+      await act(async () => {
+        TestRenderer.create(React.createElement(Harness));
+      });
+
+      await act(async () => {});
+
+      // Test passes if no unhandled exception is thrown
+      expect(initConnectionSpy).toHaveBeenCalled();
+    });
   });
 });

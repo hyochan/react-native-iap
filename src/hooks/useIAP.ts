@@ -440,15 +440,28 @@ export function useIAP(options?: UseIapOptions): UseIap {
       }
     }
 
-    const result = await initConnection(config);
-    setConnected(result);
-    if (!result) {
-      // Clean up some listeners but leave purchaseError for potential retries
+    try {
+      const result = await initConnection(config);
+      setConnected(result);
+      if (!result) {
+        // Clean up some listeners but leave purchaseError for potential retries
+        subscriptionsRef.current.purchaseUpdate?.remove();
+        subscriptionsRef.current.purchaseUpdate = undefined;
+      }
+    } catch (error) {
+      RnIapConsole.error('initConnection failed:', error);
+      invokeOnError(error);
+      // Clean up listeners on error
       subscriptionsRef.current.purchaseUpdate?.remove();
+      subscriptionsRef.current.promotedProductIOS?.remove();
       subscriptionsRef.current.purchaseUpdate = undefined;
-      return;
+      subscriptionsRef.current.promotedProductIOS = undefined;
     }
-  }, [getActiveSubscriptionsInternal, getAvailablePurchasesInternal]);
+  }, [
+    getActiveSubscriptionsInternal,
+    getAvailablePurchasesInternal,
+    invokeOnError,
+  ]);
 
   useEffect(() => {
     initIapWithSubscriptions();
