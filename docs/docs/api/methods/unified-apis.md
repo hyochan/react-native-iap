@@ -151,7 +151,7 @@ const buySubscription = (subscriptionId: string, subscription?: any) => {
     request: {
       apple: {
         sku: subscriptionId,
-        appAccountToken: 'user-123',
+        appAccountToken: '550e8400-e29b-41d4-a716-446655440000', // Must be UUID format
       },
       google: {
         skus: [subscriptionId],
@@ -180,7 +180,7 @@ await requestPurchase({
     apple: {
       sku: productId,
       quantity: 1,
-      appAccountToken: 'user-account-token',
+      appAccountToken: '550e8400-e29b-41d4-a716-446655440000', // Must be UUID format
     },
     google: {
       skus: [productId],
@@ -235,7 +235,7 @@ await requestPurchase({
     - **Android**: `skus` (string[]) - Array of product IDs to purchase
     - **Cross-platform**: Include both `sku` and `skus` for compatibility
     - `quantity?` (number, iOS only): Purchase quantity
-    - `appAccountToken?` (string, iOS only): User identifier for purchase verification
+    - `appAccountToken?` (string, iOS only): User identifier for purchase verification. **Must be a valid UUID format** (e.g., `550e8400-e29b-41d4-a716-446655440000`). If a non-UUID value is provided, Apple will silently return `null` for this field in the purchase response. See [OpenIAP Request Types](https://openiap.dev/docs/types/request) for details.
     - `advancedCommerceData?` (string, iOS only): Campaign token or attribution data for StoreKit 2's `Product.PurchaseOption.custom` API (iOS 15+)
     - `obfuscatedAccountId?` (string, Android only): Obfuscated account ID
     - `obfuscatedProfileId?` (string, Android only): Obfuscated profile ID

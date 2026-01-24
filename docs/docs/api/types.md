@@ -277,6 +277,7 @@ export interface PurchaseAndroid extends PurchaseCommon {
 }
 
 export interface PurchaseIOS extends PurchaseCommon {
+  // Note: Must be UUID format when set via requestPurchase, or Apple returns null
   appAccountToken?: string | null;
   environmentIOS?: string | null;
   expirationDateIOS?: number | null;
