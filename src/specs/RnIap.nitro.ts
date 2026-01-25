@@ -10,6 +10,7 @@ import type {
   InitConnectionConfig,
   ExternalPurchaseCustomLinkNoticeResultIOS,
   ExternalPurchaseCustomLinkTokenResultIOS,
+  ExternalPurchaseCustomLinkTokenTypeIOS,
   ExternalPurchaseLinkResultIOS,
   ExternalPurchaseNoticeResultIOS,
   MutationFinishTransactionArgs,
@@ -30,9 +31,9 @@ import type {
   WinBackOfferInputIOS,
 } from '../types';
 
-// Nitro-compatible enum types for ExternalPurchaseCustomLink (iOS 18.1+)
+// Nitro-compatible enum type for ExternalPurchaseCustomLink notice (iOS 18.1+)
 // Note: Nitro requires at least 2 values for union types, so we add 'unspecified' as fallback
-export type ExternalPurchaseCustomLinkTokenTypeIOS = 'acquisition' | 'services';
+// ExternalPurchaseCustomLinkTokenTypeIOS is imported from types.ts (already has 2 values)
 export type ExternalPurchaseCustomLinkNoticeTypeIOS = 'browser' | 'unspecified';
 
 // Nitro-compatible enum types (Nitro doesn't support inline string unions from types.ts)
