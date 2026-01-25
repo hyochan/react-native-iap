@@ -8,6 +8,8 @@ import type {
   AndroidSubscriptionOfferInput,
   DeepLinkOptions,
   InitConnectionConfig,
+  ExternalPurchaseCustomLinkNoticeResultIOS,
+  ExternalPurchaseCustomLinkTokenResultIOS,
   ExternalPurchaseLinkResultIOS,
   ExternalPurchaseNoticeResultIOS,
   MutationFinishTransactionArgs,
@@ -27,6 +29,11 @@ import type {
   SubscriptionProductReplacementParamsAndroid,
   WinBackOfferInputIOS,
 } from '../types';
+
+// Nitro-compatible enum types for ExternalPurchaseCustomLink (iOS 18.1+)
+// Note: Nitro requires at least 2 values for union types, so we add 'unspecified' as fallback
+export type ExternalPurchaseCustomLinkTokenTypeIOS = 'acquisition' | 'services';
+export type ExternalPurchaseCustomLinkNoticeTypeIOS = 'browser' | 'unspecified';
 
 // Nitro-compatible enum types (Nitro doesn't support inline string unions from types.ts)
 export type IapPlatform = 'ios' | 'android';
@@ -1127,4 +1134,45 @@ export interface RnIap extends HybridObject<{ios: 'swift'; android: 'kotlin'}> {
   presentExternalPurchaseLinkIOS(
     url: string,
   ): Promise<ExternalPurchaseLinkResultIOS>;
+
+  // ╔════════════════════════════════════════════════════════════════════════╗
+  // ║            EXTERNAL PURCHASE CUSTOM LINK (iOS 18.1+)                   ║
+  // ╚════════════════════════════════════════════════════════════════════════╝
+
+  /**
+   * Check if app is eligible for ExternalPurchaseCustomLink API (iOS 18.1+).
+   * Returns true if the app can use custom external purchase links.
+   *
+   * @returns Promise<boolean> - true if eligible
+   * @platform iOS
+   * @see https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/iseligible
+   */
+  isEligibleForExternalPurchaseCustomLinkIOS(): Promise<boolean>;
+
+  /**
+   * Get external purchase token for reporting to Apple (iOS 18.1+).
+   * Use this token with Apple's External Purchase Server API to report transactions.
+   *
+   * @param tokenType - Token type: 'acquisition' (new customers) or 'services' (existing customers)
+   * @returns Promise<ExternalPurchaseCustomLinkTokenResultIOS> - Result with token string or error
+   * @platform iOS
+   * @see https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/token(for:)
+   */
+  getExternalPurchaseCustomLinkTokenIOS(
+    tokenType: ExternalPurchaseCustomLinkTokenTypeIOS,
+  ): Promise<ExternalPurchaseCustomLinkTokenResultIOS>;
+
+  /**
+   * Show ExternalPurchaseCustomLink notice sheet (iOS 18.1+).
+   * Displays the system disclosure notice sheet for custom external purchase links.
+   * Call this after a deliberate customer interaction before linking out to external purchases.
+   *
+   * @param noticeType - Notice type: 'browser' (external purchases displayed in browser)
+   * @returns Promise<ExternalPurchaseCustomLinkNoticeResultIOS> - Result with continued status and error if any
+   * @platform iOS
+   * @see https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/shownotice(type:)
+   */
+  showExternalPurchaseCustomLinkNoticeIOS(
+    noticeType: ExternalPurchaseCustomLinkNoticeTypeIOS,
+  ): Promise<ExternalPurchaseCustomLinkNoticeResultIOS>;
 }

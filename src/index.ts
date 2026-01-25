@@ -17,6 +17,11 @@ import {ErrorCode} from './types';
 import type {
   AndroidSubscriptionOfferInput,
   DiscountOfferInputIOS,
+  ExternalPurchaseCustomLinkNoticeResultIOS,
+  ExternalPurchaseCustomLinkNoticeTypeIOS,
+  ExternalPurchaseCustomLinkTokenResultIOS,
+  ExternalPurchaseCustomLinkTokenTypeIOS,
+  ExternalPurchaseNoticeResultIOS,
   FetchProductsResult,
   MutationField,
   Product,
@@ -2590,22 +2595,21 @@ export const canPresentExternalPurchaseNoticeIOS: QueryField<
  * }
  * ```
  */
-export const presentExternalPurchaseNoticeSheetIOS: MutationField<
-  'presentExternalPurchaseNoticeSheetIOS'
-> = async () => {
-  if (Platform.OS !== 'ios') {
-    throw new Error('External purchase is only supported on iOS');
-  }
-  try {
-    return (await IAP.instance.presentExternalPurchaseNoticeSheetIOS()) as any;
-  } catch (error) {
-    RnIapConsole.error(
-      'Failed to present external purchase notice sheet:',
-      error,
-    );
-    throw error;
-  }
-};
+export const presentExternalPurchaseNoticeSheetIOS =
+  async (): Promise<ExternalPurchaseNoticeResultIOS> => {
+    if (Platform.OS !== 'ios') {
+      throw new Error('External purchase is only supported on iOS');
+    }
+    try {
+      return await IAP.instance.presentExternalPurchaseNoticeSheetIOS();
+    } catch (error) {
+      RnIapConsole.error(
+        'Failed to present external purchase notice sheet:',
+        error,
+      );
+      throw error;
+    }
+  };
 
 /**
  * Present an external purchase link to redirect users to your website (iOS 16.0+).
@@ -2632,6 +2636,120 @@ export const presentExternalPurchaseLinkIOS: MutationField<
     return (await IAP.instance.presentExternalPurchaseLinkIOS(url)) as any;
   } catch (error) {
     RnIapConsole.error('Failed to present external purchase link:', error);
+    throw error;
+  }
+};
+
+// ╔════════════════════════════════════════════════════════════════════════╗
+// ║            EXTERNAL PURCHASE CUSTOM LINK (iOS 18.1+)                   ║
+// ╚════════════════════════════════════════════════════════════════════════╝
+
+/**
+ * Check if app is eligible for ExternalPurchaseCustomLink API (iOS 18.1+).
+ * Returns true if the app can use custom external purchase links.
+ *
+ * @returns Promise<boolean> - true if eligible
+ * @platform iOS
+ * @see https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/iseligible
+ *
+ * @example
+ * ```typescript
+ * const isEligible = await isEligibleForExternalPurchaseCustomLinkIOS();
+ * if (isEligible) {
+ *   // App can use custom external purchase links
+ * }
+ * ```
+ */
+export const isEligibleForExternalPurchaseCustomLinkIOS =
+  async (): Promise<boolean> => {
+    if (Platform.OS !== 'ios') {
+      return false;
+    }
+    try {
+      return await IAP.instance.isEligibleForExternalPurchaseCustomLinkIOS();
+    } catch (error) {
+      RnIapConsole.error(
+        'Failed to check external purchase custom link eligibility:',
+        error,
+      );
+      return false;
+    }
+  };
+
+/**
+ * Get external purchase token for reporting to Apple (iOS 18.1+).
+ * Use this token with Apple's External Purchase Server API to report transactions.
+ *
+ * @param tokenType - Token type: 'acquisition' (new customers) or 'services' (existing customers)
+ * @returns Promise<ExternalPurchaseCustomLinkTokenResultIOS> - Result with token string or error
+ * @platform iOS
+ * @see https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/token(for:)
+ *
+ * @example
+ * ```typescript
+ * // For new customer acquisition
+ * const result = await getExternalPurchaseCustomLinkTokenIOS('acquisition');
+ * if (result.token) {
+ *   // Report token to Apple's External Purchase Server API
+ *   await reportToApple(result.token);
+ * }
+ * ```
+ */
+export const getExternalPurchaseCustomLinkTokenIOS = async (
+  tokenType: ExternalPurchaseCustomLinkTokenTypeIOS,
+): Promise<ExternalPurchaseCustomLinkTokenResultIOS> => {
+  if (Platform.OS !== 'ios') {
+    throw new Error(
+      'External purchase custom link is only supported on iOS 18.1+',
+    );
+  }
+  try {
+    return await IAP.instance.getExternalPurchaseCustomLinkTokenIOS(tokenType);
+  } catch (error) {
+    RnIapConsole.error(
+      'Failed to get external purchase custom link token:',
+      error,
+    );
+    throw error;
+  }
+};
+
+/**
+ * Show ExternalPurchaseCustomLink notice sheet (iOS 18.1+).
+ * Displays the system disclosure notice sheet for custom external purchase links.
+ * Call this after a deliberate customer interaction before linking out to external purchases.
+ *
+ * @param noticeType - Notice type: 'browser' (external purchases displayed in browser)
+ * @returns Promise<ExternalPurchaseCustomLinkNoticeResultIOS> - Result with continued status and error if any
+ * @platform iOS
+ * @see https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/shownotice(type:)
+ *
+ * @example
+ * ```typescript
+ * const result = await showExternalPurchaseCustomLinkNoticeIOS('browser');
+ * if (result.continued) {
+ *   // User agreed to continue to external purchase
+ *   await Linking.openURL('https://your-store.com/checkout');
+ * }
+ * ```
+ */
+export const showExternalPurchaseCustomLinkNoticeIOS = async (
+  noticeType: ExternalPurchaseCustomLinkNoticeTypeIOS,
+): Promise<ExternalPurchaseCustomLinkNoticeResultIOS> => {
+  if (Platform.OS !== 'ios') {
+    throw new Error(
+      'External purchase custom link is only supported on iOS 18.1+',
+    );
+  }
+  try {
+    return await IAP.instance.showExternalPurchaseCustomLinkNoticeIOS(
+      noticeType,
+    );
+  } catch (error) {
+    RnIapConsole.error(
+      'Failed to show external purchase custom link notice:',
+      error,
+    );
     throw error;
   }
 };

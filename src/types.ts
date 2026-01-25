@@ -386,7 +386,40 @@ export interface ExternalOfferReportingDetailsAndroid {
   externalTransactionToken: string;
 }
 
-/** Result of presenting an external purchase link (iOS 18.2+) */
+/** Result of showing ExternalPurchaseCustomLink notice (iOS 18.1+). */
+export interface ExternalPurchaseCustomLinkNoticeResultIOS {
+  /** Whether the user chose to continue to external purchase */
+  continued: boolean;
+  /** Optional error message if the presentation failed */
+  error?: (string | null);
+}
+
+/**
+ * Notice types for ExternalPurchaseCustomLink (iOS 18.1+).
+ * Determines the style of disclosure notice to display.
+ * Reference: https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/noticetype
+ */
+export type ExternalPurchaseCustomLinkNoticeTypeIOS = 'browser';
+
+/** Result of requesting an ExternalPurchaseCustomLink token (iOS 18.1+). */
+export interface ExternalPurchaseCustomLinkTokenResultIOS {
+  /** Optional error message if token retrieval failed */
+  error?: (string | null);
+  /**
+   * The external purchase token string.
+   * Report this token to Apple's External Purchase Server API.
+   */
+  token?: (string | null);
+}
+
+/**
+ * Token types for ExternalPurchaseCustomLink (iOS 18.1+).
+ * Used to request different types of external purchase tokens for reporting to Apple.
+ * Reference: https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/token(for:)
+ */
+export type ExternalPurchaseCustomLinkTokenTypeIOS = 'acquisition' | 'services';
+
+/** Result of presenting an external purchase link */
 export interface ExternalPurchaseLinkResultIOS {
   /** Optional error message if the presentation failed */
   error?: (string | null);
@@ -394,13 +427,22 @@ export interface ExternalPurchaseLinkResultIOS {
   success: boolean;
 }
 
-/** User actions on external purchase notice sheet (iOS 18.2+) */
+/** User actions on external purchase notice sheet (iOS 15.4+) */
 export type ExternalPurchaseNoticeAction = 'continue' | 'dismissed';
 
-/** Result of presenting external purchase notice sheet (iOS 18.2+) */
+/**
+ * Result of presenting external purchase notice sheet (iOS 15.4+)
+ * Returns the token when user continues to external purchase.
+ */
 export interface ExternalPurchaseNoticeResultIOS {
   /** Optional error message if the presentation failed */
   error?: (string | null);
+  /**
+   * External purchase token returned when user continues (iOS 15.4+).
+   * This token should be reported to Apple's External Purchase Server API.
+   * Only present when result is Continue.
+   */
+  externalPurchaseToken?: (string | null);
   /** Notice result indicating user action */
   result: ExternalPurchaseNoticeAction;
 }
@@ -527,10 +569,14 @@ export interface Mutation {
   launchExternalLinkAndroid: Promise<boolean>;
   /** Present the App Store code redemption sheet */
   presentCodeRedemptionSheetIOS: Promise<boolean>;
-  /** Present external purchase custom link with StoreKit UI (iOS 18.2+) */
+  /** Present external purchase custom link with StoreKit UI */
   presentExternalPurchaseLinkIOS: Promise<ExternalPurchaseLinkResultIOS>;
-  /** Present external purchase notice sheet (iOS 18.2+) */
-  presentExternalPurchaseNoticeSheetIOS: Promise<ExternalPurchaseNoticeResultIOS>;
+  /**
+   * Present external purchase notice sheet (iOS 15.4+).
+   * Uses ExternalPurchase.presentNoticeSheet() which returns a token when user continues.
+   * Reference: https://developer.apple.com/documentation/storekit/externalpurchase/presentnoticesheet()
+   */
+  presentExternalPurchaseNoticeSheetIOS: ExternalPurchaseNoticeResultIOS;
   /** Initiate a purchase flow; rely on events for final state */
   requestPurchase?: Promise<(Purchase | Purchase[] | null)>;
   /**
@@ -553,6 +599,13 @@ export interface Mutation {
    * Throws OpenIapError.NotPrepared if billing client not ready
    */
   showAlternativeBillingDialogAndroid: Promise<boolean>;
+  /**
+   * Show ExternalPurchaseCustomLink notice sheet (iOS 18.1+).
+   * Displays the system disclosure notice sheet for custom external purchase links.
+   * Call this after a deliberate customer interaction before linking out to external purchases.
+   * Reference: https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/shownotice(type:)
+   */
+  showExternalPurchaseCustomLinkNoticeIOS: ExternalPurchaseCustomLinkNoticeResultIOS;
   /** Open subscription management UI and return changed purchases (iOS 15+) */
   showManageSubscriptionsIOS: Promise<PurchaseIOS[]>;
   /** Force a StoreKit sync for transactions (iOS 15+) */
@@ -610,6 +663,8 @@ export type MutationRequestPurchaseArgs =
       useAlternativeBilling?: boolean | null;
     };
 
+
+export type MutationShowExternalPurchaseCustomLinkNoticeIosArgs = ExternalPurchaseCustomLinkNoticeTypeIOS;
 
 export type MutationValidateReceiptArgs = VerifyPurchaseProps;
 
@@ -1053,7 +1108,10 @@ export type PurchaseState = 'pending' | 'purchased' | 'unknown';
 export type PurchaseVerificationProvider = 'iapkit';
 
 export interface Query {
-  /** Check if external purchase notice sheet can be presented (iOS 18.2+) */
+  /**
+   * Check if external purchase notice sheet can be presented (iOS 17.4+)
+   * Uses ExternalPurchase.canPresent
+   */
   canPresentExternalPurchaseNoticeIOS: Promise<boolean>;
   /** Get current StoreKit 2 entitlements (iOS 15+) */
   currentEntitlementIOS?: Promise<(PurchaseIOS | null)>;
@@ -1065,6 +1123,12 @@ export interface Query {
   getAppTransactionIOS?: Promise<(AppTransaction | null)>;
   /** Get all available purchases for the current user */
   getAvailablePurchases: Promise<Purchase[]>;
+  /**
+   * Get external purchase token for reporting to Apple (iOS 18.1+).
+   * Use this token with Apple's External Purchase Server API to report transactions.
+   * Reference: https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/token(for:)
+   */
+  getExternalPurchaseCustomLinkTokenIOS: ExternalPurchaseCustomLinkTokenResultIOS;
   /** Retrieve all pending transactions in the StoreKit queue */
   getPendingTransactionsIOS: Promise<PurchaseIOS[]>;
   /** Get the currently promoted product (iOS 11+) */
@@ -1082,6 +1146,12 @@ export interface Query {
   getTransactionJwsIOS?: Promise<(string | null)>;
   /** Check whether the user has active subscriptions */
   hasActiveSubscriptions: Promise<boolean>;
+  /**
+   * Check if app is eligible for ExternalPurchaseCustomLink API (iOS 18.1+).
+   * Returns true if the app can use custom external purchase links.
+   * Reference: https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/iseligible
+   */
+  isEligibleForExternalPurchaseCustomLinkIOS: boolean;
   /** Check introductory offer eligibility for a subscription group */
   isEligibleForIntroOfferIOS: Promise<boolean>;
   /** Verify a StoreKit 2 transaction signature */
@@ -1106,6 +1176,8 @@ export type QueryFetchProductsArgs = ProductRequest;
 export type QueryGetActiveSubscriptionsArgs = (string[] | null) | undefined;
 
 export type QueryGetAvailablePurchasesArgs = (PurchaseOptions | null) | undefined;
+
+export type QueryGetExternalPurchaseCustomLinkTokenIosArgs = ExternalPurchaseCustomLinkTokenTypeIOS;
 
 export type QueryGetTransactionJwsIosArgs = string;
 
@@ -1742,6 +1814,7 @@ export type QueryArgsMap = {
   getActiveSubscriptions: QueryGetActiveSubscriptionsArgs;
   getAppTransactionIOS: never;
   getAvailablePurchases: QueryGetAvailablePurchasesArgs;
+  getExternalPurchaseCustomLinkTokenIOS: QueryGetExternalPurchaseCustomLinkTokenIosArgs;
   getPendingTransactionsIOS: never;
   getPromotedProductIOS: never;
   getReceiptDataIOS: never;
@@ -1749,6 +1822,7 @@ export type QueryArgsMap = {
   getStorefrontIOS: never;
   getTransactionJwsIOS: QueryGetTransactionJwsIosArgs;
   hasActiveSubscriptions: QueryHasActiveSubscriptionsArgs;
+  isEligibleForExternalPurchaseCustomLinkIOS: never;
   isEligibleForIntroOfferIOS: QueryIsEligibleForIntroOfferIosArgs;
   isTransactionVerifiedIOS: QueryIsTransactionVerifiedIosArgs;
   latestTransactionIOS: QueryLatestTransactionIosArgs;
@@ -1790,6 +1864,7 @@ export type MutationArgsMap = {
   requestPurchaseOnPromotedProductIOS: never;
   restorePurchases: never;
   showAlternativeBillingDialogAndroid: never;
+  showExternalPurchaseCustomLinkNoticeIOS: MutationShowExternalPurchaseCustomLinkNoticeIosArgs;
   showManageSubscriptionsIOS: never;
   syncIOS: never;
   validateReceipt: MutationValidateReceiptArgs;
