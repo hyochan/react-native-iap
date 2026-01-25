@@ -1,4 +1,24 @@
 import type {HybridObject} from 'react-native-nitro-modules';
+
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║                      NITRO MODULE CONSTRAINTS                            ║
+// ╠══════════════════════════════════════════════════════════════════════════╣
+// ║ Nitro Modules (react-native-nitro-modules) has specific limitations      ║
+// ║ when generating C++/Swift/Kotlin bridge code from TypeScript types:      ║
+// ║                                                                          ║
+// ║ 1. UNION TYPES REQUIRE 2+ VALUES                                         ║
+// ║    - Single-value unions like `type Foo = 'bar'` cause codegen errors    ║
+// ║    - Error: "String literal 'x' cannot be represented in C++ because     ║
+// ║      it is ambiguous between a string and a discriminating union enum"   ║
+// ║    - Solution: Add a fallback value (e.g., 'unspecified') to make 2+     ║
+// ║                                                                          ║
+// ║ 2. TYPES MUST BE DEFINED IN THIS FILE OR IMPORTED AS `type`              ║
+// ║    - Nitro codegen reads this file to generate native bridge code        ║
+// ║    - Interface types from types.ts can be imported and used directly     ║
+// ║    - Union types with 2+ values can be imported from types.ts            ║
+// ║    - Single-value unions must be redefined locally with extra values     ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+
 // NOTE: This Nitro spec re-exports types from the generated schema (src/types.ts)
 // via type aliases to avoid duplicating structure. Nitro's codegen expects the
 // canonical `Nitro*` names defined here, so we keep the aliases rather than
@@ -10,6 +30,8 @@ import type {
   InitConnectionConfig,
   ExternalPurchaseCustomLinkNoticeResultIOS,
   ExternalPurchaseCustomLinkTokenResultIOS,
+  // ExternalPurchaseCustomLinkTokenTypeIOS has 2 values ('acquisition' | 'services')
+  // so it can be imported directly from types.ts
   ExternalPurchaseCustomLinkTokenTypeIOS,
   ExternalPurchaseLinkResultIOS,
   ExternalPurchaseNoticeResultIOS,
@@ -31,14 +53,25 @@ import type {
   WinBackOfferInputIOS,
 } from '../types';
 
-// Nitro-compatible enum type for ExternalPurchaseCustomLink notice (iOS 18.1+)
-// Note: Nitro requires at least 2 values for union types, so we add 'unspecified' as fallback
-// ExternalPurchaseCustomLinkTokenTypeIOS is imported from types.ts (already has 2 values)
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║                    LOCAL TYPE DEFINITIONS FOR NITRO                      ║
+// ╠══════════════════════════════════════════════════════════════════════════╣
+// ║ Types below are defined locally because:                                 ║
+// ║ - GQL-generated type has only 1 value (Nitro requires 2+), OR            ║
+// ║ - Nitro codegen needs the type defined in this file for bridge gen       ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+
+// ExternalPurchaseCustomLinkNoticeTypeIOS (iOS 18.1+)
+// GQL type: 'browser' (1 value) → Nitro requires 2+ values
+// Added 'unspecified' as fallback to satisfy Nitro constraint
 export type ExternalPurchaseCustomLinkNoticeTypeIOS = 'browser' | 'unspecified';
 
-// Nitro-compatible enum types (Nitro doesn't support inline string unions from types.ts)
+// Platform identifier for cross-platform purchase/product data
+// Defined locally for Nitro codegen (not in GQL schema)
 export type IapPlatform = 'ios' | 'android';
 
+// IAPKit purchase state enum for receipt verification
+// Defined locally for Nitro codegen (IAPKit-specific, not in GQL schema)
 export type IapkitPurchaseState =
   | 'entitled'
   | 'pending-acknowledgment'
@@ -50,13 +83,17 @@ export type IapkitPurchaseState =
   | 'unknown'
   | 'inauthentic';
 
-// IapStore enum for purchase store identification
+// Store identifier for purchase origin
+// Defined locally for Nitro codegen (not in GQL schema)
 export type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 
-// Note: Nitro requires at least 2 values for union types
+// Purchase verification provider selection
+// Defined locally for Nitro codegen (not in GQL schema)
 export type PurchaseVerificationProvider = 'iapkit' | 'none';
 
-// Billing Programs API types (Android 8.2.0+, 8.3.0+ for external-payments, 7.0+ for user-choice-billing)
+// Billing Programs API (Android)
+// GQL type exists but defined locally for Nitro codegen consistency
+// Android 8.2.0+, 8.3.0+ for external-payments, 7.0+ for user-choice-billing
 export type BillingProgramAndroid =
   | 'unspecified'
   | 'external-content-link'
@@ -65,16 +102,21 @@ export type BillingProgramAndroid =
   | 'user-choice-billing';
 
 // Developer Billing Launch Mode (Android 8.3.0+)
+// Defined locally for Nitro codegen
 export type DeveloperBillingLaunchModeAndroid =
   | 'unspecified'
   | 'launch-in-external-browser-or-app'
   | 'caller-will-launch-link';
 
+// External Link Launch Mode (Android 8.2.0+)
+// Defined locally for Nitro codegen
 export type ExternalLinkLaunchModeAndroid =
   | 'unspecified'
   | 'launch-in-external-browser-or-app'
   | 'caller-will-launch-link';
 
+// External Link Type (Android 8.2.0+)
+// Defined locally for Nitro codegen
 export type ExternalLinkTypeAndroid =
   | 'unspecified'
   | 'link-to-digital-content-offer'
