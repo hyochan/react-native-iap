@@ -576,7 +576,7 @@ export interface Mutation {
    * Uses ExternalPurchase.presentNoticeSheet() which returns a token when user continues.
    * Reference: https://developer.apple.com/documentation/storekit/externalpurchase/presentnoticesheet()
    */
-  presentExternalPurchaseNoticeSheetIOS: ExternalPurchaseNoticeResultIOS;
+  presentExternalPurchaseNoticeSheetIOS: Promise<ExternalPurchaseNoticeResultIOS>;
   /** Initiate a purchase flow; rely on events for final state */
   requestPurchase?: Promise<(Purchase | Purchase[] | null)>;
   /**
@@ -605,7 +605,7 @@ export interface Mutation {
    * Call this after a deliberate customer interaction before linking out to external purchases.
    * Reference: https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/shownotice(type:)
    */
-  showExternalPurchaseCustomLinkNoticeIOS: ExternalPurchaseCustomLinkNoticeResultIOS;
+  showExternalPurchaseCustomLinkNoticeIOS: Promise<ExternalPurchaseCustomLinkNoticeResultIOS>;
   /** Open subscription management UI and return changed purchases (iOS 15+) */
   showManageSubscriptionsIOS: Promise<PurchaseIOS[]>;
   /** Force a StoreKit sync for transactions (iOS 15+) */
@@ -1128,7 +1128,7 @@ export interface Query {
    * Use this token with Apple's External Purchase Server API to report transactions.
    * Reference: https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/token(for:)
    */
-  getExternalPurchaseCustomLinkTokenIOS: ExternalPurchaseCustomLinkTokenResultIOS;
+  getExternalPurchaseCustomLinkTokenIOS: Promise<ExternalPurchaseCustomLinkTokenResultIOS>;
   /** Retrieve all pending transactions in the StoreKit queue */
   getPendingTransactionsIOS: Promise<PurchaseIOS[]>;
   /** Get the currently promoted product (iOS 11+) */
@@ -1151,7 +1151,7 @@ export interface Query {
    * Returns true if the app can use custom external purchase links.
    * Reference: https://developer.apple.com/documentation/storekit/externalpurchasecustomlink/iseligible
    */
-  isEligibleForExternalPurchaseCustomLinkIOS: boolean;
+  isEligibleForExternalPurchaseCustomLinkIOS: Promise<boolean>;
   /** Check introductory offer eligibility for a subscription group */
   isEligibleForIntroOfferIOS: Promise<boolean>;
   /** Verify a StoreKit 2 transaction signature */
