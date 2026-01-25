@@ -1179,9 +1179,14 @@ class HybridRnIap: HybridRnIapSpec {
 
                     let nitroResult = ExternalPurchaseNoticeResultIOS(
                         error: result.error,
+                        externalPurchaseToken: result.externalPurchaseToken,
                         result: nitroAction
                     )
-                    RnIapLog.result("presentExternalPurchaseNoticeSheetIOS", result)
+                    var encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
+                    if encoded["externalPurchaseToken"] != nil {
+                        encoded["externalPurchaseToken"] = "<token>"
+                    }
+                    RnIapLog.result("presentExternalPurchaseNoticeSheetIOS", encoded)
                     return nitroResult
                 } catch let purchaseError as PurchaseError {
                     RnIapLog.failure("presentExternalPurchaseNoticeSheetIOS", error: purchaseError)
@@ -1223,6 +1228,86 @@ class HybridRnIap: HybridRnIapSpec {
                 let err = OpenIapException.make(code: .featureNotSupported, message: "External purchase link requires iOS 16.0 or later")
                 RnIapLog.failure("presentExternalPurchaseLinkIOS", error: err)
                 throw err
+            }
+        }
+    }
+
+    // MARK: - ExternalPurchaseCustomLink (iOS 18.1+)
+
+    func isEligibleForExternalPurchaseCustomLinkIOS() throws -> Promise<Bool> {
+        return Promise.async {
+            RnIapLog.payload("isEligibleForExternalPurchaseCustomLinkIOS", nil)
+            do {
+                let isEligible = try await OpenIapModule.shared.isEligibleForExternalPurchaseCustomLinkIOS()
+                RnIapLog.result("isEligibleForExternalPurchaseCustomLinkIOS", isEligible)
+                return isEligible
+            } catch let purchaseError as PurchaseError {
+                RnIapLog.failure("isEligibleForExternalPurchaseCustomLinkIOS", error: purchaseError)
+                throw OpenIapException.from(purchaseError)
+            } catch {
+                RnIapLog.failure("isEligibleForExternalPurchaseCustomLinkIOS", error: error)
+                throw OpenIapException.make(code: .serviceError, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func getExternalPurchaseCustomLinkTokenIOS(tokenType: ExternalPurchaseCustomLinkTokenTypeIOS) throws -> Promise<ExternalPurchaseCustomLinkTokenResultIOS> {
+        return Promise.async {
+            RnIapLog.payload("getExternalPurchaseCustomLinkTokenIOS", ["tokenType": tokenType.stringValue])
+            do {
+                // Convert Nitro enum to OpenIAP enum
+                guard let openIapTokenType = OpenIAP.ExternalPurchaseCustomLinkTokenTypeIOS(rawValue: tokenType.stringValue) else {
+                    throw OpenIapException.make(code: .developerError, message: "Invalid token type: \(tokenType.stringValue). Must be 'acquisition' or 'services'")
+                }
+                let result = try await OpenIapModule.shared.getExternalPurchaseCustomLinkTokenIOS(openIapTokenType)
+                let nitroResult = ExternalPurchaseCustomLinkTokenResultIOS(
+                    error: result.error,
+                    token: result.token
+                )
+                var encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
+                if encoded["token"] != nil {
+                    encoded["token"] = "<token>"
+                }
+                RnIapLog.result("getExternalPurchaseCustomLinkTokenIOS", encoded)
+                return nitroResult
+            } catch let purchaseError as PurchaseError {
+                RnIapLog.failure("getExternalPurchaseCustomLinkTokenIOS", error: purchaseError)
+                throw OpenIapException.from(purchaseError)
+            } catch {
+                RnIapLog.failure("getExternalPurchaseCustomLinkTokenIOS", error: error)
+                throw OpenIapException.make(code: .serviceError, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func showExternalPurchaseCustomLinkNoticeIOS(noticeType: ExternalPurchaseCustomLinkNoticeTypeIOS) throws -> Promise<ExternalPurchaseCustomLinkNoticeResultIOS> {
+        return Promise.async {
+            RnIapLog.payload("showExternalPurchaseCustomLinkNoticeIOS", ["noticeType": noticeType.stringValue])
+            do {
+                // Convert Nitro enum to OpenIAP enum
+                // Handle 'unspecified' by defaulting to 'browser' (workaround for Nitro requiring 2+ enum values)
+                let openIapNoticeType: OpenIAP.ExternalPurchaseCustomLinkNoticeTypeIOS
+                if noticeType == .unspecified {
+                    RnIapLog.warn("showExternalPurchaseCustomLinkNoticeIOS received 'unspecified' noticeType, defaulting to 'browser'.")
+                    openIapNoticeType = .browser
+                } else if let convertedType = OpenIAP.ExternalPurchaseCustomLinkNoticeTypeIOS(rawValue: noticeType.stringValue) {
+                    openIapNoticeType = convertedType
+                } else {
+                    throw OpenIapException.make(code: .developerError, message: "Invalid notice type: \(noticeType.stringValue). Must be 'browser'")
+                }
+                let result = try await OpenIapModule.shared.showExternalPurchaseCustomLinkNoticeIOS(openIapNoticeType)
+                let nitroResult = ExternalPurchaseCustomLinkNoticeResultIOS(
+                    continued: result.continued,
+                    error: result.error
+                )
+                RnIapLog.result("showExternalPurchaseCustomLinkNoticeIOS", result)
+                return nitroResult
+            } catch let purchaseError as PurchaseError {
+                RnIapLog.failure("showExternalPurchaseCustomLinkNoticeIOS", error: purchaseError)
+                throw OpenIapException.from(purchaseError)
+            } catch {
+                RnIapLog.failure("showExternalPurchaseCustomLinkNoticeIOS", error: error)
+                throw OpenIapException.make(code: .serviceError, message: error.localizedDescription)
             }
         }
     }
