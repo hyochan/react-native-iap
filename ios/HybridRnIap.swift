@@ -1182,7 +1182,11 @@ class HybridRnIap: HybridRnIapSpec {
                         externalPurchaseToken: result.externalPurchaseToken,
                         result: nitroAction
                     )
-                    RnIapLog.result("presentExternalPurchaseNoticeSheetIOS", result)
+                    var encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
+                    if encoded["externalPurchaseToken"] != nil {
+                        encoded["externalPurchaseToken"] = "<token>"
+                    }
+                    RnIapLog.result("presentExternalPurchaseNoticeSheetIOS", encoded)
                     return nitroResult
                 } catch let purchaseError as PurchaseError {
                     RnIapLog.failure("presentExternalPurchaseNoticeSheetIOS", error: purchaseError)
@@ -1260,7 +1264,11 @@ class HybridRnIap: HybridRnIapSpec {
                     error: result.error,
                     token: result.token
                 )
-                RnIapLog.result("getExternalPurchaseCustomLinkTokenIOS", result)
+                var encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
+                if encoded["token"] != nil {
+                    encoded["token"] = "<token>"
+                }
+                RnIapLog.result("getExternalPurchaseCustomLinkTokenIOS", encoded)
                 return nitroResult
             } catch let purchaseError as PurchaseError {
                 RnIapLog.failure("getExternalPurchaseCustomLinkTokenIOS", error: purchaseError)
@@ -1277,7 +1285,14 @@ class HybridRnIap: HybridRnIapSpec {
             RnIapLog.payload("showExternalPurchaseCustomLinkNoticeIOS", ["noticeType": noticeType.stringValue])
             do {
                 // Convert Nitro enum to OpenIAP enum
-                guard let openIapNoticeType = OpenIAP.ExternalPurchaseCustomLinkNoticeTypeIOS(rawValue: noticeType.stringValue) else {
+                // Handle 'unspecified' by defaulting to 'browser' (workaround for Nitro requiring 2+ enum values)
+                let openIapNoticeType: OpenIAP.ExternalPurchaseCustomLinkNoticeTypeIOS
+                if noticeType == .unspecified {
+                    RnIapLog.warn("showExternalPurchaseCustomLinkNoticeIOS received 'unspecified' noticeType, defaulting to 'browser'.")
+                    openIapNoticeType = .browser
+                } else if let convertedType = OpenIAP.ExternalPurchaseCustomLinkNoticeTypeIOS(rawValue: noticeType.stringValue) {
+                    openIapNoticeType = convertedType
+                } else {
                     throw OpenIapException.make(code: .developerError, message: "Invalid notice type: \(noticeType.stringValue). Must be 'browser'")
                 }
                 let result = try await OpenIapModule.shared.showExternalPurchaseCustomLinkNoticeIOS(openIapNoticeType)

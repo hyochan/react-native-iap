@@ -1857,4 +1857,195 @@ describe('Public API (src/index.ts)', () => {
       });
     });
   });
+
+  describe('ExternalPurchaseCustomLink APIs (iOS 18.1+)', () => {
+    describe('isEligibleForExternalPurchaseCustomLinkIOS', () => {
+      it('should return true when eligible on iOS', async () => {
+        (Platform as any).OS = 'ios';
+        mockIap.isEligibleForExternalPurchaseCustomLinkIOS = jest.fn(
+          async () => true,
+        );
+
+        const result = await IAP.isEligibleForExternalPurchaseCustomLinkIOS();
+
+        expect(result).toBe(true);
+        expect(
+          mockIap.isEligibleForExternalPurchaseCustomLinkIOS,
+        ).toHaveBeenCalled();
+      });
+
+      it('should return false when not eligible on iOS', async () => {
+        (Platform as any).OS = 'ios';
+        mockIap.isEligibleForExternalPurchaseCustomLinkIOS = jest.fn(
+          async () => false,
+        );
+
+        const result = await IAP.isEligibleForExternalPurchaseCustomLinkIOS();
+
+        expect(result).toBe(false);
+      });
+
+      it('should return false on non-iOS platforms', async () => {
+        (Platform as any).OS = 'android';
+
+        const result = await IAP.isEligibleForExternalPurchaseCustomLinkIOS();
+
+        expect(result).toBe(false);
+      });
+
+      it('should return false on error', async () => {
+        (Platform as any).OS = 'ios';
+        mockIap.isEligibleForExternalPurchaseCustomLinkIOS = jest.fn(
+          async () => {
+            throw new Error('Feature not supported');
+          },
+        );
+
+        const result = await IAP.isEligibleForExternalPurchaseCustomLinkIOS();
+
+        expect(result).toBe(false);
+      });
+    });
+
+    describe('getExternalPurchaseCustomLinkTokenIOS', () => {
+      it('should return token for acquisition type on iOS', async () => {
+        (Platform as any).OS = 'ios';
+        const mockResult = {
+          token: 'external-purchase-token-123',
+          error: null,
+        };
+        mockIap.getExternalPurchaseCustomLinkTokenIOS = jest.fn(
+          async () => mockResult,
+        );
+
+        const result =
+          await IAP.getExternalPurchaseCustomLinkTokenIOS('acquisition');
+
+        expect(result.token).toBe('external-purchase-token-123');
+        expect(result.error).toBeNull();
+        expect(
+          mockIap.getExternalPurchaseCustomLinkTokenIOS,
+        ).toHaveBeenCalledWith('acquisition');
+      });
+
+      it('should return token for services type on iOS', async () => {
+        (Platform as any).OS = 'ios';
+        const mockResult = {
+          token: 'services-token-456',
+          error: null,
+        };
+        mockIap.getExternalPurchaseCustomLinkTokenIOS = jest.fn(
+          async () => mockResult,
+        );
+
+        const result =
+          await IAP.getExternalPurchaseCustomLinkTokenIOS('services');
+
+        expect(result.token).toBe('services-token-456');
+        expect(
+          mockIap.getExternalPurchaseCustomLinkTokenIOS,
+        ).toHaveBeenCalledWith('services');
+      });
+
+      it('should throw on non-iOS platforms', async () => {
+        (Platform as any).OS = 'android';
+
+        await expect(
+          IAP.getExternalPurchaseCustomLinkTokenIOS('acquisition'),
+        ).rejects.toThrow(
+          'External purchase custom link is only supported on iOS 18.1+',
+        );
+      });
+
+      it('should throw native errors', async () => {
+        (Platform as any).OS = 'ios';
+        mockIap.getExternalPurchaseCustomLinkTokenIOS = jest.fn(async () => {
+          throw new Error('Token generation failed');
+        });
+
+        await expect(
+          IAP.getExternalPurchaseCustomLinkTokenIOS('acquisition'),
+        ).rejects.toThrow('Token generation failed');
+      });
+    });
+
+    describe('showExternalPurchaseCustomLinkNoticeIOS', () => {
+      it('should return continued=true when user agrees on iOS', async () => {
+        (Platform as any).OS = 'ios';
+        const mockResult = {
+          continued: true,
+          error: null,
+        };
+        mockIap.showExternalPurchaseCustomLinkNoticeIOS = jest.fn(
+          async () => mockResult,
+        );
+
+        const result =
+          await IAP.showExternalPurchaseCustomLinkNoticeIOS('browser');
+
+        expect(result.continued).toBe(true);
+        expect(result.error).toBeNull();
+        expect(
+          mockIap.showExternalPurchaseCustomLinkNoticeIOS,
+        ).toHaveBeenCalledWith('browser');
+      });
+
+      it('should return continued=false when user declines on iOS', async () => {
+        (Platform as any).OS = 'ios';
+        const mockResult = {
+          continued: false,
+          error: null,
+        };
+        mockIap.showExternalPurchaseCustomLinkNoticeIOS = jest.fn(
+          async () => mockResult,
+        );
+
+        const result =
+          await IAP.showExternalPurchaseCustomLinkNoticeIOS('browser');
+
+        expect(result.continued).toBe(false);
+      });
+
+      it('should throw on non-iOS platforms', async () => {
+        (Platform as any).OS = 'android';
+
+        await expect(
+          IAP.showExternalPurchaseCustomLinkNoticeIOS('browser'),
+        ).rejects.toThrow(
+          'External purchase custom link is only supported on iOS 18.1+',
+        );
+      });
+
+      it('should throw native errors', async () => {
+        (Platform as any).OS = 'ios';
+        mockIap.showExternalPurchaseCustomLinkNoticeIOS = jest.fn(async () => {
+          throw new Error('Notice display failed');
+        });
+
+        await expect(
+          IAP.showExternalPurchaseCustomLinkNoticeIOS('browser'),
+        ).rejects.toThrow('Notice display failed');
+      });
+
+      it('should handle unspecified noticeType gracefully', async () => {
+        (Platform as any).OS = 'ios';
+        const mockResult = {
+          continued: true,
+          error: null,
+        };
+        mockIap.showExternalPurchaseCustomLinkNoticeIOS = jest.fn(
+          async () => mockResult,
+        );
+
+        // 'unspecified' is a valid TypeScript value due to Nitro constraint workaround
+        const result =
+          await IAP.showExternalPurchaseCustomLinkNoticeIOS('unspecified');
+
+        expect(result.continued).toBe(true);
+        expect(
+          mockIap.showExternalPurchaseCustomLinkNoticeIOS,
+        ).toHaveBeenCalledWith('unspecified');
+      });
+    });
+  });
 });
