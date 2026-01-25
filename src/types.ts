@@ -427,18 +427,18 @@ export interface ExternalPurchaseLinkResultIOS {
   success: boolean;
 }
 
-/** User actions on external purchase notice sheet (iOS 15.4+) */
+/** User actions on external purchase notice sheet (iOS 17.4+) */
 export type ExternalPurchaseNoticeAction = 'continue' | 'dismissed';
 
 /**
- * Result of presenting external purchase notice sheet (iOS 15.4+)
+ * Result of presenting external purchase notice sheet (iOS 17.4+)
  * Returns the token when user continues to external purchase.
  */
 export interface ExternalPurchaseNoticeResultIOS {
   /** Optional error message if the presentation failed */
   error?: (string | null);
   /**
-   * External purchase token returned when user continues (iOS 15.4+).
+   * External purchase token returned when user continues (iOS 17.4+).
    * This token should be reported to Apple's External Purchase Server API.
    * Only present when result is Continue.
    */
@@ -572,7 +572,7 @@ export interface Mutation {
   /** Present external purchase custom link with StoreKit UI */
   presentExternalPurchaseLinkIOS: Promise<ExternalPurchaseLinkResultIOS>;
   /**
-   * Present external purchase notice sheet (iOS 15.4+).
+   * Present external purchase notice sheet (iOS 17.4+).
    * Uses ExternalPurchase.presentNoticeSheet() which returns a token when user continues.
    * Reference: https://developer.apple.com/documentation/storekit/externalpurchase/presentnoticesheet()
    */
