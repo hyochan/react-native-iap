@@ -625,6 +625,35 @@ interface RenewalInfoIOS {
 }
 ```
 
+### ExternalPurchaseCustomLink Types (iOS 18.1+)
+
+```tsx
+// Token types for getExternalPurchaseCustomLinkTokenIOS
+type ExternalPurchaseCustomLinkTokenTypeIOS = 'acquisition' | 'services';
+
+// Notice types for showExternalPurchaseCustomLinkNoticeIOS
+type ExternalPurchaseCustomLinkNoticeTypeIOS = 'browser';
+
+// Result of token retrieval
+interface ExternalPurchaseCustomLinkTokenResultIOS {
+  token?: string | null;
+  error?: string | null;
+}
+
+// Result of showing notice
+interface ExternalPurchaseCustomLinkNoticeResultIOS {
+  continued: boolean;
+  error?: string | null;
+}
+
+// Updated ExternalPurchaseNoticeResultIOS
+interface ExternalPurchaseNoticeResultIOS {
+  result: 'continue' | 'dismissed';
+  externalPurchaseToken?: string | null; // New in v14.7.5
+  error?: string | null;
+}
+```
+
 ### RequestPurchaseProps
 
 ```tsx
@@ -831,10 +860,14 @@ import {
   getTransactionJwsIOS,
   isEligibleForIntroOfferIOS,
   isTransactionVerifiedIOS,
-  // Alternative Billing (iOS 16+)
+  // External Purchase (iOS 16+)
   canPresentExternalPurchaseNoticeIOS,
   presentExternalPurchaseNoticeSheetIOS,
   presentExternalPurchaseLinkIOS,
+  // External Purchase Custom Link (iOS 18.1+)
+  isEligibleForExternalPurchaseCustomLinkIOS,
+  getExternalPurchaseCustomLinkTokenIOS,
+  showExternalPurchaseCustomLinkNoticeIOS,
 } from 'react-native-iap';
 
 // Clear pending transactions
@@ -860,6 +893,22 @@ const eligible = await isEligibleForIntroOfferIOS(subscriptionGroupId);
 
 // Get app transaction (iOS 16+)
 const appTransaction = await getAppTransactionIOS();
+
+// External Purchase Custom Link (iOS 18.1+)
+const isEligible = await isEligibleForExternalPurchaseCustomLinkIOS();
+if (isEligible) {
+  // Show disclosure notice before linking out
+  const notice = await showExternalPurchaseCustomLinkNoticeIOS('browser');
+  if (notice.continued) {
+    // Get token for reporting to Apple
+    const result = await getExternalPurchaseCustomLinkTokenIOS('acquisition');
+    if (result.token) {
+      // Open external link and report to Apple's External Purchase Server API
+      await Linking.openURL('https://your-store.com/checkout');
+      await reportToAppleExternalPurchaseAPI(result.token);
+    }
+  }
+}
 ```
 
 ### Android-Specific
