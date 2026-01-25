@@ -1751,6 +1751,25 @@ class HybridRnIap : HybridRnIapSpec() {
         }
     }
 
+    // ExternalPurchaseCustomLink (iOS 18.1+) - iOS only stubs
+    override fun isEligibleForExternalPurchaseCustomLinkIOS(): Promise<Boolean> {
+        return Promise.async {
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
+        }
+    }
+
+    override fun getExternalPurchaseCustomLinkTokenIOS(tokenType: ExternalPurchaseCustomLinkTokenTypeIOS): Promise<ExternalPurchaseCustomLinkTokenResultIOS> {
+        return Promise.async {
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
+        }
+    }
+
+    override fun showExternalPurchaseCustomLinkNoticeIOS(noticeType: ExternalPurchaseCustomLinkNoticeTypeIOS): Promise<ExternalPurchaseCustomLinkNoticeResultIOS> {
+        return Promise.async {
+            throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
+        }
+    }
+
     // ---------------------------------------------------------------------
     // OpenIAP error helpers: unify error codes/messages from library
     // ---------------------------------------------------------------------
