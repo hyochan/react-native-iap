@@ -33,7 +33,6 @@ import {ErrorCode} from '../types';
 import type {
   ProductQueryType,
   RequestPurchaseProps,
-  RequestPurchaseResult,
   AlternativeBillingModeAndroid,
   BillingProgramAndroid,
   UserChoiceBillingDetails,
@@ -69,9 +68,7 @@ type UseIap = {
     skus: string[];
     type?: ProductQueryType | null;
   }) => Promise<void>;
-  requestPurchase: (
-    params: RequestPurchaseProps,
-  ) => Promise<RequestPurchaseResult | null>;
+  requestPurchase: (params: RequestPurchaseProps) => Promise<void>;
   /**
    * @deprecated Use `verifyPurchase` instead. This function will be removed in a future version.
    */
@@ -330,7 +327,9 @@ export function useIAP(options?: UseIapOptions): UseIap {
   );
 
   const requestPurchase = useCallback(
-    (requestObj: RequestPurchaseProps) => requestPurchaseInternal(requestObj),
+    async (requestObj: RequestPurchaseProps): Promise<void> => {
+      await requestPurchaseInternal(requestObj);
+    },
     [],
   );
 

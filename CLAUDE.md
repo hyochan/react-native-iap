@@ -249,12 +249,14 @@ yarn install && yarn typecheck && yarn lint --fix
 ## Hook API Semantics (useIAP)
 
 - Inside the `useIAP` hook, most methods return `Promise<void>` and update internal state. Do not design examples that expect returned data from these methods.
-  - Examples: `fetchProducts`, `requestProducts` (if present), `requestPurchase`, `getAvailablePurchases`.
+  - Examples: `fetchProducts`, `requestPurchase`, `getAvailablePurchases`.
   - After calling, consume state from the hook: `products`, `subscriptions`, `availablePurchases`, etc.
+  - For `requestPurchase`: Use `onPurchaseSuccess` callback to receive purchase results, NOT the return value.
 - Defined exceptions in the hook that DO return values:
   - `getActiveSubscriptions(subscriptionIds?) => Promise<ActiveSubscription[]>` (also updates `activeSubscriptions` state)
   - `hasActiveSubscriptions(subscriptionIds?) => Promise<boolean>`
 - The root (index) API is value-returning and can be awaited to receive data directly. Use root API when not using React state.
+  - Example: `const result = await requestPurchase({...})` returns `Promise<RequestPurchaseResult | null>` (though native returns empty array by design - actual results come through event listeners).
 
 ### Common CI Fixes
 
@@ -297,7 +299,7 @@ The project uses a centralized error handling approach across all platforms:
 - `getUserFriendlyErrorMessage()` - **Public helper** - Get user-friendly error messages
 - `ErrorCode` enum (from types.ts) - Standardized error codes across platforms
 
-**Android & iOS (OpenIAP)**
+### Android & iOS (OpenIAP)
 
 Both platforms use the OpenIAP library's error handling:
 
