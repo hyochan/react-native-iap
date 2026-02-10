@@ -50,7 +50,6 @@ import type {
   ProductSubscription,
 } from '../types';
 import type {MutationFinishTransactionArgs} from '../types';
-import {normalizeErrorCodeFromNative} from '../utils/errorMapping';
 
 // Types for event subscriptions
 interface EventSubscription {
@@ -421,20 +420,16 @@ export function useIAP(options?: UseIapOptions): UseIap {
 
       subscriptionsRef.current.purchaseError = purchaseErrorListener(
         (error) => {
-          const mappedError: PurchaseError = {
-            code: normalizeErrorCodeFromNative(error.code),
-            message: error.message,
-            productId: undefined,
-          };
+          // error is already normalized by purchaseErrorListener in src/index.ts
           // Ignore init error until connected
           if (
-            mappedError.code === ErrorCode.InitConnection &&
+            error.code === ErrorCode.InitConnection &&
             !connectedRef.current
           ) {
             return;
           }
           if (optionsRef.current?.onPurchaseError) {
-            optionsRef.current.onPurchaseError(mappedError);
+            optionsRef.current.onPurchaseError(error);
           }
         },
       );

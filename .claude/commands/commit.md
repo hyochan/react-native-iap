@@ -234,7 +234,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 - Skip promoted product listener on tvOS/macOS
 - Register listeners after initConnection succeeds
 
-### Tests (src/**tests**/)
+### Tests (src/\_\_tests\_\_/)
 
 - Add platform detection tests
 
