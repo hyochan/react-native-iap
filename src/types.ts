@@ -258,6 +258,12 @@ export interface DiscountOffer {
   preorderDetailsAndroid?: (PreorderDetailsAndroid | null);
   /** Numeric price value */
   price: number;
+  /**
+   * [Android] Purchase option ID for this offer.
+   * Used to identify which purchase option the user selected.
+   * Available in Google Play Billing Library 7.0+
+   */
+  purchaseOptionIdAndroid?: (string | null);
   /** [Android] Rental details if this is a rental offer. */
   rentalDetailsAndroid?: (RentalDetailsAndroid | null);
   /** Type of discount offer */
@@ -479,6 +485,27 @@ export interface InitConnectionConfig {
 }
 
 /**
+ * Installment plan details for subscription offers (Android)
+ * Contains information about the installment plan commitment.
+ * Available in Google Play Billing Library 7.0+
+ */
+export interface InstallmentPlanDetailsAndroid {
+  /**
+   * Committed payments count after a user signs up for this subscription plan.
+   * For example, for a monthly subscription with commitmentPaymentsCount of 12,
+   * users will be charged monthly for 12 months after signup.
+   */
+  commitmentPaymentsCount: number;
+  /**
+   * Subsequent committed payments count after the subscription plan renews.
+   * For example, for a monthly subscription with subsequentCommitmentPaymentsCount of 12,
+   * users will be committed to another 12 monthly payments when the plan renews.
+   * Returns 0 if the installment plan has no subsequent commitment (reverts to normal plan).
+   */
+  subsequentCommitmentPaymentsCount: number;
+}
+
+/**
  * Parameters for launching an external link (Android)
  * Used with launchExternalLink to initiate external offer or app install flows
  * Available in Google Play Billing Library 8.2.0+
@@ -681,6 +708,26 @@ export type PaymentMode = 'free-trial' | 'pay-as-you-go' | 'pay-up-front' | 'unk
 export type PaymentModeIOS = 'empty' | 'free-trial' | 'pay-as-you-go' | 'pay-up-front';
 
 /**
+ * Pending purchase update for subscription upgrades/downgrades (Android)
+ * When a user initiates a subscription change (upgrade/downgrade), the new purchase
+ * may be pending until the current billing period ends. This type contains the
+ * details of the pending change.
+ * Available in Google Play Billing Library 5.0+
+ */
+export interface PendingPurchaseUpdateAndroid {
+  /**
+   * Product IDs for the pending purchase update.
+   * These are the new products the user is switching to.
+   */
+  products: string[];
+  /**
+   * Purchase token for the pending transaction.
+   * Use this token to track or manage the pending purchase update.
+   */
+  purchaseToken: string;
+}
+
+/**
  * Pre-order details for one-time purchase products (Android)
  * Available in Google Play Billing Library 8.1.0+
  */
@@ -791,6 +838,12 @@ export interface ProductAndroidOneTimePurchaseOfferDetail {
   preorderDetailsAndroid?: (PreorderDetailsAndroid | null);
   priceAmountMicros: string;
   priceCurrencyCode: string;
+  /**
+   * Purchase option ID for this offer (Android)
+   * Used to identify which purchase option the user selected.
+   * Available in Google Play Billing Library 7.0+
+   */
+  purchaseOptionId?: (string | null);
   /** Rental details for rental offers */
   rentalDetailsAndroid?: (RentalDetailsAndroid | null);
   /** Valid time window for the offer */
@@ -911,6 +964,12 @@ export interface ProductSubscriptionAndroid extends ProductCommon {
  */
 export interface ProductSubscriptionAndroidOfferDetails {
   basePlanId: string;
+  /**
+   * Installment plan details for this subscription offer.
+   * Only set for installment subscription plans; null for non-installment plans.
+   * Available in Google Play Billing Library 7.0+
+   */
+  installmentPlanDetails?: (InstallmentPlanDetailsAndroid | null);
   offerId?: (string | null);
   offerTags: string[];
   offerToken: string;
@@ -1000,6 +1059,13 @@ export interface PurchaseAndroid extends PurchaseCommon {
   obfuscatedAccountIdAndroid?: (string | null);
   obfuscatedProfileIdAndroid?: (string | null);
   packageNameAndroid?: (string | null);
+  /**
+   * Pending purchase update for uncommitted subscription upgrade/downgrade (Android)
+   * Contains the new products and purchase token for the pending transaction.
+   * Returns null if no pending update exists.
+   * Available in Google Play Billing Library 5.0+
+   */
+  pendingPurchaseUpdateAndroid?: (PendingPurchaseUpdateAndroid | null);
   /** @deprecated Use store instead */
   platform: IapPlatform;
   productId: string;
@@ -1533,6 +1599,12 @@ export interface SubscriptionOffer {
    * - Android: offerId from ProductSubscriptionAndroidOfferDetails
    */
   id: string;
+  /**
+   * [Android] Installment plan details for this subscription offer.
+   * Only set for installment subscription plans; null for non-installment plans.
+   * Available in Google Play Billing Library 7.0+
+   */
+  installmentPlanDetailsAndroid?: (InstallmentPlanDetailsAndroid | null);
   /**
    * [iOS] Key identifier for signature validation.
    * Used with server-side signature generation for promotional offers.
