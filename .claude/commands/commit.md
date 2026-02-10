@@ -4,7 +4,7 @@ Complete workflow: branch → commit → push → PR
 
 ## Usage
 
-```
+```text
 /commit [options]
 ```
 
@@ -174,7 +174,7 @@ When making cross-platform changes, commit in this order:
 
 **Feature addition:**
 
-```
+```text
 feat(ios): add tvOS and macOS platform support
 
 - Add tvOS 15.0 and macOS 14.0 to podspec platforms
@@ -189,7 +189,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 
 **Bug fix:**
 
-```
+```text
 fix(hooks): register listeners after initConnection
 
 Move listener registration after initConnection succeeds
@@ -201,7 +201,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 
 **Chore/maintenance:**
 
-```
+```text
 chore(deps): update OpenIAP to 1.3.11
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
