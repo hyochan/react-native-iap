@@ -23,7 +23,8 @@ Pod::Spec.new do |s|
   # React Native IAP uses StoreKit 2 via OpenIAP, which requires iOS 15+.
   # Enforce this at the podspec level so projects with a lower deployment target
   # get a clear CocoaPods error instead of a vague SwiftCompile failure.
-  s.platforms    = { :ios => '15.0', :visionos => 1.0 }
+  # Platform versions match OpenIAP requirements: iOS 15+, macOS 14+, tvOS 15+, watchOS 8+
+  s.platforms    = { :ios => '15.0', :tvos => '15.0', :macos => '14.0', :visionos => 1.0 }
   s.source       = { :git => "https://github.com/hyochan/react-native-iap.git", :tag => "#{s.version}" }
 
   s.source_files = [
