@@ -2,7 +2,7 @@ import Foundation
 import NitroModules
 import OpenIAP
 
-@available(iOS 15.0, *)
+@available(iOS 15.0, macOS 14.0, tvOS 15.0, watchOS 8.0, *)
 class HybridRnIap: HybridRnIapSpec {
     // MARK: - Properties
     private var updateListenerTask: Task<Void, Never>?

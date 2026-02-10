@@ -109,6 +109,21 @@ describe('Public API (src/index.ts)', () => {
     IAP = require('../index');
   });
 
+  describe('platform detection helpers', () => {
+    // Note: More comprehensive platform detection tests are in platform-detection.test.ts
+    // which properly resets modules for accurate Platform detection testing
+    it('isNitroReady returns true when Nitro is initialized', () => {
+      expect(IAP.isNitroReady()).toBe(true);
+    });
+
+    it('exports platform detection functions', () => {
+      expect(typeof IAP.isTVOS).toBe('function');
+      expect(typeof IAP.isMacOS).toBe('function');
+      expect(typeof IAP.isStandardIOS).toBe('function');
+      expect(typeof IAP.isNitroReady).toBe('function');
+    });
+  });
+
   describe('listeners', () => {
     it('purchaseUpdatedListener wraps and forwards validated purchases', () => {
       const listener = jest.fn();
@@ -169,6 +184,8 @@ describe('Public API (src/index.ts)', () => {
 
     it('promotedProductListenerIOS on iOS converts and forwards product', () => {
       (Platform as any).OS = 'ios';
+      (Platform as any).isTV = false;
+      (Platform as any).isMacCatalyst = false;
       const nitroProduct = {
         id: 'sku1',
         title: 'Title',

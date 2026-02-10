@@ -130,6 +130,47 @@ export {useIAP} from './hooks/useIAP';
 // Create the RnIap HybridObject instance lazily to avoid early JSI crashes
 let iapRef: RnIap | null = null;
 
+/**
+ * Check if Nitro runtime is ready for IAP operations.
+ * This is useful for platforms like tvOS where Nitro may initialize later.
+ * @returns true if Nitro is ready, false otherwise
+ */
+export const isNitroReady = (): boolean => {
+  if (iapRef) return true;
+  try {
+    iapRef = NitroModules.createHybridObject<RnIap>('RnIap');
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Check if we're running on tvOS.
+ * tvOS reports Platform.OS as 'ios' but has Platform.isTV = true.
+ */
+export const isTVOS = (): boolean => {
+  return Platform.OS === 'ios' && (Platform as any).isTV === true;
+};
+
+/**
+ * Check if we're running on macOS (Catalyst or native).
+ * macOS may report Platform.OS as 'ios' (Catalyst) or 'macos'.
+ */
+export const isMacOS = (): boolean => {
+  return (
+    Platform.OS === 'macos' ||
+    (Platform.OS === 'ios' && (Platform as any).isMacCatalyst === true)
+  );
+};
+
+/**
+ * Check if we're running on a standard iOS device (iPhone/iPad, not tvOS or macOS Catalyst).
+ */
+export const isStandardIOS = (): boolean => {
+  return Platform.OS === 'ios' && !isTVOS() && !isMacOS();
+};
+
 const IAP = {
   get instance(): RnIap {
     if (iapRef) return iapRef;
@@ -266,6 +307,14 @@ export const promotedProductListenerIOS = (
   if (Platform.OS !== 'ios') {
     RnIapConsole.warn(
       'promotedProductListenerIOS: This listener is only available on iOS',
+    );
+    return {remove: () => {}};
+  }
+
+  // tvOS and macOS do not support App Store promoted products
+  if (isTVOS() || isMacOS()) {
+    RnIapConsole.debug(
+      'promotedProductListenerIOS: Promoted products not available on tvOS/macOS',
     );
     return {remove: () => {}};
   }
