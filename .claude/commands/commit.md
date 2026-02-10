@@ -98,7 +98,16 @@ EOF
 )"
 ```
 
-**Commit Types:** | Type | Description | |------|-------------| | `feat` | New feature | | `fix` | Bug fix | | `docs` | Documentation only | | `refactor` | Code refactoring | | `chore` | Maintenance tasks | | `test` | Adding/updating tests |
+**Commit Types:**
+
+| Type       | Description           |
+| ---------- | --------------------- |
+| `feat`     | New feature           |
+| `fix`      | Bug fix               |
+| `docs`     | Documentation only    |
+| `refactor` | Code refactoring      |
+| `chore`    | Maintenance tasks     |
+| `test`     | Adding/updating tests |
 
 **Scope Examples:**
 

@@ -25,8 +25,7 @@ import {
   showAlternativeBillingDialogAndroid,
   createAlternativeBillingTokenAndroid,
   userChoiceBillingListenerAndroid,
-  isTVOS,
-  isMacOS,
+  isStandardIOS,
 } from '../';
 
 // Types
@@ -177,6 +176,9 @@ export function useIAP(options?: UseIapOptions): UseIap {
     promotedProductIOS?: EventSubscription;
     userChoiceBillingAndroid?: EventSubscription;
   }>({});
+
+  // Track if component is mounted to prevent listener leaks on early unmount
+  const isMountedRef = useRef<boolean>(true);
 
   const subscriptionsRefState = useRef<ProductSubscription[]>([]);
 
@@ -386,6 +388,13 @@ export function useIAP(options?: UseIapOptions): UseIap {
       // Initialize connection FIRST to ensure Nitro is ready
       // This fixes tvOS where Nitro may initialize later than iOS
       const result = await initConnection(config);
+
+      // Check if component unmounted during async initConnection
+      // to prevent listener leaks
+      if (!isMountedRef.current) {
+        return;
+      }
+
       setConnected(result);
 
       if (!result) {
@@ -431,7 +440,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
       );
 
       // iOS promoted products listener (only supported on standard iOS, not tvOS/macOS)
-      if (Platform.OS === 'ios' && !isTVOS() && !isMacOS()) {
+      if (isStandardIOS()) {
         subscriptionsRef.current.promotedProductIOS =
           promotedProductListenerIOS((product: Product) => {
             setPromotedProductIOS(product);
@@ -474,10 +483,12 @@ export function useIAP(options?: UseIapOptions): UseIap {
   ]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     initIapWithSubscriptions();
     const currentSubscriptions = subscriptionsRef.current;
 
     return () => {
+      isMountedRef.current = false;
       currentSubscriptions.purchaseUpdate?.remove();
       currentSubscriptions.purchaseError?.remove();
       currentSubscriptions.promotedProductIOS?.remove();
