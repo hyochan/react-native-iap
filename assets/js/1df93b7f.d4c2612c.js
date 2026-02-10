@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkreact_native_iap_docs=self.webpackChunkreact_native_iap_docs||[]).push([[4583],{36866:(e,c,t)=>{t.r(c),t.d(c,{default:()=>r});var a=t(96540),n=t(56347),s=t(86025);function r(){const e=(0,n.W6)(),c=(0,s.Ay)("/docs/intro");return(0,a.useEffect)(()=>{e.replace(c)},[e,c]),null}}}]);

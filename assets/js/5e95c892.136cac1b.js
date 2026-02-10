@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkreact_native_iap_docs=self.webpackChunkreact_native_iap_docs||[]).push([[9647],{7121:(e,a,s)=>{s.r(a),s.d(a,{default:()=>d});s(96540);var r=s(34164),c=s(45500),t=s(17559),n=s(22831),u=s(24514),i=s(74848);function d(e){return(0,i.jsx)(c.e3,{className:(0,r.A)(t.G.wrapper.docsPages),children:(0,i.jsx)(u.A,{children:(0,n.v)(e.route.routes)})})}}}]);
