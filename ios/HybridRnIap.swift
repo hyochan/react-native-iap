@@ -132,10 +132,8 @@ class HybridRnIap: HybridRnIapSpec {
                 products.append(product)
                 seenIds.insert(product.id)
             }
-            // Capture products as local constant to avoid Swift 6 concurrency warning
-            let capturedProducts = products
-            await MainActor.run {
-                capturedProducts.forEach { self.productTypeBySku[$0.id] = $0.type.lowercased() }
+            await MainActor.run { [products] in
+                products.forEach { self.productTypeBySku[$0.id] = $0.type.lowercased() }
             }
             RnIapLog.result(
                 "fetchProducts", products.map { ["id": $0.id, "type": $0.type] }
