@@ -212,8 +212,35 @@ interface DiscountOffer {
   offerTokenAndroid?: string;
   discountAmountMicrosAndroid?: string;
   formattedDiscountAmountAndroid?: string;
+  purchaseOptionIdAndroid?: string;  // v14.7.10+, Billing Library 7.0+
 }
 ```
+
+### InstallmentPlanDetailsAndroid (v14.7.10+, Billing Library 7.0+)
+
+Subscription installment plan details:
+
+```tsx
+interface InstallmentPlanDetailsAndroid {
+  commitmentPaymentsCount: number;      // Initial commitment (e.g., 12 months)
+  subsequentCommitmentPaymentsCount: number;  // Renewal commitment (0 if reverts to normal)
+}
+```
+
+Available on `ProductSubscriptionAndroidOfferDetails.installmentPlanDetails`.
+
+### PendingPurchaseUpdateAndroid (v14.7.10+, Billing Library 5.0+)
+
+Pending subscription upgrade/downgrade details:
+
+```tsx
+interface PendingPurchaseUpdateAndroid {
+  products: string[];       // New products being switched to
+  purchaseToken: string;    // Pending transaction token
+}
+```
+
+Available on `PurchaseAndroid.pendingPurchaseUpdateAndroid`.
 
 ### Purchase
 
@@ -231,6 +258,7 @@ interface Purchase {
   autoRenewingAndroid?: boolean;
   packageNameAndroid?: string;
   isSuspendedAndroid?: boolean;  // v14.7.3+, Billing Library 8.1+
+  pendingPurchaseUpdateAndroid?: PendingPurchaseUpdateAndroid;  // v14.7.10+, Billing Library 5.0+
 }
 ```
 
