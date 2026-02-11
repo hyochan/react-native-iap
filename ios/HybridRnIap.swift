@@ -132,8 +132,10 @@ class HybridRnIap: HybridRnIapSpec {
                 products.append(product)
                 seenIds.insert(product.id)
             }
+            // Capture products as local constant to avoid Swift 6 concurrency warning
+            let capturedProducts = products
             await MainActor.run {
-                products.forEach { self.productTypeBySku[$0.id] = $0.type.lowercased() }
+                capturedProducts.forEach { self.productTypeBySku[$0.id] = $0.type.lowercased() }
             }
             RnIapLog.result(
                 "fetchProducts", products.map { ["id": $0.id, "type": $0.type] }
@@ -327,7 +329,7 @@ class HybridRnIap: HybridRnIapSpec {
                 let sanitizedPayload = RnIapHelper.sanitizeDictionary(purchasePayload)
                 RnIapLog.payload("finishTransaction.nativePayload", sanitizedPayload)
                 let purchaseInput = try OpenIapSerialization.purchaseInput(from: purchasePayload)
-                try await OpenIapModule.shared.finishTransaction(purchase: purchaseInput, isConsumable: nil)
+                _ = try await OpenIapModule.shared.finishTransaction(purchase: purchaseInput, isConsumable: nil)
                 RnIapLog.result("finishTransaction", true)
                 await MainActor.run {
                     self.purchasePayloadById.removeValue(forKey: iosParams.transactionId)
