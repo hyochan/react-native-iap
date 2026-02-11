@@ -5,7 +5,7 @@ import OpenIAP
 /// Similar to Android's OpenIapException, this wraps errors with JSON-serialized messages.
 /// Uses NSError for better compatibility with Objective-C bridging in Nitro.
 @available(iOS 15.0, *)
-class OpenIapException: NSError {
+class OpenIapException: NSError, @unchecked Sendable {
     static let domain = "com.margelo.nitro.rniap"
 
     convenience init(_ json: String) {

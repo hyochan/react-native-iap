@@ -132,7 +132,7 @@ class HybridRnIap: HybridRnIapSpec {
                 products.append(product)
                 seenIds.insert(product.id)
             }
-            await MainActor.run {
+            await MainActor.run { [products] in
                 products.forEach { self.productTypeBySku[$0.id] = $0.type.lowercased() }
             }
             RnIapLog.result(
@@ -327,7 +327,7 @@ class HybridRnIap: HybridRnIapSpec {
                 let sanitizedPayload = RnIapHelper.sanitizeDictionary(purchasePayload)
                 RnIapLog.payload("finishTransaction.nativePayload", sanitizedPayload)
                 let purchaseInput = try OpenIapSerialization.purchaseInput(from: purchasePayload)
-                try await OpenIapModule.shared.finishTransaction(purchase: purchaseInput, isConsumable: nil)
+                _ = try await OpenIapModule.shared.finishTransaction(purchase: purchaseInput, isConsumable: nil)
                 RnIapLog.result("finishTransaction", true)
                 await MainActor.run {
                     self.purchasePayloadById.removeValue(forKey: iosParams.transactionId)
