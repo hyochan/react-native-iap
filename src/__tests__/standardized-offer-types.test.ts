@@ -17,6 +17,9 @@ import type {
   ProductAndroid,
   ProductSubscriptionAndroid,
   RequestPurchaseAndroidProps,
+  InstallmentPlanDetailsAndroid,
+  PendingPurchaseUpdateAndroid,
+  PurchaseAndroid,
 } from '../types';
 
 describe('Standardized Offer Types', () => {
@@ -464,6 +467,138 @@ describe('Standardized Offer Types', () => {
 
       expect(purchaseRequest.skus).toEqual(['consumable_gems']);
       expect(purchaseRequest.offerToken).toBe('summer_sale_offer_token');
+    });
+  });
+
+  describe('InstallmentPlanDetailsAndroid', () => {
+    it('should have correct structure for subscription installment plans', () => {
+      // Installment plan details are available in Google Play Billing Library 7.0+
+      const installmentDetails: InstallmentPlanDetailsAndroid = {
+        commitmentPaymentsCount: 12,
+        subsequentCommitmentPaymentsCount: 12,
+      };
+
+      expect(installmentDetails.commitmentPaymentsCount).toBe(12);
+      expect(installmentDetails.subsequentCommitmentPaymentsCount).toBe(12);
+    });
+
+    it('should support zero subsequentCommitmentPaymentsCount for non-recurring installments', () => {
+      // When subsequentCommitmentPaymentsCount is 0, plan reverts to normal after initial commitment
+      const nonRecurringInstallment: InstallmentPlanDetailsAndroid = {
+        commitmentPaymentsCount: 6,
+        subsequentCommitmentPaymentsCount: 0,
+      };
+
+      expect(nonRecurringInstallment.commitmentPaymentsCount).toBe(6);
+      expect(nonRecurringInstallment.subsequentCommitmentPaymentsCount).toBe(0);
+    });
+  });
+
+  describe('PendingPurchaseUpdateAndroid', () => {
+    it('should have correct structure for pending subscription changes', () => {
+      // Pending purchase updates are available in Google Play Billing Library 5.0+
+      const pendingUpdate: PendingPurchaseUpdateAndroid = {
+        products: ['premium_yearly'],
+        purchaseToken: 'pending_token_abc123',
+      };
+
+      expect(pendingUpdate.products).toEqual(['premium_yearly']);
+      expect(pendingUpdate.purchaseToken).toBe('pending_token_abc123');
+    });
+
+    it('should support multiple products in pending update', () => {
+      // When upgrading to a bundle or combined subscription
+      const bundlePendingUpdate: PendingPurchaseUpdateAndroid = {
+        products: ['premium_yearly', 'addon_storage'],
+        purchaseToken: 'bundle_pending_token_xyz',
+      };
+
+      expect(bundlePendingUpdate.products).toHaveLength(2);
+      expect(bundlePendingUpdate.products).toContain('premium_yearly');
+      expect(bundlePendingUpdate.products).toContain('addon_storage');
+    });
+  });
+
+  describe('purchaseOptionIdAndroid on DiscountOffer', () => {
+    it('should support purchaseOptionIdAndroid field', () => {
+      // purchaseOptionIdAndroid is available in Google Play Billing Library 7.0+
+      const discountOfferWithPurchaseOption: DiscountOffer = {
+        id: 'limited_offer',
+        displayPrice: '$3.99',
+        price: 3.99,
+        currency: 'USD',
+        type: 'one-time',
+        offerTokenAndroid: 'offer_token_123',
+        purchaseOptionIdAndroid: 'purchase_option_456',
+      };
+
+      expect(discountOfferWithPurchaseOption.purchaseOptionIdAndroid).toBe(
+        'purchase_option_456',
+      );
+    });
+
+    it('should allow purchaseOptionIdAndroid to be optional', () => {
+      const offerWithoutPurchaseOption: DiscountOffer = {
+        displayPrice: '$4.99',
+        price: 4.99,
+        currency: 'USD',
+        type: 'promotional',
+        // No purchaseOptionIdAndroid - not all offers have this
+      };
+
+      expect(
+        offerWithoutPurchaseOption.purchaseOptionIdAndroid,
+      ).toBeUndefined();
+    });
+  });
+
+  describe('PurchaseAndroid with pendingPurchaseUpdateAndroid', () => {
+    it('should include pendingPurchaseUpdateAndroid for subscription upgrades', () => {
+      // When a subscription upgrade/downgrade is pending
+      const purchaseWithPendingUpdate: PurchaseAndroid = {
+        id: 'purchase_id_abc',
+        productId: 'premium_monthly',
+        platform: 'android',
+        transactionDate: 1704067200000,
+        purchaseToken: 'current_token',
+        purchaseState: 'purchased',
+        packageNameAndroid: 'com.example.app',
+        isAutoRenewing: true,
+        quantity: 1,
+        store: 'google',
+        pendingPurchaseUpdateAndroid: {
+          products: ['premium_yearly'],
+          purchaseToken: 'pending_upgrade_token',
+        },
+      };
+
+      expect(
+        purchaseWithPendingUpdate.pendingPurchaseUpdateAndroid,
+      ).toBeDefined();
+      expect(
+        purchaseWithPendingUpdate.pendingPurchaseUpdateAndroid?.products,
+      ).toEqual(['premium_yearly']);
+      expect(
+        purchaseWithPendingUpdate.pendingPurchaseUpdateAndroid?.purchaseToken,
+      ).toBe('pending_upgrade_token');
+    });
+
+    it('should allow pendingPurchaseUpdateAndroid to be undefined for regular purchases', () => {
+      const regularPurchase: PurchaseAndroid = {
+        id: 'purchase_id_xyz',
+        productId: 'consumable_coins',
+        platform: 'android',
+        transactionDate: 1704067200000,
+        purchaseToken: 'regular_token',
+        purchaseState: 'purchased',
+        packageNameAndroid: 'com.example.app',
+        isAutoRenewing: false,
+        quantity: 1,
+        store: 'google',
+        // No pending update - this is a regular purchase
+      };
+
+      expect(regularPurchase.pendingPurchaseUpdateAndroid).toBeUndefined();
     });
   });
 });
