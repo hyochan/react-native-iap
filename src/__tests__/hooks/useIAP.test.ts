@@ -121,7 +121,7 @@ describe('hooks/useIAP (renderer)', () => {
   it('requestPurchase calls root API and returns void', async () => {
     const mockRequestPurchase = jest
       .spyOn(IAP, 'requestPurchase')
-      .mockResolvedValue(null as any);
+      .mockResolvedValue(null);
 
     let api: any;
     const Harness = () => {
