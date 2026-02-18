@@ -254,6 +254,12 @@ class HybridRnIap : HybridRnIapSpec() {
             runCatching { openIap.endConnection() }
             productTypeBySku.clear()
             isInitialized = false
+            listenersAttached = false
+            purchaseUpdatedListeners.clear()
+            purchaseErrorListeners.clear()
+            promotedProductListenersIOS.clear()
+            userChoiceBillingListenersAndroid.clear()
+            developerProvidedBillingListenersAndroid.clear()
             initDeferred = null
             RnIapLog.result("endConnection", true)
             true
