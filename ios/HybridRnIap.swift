@@ -899,7 +899,10 @@ class HybridRnIap: HybridRnIapSpec {
         if purchaseUpdatedSub == nil {
             RnIapLog.payload("purchaseUpdatedListener.register", nil)
             purchaseUpdatedSub = OpenIapModule.shared.purchaseUpdatedListener { [weak self] openIapPurchase in
-                guard let self else { return }
+                guard let self else {
+                    RnIapLog.warn("purchaseUpdatedListener: HybridRnIap deallocated, purchase event dropped")
+                    return
+                }
                 Task { @MainActor in
                     let rawPayload = OpenIapSerialization.purchase(openIapPurchase)
                     let payload = RnIapHelper.sanitizeDictionary(rawPayload)
@@ -917,7 +920,10 @@ class HybridRnIap: HybridRnIapSpec {
         if purchaseErrorSub == nil {
             RnIapLog.payload("purchaseErrorListener.register", nil)
             purchaseErrorSub = OpenIapModule.shared.purchaseErrorListener { [weak self] error in
-                guard let self else { return }
+                guard let self else {
+                    RnIapLog.warn("purchaseErrorListener: HybridRnIap deallocated, error event dropped")
+                    return
+                }
                 Task { @MainActor in
                     let payload = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(error))
                     RnIapLog.result("purchaseErrorListener", payload)
