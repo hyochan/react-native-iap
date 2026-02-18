@@ -118,6 +118,30 @@ describe('hooks/useIAP (renderer)', () => {
     expect(IAP.finishTransaction).toBeDefined();
   });
 
+  it('requestPurchase calls root API and returns void', async () => {
+    const mockRequestPurchase = jest
+      .spyOn(IAP, 'requestPurchase')
+      .mockResolvedValue(null as any);
+
+    let api: any;
+    const Harness = () => {
+      api = useIAP();
+      return null;
+    };
+
+    await act(async () => {
+      TestRenderer.create(React.createElement(Harness));
+    });
+    await act(async () => {});
+
+    await act(async () => {
+      const result = await api.requestPurchase({sku: 'product1'});
+      expect(result).toBeUndefined();
+    });
+
+    expect(mockRequestPurchase).toHaveBeenCalledWith({sku: 'product1'});
+  });
+
   describe('onError callback', () => {
     it('calls onError when fetchProducts fails', async () => {
       const fetchError = new Error('Network error fetching products');
