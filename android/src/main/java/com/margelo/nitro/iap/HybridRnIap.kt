@@ -255,8 +255,8 @@ class HybridRnIap : HybridRnIapSpec() {
             productTypeBySku.clear()
             isInitialized = false
             listenersAttached = false
-            purchaseUpdatedListeners.clear()
-            purchaseErrorListeners.clear()
+            synchronized(purchaseUpdatedListeners) { purchaseUpdatedListeners.clear() }
+            synchronized(purchaseErrorListeners) { purchaseErrorListeners.clear() }
             promotedProductListenersIOS.clear()
             userChoiceBillingListenersAndroid.clear()
             developerProvidedBillingListenersAndroid.clear()
@@ -731,21 +731,27 @@ class HybridRnIap : HybridRnIapSpec() {
     
     // Event listener methods
     override fun addPurchaseUpdatedListener(listener: (purchase: NitroPurchase) -> Unit) {
-        purchaseUpdatedListeners.add(listener)
+        synchronized(purchaseUpdatedListeners) {
+            purchaseUpdatedListeners.add(listener)
+        }
     }
-    
+
     override fun addPurchaseErrorListener(listener: (error: NitroPurchaseResult) -> Unit) {
-        purchaseErrorListeners.add(listener)
+        synchronized(purchaseErrorListeners) {
+            purchaseErrorListeners.add(listener)
+        }
     }
-    
+
     override fun removePurchaseUpdatedListener(listener: (purchase: NitroPurchase) -> Unit) {
-        // Note: Kotlin doesn't have easy closure comparison, so we'll clear all listeners
-        purchaseUpdatedListeners.clear()
+        synchronized(purchaseUpdatedListeners) {
+            purchaseUpdatedListeners.remove(listener)
+        }
     }
-    
+
     override fun removePurchaseErrorListener(listener: (error: NitroPurchaseResult) -> Unit) {
-        // Note: Kotlin doesn't have easy closure comparison, so we'll clear all listeners
-        purchaseErrorListeners.clear()
+        synchronized(purchaseErrorListeners) {
+            purchaseErrorListeners.remove(listener)
+        }
     }
     
     override fun addPromotedProductListenerIOS(listener: (product: NitroProduct) -> Unit) {
@@ -773,11 +779,10 @@ class HybridRnIap : HybridRnIapSpec() {
             "sendPurchaseUpdate",
             mapOf("productId" to purchase.productId, "platform" to purchase.platform)
         )
-        for (listener in purchaseUpdatedListeners) {
-            listener(purchase)
-        }
+        val snapshot = synchronized(purchaseUpdatedListeners) { ArrayList(purchaseUpdatedListeners) }
+        snapshot.forEach { it(purchase) }
     }
-    
+
     /**
      * Send purchase error event to listeners
      */
@@ -786,9 +791,8 @@ class HybridRnIap : HybridRnIapSpec() {
             "sendPurchaseError",
             mapOf("code" to error.code, "message" to error.message)
         )
-        for (listener in purchaseErrorListeners) {
-            listener(error)
-        }
+        val snapshot = synchronized(purchaseErrorListeners) { ArrayList(purchaseErrorListeners) }
+        snapshot.forEach { it(error) }
     }
     
     /**
