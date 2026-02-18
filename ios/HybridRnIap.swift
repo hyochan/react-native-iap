@@ -941,7 +941,10 @@ class HybridRnIap: HybridRnIapSpec {
         if promotedProductSub == nil {
             RnIapLog.payload("promotedProductListenerIOS.register", nil)
             promotedProductSub = OpenIapModule.shared.promotedProductListenerIOS { [weak self] productId in
-                guard let self else { return }
+                guard let self else {
+                    RnIapLog.warn("promotedProductListenerIOS: HybridRnIap deallocated, promoted product event dropped")
+                    return
+                }
                 Task {
                     RnIapLog.payload("promotedProductListenerIOS", ["productId": productId])
                     do {

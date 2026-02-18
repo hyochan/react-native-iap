@@ -255,8 +255,8 @@ class HybridRnIap : HybridRnIapSpec() {
             productTypeBySku.clear()
             isInitialized = false
             listenersAttached = false
-            purchaseUpdatedListeners.clear()
-            purchaseErrorListeners.clear()
+            synchronized(purchaseUpdatedListeners) { purchaseUpdatedListeners.clear() }
+            synchronized(purchaseErrorListeners) { purchaseErrorListeners.clear() }
             promotedProductListenersIOS.clear()
             userChoiceBillingListenersAndroid.clear()
             developerProvidedBillingListenersAndroid.clear()
@@ -744,13 +744,13 @@ class HybridRnIap : HybridRnIapSpec() {
 
     override fun removePurchaseUpdatedListener(listener: (purchase: NitroPurchase) -> Unit) {
         synchronized(purchaseUpdatedListeners) {
-            purchaseUpdatedListeners.clear()
+            purchaseUpdatedListeners.remove(listener)
         }
     }
 
     override fun removePurchaseErrorListener(listener: (error: NitroPurchaseResult) -> Unit) {
         synchronized(purchaseErrorListeners) {
-            purchaseErrorListeners.clear()
+            purchaseErrorListeners.remove(listener)
         }
     }
     
@@ -779,9 +779,8 @@ class HybridRnIap : HybridRnIapSpec() {
             "sendPurchaseUpdate",
             mapOf("productId" to purchase.productId, "platform" to purchase.platform)
         )
-        synchronized(purchaseUpdatedListeners) {
-            purchaseUpdatedListeners.forEach { it(purchase) }
-        }
+        val snapshot = synchronized(purchaseUpdatedListeners) { ArrayList(purchaseUpdatedListeners) }
+        snapshot.forEach { it(purchase) }
     }
 
     /**
@@ -792,9 +791,8 @@ class HybridRnIap : HybridRnIapSpec() {
             "sendPurchaseError",
             mapOf("code" to error.code, "message" to error.message)
         )
-        synchronized(purchaseErrorListeners) {
-            purchaseErrorListeners.forEach { it(error) }
-        }
+        val snapshot = synchronized(purchaseErrorListeners) { ArrayList(purchaseErrorListeners) }
+        snapshot.forEach { it(error) }
     }
     
     /**
