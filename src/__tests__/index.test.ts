@@ -223,6 +223,81 @@ describe('Public API (src/index.ts)', () => {
       expect(mockIap.initConnection).toHaveBeenCalled();
       expect(mockIap.endConnection).toHaveBeenCalled();
     });
+
+    it('listeners work after endConnection → initConnection reconnection', async () => {
+      // 1. Initial connection + listener
+      await IAP.initConnection();
+      const listener1 = jest.fn();
+      const sub1 = IAP.purchaseUpdatedListener(listener1);
+
+      // Verify listener is registered
+      expect(mockIap.addPurchaseUpdatedListener).toHaveBeenCalledTimes(1);
+      const wrapped1 = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
+
+      // Simulate a purchase event — listener should fire
+      const nitroPurchase = {
+        id: 't1',
+        productId: 'p1',
+        transactionDate: Date.now(),
+        platform: 'ios',
+        quantity: 1,
+        purchaseState: 'purchased',
+        isAutoRenewing: false,
+      };
+      wrapped1(nitroPurchase);
+      expect(listener1).toHaveBeenCalledTimes(1);
+
+      // 2. Disconnect and remove old listener
+      sub1.remove();
+      await IAP.endConnection();
+
+      // 3. Reconnect and register new listener
+      jest.clearAllMocks();
+      await IAP.initConnection();
+      const listener2 = jest.fn();
+      const sub2 = IAP.purchaseUpdatedListener(listener2);
+
+      // New listener should be registered with native
+      expect(mockIap.addPurchaseUpdatedListener).toHaveBeenCalledTimes(1);
+      const wrapped2 = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
+
+      // Simulate purchase event on new connection — new listener should fire
+      wrapped2(nitroPurchase);
+      expect(listener2).toHaveBeenCalledTimes(1);
+      expect(listener2).toHaveBeenCalledWith(
+        expect.objectContaining({productId: 'p1'}),
+      );
+
+      sub2.remove();
+    });
+
+    it('error listeners work after endConnection → initConnection reconnection', async () => {
+      await IAP.initConnection();
+      const errorListener1 = jest.fn();
+      const sub1 = IAP.purchaseErrorListener(errorListener1);
+      sub1.remove();
+      await IAP.endConnection();
+
+      // Reconnect and register new error listener
+      jest.clearAllMocks();
+      await IAP.initConnection();
+      const errorListener2 = jest.fn();
+      const sub2 = IAP.purchaseErrorListener(errorListener2);
+
+      expect(mockIap.addPurchaseErrorListener).toHaveBeenCalledTimes(1);
+      const wrapped = mockIap.addPurchaseErrorListener.mock.calls[0][0];
+
+      wrapped({code: 'user-cancelled', message: 'User cancelled'});
+      expect(errorListener2).toHaveBeenCalledTimes(1);
+      expect(errorListener2).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: ErrorCode.UserCancelled,
+          message: 'User cancelled',
+        }),
+      );
+
+      sub2.remove();
+    });
   });
 
   describe('fetchProducts', () => {

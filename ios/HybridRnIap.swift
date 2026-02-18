@@ -1034,8 +1034,8 @@ class HybridRnIap: HybridRnIapSpec {
         updateListenerTask?.cancel()
         updateListenerTask = nil
         isInitialized = false
-        
-        
+        isInitializing = false
+
         // Remove OpenIAP listeners & end connection
         if let sub = purchaseUpdatedSub {
             RnIapLog.payload("removeListener", "purchaseUpdated")
