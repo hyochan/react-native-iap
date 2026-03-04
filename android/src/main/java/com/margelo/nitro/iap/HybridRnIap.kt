@@ -42,6 +42,7 @@ import dev.hyo.openiap.ExternalLinkLaunchModeAndroid as OpenIapExternalLinkLaunc
 import dev.hyo.openiap.ExternalLinkTypeAndroid as OpenIapExternalLinkType
 import dev.hyo.openiap.listener.OpenIapDeveloperProvidedBillingListener
 import dev.hyo.openiap.store.OpenIapStore
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CompletableDeferred
@@ -115,14 +116,17 @@ class HybridRnIap : HybridRnIapSpec() {
                             RnIapLog.warn("Activity not available during initConnection - OpenIAP will use Context")
                         }
                 }
+            } catch (err: CancellationException) {
+                throw err
             } catch (err: Throwable) {
                 val error = OpenIAPError.InitConnection
+                val errorMessage = err.message ?: err.javaClass.name
                 RnIapLog.failure("initConnection.setActivity", err)
                 throw OpenIapException(
                     toErrorJson(
                         error = error,
-                        debugMessage = err.message ?: err.javaClass.name,
-                        messageOverride = "Failed to set activity: ${err.message ?: err.javaClass.name}"
+                        debugMessage = errorMessage,
+                        messageOverride = "Failed to set activity: $errorMessage"
                     )
                 )
             }
@@ -200,15 +204,18 @@ class HybridRnIap : HybridRnIapSpec() {
                     })
                     RnIapLog.result("listeners.attach", "attached")
                 }
+            } catch (err: CancellationException) {
+                throw err
             } catch (err: Throwable) {
                 listenersAttached = false
                 val error = OpenIAPError.InitConnection
+                val errorMessage = err.message ?: err.javaClass.name
                 RnIapLog.failure("initConnection.listeners", err)
                 throw OpenIapException(
                     toErrorJson(
                         error = error,
-                        debugMessage = err.message ?: err.javaClass.name,
-                        messageOverride = "Failed to register billing listeners: ${err.message ?: err.javaClass.name}"
+                        debugMessage = errorMessage,
+                        messageOverride = "Failed to register billing listeners: $errorMessage"
                     )
                 )
             }
