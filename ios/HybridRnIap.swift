@@ -1089,7 +1089,10 @@ class HybridRnIap: HybridRnIapSpec {
             lastPurchaseErrorTimestamp = 0
             deliveredPurchaseEventKeys.removeAll()
             deliveredPurchaseEventOrder.removeAll()
-            purchasePayloadById.removeAll()
+        }
+        // Clear purchasePayloadById on MainActor to match its access pattern
+        Task { @MainActor in
+            self.purchasePayloadById.removeAll()
         }
     }
 
