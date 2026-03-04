@@ -2,11 +2,69 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://hyochan.github.io/react-native-iap/blog</id>
     <title>React Native IAP Blog</title>
-    <updated>2026-02-11T00:00:00.000Z</updated>
+    <updated>2026-03-04T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://hyochan.github.io/react-native-iap/blog"/>
     <subtitle>React Native IAP Blog</subtitle>
     <icon>https://hyochan.github.io/react-native-iap/img/favicon.png</icon>
+    <entry>
+        <title type="html"><![CDATA[14.7.13 - Thread Safety & Error Handling]]></title>
+        <id>https://hyochan.github.io/react-native-iap/blog/14.7.13</id>
+        <link href="https://hyochan.github.io/react-native-iap/blog/14.7.13"/>
+        <updated>2026-03-04T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[This release fixes two critical reliability issues: thread safety for purchase event listeners across both platforms, and unhandled JNI exceptions during Android initialization.]]></summary>
+        <content type="html"><![CDATA[<p>This release fixes two critical reliability issues: <strong>thread safety for purchase event listeners</strong> across both platforms, and <strong>unhandled JNI exceptions during Android initialization</strong>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="thread-safety-for-listener-operations-3152-3157">Thread Safety for Listener Operations (<a href="https://github.com/hyochan/react-native-iap/pull/3152" target="_blank" rel="noopener noreferrer">#3152</a>, <a href="https://github.com/hyochan/react-native-iap/pull/3157" target="_blank" rel="noopener noreferrer">#3157</a>)<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#thread-safety-for-listener-operations-3152-3157" class="hash-link" aria-label="Direct link to thread-safety-for-listener-operations-3152-3157" title="Direct link to thread-safety-for-listener-operations-3152-3157">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="problem">Problem<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#problem" class="hash-link" aria-label="Direct link to Problem" title="Direct link to Problem">​</a></h3>
+<p>When purchase events fired concurrently (e.g., during high-volume purchases or rapid listener add/remove), listener arrays could be modified while being iterated — causing <code>ConcurrentModificationException</code> on Android and potential crashes on iOS. This resulted in <strong>purchase events being silently lost</strong>.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="fix">Fix<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#fix" class="hash-link" aria-label="Direct link to Fix" title="Direct link to Fix">​</a></h3>
+<p>Both platforms now use a <strong>synchronized + snapshot pattern</strong>: listener arrays are protected by a lock, and a snapshot copy is taken before iteration. This ensures safe concurrent access without blocking event delivery.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="ios">iOS<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#ios" class="hash-link" aria-label="Direct link to iOS" title="Direct link to iOS">​</a></h4>
+<ul>
+<li>Added <code>NSLock</code> to protect all listener arrays (<code>purchaseUpdatedListeners</code>, <code>purchaseErrorListeners</code>, <code>promotedProductListeners</code>)</li>
+<li><code>sendPurchaseUpdate</code> and <code>sendPurchaseError</code> iterate over snapshot copies</li>
+<li>Error dedup state and delivery tracking collections are also protected</li>
+<li><code>cleanupExistingState</code> clears all state atomically within the lock</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="android">Android<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#android" class="hash-link" aria-label="Direct link to Android" title="Direct link to Android">​</a></h4>
+<ul>
+<li>Applied snapshot pattern to <code>userChoiceBilling</code> and <code>developerProvidedBilling</code> listeners for consistency</li>
+<li>Added <code>synchronized</code> for clearing these listener arrays in <code>endConnection</code></li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="before--after">Before &amp; After<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#before--after" class="hash-link" aria-label="Direct link to Before &amp; After" title="Direct link to Before &amp; After">​</a></h3>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">// Before: Concurrent modification could crash or silently drop events</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">listeners.forEach { it(event) }  // ❌ Another thread modifies the list</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">// After: Snapshot ensures safe iteration</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">val snapshot = lock.withLock { ArrayList(listeners) }</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">snapshot.forEach { it(event) }   // ✅ Isolated from modifications</span><br></span></code></pre></div></div>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="android-jni-exception-handling-3158">Android JNI Exception Handling (<a href="https://github.com/hyochan/react-native-iap/pull/3158" target="_blank" rel="noopener noreferrer">#3158</a>)<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#android-jni-exception-handling-3158" class="hash-link" aria-label="Direct link to android-jni-exception-handling-3158" title="Direct link to android-jni-exception-handling-3158">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="problem-1">Problem<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#problem-1" class="hash-link" aria-label="Direct link to Problem" title="Direct link to Problem">​</a></h3>
+<p>Some users reported a cryptic error during <code>initConnection</code>:</p>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">Unknown N8facebook3jni12JniExceptionE error.</span><br></span></code></pre></div></div>
+<p>This occurred because the <code>openIap</code> object is lazy-initialized, and its first access happens during <code>setActivity()</code> or listener registration — both of which were <strong>outside any try-catch block</strong>. On devices without Google Play Services or with billing client issues, the raw JNI exception propagated unhandled, producing the mangled C++ class name as the error message.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="fix-1">Fix<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#fix-1" class="hash-link" aria-label="Direct link to Fix" title="Direct link to Fix">​</a></h3>
+<ul>
+<li>Wrapped <code>setActivity</code> and listener registration in try-catch blocks</li>
+<li>Converts exceptions to structured <code>OpenIapException</code> with error code <code>init-connection</code> and descriptive messages</li>
+<li>Added <code>CancellationException</code> passthrough to preserve coroutine cancellation semantics</li>
+<li>On listener registration failure, <code>initDeferred</code> is completed exceptionally to prevent concurrent callers from deadlocking</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="before--after-1">Before &amp; After<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#before--after-1" class="hash-link" aria-label="Direct link to Before &amp; After" title="Direct link to Before &amp; After">​</a></h3>
+<div class="language-typescript codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-typescript codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token comment" style="color:#999988;font-style:italic">// Before: Cryptic error with no actionable information</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">catch</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">error</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token comment" style="color:#999988;font-style:italic">// error.message = "Unknown N8facebook3jni12JniExceptionE error."</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token comment" style="color:#999988;font-style:italic">// error.code = undefined ❌</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// After: Structured error with clear context</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">catch</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">error</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token comment" style="color:#999988;font-style:italic">// error.code = "init-connection" ✅</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token comment" style="color:#999988;font-style:italic">// error.message = "Failed to register billing listeners: &lt;details&gt;" ✅</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></span></code></pre></div></div>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="installation">Installation<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#installation" class="hash-link" aria-label="Direct link to Installation" title="Direct link to Installation">​</a></h2>
+<div class="language-bash codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bash codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">yarn add react-native-iap@14.7.13</span><br></span></code></pre></div></div>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="related">Related<a href="https://hyochan.github.io/react-native-iap/blog/14.7.13#related" class="hash-link" aria-label="Direct link to Related" title="Direct link to Related">​</a></h2>
+<ul>
+<li><a href="https://github.com/hyochan/react-native-iap/issues/3150" target="_blank" rel="noopener noreferrer">#3150 - Purchase events silently lost</a></li>
+<li><a href="https://github.com/hyochan/react-native-iap/issues/3144" target="_blank" rel="noopener noreferrer">#3144 - JNI Exception in initConnection</a></li>
+<li><a href="https://github.com/hyochan/react-native-iap/pull/3157" target="_blank" rel="noopener noreferrer">#3157 - Thread safety PR</a></li>
+<li><a href="https://github.com/hyochan/react-native-iap/pull/3158" target="_blank" rel="noopener noreferrer">#3158 - JNI error handling PR</a></li>
+</ul>]]></content>
+        <author>
+            <name>Hyo</name>
+            <uri>https://github.com/hyochan</uri>
+        </author>
+        <category label="Release" term="Release"/>
+        <category label="Bugfix" term="Bugfix"/>
+        <category label="Android" term="Android"/>
+        <category label="iOS" term="iOS"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[14.7.10 - OpenIAP 1.3.17 Sync]]></title>
         <id>https://hyochan.github.io/react-native-iap/blog/14.7.10</id>
