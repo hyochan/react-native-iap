@@ -100,19 +100,31 @@ class HybridRnIap : HybridRnIapSpec() {
             // CRITICAL: Set Activity BEFORE calling initConnection
             // Horizon SDK needs Activity to initialize OVRPlatform with proper returnComponent
             // https://github.com/meta-quest/Meta-Spatial-SDK-Samples/issues/82#issuecomment-3452577530
-            withContext(Dispatchers.Main) {
-                runCatching { context.currentActivity }
-                    .onSuccess { activity ->
-                        if (activity != null) {
-                            RnIapLog.debug("Activity available: ${activity.javaClass.name}")
-                            openIap.setActivity(activity)
-                        } else {
-                            RnIapLog.warn("Activity is null during initConnection")
+            try {
+                withContext(Dispatchers.Main) {
+                    runCatching { context.currentActivity }
+                        .onSuccess { activity ->
+                            if (activity != null) {
+                                RnIapLog.debug("Activity available: ${activity.javaClass.name}")
+                                openIap.setActivity(activity)
+                            } else {
+                                RnIapLog.warn("Activity is null during initConnection")
+                            }
                         }
-                    }
-                    .onFailure {
-                        RnIapLog.warn("Activity not available during initConnection - OpenIAP will use Context")
-                    }
+                        .onFailure {
+                            RnIapLog.warn("Activity not available during initConnection - OpenIAP will use Context")
+                        }
+                }
+            } catch (err: Throwable) {
+                val error = OpenIAPError.InitConnection
+                RnIapLog.failure("initConnection.setActivity", err)
+                throw OpenIapException(
+                    toErrorJson(
+                        error = error,
+                        debugMessage = err.message ?: err.javaClass.name,
+                        messageOverride = "Failed to set activity: ${err.message ?: err.javaClass.name}"
+                    )
+                )
             }
 
             // Single-flight: capture or create the shared Deferred atomically
@@ -128,64 +140,77 @@ class HybridRnIap : HybridRnIapSpec() {
                 return@async result
             }
 
-            if (!listenersAttached) {
-                listenersAttached = true
-                RnIapLog.payload("listeners.attach", null)
-                openIap.addPurchaseUpdateListener(OpenIapPurchaseUpdateListener { p ->
-                    runCatching {
-                        RnIapLog.result(
-                            "purchaseUpdatedListener",
-                            mapOf("id" to p.id, "sku" to p.productId)
-                        )
-                        sendPurchaseUpdate(convertToNitroPurchase(p))
-                    }.onFailure { RnIapLog.failure("purchaseUpdatedListener", it) }
-                })
-                openIap.addPurchaseErrorListener(OpenIapPurchaseErrorListener { e ->
-                    val code = OpenIAPError.toCode(e)
-                    val message = e.message ?: OpenIAPError.defaultMessage(code)
-                    runCatching {
-                        RnIapLog.result(
-                            "purchaseErrorListener",
-                            mapOf("code" to code, "message" to message)
-                        )
-                        sendPurchaseError(
-                            NitroPurchaseResult(
-                                responseCode = -1.0,
-                                debugMessage = null,
-                                code = code,
-                                message = message,
-                                purchaseToken = null
+            try {
+                if (!listenersAttached) {
+                    listenersAttached = true
+                    RnIapLog.payload("listeners.attach", null)
+                    openIap.addPurchaseUpdateListener(OpenIapPurchaseUpdateListener { p ->
+                        runCatching {
+                            RnIapLog.result(
+                                "purchaseUpdatedListener",
+                                mapOf("id" to p.id, "sku" to p.productId)
                             )
-                        )
-                    }.onFailure { RnIapLog.failure("purchaseErrorListener", it) }
-                })
-                openIap.addUserChoiceBillingListener(OpenIapUserChoiceBillingListener { details ->
-                    runCatching {
-                        RnIapLog.result(
-                            "userChoiceBillingListener",
-                            mapOf("products" to details.products, "token" to details.externalTransactionToken)
-                        )
-                        val nitroDetails = UserChoiceBillingDetails(
-                            externalTransactionToken = details.externalTransactionToken,
-                            products = details.products.toTypedArray()
-                        )
-                        sendUserChoiceBilling(nitroDetails)
-                    }.onFailure { RnIapLog.failure("userChoiceBillingListener", it) }
-                })
-                // Developer Provided Billing listener (External Payments - 8.3.0+)
-                openIap.addDeveloperProvidedBillingListener(OpenIapDeveloperProvidedBillingListener { details ->
-                    runCatching {
-                        RnIapLog.result(
-                            "developerProvidedBillingListener",
-                            mapOf("token" to details.externalTransactionToken)
-                        )
-                        val nitroDetails = DeveloperProvidedBillingDetailsAndroid(
-                            externalTransactionToken = details.externalTransactionToken
-                        )
-                        sendDeveloperProvidedBilling(nitroDetails)
-                    }.onFailure { RnIapLog.failure("developerProvidedBillingListener", it) }
-                })
-                RnIapLog.result("listeners.attach", "attached")
+                            sendPurchaseUpdate(convertToNitroPurchase(p))
+                        }.onFailure { RnIapLog.failure("purchaseUpdatedListener", it) }
+                    })
+                    openIap.addPurchaseErrorListener(OpenIapPurchaseErrorListener { e ->
+                        val code = OpenIAPError.toCode(e)
+                        val message = e.message ?: OpenIAPError.defaultMessage(code)
+                        runCatching {
+                            RnIapLog.result(
+                                "purchaseErrorListener",
+                                mapOf("code" to code, "message" to message)
+                            )
+                            sendPurchaseError(
+                                NitroPurchaseResult(
+                                    responseCode = -1.0,
+                                    debugMessage = null,
+                                    code = code,
+                                    message = message,
+                                    purchaseToken = null
+                                )
+                            )
+                        }.onFailure { RnIapLog.failure("purchaseErrorListener", it) }
+                    })
+                    openIap.addUserChoiceBillingListener(OpenIapUserChoiceBillingListener { details ->
+                        runCatching {
+                            RnIapLog.result(
+                                "userChoiceBillingListener",
+                                mapOf("products" to details.products, "token" to details.externalTransactionToken)
+                            )
+                            val nitroDetails = UserChoiceBillingDetails(
+                                externalTransactionToken = details.externalTransactionToken,
+                                products = details.products.toTypedArray()
+                            )
+                            sendUserChoiceBilling(nitroDetails)
+                        }.onFailure { RnIapLog.failure("userChoiceBillingListener", it) }
+                    })
+                    // Developer Provided Billing listener (External Payments - 8.3.0+)
+                    openIap.addDeveloperProvidedBillingListener(OpenIapDeveloperProvidedBillingListener { details ->
+                        runCatching {
+                            RnIapLog.result(
+                                "developerProvidedBillingListener",
+                                mapOf("token" to details.externalTransactionToken)
+                            )
+                            val nitroDetails = DeveloperProvidedBillingDetailsAndroid(
+                                externalTransactionToken = details.externalTransactionToken
+                            )
+                            sendDeveloperProvidedBilling(nitroDetails)
+                        }.onFailure { RnIapLog.failure("developerProvidedBillingListener", it) }
+                    })
+                    RnIapLog.result("listeners.attach", "attached")
+                }
+            } catch (err: Throwable) {
+                listenersAttached = false
+                val error = OpenIAPError.InitConnection
+                RnIapLog.failure("initConnection.listeners", err)
+                throw OpenIapException(
+                    toErrorJson(
+                        error = error,
+                        debugMessage = err.message ?: err.javaClass.name,
+                        messageOverride = "Failed to register billing listeners: ${err.message ?: err.javaClass.name}"
+                    )
+                )
             }
 
             // We created it above; reuse the shared instance
