@@ -258,8 +258,8 @@ class HybridRnIap : HybridRnIapSpec() {
             synchronized(purchaseUpdatedListeners) { purchaseUpdatedListeners.clear() }
             synchronized(purchaseErrorListeners) { purchaseErrorListeners.clear() }
             promotedProductListenersIOS.clear()
-            userChoiceBillingListenersAndroid.clear()
-            developerProvidedBillingListenersAndroid.clear()
+            synchronized(userChoiceBillingListenersAndroid) { userChoiceBillingListenersAndroid.clear() }
+            synchronized(developerProvidedBillingListenersAndroid) { developerProvidedBillingListenersAndroid.clear() }
             initDeferred = null
             RnIapLog.result("endConnection", true)
             true
@@ -1592,9 +1592,8 @@ class HybridRnIap : HybridRnIapSpec() {
     }
 
     private fun sendUserChoiceBilling(details: UserChoiceBillingDetails) {
-        synchronized(userChoiceBillingListenersAndroid) {
-            userChoiceBillingListenersAndroid.forEach { it(details) }
-        }
+        val snapshot = synchronized(userChoiceBillingListenersAndroid) { ArrayList(userChoiceBillingListenersAndroid) }
+        snapshot.forEach { it(details) }
     }
 
     // Developer Provided Billing listener (External Payments - 8.3.0+)
@@ -1611,9 +1610,8 @@ class HybridRnIap : HybridRnIapSpec() {
     }
 
     private fun sendDeveloperProvidedBilling(details: DeveloperProvidedBillingDetailsAndroid) {
-        synchronized(developerProvidedBillingListenersAndroid) {
-            developerProvidedBillingListenersAndroid.forEach { it(details) }
-        }
+        val snapshot = synchronized(developerProvidedBillingListenersAndroid) { ArrayList(developerProvidedBillingListenersAndroid) }
+        snapshot.forEach { it(details) }
     }
 
     // -------------------------------------------------------------------------

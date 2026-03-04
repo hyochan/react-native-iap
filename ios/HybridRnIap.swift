@@ -23,7 +23,9 @@ class HybridRnIap: HybridRnIapSpec {
     private var deliveredPurchaseEventOrder: [String] = []
     private let purchaseEventDedupLimit = 128
     private var purchasePayloadById: [String: [String: Any]] = [:]
-    
+    // Thread safety lock for listener arrays and error dedup state
+    private let listenerLock = NSLock()
+
     // MARK: - Initialization
     
     override init() {
@@ -851,8 +853,8 @@ class HybridRnIap: HybridRnIapSpec {
     }
     
     func addPromotedProductListenerIOS(listener: @escaping (NitroProduct) -> Void) throws {
-        promotedProductListeners.append(listener)
-        
+        listenerLock.withLock { promotedProductListeners.append(listener) }
+
         // If a promoted product is already available from OpenIAP, notify immediately
         Task {
             RnIapLog.payload("promotedProductListenerIOS.fetch", nil)
@@ -864,33 +866,27 @@ class HybridRnIap: HybridRnIapSpec {
             }
         }
     }
-    
+
     func removePromotedProductListenerIOS(listener: @escaping (NitroProduct) -> Void) throws {
-        // Note: In Swift, comparing closures is not straightforward, so we'll clear all listeners
-        // In a real implementation, you might want to use a unique identifier for each listener
-        promotedProductListeners.removeAll()
+        listenerLock.withLock { promotedProductListeners.removeAll() }
     }
-    
+
     // MARK: - Event Listener Methods
-    
+
     func addPurchaseUpdatedListener(listener: @escaping (NitroPurchase) -> Void) throws {
-        purchaseUpdatedListeners.append(listener)
+        listenerLock.withLock { purchaseUpdatedListeners.append(listener) }
     }
-    
+
     func addPurchaseErrorListener(listener: @escaping (NitroPurchaseResult) -> Void) throws {
-        purchaseErrorListeners.append(listener)
+        listenerLock.withLock { purchaseErrorListeners.append(listener) }
     }
-    
+
     func removePurchaseUpdatedListener(listener: @escaping (NitroPurchase) -> Void) throws {
-        // Note: This is a limitation of Swift closures - we can't easily remove by reference
-        // For now, we'll just clear all listeners when requested
-        purchaseUpdatedListeners.removeAll()
+        listenerLock.withLock { purchaseUpdatedListeners.removeAll() }
     }
-    
+
     func removePurchaseErrorListener(listener: @escaping (NitroPurchaseResult) -> Void) throws {
-        // Note: This is a limitation of Swift closures - we can't easily remove by reference
-        // For now, we'll just clear all listeners when requested
-        purchaseErrorListeners.removeAll()
+        listenerLock.withLock { purchaseErrorListeners.removeAll() }
     }
     
     // MARK: - Private Helper Methods
@@ -954,20 +950,22 @@ class HybridRnIap: HybridRnIapSpec {
                         RnIapLog.result("fetchProducts", payloads)
                         if let payload = payloads.first {
                             let nitro = RnIapHelper.convertProductDictionary(payload)
+                            let snapshot = self.listenerLock.withLock { Array(self.promotedProductListeners) }
                             await MainActor.run {
-                                for listener in self.promotedProductListeners { listener(nitro) }
+                                for listener in snapshot { listener(nitro) }
                             }
                         }
                     } catch {
                         RnIapLog.failure("promotedProductListenerIOS", error: error)
                         let id = productId
+                        let snapshot = self.listenerLock.withLock { Array(self.promotedProductListeners) }
                         await MainActor.run {
                             var minimal = NitroProduct()
                             minimal.id = id
                             minimal.title = id
                             minimal.type = "inapp"
                             minimal.platform = .ios
-                            for listener in self.promotedProductListeners { listener(minimal) }
+                            for listener in snapshot { listener(minimal) }
                         }
                     }
                 }
@@ -992,44 +990,59 @@ class HybridRnIap: HybridRnIapSpec {
         ]
         let eventKey = keyComponents.joined(separator: "#")
 
-        if deliveredPurchaseEventKeys.contains(eventKey) {
+        var isDuplicate = false
+        let snapshot: [(NitroPurchase) -> Void] = listenerLock.withLock {
+            if deliveredPurchaseEventKeys.contains(eventKey) {
+                isDuplicate = true
+                return []
+            }
+
+            deliveredPurchaseEventKeys.insert(eventKey)
+            deliveredPurchaseEventOrder.append(eventKey)
+            if deliveredPurchaseEventOrder.count > purchaseEventDedupLimit, let removed = deliveredPurchaseEventOrder.first {
+                deliveredPurchaseEventOrder.removeFirst()
+                deliveredPurchaseEventKeys.remove(removed)
+            }
+
+            return Array(purchaseUpdatedListeners)
+        }
+
+        if isDuplicate {
             RnIapLog.warn("Duplicate purchase update skipped for \(purchase.productId)")
             return
         }
 
-        deliveredPurchaseEventKeys.insert(eventKey)
-        deliveredPurchaseEventOrder.append(eventKey)
-        if deliveredPurchaseEventOrder.count > purchaseEventDedupLimit, let removed = deliveredPurchaseEventOrder.first {
-            deliveredPurchaseEventOrder.removeFirst()
-            deliveredPurchaseEventKeys.remove(removed)
-        }
-
-        for listener in purchaseUpdatedListeners {
+        for listener in snapshot {
             listener(purchase)
         }
     }
-    
+
     private func sendPurchaseError(_ error: NitroPurchaseResult, productId: String? = nil) {
-        let now = Date().timeIntervalSince1970
         let dedupIdentifier = productId
             ?? (error.purchaseToken?.isEmpty == false ? error.purchaseToken : nil)
             ?? (error.message.isEmpty ? nil : error.message)
         let currentKey = RnIapHelper.makeErrorDedupKey(code: error.code, productId: dedupIdentifier)
-        // Dedup only when the exact same error is emitted almost simultaneously.
-        let withinWindow = (now - lastPurchaseErrorTimestamp) < 0.15
-        if currentKey == lastPurchaseErrorKey && withinWindow {
-            return
-        }
 
-        lastPurchaseErrorKey = currentKey
-        lastPurchaseErrorTimestamp = now
+        // Protect error dedup state since sendPurchaseError is called from multiple threads
+        let shouldSkip: Bool = listenerLock.withLock {
+            let now = Date().timeIntervalSince1970
+            let withinWindow = (now - lastPurchaseErrorTimestamp) < 0.15
+            if currentKey == lastPurchaseErrorKey && withinWindow {
+                return true
+            }
+            lastPurchaseErrorKey = currentKey
+            lastPurchaseErrorTimestamp = now
+            return false
+        }
+        if shouldSkip { return }
 
         // Ensure we never leak SKU via purchaseToken
         var sanitized = error
         if let pid = productId, sanitized.purchaseToken == pid {
             sanitized.purchaseToken = nil
         }
-        for listener in purchaseErrorListeners {
+        let snapshot = listenerLock.withLock { Array(purchaseErrorListeners) }
+        for listener in snapshot {
             listener(sanitized)
         }
     }
@@ -1067,15 +1080,17 @@ class HybridRnIap: HybridRnIapSpec {
             RnIapLog.result("endConnection", result as Any)
         }
 
-        // Clear event listeners
-        purchaseUpdatedListeners.removeAll()
-        purchaseErrorListeners.removeAll()
-        promotedProductListeners.removeAll()
-        deliveredPurchaseEventKeys.removeAll()
-        deliveredPurchaseEventOrder.removeAll()
-        purchasePayloadById.removeAll()
-        lastPurchaseErrorKey = nil
-        lastPurchaseErrorTimestamp = 0
+        // Clear event listeners, error dedup state, and delivery state (thread-safe)
+        listenerLock.withLock {
+            purchaseUpdatedListeners.removeAll()
+            purchaseErrorListeners.removeAll()
+            promotedProductListeners.removeAll()
+            lastPurchaseErrorKey = nil
+            lastPurchaseErrorTimestamp = 0
+            deliveredPurchaseEventKeys.removeAll()
+            deliveredPurchaseEventOrder.removeAll()
+            purchasePayloadById.removeAll()
+        }
     }
 
     func deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid) throws -> Promise<Void> {

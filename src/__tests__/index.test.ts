@@ -214,6 +214,98 @@ describe('Public API (src/index.ts)', () => {
       wrapped({});
       expect(listener).not.toHaveBeenCalled();
     });
+
+    it('multiple purchaseUpdatedListeners all receive events', () => {
+      const listener1 = jest.fn();
+      const listener2 = jest.fn();
+      const sub1 = IAP.purchaseUpdatedListener(listener1);
+      const sub2 = IAP.purchaseUpdatedListener(listener2);
+
+      expect(mockIap.addPurchaseUpdatedListener).toHaveBeenCalledTimes(2);
+
+      const nitroPurchase = {
+        id: 't1',
+        productId: 'p1',
+        transactionDate: Date.now(),
+        platform: 'ios',
+        quantity: 1,
+        purchaseState: 'purchased',
+        isAutoRenewing: false,
+      };
+      const wrapped1 = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
+      const wrapped2 = mockIap.addPurchaseUpdatedListener.mock.calls[1][0];
+      wrapped1(nitroPurchase);
+      wrapped2(nitroPurchase);
+
+      expect(listener1).toHaveBeenCalledTimes(1);
+      expect(listener2).toHaveBeenCalledTimes(1);
+
+      sub1.remove();
+      sub2.remove();
+    });
+
+    it('removing one purchaseUpdatedListener does not affect others', () => {
+      const listener1 = jest.fn();
+      const listener2 = jest.fn();
+      const sub1 = IAP.purchaseUpdatedListener(listener1);
+      const sub2 = IAP.purchaseUpdatedListener(listener2);
+
+      sub1.remove();
+      expect(mockIap.removePurchaseUpdatedListener).toHaveBeenCalledTimes(1);
+
+      const wrapped2 = mockIap.addPurchaseUpdatedListener.mock.calls[1][0];
+      const nitroPurchase = {
+        id: 't2',
+        productId: 'p2',
+        transactionDate: Date.now(),
+        platform: 'ios',
+        quantity: 1,
+        purchaseState: 'purchased',
+        isAutoRenewing: false,
+      };
+      wrapped2(nitroPurchase);
+      expect(listener2).toHaveBeenCalledTimes(1);
+      expect(listener1).not.toHaveBeenCalled();
+
+      sub2.remove();
+    });
+
+    it('multiple purchaseErrorListeners all receive errors', () => {
+      const listener1 = jest.fn();
+      const listener2 = jest.fn();
+      const sub1 = IAP.purchaseErrorListener(listener1);
+      const sub2 = IAP.purchaseErrorListener(listener2);
+
+      expect(mockIap.addPurchaseErrorListener).toHaveBeenCalledTimes(2);
+
+      const wrapped1 = mockIap.addPurchaseErrorListener.mock.calls[0][0];
+      const wrapped2 = mockIap.addPurchaseErrorListener.mock.calls[1][0];
+      const err = {code: 'user-cancelled', message: 'User cancelled'};
+      wrapped1(err);
+      wrapped2(err);
+
+      expect(listener1).toHaveBeenCalledTimes(1);
+      expect(listener2).toHaveBeenCalledTimes(1);
+
+      sub1.remove();
+      sub2.remove();
+    });
+
+    it('removing one purchaseErrorListener does not affect others', () => {
+      const listener1 = jest.fn();
+      const listener2 = jest.fn();
+      const sub1 = IAP.purchaseErrorListener(listener1);
+      const sub2 = IAP.purchaseErrorListener(listener2);
+
+      sub1.remove();
+
+      const wrapped2 = mockIap.addPurchaseErrorListener.mock.calls[1][0];
+      wrapped2({code: 'network-error', message: 'Network error'});
+      expect(listener2).toHaveBeenCalledTimes(1);
+      expect(listener1).not.toHaveBeenCalled();
+
+      sub2.remove();
+    });
   });
 
   describe('connection', () => {
