@@ -990,19 +990,28 @@ class HybridRnIap: HybridRnIapSpec {
         ]
         let eventKey = keyComponents.joined(separator: "#")
 
-        if deliveredPurchaseEventKeys.contains(eventKey) {
+        var isDuplicate = false
+        let snapshot: [(NitroPurchase) -> Void] = listenerLock.withLock {
+            if deliveredPurchaseEventKeys.contains(eventKey) {
+                isDuplicate = true
+                return []
+            }
+
+            deliveredPurchaseEventKeys.insert(eventKey)
+            deliveredPurchaseEventOrder.append(eventKey)
+            if deliveredPurchaseEventOrder.count > purchaseEventDedupLimit, let removed = deliveredPurchaseEventOrder.first {
+                deliveredPurchaseEventOrder.removeFirst()
+                deliveredPurchaseEventKeys.remove(removed)
+            }
+
+            return Array(purchaseUpdatedListeners)
+        }
+
+        if isDuplicate {
             RnIapLog.warn("Duplicate purchase update skipped for \(purchase.productId)")
             return
         }
 
-        deliveredPurchaseEventKeys.insert(eventKey)
-        deliveredPurchaseEventOrder.append(eventKey)
-        if deliveredPurchaseEventOrder.count > purchaseEventDedupLimit, let removed = deliveredPurchaseEventOrder.first {
-            deliveredPurchaseEventOrder.removeFirst()
-            deliveredPurchaseEventKeys.remove(removed)
-        }
-
-        let snapshot = listenerLock.withLock { Array(purchaseUpdatedListeners) }
         for listener in snapshot {
             listener(purchase)
         }
@@ -1071,17 +1080,17 @@ class HybridRnIap: HybridRnIapSpec {
             RnIapLog.result("endConnection", result as Any)
         }
 
-        // Clear event listeners and error dedup state (thread-safe)
+        // Clear event listeners, error dedup state, and delivery state (thread-safe)
         listenerLock.withLock {
             purchaseUpdatedListeners.removeAll()
             purchaseErrorListeners.removeAll()
             promotedProductListeners.removeAll()
             lastPurchaseErrorKey = nil
             lastPurchaseErrorTimestamp = 0
+            deliveredPurchaseEventKeys.removeAll()
+            deliveredPurchaseEventOrder.removeAll()
+            purchasePayloadById.removeAll()
         }
-        deliveredPurchaseEventKeys.removeAll()
-        deliveredPurchaseEventOrder.removeAll()
-        purchasePayloadById.removeAll()
     }
 
     func deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid) throws -> Promise<Void> {

@@ -47,6 +47,8 @@ class ListenerThreadSafetyTest {
 
         adder.join(5000)
         sender.join(5000)
+        assertFalse("Adder thread did not finish", adder.isAlive)
+        assertFalse("Sender thread did not finish", sender.isAlive)
         assertNull("Should not throw ConcurrentModificationException", errorRef.get())
     }
 
@@ -89,6 +91,9 @@ class ListenerThreadSafetyTest {
         adder.join(5000)
         remover.join(5000)
         sender.join(5000)
+        assertFalse("Adder thread did not finish", adder.isAlive)
+        assertFalse("Remover thread did not finish", remover.isAlive)
+        assertFalse("Sender thread did not finish", sender.isAlive)
         assertNull("Concurrent access should be safe with snapshot pattern", errorRef.get())
     }
 
