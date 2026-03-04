@@ -211,13 +211,21 @@ class HybridRnIap : HybridRnIapSpec() {
                 val error = OpenIAPError.InitConnection
                 val errorMessage = err.message ?: err.javaClass.name
                 RnIapLog.failure("initConnection.listeners", err)
-                throw OpenIapException(
+                val wrapped = OpenIapException(
                     toErrorJson(
                         error = error,
                         debugMessage = errorMessage,
                         messageOverride = "Failed to register billing listeners: $errorMessage"
                     )
                 )
+                synchronized(initLock) {
+                    initDeferred?.let { deferred ->
+                        if (!deferred.isCompleted) deferred.completeExceptionally(wrapped)
+                    }
+                    initDeferred = null
+                }
+                isInitialized = false
+                throw wrapped
             }
 
             // We created it above; reuse the shared instance
