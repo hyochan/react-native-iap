@@ -150,7 +150,7 @@ class HybridRnIap: HybridRnIapSpec {
     
     func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<RequestPurchaseResult> {
         return Promise.async {
-            let defaultResult: RequestPurchaseResult? = .third([])
+            let defaultResult: RequestPurchaseResult? = .fourth([])
             RnIapLog.payload(
                 "requestPurchase", [
                     "hasIOS": request.ios != nil,
@@ -158,7 +158,10 @@ class HybridRnIap: HybridRnIapSpec {
                 ]
             )
 
-            guard let iosRequest = request.ios else {
+            let iosRequest: NitroRequestPurchaseIos
+            if case .second(let unwrapped) = request.ios {
+                iosRequest = unwrapped
+            } else {
                 let error = RnIapHelper.makePurchaseErrorResult(
                     code: .developerError,
                     message: "No iOS request provided"
@@ -179,30 +182,30 @@ class HybridRnIap: HybridRnIapSpec {
 
             do {
                 var iosPayload: [String: Any] = ["sku": iosRequest.sku]
-                if let quantity = iosRequest.quantity { iosPayload["quantity"] = Int(quantity) }
-                if let finishAutomatically = iosRequest.andDangerouslyFinishTransactionAutomatically {
+                if case .second(let quantity) = iosRequest.quantity { iosPayload["quantity"] = Int(quantity) }
+                if case .second(let finishAutomatically) = iosRequest.andDangerouslyFinishTransactionAutomatically {
                     iosPayload["andDangerouslyFinishTransactionAutomatically"] = finishAutomatically
                 }
-                if let appAccountToken = iosRequest.appAccountToken {
+                if case .second(let appAccountToken) = iosRequest.appAccountToken {
                     iosPayload["appAccountToken"] = appAccountToken
                 }
-                if let withOffer = iosRequest.withOffer {
+                if case .second(let withOffer) = iosRequest.withOffer {
                     iosPayload["withOffer"] = withOffer
                 }
-                if let advancedCommerceData = iosRequest.advancedCommerceData {
+                if case .second(let advancedCommerceData) = iosRequest.advancedCommerceData {
                     iosPayload["advancedCommerceData"] = advancedCommerceData
                 }
                 // WWDC 2025 / iOS 18+ subscription offer fields
-                if let introductoryOfferEligibility = iosRequest.introductoryOfferEligibility {
+                if case .second(let introductoryOfferEligibility) = iosRequest.introductoryOfferEligibility {
                     iosPayload["introductoryOfferEligibility"] = introductoryOfferEligibility
                 }
-                if let promotionalOfferJWS = iosRequest.promotionalOfferJWS {
+                if case .second(let promotionalOfferJWS) = iosRequest.promotionalOfferJWS {
                     iosPayload["promotionalOfferJWS"] = [
                         "jws": promotionalOfferJWS.jws,
                         "offerId": promotionalOfferJWS.offerId
                     ]
                 }
-                if let winBackOffer = iosRequest.winBackOffer {
+                if case .second(let winBackOffer) = iosRequest.winBackOffer {
                     iosPayload["winBackOffer"] = ["offerId": winBackOffer.offerId]
                 }
 
@@ -252,8 +255,22 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             try self.ensureConnection()
             do {
-                let alsoPublish = options?.ios?.alsoPublishToEventListener ?? false
-                let onlyActive = options?.ios?.onlyIncludeActiveItemsIOS ?? options?.ios?.onlyIncludeActiveItems ?? false
+                // Unwrap Variant ios options
+                let iosOpts: NitroAvailablePurchasesIosOptions?
+                if case .second(let unwrapped) = options?.ios {
+                    iosOpts = unwrapped
+                } else {
+                    iosOpts = nil
+                }
+                let alsoPublish: Bool = {
+                    if case .second(let val) = iosOpts?.alsoPublishToEventListener { return val }
+                    return false
+                }()
+                let onlyActive: Bool = {
+                    if case .second(let val) = iosOpts?.onlyIncludeActiveItemsIOS { return val }
+                    if case .second(let val) = iosOpts?.onlyIncludeActiveItems { return val }
+                    return false
+                }()
                 let optionsDictionary: [String: Any] = [
                     "alsoPublishToEventListenerIOS": alsoPublish,
                     "onlyIncludeActiveItemsIOS": onlyActive
@@ -314,7 +331,7 @@ class HybridRnIap: HybridRnIapSpec {
 
     func finishTransaction(params: NitroFinishTransactionParams) throws -> Promise<Variant_Bool_NitroPurchaseResult> {
         return Promise.async {
-            guard let iosParams = params.ios else { return .first(true) }
+            guard case .second(let iosParams) = params.ios else { return .first(true) }
             try self.ensureConnection()
             do {
                 RnIapLog.payload(
@@ -351,7 +368,7 @@ class HybridRnIap: HybridRnIapSpec {
         return Promise.async {
             do {
                 // Extract SKU from apple options (new platform-specific structure)
-                guard let appleOptions = params.apple, !appleOptions.sku.isEmpty else {
+                guard case .second(let appleOptions) = params.apple, !appleOptions.sku.isEmpty else {
                     throw OpenIapException.make(code: .developerError, message: "Missing required parameter: apple.sku")
                 }
                 let sku = appleOptions.sku
@@ -376,7 +393,7 @@ class HybridRnIap: HybridRnIapSpec {
                     isValid: result.isValid,
                     receiptData: result.receiptData,
                     jwsRepresentation: result.jwsRepresentation,
-                    latestTransaction: latest
+                    latestTransaction: latest.map { .second($0) }
                 )
                 return .first(mapped)
             } catch let purchaseError as PurchaseError {
@@ -396,18 +413,18 @@ class HybridRnIap: HybridRnIapSpec {
                 // Convert Nitro params to OpenIAP props using JSONSerialization (same as expo-iap)
                 // Use stringValue for enum to get proper string representation ("iapkit" instead of numeric rawValue)
                 var propsDict: [String: Any] = ["provider": params.provider.stringValue]
-                if let iapkit = params.iapkit {
+                if case .second(let iapkit) = params.iapkit {
                     var iapkitDict: [String: Any] = [:]
                     // Use provided apiKey, or fallback to Info.plist IAPKitAPIKey (set by config plugin)
-                    if let apiKey = iapkit.apiKey {
+                    if case .second(let apiKey) = iapkit.apiKey {
                         iapkitDict["apiKey"] = apiKey
                     } else if let plistApiKey = Bundle.main.object(forInfoDictionaryKey: "IAPKitAPIKey") as? String {
                         iapkitDict["apiKey"] = plistApiKey
                     }
-                    if let apple = iapkit.apple {
+                    if case .second(let apple) = iapkit.apple {
                         iapkitDict["apple"] = ["jws": apple.jws]
                     }
-                    if let google = iapkit.google {
+                    if case .second(let google) = iapkit.google {
                         iapkitDict["google"] = ["purchaseToken": google.purchaseToken]
                     }
                     propsDict["iapkit"] = iapkitDict
@@ -436,9 +453,11 @@ class HybridRnIap: HybridRnIapSpec {
                         )
                     }
                 }
+                let wrappedIapkit: Variant_NullType_NitroVerifyPurchaseWithIapkitResult? = nitroIapkitResult.map { .second($0) }
+                let wrappedErrors: Variant_NullType__NitroVerifyPurchaseWithProviderError_? = nitroErrors.map { .second($0) }
                 return NitroVerifyPurchaseWithProviderResult(
-                    iapkit: nitroIapkitResult,
-                    errors: nitroErrors,
+                    iapkit: wrappedIapkit,
+                    errors: wrappedErrors,
                     provider: PurchaseVerificationProvider(fromString: result.provider.rawValue) ?? .iapkit
                 )
             } catch let purchaseError as PurchaseError {
@@ -991,12 +1010,16 @@ class HybridRnIap: HybridRnIapSpec {
     }
     
     private func sendPurchaseUpdate(_ purchase: NitroPurchase) {
-        let keyComponents = [
+        let originalTxId: String
+        if case .second(let val) = purchase.originalTransactionIdentifierIOS { originalTxId = val } else { originalTxId = "" }
+        let purchaseTokenStr: String
+        if case .second(let val) = purchase.purchaseToken { purchaseTokenStr = val } else { purchaseTokenStr = "" }
+        let keyComponents: [String] = [
             purchase.id,
             purchase.productId,
             String(purchase.transactionDate),
-            purchase.originalTransactionIdentifierIOS ?? "",
-            purchase.purchaseToken ?? ""
+            originalTxId,
+            purchaseTokenStr
         ]
         let eventKey = keyComponents.joined(separator: "#")
 
@@ -1223,8 +1246,8 @@ class HybridRnIap: HybridRnIapSpec {
                     }
 
                     let nitroResult = ExternalPurchaseNoticeResultIOS(
-                        error: result.error,
-                        externalPurchaseToken: result.externalPurchaseToken,
+                        error: RnIapHelper.wrapString(result.error),
+                        externalPurchaseToken: RnIapHelper.wrapString(result.externalPurchaseToken),
                         result: nitroAction
                     )
                     var encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
@@ -1257,7 +1280,7 @@ class HybridRnIap: HybridRnIapSpec {
                 do {
                     let result = try await OpenIapModule.shared.presentExternalPurchaseLinkIOS(url)
                     let nitroResult = ExternalPurchaseLinkResultIOS(
-                        error: result.error,
+                        error: RnIapHelper.wrapString(result.error),
                         success: result.success
                     )
                     RnIapLog.result("presentExternalPurchaseLinkIOS", result)
@@ -1306,8 +1329,8 @@ class HybridRnIap: HybridRnIapSpec {
                 }
                 let result = try await OpenIapModule.shared.getExternalPurchaseCustomLinkTokenIOS(openIapTokenType)
                 let nitroResult = ExternalPurchaseCustomLinkTokenResultIOS(
-                    error: result.error,
-                    token: result.token
+                    error: RnIapHelper.wrapString(result.error),
+                    token: RnIapHelper.wrapString(result.token)
                 )
                 var encoded = RnIapHelper.sanitizeDictionary(OpenIapSerialization.encode(result))
                 if encoded["token"] != nil {
@@ -1343,7 +1366,7 @@ class HybridRnIap: HybridRnIapSpec {
                 let result = try await OpenIapModule.shared.showExternalPurchaseCustomLinkNoticeIOS(openIapNoticeType)
                 let nitroResult = ExternalPurchaseCustomLinkNoticeResultIOS(
                     continued: result.continued,
-                    error: result.error
+                    error: RnIapHelper.wrapString(result.error)
                 )
                 RnIapLog.result("showExternalPurchaseCustomLinkNoticeIOS", result)
                 return nitroResult
