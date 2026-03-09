@@ -2,6 +2,7 @@ package com.margelo.nitro.iap
 
 import com.facebook.react.bridge.ReactApplicationContext
 import com.margelo.nitro.NitroModules
+import com.margelo.nitro.core.NullType
 import com.margelo.nitro.core.Promise
 import dev.hyo.openiap.AndroidSubscriptionOfferInput
 import dev.hyo.openiap.DeepLinkOptions as OpenIapDeepLinkOptions
@@ -89,9 +90,22 @@ class HybridRnIap : HybridRnIapSpec() {
     private val initLock = Any()
     
     // Connection methods
-    override fun initConnection(config: InitConnectionConfig?): Promise<Boolean> {
+    // Variant wrapper helpers for nitrogen 0.35.0 compatibility
+    private fun String?.wrapVariant(): Variant_NullType_String? = this?.let { Variant_NullType_String.Second(it) }
+    private fun Double?.wrapVariant(): Variant_NullType_Double? = this?.let { Variant_NullType_Double.Second(it) }
+    private fun Boolean?.wrapVariant(): Variant_NullType_Boolean? = this?.let { Variant_NullType_Boolean.Second(it) }
+    private fun Variant_NullType_String?.unwrapString(): String? = (this as? Variant_NullType_String.Second)?.value
+    private fun Variant_NullType_Double?.unwrapDouble(): Double? = (this as? Variant_NullType_Double.Second)?.value
+    private fun Variant_NullType_Boolean?.unwrapBool(): Boolean? = (this as? Variant_NullType_Boolean.Second)?.value
+
+    private suspend fun ensureConnection() {
+        initConnection(null as Variant_NullType_InitConnectionConfig?).await()
+    }
+
+    override fun initConnection(config: Variant_NullType_InitConnectionConfig?): Promise<Boolean> {
         return Promise.async {
-            RnIapLog.payload("initConnection", config)
+            val configValue = (config as? Variant_NullType_InitConnectionConfig.Second)?.value
+            RnIapLog.payload("initConnection", configValue)
             // Fast-path: if already initialized, return immediately
             if (isInitialized) {
                 RnIapLog.result("initConnection", true)
@@ -234,14 +248,14 @@ class HybridRnIap : HybridRnIapSpec() {
                 // Convert Nitro config to OpenIAP config
                 // Note: enableBillingProgramAndroid is passed to OpenIapInitConnectionConfig
                 // which handles enabling the billing program internally
-                val openIapConfig = config?.let {
+                val openIapConfig = configValue?.let {
                     OpenIapInitConnectionConfig(
                         alternativeBillingModeAndroid = when (it.alternativeBillingModeAndroid) {
                             com.margelo.nitro.iap.AlternativeBillingModeAndroid.USER_CHOICE -> dev.hyo.openiap.AlternativeBillingModeAndroid.UserChoice
                             com.margelo.nitro.iap.AlternativeBillingModeAndroid.ALTERNATIVE_ONLY -> dev.hyo.openiap.AlternativeBillingModeAndroid.AlternativeOnly
                             else -> null
                         },
-                        enableBillingProgramAndroid = config.enableBillingProgramAndroid?.let { program ->
+                        enableBillingProgramAndroid = configValue.enableBillingProgramAndroid?.let { program ->
                             mapBillingProgram(program)
                         }
                     )
@@ -321,7 +335,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 throw OpenIapException(toErrorJson(OpenIAPError.EmptySkuList))
             }
 
-            initConnection(null).await()
+            ensureConnection()
 
             val queryType = parseProductQueryType(type)
             val skusList = skus.toList()
@@ -380,19 +394,22 @@ class HybridRnIap : HybridRnIapSpec() {
     
     // Purchase methods
     // Purchase methods (Unified)
-    override fun requestPurchase(request: NitroPurchaseRequest): Promise<RequestPurchaseResult?> {
+    override fun requestPurchase(request: NitroPurchaseRequest): Promise<RequestPurchaseResult> {
         return Promise.async {
             val defaultResult = RequestPurchaseResult.create(emptyArray<com.margelo.nitro.iap.Purchase>())
+
+            val androidRequest = (request.android as? Variant_NullType_NitroRequestPurchaseAndroid.Second)?.value
+                ?: (request.google as? Variant_NullType_NitroRequestPurchaseAndroid.Second)?.value
 
             RnIapLog.payload(
                 "requestPurchase",
                 mapOf(
-                    "androidSkus" to (request.android?.skus?.toList() ?: emptyList()),
+                    "androidSkus" to (androidRequest?.skus?.toList() ?: emptyList()),
                     "hasIOS" to (request.ios != null)
                 )
             )
 
-            val androidRequest = request.android ?: run {
+            if (androidRequest == null) {
                 RnIapLog.warn("requestPurchase called without android payload")
                 sendPurchaseError(toErrorResult(OpenIAPError.DeveloperError))
                 return@async defaultResult
@@ -405,7 +422,7 @@ class HybridRnIap : HybridRnIapSpec() {
             }
 
             try {
-                initConnection(null).await()
+                ensureConnection()
 
                 // Ensure Activity is available for purchase flow
                 val activity = withContext(Dispatchers.Main) {
@@ -446,7 +463,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 val typeHint = androidRequest.skus.firstOrNull()?.let { productTypeBySku[it] } ?: "inapp"
                 val queryType = parseProductQueryType(typeHint)
 
-                val subscriptionOffers = androidRequest.subscriptionOffers
+                val subscriptionOffers = (androidRequest.subscriptionOffers as? Variant_NullType_Array_AndroidSubscriptionOfferInput_.Second)?.value
                     ?.mapNotNull { offer ->
                         val sku = offer.sku
                         val token = offer.offerToken
@@ -461,10 +478,10 @@ class HybridRnIap : HybridRnIapSpec() {
 
                 val requestProps = when (queryType) {
                     ProductQueryType.Subs -> {
-                        val replacementMode = (androidRequest.replacementMode as? Number)?.toInt()
+                        val replacementMode = androidRequest.replacementMode.unwrapDouble()?.toInt()
 
                         // Parse subscriptionProductReplacementParams (8.1.0+)
-                        val subscriptionProductReplacementParams = androidRequest.subscriptionProductReplacementParams?.let { params ->
+                        val subscriptionProductReplacementParams = (androidRequest.subscriptionProductReplacementParams as? Variant_NullType_SubscriptionProductReplacementParamsAndroid.Second)?.value?.let { params ->
                             OpenIapSubscriptionProductReplacementParams(
                                 oldProductId = params.oldProductId,
                                 replacementMode = parseSubscriptionReplacementMode(params.replacementMode)
@@ -472,10 +489,10 @@ class HybridRnIap : HybridRnIapSpec() {
                         }
 
                         val androidProps = RequestSubscriptionAndroidProps(
-                            isOfferPersonalized = androidRequest.isOfferPersonalized,
-                            obfuscatedAccountId = androidRequest.obfuscatedAccountId,
-                            obfuscatedProfileId = androidRequest.obfuscatedProfileId,
-                            purchaseToken = androidRequest.purchaseToken,
+                            isOfferPersonalized = androidRequest.isOfferPersonalized.unwrapBool(),
+                            obfuscatedAccountId = androidRequest.obfuscatedAccountId.unwrapString(),
+                            obfuscatedProfileId = androidRequest.obfuscatedProfileId.unwrapString(),
+                            purchaseToken = androidRequest.purchaseToken.unwrapString(),
                             replacementMode = replacementMode,
                             skus = androidRequest.skus.toList(),
                             subscriptionOffers = normalizedOffers,
@@ -490,10 +507,10 @@ class HybridRnIap : HybridRnIapSpec() {
                     }
                     ProductQueryType.InApp, ProductQueryType.All -> {
                         val androidProps = RequestPurchaseAndroidProps(
-                            isOfferPersonalized = androidRequest.isOfferPersonalized,
-                            obfuscatedAccountId = androidRequest.obfuscatedAccountId,
-                            obfuscatedProfileId = androidRequest.obfuscatedProfileId,
-                            offerToken = androidRequest.offerToken,
+                            isOfferPersonalized = androidRequest.isOfferPersonalized.unwrapBool(),
+                            obfuscatedAccountId = androidRequest.obfuscatedAccountId.unwrapString(),
+                            obfuscatedProfileId = androidRequest.obfuscatedProfileId.unwrapString(),
+                            offerToken = androidRequest.offerToken.unwrapString(),
                             skus = androidRequest.skus.toList()
                         )
                         RequestPurchaseProps(
@@ -545,10 +562,10 @@ class HybridRnIap : HybridRnIapSpec() {
     // Purchase history methods (Unified)
     override fun getAvailablePurchases(options: NitroAvailablePurchasesOptions?): Promise<Array<NitroPurchase>> {
         return Promise.async {
-            val androidOptions = options?.android
-            initConnection(null).await()
+            val androidOptions = (options?.android as? Variant_NullType_NitroAvailablePurchasesAndroidOptions.Second)?.value
+            ensureConnection()
 
-            val includeSuspended = androidOptions?.includeSuspended ?: false
+            val includeSuspended = androidOptions?.includeSuspended.unwrapBool() ?: false
 
             RnIapLog.payload(
                 "getAvailablePurchases",
@@ -593,7 +610,7 @@ class HybridRnIap : HybridRnIapSpec() {
 
     override fun getActiveSubscriptions(subscriptionIds: Array<String>?): Promise<Array<NitroActiveSubscription>> {
         return Promise.async {
-            initConnection(null).await()
+            ensureConnection()
 
             RnIapLog.payload(
                 "getActiveSubscriptions",
@@ -610,13 +627,13 @@ class HybridRnIap : HybridRnIapSpec() {
                         productId = sub.productId,
                         isActive = sub.isActive,
                         transactionId = sub.transactionId,
-                        purchaseToken = sub.purchaseToken,
+                        purchaseToken = sub.purchaseToken.wrapVariant(),
                         transactionDate = sub.transactionDate,
                         // Android specific fields
-                        autoRenewingAndroid = sub.autoRenewingAndroid,
-                        basePlanIdAndroid = sub.basePlanIdAndroid,
-                        currentPlanId = sub.currentPlanId,
-                        purchaseTokenAndroid = sub.purchaseTokenAndroid,
+                        autoRenewingAndroid = sub.autoRenewingAndroid.wrapVariant(),
+                        basePlanIdAndroid = sub.basePlanIdAndroid.wrapVariant(),
+                        currentPlanId = sub.currentPlanId.wrapVariant(),
+                        purchaseTokenAndroid = sub.purchaseTokenAndroid.wrapVariant(),
                         // iOS specific fields (null on Android)
                         expirationDateIOS = null,
                         environmentIOS = null,
@@ -648,7 +665,7 @@ class HybridRnIap : HybridRnIapSpec() {
 
     override fun hasActiveSubscriptions(subscriptionIds: Array<String>?): Promise<Boolean> {
         return Promise.async {
-            initConnection(null).await()
+            ensureConnection()
 
             RnIapLog.payload(
                 "hasActiveSubscriptions",
@@ -676,20 +693,21 @@ class HybridRnIap : HybridRnIapSpec() {
     // Transaction management methods (Unified)
     override fun finishTransaction(params: NitroFinishTransactionParams): Promise<Variant_Boolean_NitroPurchaseResult> {
         return Promise.async {
-            val androidParams = params.android ?: return@async Variant_Boolean_NitroPurchaseResult.First(true)
+            val androidParams = (params.android as? Variant_NullType_NitroFinishTransactionAndroidParams.Second)?.value
+                ?: return@async Variant_Boolean_NitroPurchaseResult.First(true)
             val purchaseToken = androidParams.purchaseToken
-            val isConsumable = androidParams.isConsumable ?: false
+            val isConsumable = androidParams.isConsumable.unwrapBool() ?: false
 
             RnIapLog.payload(
                 "finishTransaction",
                 mapOf(
-                    "purchaseToken" to purchaseToken?.let { "<hidden>" },
+                    "purchaseToken" to "<hidden>",
                     "isConsumable" to isConsumable
                 )
             )
 
             // Validate token early to avoid confusing native errors
-            if (purchaseToken.isNullOrBlank()) {
+            if (purchaseToken.isBlank()) {
                 RnIapLog.warn("finishTransaction called with missing purchaseToken")
                 return@async Variant_Boolean_NitroPurchaseResult.Second(
                     NitroPurchaseResult(
@@ -704,7 +722,7 @@ class HybridRnIap : HybridRnIapSpec() {
 
             // Ensure connection; if it fails, return an error result instead of throwing
             try {
-                initConnection(null).await()
+                ensureConnection()
             } catch (e: Exception) {
                 val err = OpenIAPError.InitConnection
                 return@async Variant_Boolean_NitroPurchaseResult.Second(
@@ -754,7 +772,7 @@ class HybridRnIap : HybridRnIapSpec() {
     override fun getStorefront(): Promise<String> {
         return Promise.async {
             try {
-                initConnection(null).await()
+                ensureConnection()
                 RnIapLog.payload("getStorefront", null)
                 val value = openIap.getStorefront()
                 RnIapLog.result("getStorefront", value)
@@ -1020,43 +1038,55 @@ class HybridRnIap : HybridRnIapSpec() {
                 formattedPrice = otp.formattedPrice,
                 priceAmountMicros = otp.priceAmountMicros,
                 priceCurrencyCode = otp.priceCurrencyCode,
-                offerId = otp.offerId,
+                offerId = otp.offerId.wrapVariant(),
                 offerToken = otp.offerToken,
                 offerTags = otp.offerTags.toTypedArray(),
-                fullPriceMicros = otp.fullPriceMicros,
+                fullPriceMicros = otp.fullPriceMicros.wrapVariant(),
                 discountDisplayInfo = otp.discountDisplayInfo?.let { discount ->
-                    NitroDiscountDisplayInfoAndroid(
-                        percentageDiscount = discount.percentageDiscount?.toDouble(),
-                        discountAmount = discount.discountAmount?.let { amount ->
-                            NitroDiscountAmountAndroid(
-                                discountAmountMicros = amount.discountAmountMicros,
-                                formattedDiscountAmount = amount.formattedDiscountAmount
-                            )
-                        }
+                    Variant_NullType_NitroDiscountDisplayInfoAndroid.Second(
+                        NitroDiscountDisplayInfoAndroid(
+                            percentageDiscount = discount.percentageDiscount?.toDouble().wrapVariant(),
+                            discountAmount = discount.discountAmount?.let { amount ->
+                                Variant_NullType_NitroDiscountAmountAndroid.Second(
+                                    NitroDiscountAmountAndroid(
+                                        discountAmountMicros = amount.discountAmountMicros,
+                                        formattedDiscountAmount = amount.formattedDiscountAmount
+                                    )
+                                )
+                            }
+                        )
                     )
                 },
                 validTimeWindow = otp.validTimeWindow?.let { window ->
-                    NitroValidTimeWindowAndroid(
-                        startTimeMillis = window.startTimeMillis,
-                        endTimeMillis = window.endTimeMillis
+                    Variant_NullType_NitroValidTimeWindowAndroid.Second(
+                        NitroValidTimeWindowAndroid(
+                            startTimeMillis = window.startTimeMillis,
+                            endTimeMillis = window.endTimeMillis
+                        )
                     )
                 },
                 limitedQuantityInfo = otp.limitedQuantityInfo?.let { info ->
-                    NitroLimitedQuantityInfoAndroid(
-                        maximumQuantity = info.maximumQuantity.toDouble(),
-                        remainingQuantity = info.remainingQuantity.toDouble()
+                    Variant_NullType_NitroLimitedQuantityInfoAndroid.Second(
+                        NitroLimitedQuantityInfoAndroid(
+                            maximumQuantity = info.maximumQuantity.toDouble(),
+                            remainingQuantity = info.remainingQuantity.toDouble()
+                        )
                     )
                 },
                 preorderDetailsAndroid = otp.preorderDetailsAndroid?.let { preorder ->
-                    NitroPreorderDetailsAndroid(
-                        preorderPresaleEndTimeMillis = preorder.preorderPresaleEndTimeMillis,
-                        preorderReleaseTimeMillis = preorder.preorderReleaseTimeMillis
+                    Variant_NullType_NitroPreorderDetailsAndroid.Second(
+                        NitroPreorderDetailsAndroid(
+                            preorderPresaleEndTimeMillis = preorder.preorderPresaleEndTimeMillis,
+                            preorderReleaseTimeMillis = preorder.preorderReleaseTimeMillis
+                        )
                     )
                 },
                 rentalDetailsAndroid = otp.rentalDetailsAndroid?.let { rental ->
-                    NitroRentalDetailsAndroid(
-                        rentalPeriod = rental.rentalPeriod,
-                        rentalExpirationPeriod = rental.rentalExpirationPeriod
+                    Variant_NullType_NitroRentalDetailsAndroid.Second(
+                        NitroRentalDetailsAndroid(
+                            rentalPeriod = rental.rentalPeriod,
+                            rentalExpirationPeriod = rental.rentalExpirationPeriod
+                        )
                     )
                 }
             )
@@ -1137,10 +1167,10 @@ class HybridRnIap : HybridRnIapSpec() {
             title = product.title,
             description = product.description,
             type = product.type.rawValue,
-            displayName = product.displayName,
+            displayName = product.displayName.wrapVariant(),
             displayPrice = product.displayPrice,
             currency = product.currency,
-            price = product.price,
+            price = product.price.wrapVariant(),
             platform = IapPlatform.ANDROID,
             typeIOS = null,
             isFamilyShareableIOS = null,
@@ -1153,19 +1183,19 @@ class HybridRnIap : HybridRnIapSpec() {
             introductoryPricePaymentModeIOS = PaymentModeIOS.EMPTY,
             introductoryPriceNumberOfPeriodsIOS = null,
             introductoryPriceSubscriptionPeriodIOS = null,
-            subscriptionOffers = subscriptionOffersStandardizedJson,
-            discountOffers = discountOffersJson,
-            nameAndroid = nameAndroid,
-            originalPriceAndroid = originalPriceAndroid,
-            originalPriceAmountMicrosAndroid = originalPriceAmountMicrosAndroid,
-            introductoryPriceValueAndroid = introductoryPriceValueAndroid,
-            introductoryPriceCyclesAndroid = introductoryPriceCyclesAndroid,
-            introductoryPricePeriodAndroid = introductoryPricePeriodAndroid,
-            subscriptionPeriodAndroid = subscriptionPeriodAndroid,
-            freeTrialPeriodAndroid = freeTrialPeriodAndroid,
-            subscriptionOfferDetailsAndroid = subscriptionOffersJson,
-            oneTimePurchaseOfferDetailsAndroid = oneTimeOffersNitro,
-            productStatusAndroid = productStatusAndroid
+            subscriptionOffers = subscriptionOffersStandardizedJson.wrapVariant(),
+            discountOffers = discountOffersJson.wrapVariant(),
+            nameAndroid = nameAndroid.wrapVariant(),
+            originalPriceAndroid = originalPriceAndroid.wrapVariant(),
+            originalPriceAmountMicrosAndroid = originalPriceAmountMicrosAndroid.wrapVariant(),
+            introductoryPriceValueAndroid = introductoryPriceValueAndroid.wrapVariant(),
+            introductoryPriceCyclesAndroid = introductoryPriceCyclesAndroid.wrapVariant(),
+            introductoryPricePeriodAndroid = introductoryPricePeriodAndroid.wrapVariant(),
+            subscriptionPeriodAndroid = subscriptionPeriodAndroid.wrapVariant(),
+            freeTrialPeriodAndroid = freeTrialPeriodAndroid.wrapVariant(),
+            subscriptionOfferDetailsAndroid = subscriptionOffersJson.wrapVariant(),
+            oneTimePurchaseOfferDetailsAndroid = oneTimeOffersNitro?.let { Variant_NullType_Array_NitroOneTimePurchaseOfferDetail_.Second(it) },
+            productStatusAndroid = productStatusAndroid.wrapVariant()
         )
     }
 
@@ -1182,7 +1212,7 @@ class HybridRnIap : HybridRnIapSpec() {
             id = purchase.id,
             productId = purchase.productId,
             transactionDate = purchase.transactionDate,
-            purchaseToken = purchase.purchaseToken,
+            purchaseToken = purchase.purchaseToken.wrapVariant(),
             platform = IapPlatform.ANDROID,
             store = mapIapStore(purchase.store),
             quantity = purchase.quantity.toDouble(),
@@ -1210,17 +1240,17 @@ class HybridRnIap : HybridRnIapSpec() {
             transactionReasonIOS = null,
             webOrderLineItemIdIOS = null,
             renewalInfoIOS = null,
-            purchaseTokenAndroid = androidPurchase?.purchaseToken,
-            dataAndroid = androidPurchase?.dataAndroid,
-            signatureAndroid = androidPurchase?.signatureAndroid,
-            autoRenewingAndroid = androidPurchase?.autoRenewingAndroid,
-            purchaseStateAndroid = purchaseStateAndroidNumeric,
-            isAcknowledgedAndroid = androidPurchase?.isAcknowledgedAndroid,
-            packageNameAndroid = androidPurchase?.packageNameAndroid,
-            obfuscatedAccountIdAndroid = androidPurchase?.obfuscatedAccountIdAndroid,
-            obfuscatedProfileIdAndroid = androidPurchase?.obfuscatedProfileIdAndroid,
-            developerPayloadAndroid = androidPurchase?.developerPayloadAndroid,
-            isSuspendedAndroid = androidPurchase?.isSuspendedAndroid
+            purchaseTokenAndroid = androidPurchase?.purchaseToken.wrapVariant(),
+            dataAndroid = androidPurchase?.dataAndroid.wrapVariant(),
+            signatureAndroid = androidPurchase?.signatureAndroid.wrapVariant(),
+            autoRenewingAndroid = androidPurchase?.autoRenewingAndroid.wrapVariant(),
+            purchaseStateAndroid = purchaseStateAndroidNumeric.wrapVariant(),
+            isAcknowledgedAndroid = androidPurchase?.isAcknowledgedAndroid.wrapVariant(),
+            packageNameAndroid = androidPurchase?.packageNameAndroid.wrapVariant(),
+            obfuscatedAccountIdAndroid = androidPurchase?.obfuscatedAccountIdAndroid.wrapVariant(),
+            obfuscatedProfileIdAndroid = androidPurchase?.obfuscatedProfileIdAndroid.wrapVariant(),
+            developerPayloadAndroid = androidPurchase?.developerPayloadAndroid.wrapVariant(),
+            isSuspendedAndroid = androidPurchase?.isSuspendedAndroid.wrapVariant()
         )
     }
 
@@ -1251,7 +1281,7 @@ class HybridRnIap : HybridRnIapSpec() {
     }
 
     // iOS-specific method - not supported on Android
-    override fun getAppTransactionIOS(): Promise<String?> {
+    override fun getAppTransactionIOS(): Promise<Variant_NullType_String> {
         return Promise.async {
             throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
@@ -1261,10 +1291,10 @@ class HybridRnIap : HybridRnIapSpec() {
     override fun deepLinkToSubscriptionsAndroid(options: NitroDeepLinkOptionsAndroid): Promise<Unit> {
         return Promise.async {
             try {
-                initConnection(null).await()
+                ensureConnection()
                 OpenIapDeepLinkOptions(
-                    skuAndroid = options.skuAndroid,
-                    packageNameAndroid = options.packageNameAndroid
+                    skuAndroid = options.skuAndroid.unwrapString(),
+                    packageNameAndroid = options.packageNameAndroid.unwrapString()
                 ).let { openIap.deepLinkToSubscriptions(it) }
                 RnIapLog.result("deepLinkToSubscriptionsAndroid", true)
             } catch (e: Exception) {
@@ -1275,18 +1305,18 @@ class HybridRnIap : HybridRnIapSpec() {
     }
 
     // iOS-specific method - not supported on Android
-    override fun getPromotedProductIOS(): Promise<NitroProduct?> {
+    override fun getPromotedProductIOS(): Promise<Variant_NullType_NitroProduct> {
         return Promise.async {
-            null
+            Variant_NullType_NitroProduct.First(NullType.INSTANCE)
         }
     }
 
     // iOS-specific method - not supported on Android
-    override fun requestPromotedProductIOS(): Promise<NitroProduct?> {
+    override fun requestPromotedProductIOS(): Promise<Variant_NullType_NitroProduct> {
         return Promise.async {
             // Android doesn't have promoted products like iOS App Store
             // Return null as this feature is iOS-only
-            null
+            Variant_NullType_NitroProduct.First(NullType.INSTANCE)
         }
     }
 
@@ -1312,11 +1342,11 @@ class HybridRnIap : HybridRnIapSpec() {
         }
     }
 
-    override fun beginRefundRequestIOS(sku: String): Promise<String?> {
+    override fun beginRefundRequestIOS(sku: String): Promise<Variant_NullType_String> {
         return Promise.async {
             // Android doesn't have in-app refund requests like iOS
             // Refunds on Android are handled through Google Play Console
-            null
+            Variant_NullType_String.First(NullType.INSTANCE)
         }
     }
 
@@ -1339,7 +1369,7 @@ class HybridRnIap : HybridRnIapSpec() {
         return Promise.async {
             try {
                 // For Android, we need the google options to be provided (new platform-specific structure)
-                val nitroGoogleOptions = params.google
+                val nitroGoogleOptions = (params.google as? Variant_NullType_NitroReceiptValidationGoogleOptions.Second)?.value
                     ?: throw OpenIapException(toErrorJson(OpenIAPError.DeveloperError, debugMessage = "Missing required parameter: google options"))
 
                 // Validate required google fields
@@ -1358,7 +1388,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 RnIapLog.payload("validateReceipt", mapOf(
                     "sku" to nitroGoogleOptions.sku,
                     "packageName" to nitroGoogleOptions.packageName,
-                    "isSub" to nitroGoogleOptions.isSub
+                    "isSub" to nitroGoogleOptions.isSub.unwrapBool()
                 ))
 
                 // Create OpenIAP VerifyPurchaseGoogleOptions
@@ -1367,7 +1397,7 @@ class HybridRnIap : HybridRnIapSpec() {
                     accessToken = nitroGoogleOptions.accessToken,
                     packageName = nitroGoogleOptions.packageName,
                     purchaseToken = nitroGoogleOptions.purchaseToken,
-                    isSub = nitroGoogleOptions.isSub
+                    isSub = nitroGoogleOptions.isSub.unwrapBool()
                 )
 
                 // Create OpenIAP VerifyPurchaseProps
@@ -1385,10 +1415,10 @@ class HybridRnIap : HybridRnIapSpec() {
                 val result = NitroReceiptValidationResultAndroid(
                     autoRenewing = androidResult.autoRenewing,
                     betaProduct = androidResult.betaProduct,
-                    cancelDate = androidResult.cancelDate,
-                    cancelReason = androidResult.cancelReason,
-                    deferredDate = androidResult.deferredDate,
-                    deferredSku = androidResult.deferredSku,
+                    cancelDate = androidResult.cancelDate.wrapVariant(),
+                    cancelReason = androidResult.cancelReason.wrapVariant(),
+                    deferredDate = androidResult.deferredDate.wrapVariant(),
+                    deferredSku = androidResult.deferredSku.wrapVariant(),
                     freeTrialEndDate = androidResult.freeTrialEndDate,
                     gracePeriodEndDate = androidResult.gracePeriodEndDate,
                     parentProductId = androidResult.parentProductId,
@@ -1432,15 +1462,15 @@ class HybridRnIap : HybridRnIapSpec() {
 
                 // Build the props map for OpenIAP - use string value for provider
                 val propsMap = mutableMapOf<String, Any?>("provider" to providerString)
-                params.iapkit?.let { iapkit ->
+                (params.iapkit as? Variant_NullType_NitroVerifyPurchaseWithIapkitProps.Second)?.value?.let { iapkit ->
                     val iapkitMap = mutableMapOf<String, Any?>()
                     // Use provided apiKey, or fallback to AndroidManifest meta-data (set by config plugin)
-                    val apiKey = iapkit.apiKey ?: getIapkitApiKeyFromManifest()
+                    val apiKey = iapkit.apiKey.unwrapString() ?: getIapkitApiKeyFromManifest()
                     apiKey?.let { iapkitMap["apiKey"] = it }
-                    iapkit.google?.let { google ->
+                    (iapkit.google as? Variant_NullType_NitroVerifyPurchaseWithIapkitGoogleProps.Second)?.value?.let { google ->
                         iapkitMap["google"] = mapOf("purchaseToken" to google.purchaseToken)
                     }
-                    iapkit.apple?.let { apple ->
+                    (iapkit.apple as? Variant_NullType_NitroVerifyPurchaseWithIapkitAppleProps.Second)?.value?.let { apple ->
                         iapkitMap["apple"] = mapOf("jws" to apple.jws)
                     }
                     propsMap["iapkit"] = iapkitMap
@@ -1470,8 +1500,8 @@ class HybridRnIap : HybridRnIapSpec() {
                 }?.toTypedArray()
 
                 NitroVerifyPurchaseWithProviderResult(
-                    iapkit = nitroIapkitResult,
-                    errors = nitroErrors,
+                    iapkit = nitroIapkitResult?.let { Variant_NullType_NitroVerifyPurchaseWithIapkitResult.Second(it) },
+                    errors = nitroErrors?.let { Variant_NullType_Array_NitroVerifyPurchaseWithProviderError_.Second(it) },
                     provider = mapPurchaseVerificationProvider(result.provider.name)
                 )
             } catch (e: Exception) {
@@ -1489,19 +1519,19 @@ class HybridRnIap : HybridRnIapSpec() {
     }
 
     // iOS-specific methods - Not applicable on Android, return appropriate defaults
-    override fun subscriptionStatusIOS(sku: String): Promise<Array<NitroSubscriptionStatus>?> {
+    override fun subscriptionStatusIOS(sku: String): Promise<Variant_NullType_Array_NitroSubscriptionStatus_> {
         return Promise.async {
             throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
-    override fun currentEntitlementIOS(sku: String): Promise<NitroPurchase?> {
+    override fun currentEntitlementIOS(sku: String): Promise<Variant_NullType_NitroPurchase> {
         return Promise.async {
             throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
     }
     
-    override fun latestTransactionIOS(sku: String): Promise<NitroPurchase?> {
+    override fun latestTransactionIOS(sku: String): Promise<Variant_NullType_NitroPurchase> {
         return Promise.async {
             throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
@@ -1551,7 +1581,7 @@ class HybridRnIap : HybridRnIapSpec() {
         }
     }
     
-    override fun getTransactionJwsIOS(sku: String): Promise<String?> {
+    override fun getTransactionJwsIOS(sku: String): Promise<Variant_NullType_String> {
         return Promise.async {
             throw OpenIapException(toErrorJson(OpenIAPError.FeatureNotSupported))
         }
@@ -1599,9 +1629,10 @@ class HybridRnIap : HybridRnIapSpec() {
         }
     }
 
-    override fun createAlternativeBillingTokenAndroid(sku: String?): Promise<String?> {
+    override fun createAlternativeBillingTokenAndroid(sku: Variant_NullType_String?): Promise<Variant_NullType_String> {
         return Promise.async {
-            RnIapLog.payload("createAlternativeBillingTokenAndroid", mapOf("sku" to sku))
+            val skuValue = sku.unwrapString()
+            RnIapLog.payload("createAlternativeBillingTokenAndroid", mapOf("sku" to skuValue))
             try {
                 // Note: OpenIapModule.createAlternativeBillingReportingToken() doesn't accept sku parameter
                 // The sku parameter is ignored for now - may be used in future versions
@@ -1609,7 +1640,7 @@ class HybridRnIap : HybridRnIapSpec() {
                     openIap.createAlternativeBillingReportingToken()
                 }
                 RnIapLog.result("createAlternativeBillingTokenAndroid", token)
-                token
+                token?.let { Variant_NullType_String.Second(it) } ?: Variant_NullType_String.First(NullType.INSTANCE)
             } catch (err: Throwable) {
                 RnIapLog.failure("createAlternativeBillingTokenAndroid", err)
                 val errorType = parseOpenIapError(err)
@@ -1677,7 +1708,7 @@ class HybridRnIap : HybridRnIapSpec() {
         return Promise.async {
             RnIapLog.payload("isBillingProgramAvailableAndroid", mapOf("program" to program.name))
             try {
-                initConnection(null).await()
+                ensureConnection()
                 val openIapProgram = mapBillingProgram(program)
                 val result = openIapStore.isBillingProgramAvailable(openIapProgram)
                 val nitroResult = NitroBillingProgramAvailabilityResultAndroid(
@@ -1698,7 +1729,7 @@ class HybridRnIap : HybridRnIapSpec() {
         return Promise.async {
             RnIapLog.payload("createBillingProgramReportingDetailsAndroid", mapOf("program" to program.name))
             try {
-                initConnection(null).await()
+                ensureConnection()
                 val openIapProgram = mapBillingProgram(program)
                 val result = openIapStore.createBillingProgramReportingDetails(openIapProgram)
                 val nitroResult = NitroBillingProgramReportingDetailsAndroid(
@@ -1724,7 +1755,7 @@ class HybridRnIap : HybridRnIapSpec() {
                 "linkUri" to params.linkUri
             ))
             try {
-                initConnection(null).await()
+                ensureConnection()
 
                 val activity = withContext(Dispatchers.Main) {
                     runCatching { context.currentActivity }.getOrNull()
