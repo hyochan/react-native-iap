@@ -448,7 +448,7 @@ class HybridRnIap: HybridRnIapSpec {
                 if let errors = result.errors {
                     nitroErrors = errors.map { error in
                         NitroVerifyPurchaseWithProviderError(
-                            code: error.code,
+                            code: RnIapHelper.wrapString(error.code),
                             message: error.message
                         )
                     }
