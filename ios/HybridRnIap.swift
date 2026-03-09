@@ -150,7 +150,7 @@ class HybridRnIap: HybridRnIapSpec {
     
     func requestPurchase(request: NitroPurchaseRequest) throws -> Promise<RequestPurchaseResult> {
         return Promise.async {
-            let defaultResult: RequestPurchaseResult? = .fourth([])
+            let defaultResult: RequestPurchaseResult = .fourth([])
             RnIapLog.payload(
                 "requestPurchase", [
                     "hasIOS": request.ios != nil,
