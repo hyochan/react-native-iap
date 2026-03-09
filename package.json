@@ -57,7 +57,7 @@
     "lint:ci": "yarn lint:tsc && yarn lint:eslint && yarn lint:prettier",
     "prepare": "npx tsx scripts/check-nitro-versions.ts && bob build && yarn nitrogen && yarn build:plugin",
     "nitrogen": "node --stack-size=65536 node_modules/nitrogen/lib/index.js",
-    "specs": "node --stack-size=65536 node_modules/nitrogen/lib/index.js --logLevel=\"debug\"",
+    "specs": "yarn nitrogen --logLevel=\"debug\"",
     "test": "jest --coverage",
     "test:library": "jest --coverage",
     "test:example": "yarn workspace rn-iap-example test --coverage",

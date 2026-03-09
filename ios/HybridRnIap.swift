@@ -960,11 +960,7 @@ class HybridRnIap: HybridRnIapSpec {
                         let id = productId
                         let snapshot = self.listenerLock.withLock { Array(self.promotedProductListeners) }
                         await MainActor.run {
-                            var minimal = NitroProduct()
-                            minimal.id = id
-                            minimal.title = id
-                            minimal.type = "inapp"
-                            minimal.platform = .ios
+                            let minimal = RnIapHelper.makeMinimalProduct(id: id)
                             for listener in snapshot { listener(minimal) }
                         }
                     }
@@ -1037,9 +1033,17 @@ class HybridRnIap: HybridRnIapSpec {
         if shouldSkip { return }
 
         // Ensure we never leak SKU via purchaseToken
-        var sanitized = error
-        if let pid = productId, sanitized.purchaseToken == pid {
-            sanitized.purchaseToken = nil
+        let sanitized: NitroPurchaseResult
+        if let pid = productId, error.purchaseToken == pid {
+            sanitized = NitroPurchaseResult(
+                responseCode: error.responseCode,
+                debugMessage: error.debugMessage,
+                code: error.code,
+                message: error.message,
+                purchaseToken: nil
+            )
+        } else {
+            sanitized = error
         }
         let snapshot = listenerLock.withLock { Array(purchaseErrorListeners) }
         for listener in snapshot {

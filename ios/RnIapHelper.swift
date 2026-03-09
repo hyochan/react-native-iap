@@ -52,6 +52,28 @@ enum RnIapHelper {
         array.map { sanitizeDictionary($0) }
     }
 
+    // MARK: - Variant wrapper helpers
+
+    static func wrapString(_ value: String?) -> Variant_NullType_String? {
+        guard let value = value else { return nil }
+        return .second(value)
+    }
+
+    static func wrapDouble(_ value: Double?) -> Variant_NullType_Double? {
+        guard let value = value else { return nil }
+        return .second(value)
+    }
+
+    static func wrapBool(_ value: Bool?) -> Variant_NullType_Bool? {
+        guard let value = value else { return nil }
+        return .second(value)
+    }
+
+    static func wrapRenewalInfo(_ value: NitroRenewalInfoIOS?) -> Variant_NullType_NitroRenewalInfoIOS? {
+        guard let value = value else { return nil }
+        return .second(value)
+    }
+
     // MARK: - Parsing helpers
 
     static func parseProductQueryType(_ rawValue: String?) -> ProductQueryType {
@@ -74,206 +96,240 @@ enum RnIapHelper {
         }
     }
 
+    // MARK: - JSON serialization helpers
+
+    static func serializeToJSON(_ array: [[String: Any]]) -> String? {
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: array, options: []) else { return nil }
+        return String(data: jsonData, encoding: .utf8)
+    }
+
+    static func serializeToJSON(_ dict: [String: Any]) -> String? {
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: dict, options: []) else { return nil }
+        return String(data: jsonData, encoding: .utf8)
+    }
+
     // MARK: - Conversion helpers
 
     static func convertProductDictionary(_ dictionary: [String: Any]) -> NitroProduct {
-        var product = NitroProduct()
-
-        if let id = dictionary["id"] as? String { product.id = id }
-        if let title = dictionary["title"] as? String { product.title = title }
-        if let description = dictionary["description"] as? String { product.description = description }
-        if let type = dictionary["type"] as? String { product.type = type }
-        if let displayName = dictionary["displayName"] as? String { product.displayName = displayName }
-        if let displayPrice = dictionary["displayPrice"] as? String { product.displayPrice = displayPrice }
-        if let currency = dictionary["currency"] as? String { product.currency = currency }
-        if let price = doubleValue(dictionary["price"]) { product.price = price }
-
+        let platform: IapPlatform
         if let platformString = dictionary["platform"] as? String,
-           let platform = IapPlatform(fromString: platformString) {
-            product.platform = platform
+           let p = IapPlatform(fromString: platformString) {
+            platform = p
         } else {
-            product.platform = .ios
+            platform = .ios
         }
 
-        if let typeIOS = dictionary["typeIOS"] as? String { product.typeIOS = typeIOS }
-        if let familyShareable = boolValue(dictionary["isFamilyShareableIOS"]) { product.isFamilyShareableIOS = familyShareable }
-        if let jsonRepresentation = dictionary["jsonRepresentationIOS"] as? String { product.jsonRepresentationIOS = jsonRepresentation }
-        // Handle discountsIOS - OpenIAP 1.2.30+ returns [[String: Any]] (non-nullable)
-        if let discountsArray = dictionary["discountsIOS"] as? [[String: Any]] {
-            do {
-                let jsonData = try JSONSerialization.data(withJSONObject: discountsArray, options: [])
-                if let jsonString = String(data: jsonData, encoding: .utf8) {
-                    product.discountsIOS = jsonString
-                }
-            } catch {
-                NSLog("⚠️ [RnIapHelper] Failed to serialize discountsIOS: \(error)")
-            }
-        }
-        if let subscriptionUnit = dictionary["subscriptionPeriodUnitIOS"] as? String { product.subscriptionPeriodUnitIOS = subscriptionUnit }
-        if let subscriptionNumber = doubleValue(dictionary["subscriptionPeriodNumberIOS"]) { product.subscriptionPeriodNumberIOS = subscriptionNumber }
-        if let introductoryPrice = dictionary["introductoryPriceIOS"] as? String { product.introductoryPriceIOS = introductoryPrice }
-        if let introductoryAmount = doubleValue(dictionary["introductoryPriceAsAmountIOS"]) { product.introductoryPriceAsAmountIOS = introductoryAmount }
-        if let introductoryPeriods = doubleValue(dictionary["introductoryPriceNumberOfPeriodsIOS"]) { product.introductoryPriceNumberOfPeriodsIOS = introductoryPeriods }
-        // Always set introductoryPricePaymentModeIOS - OpenIAP guarantees this field (defaults to .empty)
+        let introductoryPricePaymentModeIOS: PaymentModeIOS
         if let modeString = dictionary["introductoryPricePaymentModeIOS"] as? String,
            let mode = PaymentModeIOS(fromString: modeString) {
-            product.introductoryPricePaymentModeIOS = mode
+            introductoryPricePaymentModeIOS = mode
         } else {
-            product.introductoryPricePaymentModeIOS = PaymentModeIOS.empty
+            introductoryPricePaymentModeIOS = .empty
         }
-        if let introductoryPeriod = dictionary["introductoryPriceSubscriptionPeriodIOS"] as? String { product.introductoryPriceSubscriptionPeriodIOS = introductoryPeriod }
-        if let displayNameIOS = dictionary["displayNameIOS"] as? String { product.displayName = displayNameIOS }
+
+        // Use displayNameIOS to override displayName if present
+        let displayName: Variant_NullType_String?
+        if let displayNameIOS = dictionary["displayNameIOS"] as? String {
+            displayName = .second(displayNameIOS)
+        } else {
+            displayName = wrapString(dictionary["displayName"] as? String)
+        }
+
+        // Handle discountsIOS - OpenIAP 1.2.30+ returns [[String: Any]] (non-nullable)
+        var discountsIOS: Variant_NullType_String? = nil
+        if let discountsArray = dictionary["discountsIOS"] as? [[String: Any]] {
+            if let json = serializeToJSON(discountsArray) {
+                discountsIOS = .second(json)
+            } else {
+                NSLog("⚠️ [RnIapHelper] Failed to serialize discountsIOS")
+            }
+        }
 
         // Handle subscriptionOffers - standardized cross-platform offers (OpenIAP 1.3.10+)
+        var subscriptionOffers: Variant_NullType_String? = nil
         if let offersArray = dictionary["subscriptionOffers"] as? [[String: Any]], !offersArray.isEmpty {
-            do {
-                let jsonData = try JSONSerialization.data(withJSONObject: offersArray, options: [])
-                if let jsonString = String(data: jsonData, encoding: .utf8) {
-                    product.subscriptionOffers = jsonString
-                }
-            } catch {
-                NSLog("⚠️ [RnIapHelper] Failed to serialize subscriptionOffers: \(error)")
+            if let json = serializeToJSON(offersArray) {
+                subscriptionOffers = .second(json)
+            } else {
+                NSLog("⚠️ [RnIapHelper] Failed to serialize subscriptionOffers")
             }
         }
 
         // Handle discountOffers - standardized cross-platform offers for one-time purchases (OpenIAP 1.3.10+)
+        var discountOffers: Variant_NullType_String? = nil
         if let discountOffersArray = dictionary["discountOffers"] as? [[String: Any]], !discountOffersArray.isEmpty {
-            do {
-                let jsonData = try JSONSerialization.data(withJSONObject: discountOffersArray, options: [])
-                if let jsonString = String(data: jsonData, encoding: .utf8) {
-                    product.discountOffers = jsonString
-                }
-            } catch {
-                NSLog("⚠️ [RnIapHelper] Failed to serialize discountOffers: \(error)")
+            if let json = serializeToJSON(discountOffersArray) {
+                discountOffers = .second(json)
+            } else {
+                NSLog("⚠️ [RnIapHelper] Failed to serialize discountOffers")
             }
         }
 
-        return product
+        return NitroProduct(
+            id: dictionary["id"] as? String ?? "",
+            title: dictionary["title"] as? String ?? "",
+            description: dictionary["description"] as? String ?? "",
+            type: dictionary["type"] as? String ?? "",
+            displayName: displayName,
+            displayPrice: dictionary["displayPrice"] as? String,
+            currency: dictionary["currency"] as? String,
+            price: wrapDouble(doubleValue(dictionary["price"])),
+            platform: platform,
+            typeIOS: wrapString(dictionary["typeIOS"] as? String),
+            isFamilyShareableIOS: wrapBool(boolValue(dictionary["isFamilyShareableIOS"])),
+            jsonRepresentationIOS: wrapString(dictionary["jsonRepresentationIOS"] as? String),
+            discountsIOS: discountsIOS,
+            introductoryPriceIOS: wrapString(dictionary["introductoryPriceIOS"] as? String),
+            introductoryPriceAsAmountIOS: wrapDouble(doubleValue(dictionary["introductoryPriceAsAmountIOS"])),
+            introductoryPriceNumberOfPeriodsIOS: wrapDouble(doubleValue(dictionary["introductoryPriceNumberOfPeriodsIOS"])),
+            introductoryPricePaymentModeIOS: introductoryPricePaymentModeIOS,
+            introductoryPriceSubscriptionPeriodIOS: wrapString(dictionary["introductoryPriceSubscriptionPeriodIOS"] as? String),
+            subscriptionPeriodNumberIOS: wrapDouble(doubleValue(dictionary["subscriptionPeriodNumberIOS"])),
+            subscriptionPeriodUnitIOS: wrapString(dictionary["subscriptionPeriodUnitIOS"] as? String),
+            subscriptionOffers: subscriptionOffers,
+            discountOffers: discountOffers,
+            nameAndroid: nil,
+            originalPriceAndroid: nil,
+            originalPriceAmountMicrosAndroid: nil,
+            introductoryPriceCyclesAndroid: nil,
+            introductoryPricePeriodAndroid: nil,
+            introductoryPriceValueAndroid: nil,
+            subscriptionPeriodAndroid: nil,
+            freeTrialPeriodAndroid: nil,
+            subscriptionOfferDetailsAndroid: nil,
+            oneTimePurchaseOfferDetailsAndroid: nil,
+            productStatusAndroid: nil
+        )
     }
 
     static func convertPurchaseDictionary(_ dictionary: [String: Any]) -> NitroPurchase {
-        var purchase = NitroPurchase()
-
-        if let id = dictionary["id"] as? String { purchase.id = id }
-        if let productId = dictionary["productId"] as? String { purchase.productId = productId }
-        if let transactionDate = doubleValue(dictionary["transactionDate"]) { purchase.transactionDate = transactionDate }
-        if let purchaseToken = dictionary["purchaseToken"] as? String { purchase.purchaseToken = purchaseToken }
-
+        let platform: IapPlatform
         if let platformString = dictionary["platform"] as? String,
-           let platform = IapPlatform(fromString: platformString) {
-            purchase.platform = platform
+           let p = IapPlatform(fromString: platformString) {
+            platform = p
         } else {
-            purchase.platform = .ios
+            platform = .ios
         }
 
-        // Set store field
+        let store: IapStore
         if let storeString = dictionary["store"] as? String,
-           let store = IapStore(fromString: storeString) {
-            purchase.store = store
+           let s = IapStore(fromString: storeString) {
+            store = s
         } else {
-            purchase.store = .apple
+            store = .apple
         }
 
-        if let quantity = doubleValue(dictionary["quantity"]) { purchase.quantity = quantity }
+        let purchaseState: PurchaseState
         if let purchaseStateString = dictionary["purchaseState"] as? String,
            let state = PurchaseState(fromString: purchaseStateString) {
-            purchase.purchaseState = state
+            purchaseState = state
+        } else {
+            purchaseState = .purchased
         }
-        if let isAutoRenewing = boolValue(dictionary["isAutoRenewing"]) { purchase.isAutoRenewing = isAutoRenewing }
 
-        // iOS specific fields
-        if let quantityIOS = doubleValue(dictionary["quantityIOS"]) { purchase.quantityIOS = quantityIOS }
-        if let originalDate = doubleValue(dictionary["originalTransactionDateIOS"]) { purchase.originalTransactionDateIOS = originalDate }
-        if let originalIdentifier = dictionary["originalTransactionIdentifierIOS"] as? String { purchase.originalTransactionIdentifierIOS = originalIdentifier }
-        if let appAccountToken = dictionary["appAccountToken"] as? String { purchase.appAccountToken = appAccountToken }
-        if let appBundleId = dictionary["appBundleIdIOS"] as? String { purchase.appBundleIdIOS = appBundleId }
-        if let countryCode = dictionary["countryCodeIOS"] as? String { purchase.countryCodeIOS = countryCode }
-        if let currencyCode = dictionary["currencyCodeIOS"] as? String { purchase.currencyCodeIOS = currencyCode }
-        if let currencySymbol = dictionary["currencySymbolIOS"] as? String { purchase.currencySymbolIOS = currencySymbol }
-        if let environment = dictionary["environmentIOS"] as? String { purchase.environmentIOS = environment }
-        if let expirationDate = doubleValue(dictionary["expirationDateIOS"]) { purchase.expirationDateIOS = expirationDate }
-        if let isUpgraded = boolValue(dictionary["isUpgradedIOS"]) { purchase.isUpgradedIOS = isUpgraded }
+        // Handle offerIOS JSON serialization
+        var offerIOS: Variant_NullType_String? = nil
         if let offer = dictionary["offerIOS"] as? [String: Any] {
-            if let jsonData = try? JSONSerialization.data(withJSONObject: offer, options: []),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                purchase.offerIOS = jsonString
+            if let json = serializeToJSON(offer) {
+                offerIOS = .second(json)
             }
         }
-        if let ownershipType = dictionary["ownershipTypeIOS"] as? String { purchase.ownershipTypeIOS = ownershipType }
-        if let reason = dictionary["reasonIOS"] as? String { purchase.reasonIOS = reason }
-        if let reasonString = dictionary["reasonStringRepresentationIOS"] as? String { purchase.reasonStringRepresentationIOS = reasonString }
-        if let revocationDate = doubleValue(dictionary["revocationDateIOS"]) { purchase.revocationDateIOS = revocationDate }
-        if let revocationReason = dictionary["revocationReasonIOS"] as? String { purchase.revocationReasonIOS = revocationReason }
-        if let storefrontCountryCode = dictionary["storefrontCountryCodeIOS"] as? String { purchase.storefrontCountryCodeIOS = storefrontCountryCode }
-        if let subscriptionGroupId = dictionary["subscriptionGroupIdIOS"] as? String { purchase.subscriptionGroupIdIOS = subscriptionGroupId }
-        if let transactionReason = dictionary["transactionReasonIOS"] as? String { purchase.transactionReasonIOS = transactionReason }
-        if let webOrderLineItemId = dictionary["webOrderLineItemIdIOS"] as? String { purchase.webOrderLineItemIdIOS = webOrderLineItemId }
 
-        // 🆕 renewalInfoIOS - critical for detecting subscription upgrades/downgrades/cancellations
+        // renewalInfoIOS
+        let renewalInfoIOS: Variant_NullType_NitroRenewalInfoIOS?
         if let renewalInfoDict = dictionary["renewalInfoIOS"] as? [String: Any] {
-            purchase.renewalInfoIOS = convertRenewalInfoFromOpenIAP(renewalInfoDict)
+            renewalInfoIOS = wrapRenewalInfo(convertRenewalInfoFromOpenIAP(renewalInfoDict))
+        } else {
+            renewalInfoIOS = nil
         }
 
-        // Android specific fields
-        if let purchaseTokenAndroid = dictionary["purchaseTokenAndroid"] as? String { purchase.purchaseTokenAndroid = purchaseTokenAndroid }
-        if let dataAndroid = dictionary["dataAndroid"] as? String { purchase.dataAndroid = dataAndroid }
-        if let signatureAndroid = dictionary["signatureAndroid"] as? String { purchase.signatureAndroid = signatureAndroid }
-        if let autoRenewingAndroid = boolValue(dictionary["autoRenewingAndroid"]) { purchase.autoRenewingAndroid = autoRenewingAndroid }
-        if let purchaseStateAndroid = doubleValue(dictionary["purchaseStateAndroid"]) { purchase.purchaseStateAndroid = purchaseStateAndroid }
-        if let isAcknowledgedAndroid = boolValue(dictionary["isAcknowledgedAndroid"]) { purchase.isAcknowledgedAndroid = isAcknowledgedAndroid }
-        if let packageNameAndroid = dictionary["packageNameAndroid"] as? String { purchase.packageNameAndroid = packageNameAndroid }
-        if let obfuscatedAccountId = dictionary["obfuscatedAccountIdAndroid"] as? String { purchase.obfuscatedAccountIdAndroid = obfuscatedAccountId }
-        if let obfuscatedProfileId = dictionary["obfuscatedProfileIdAndroid"] as? String { purchase.obfuscatedProfileIdAndroid = obfuscatedProfileId }
-
-        return purchase
+        return NitroPurchase(
+            id: dictionary["id"] as? String ?? "",
+            productId: dictionary["productId"] as? String ?? "",
+            transactionDate: doubleValue(dictionary["transactionDate"]) ?? 0,
+            purchaseToken: wrapString(dictionary["purchaseToken"] as? String),
+            platform: platform,
+            store: store,
+            quantity: doubleValue(dictionary["quantity"]) ?? 0,
+            purchaseState: purchaseState,
+            isAutoRenewing: boolValue(dictionary["isAutoRenewing"]) ?? false,
+            quantityIOS: wrapDouble(doubleValue(dictionary["quantityIOS"])),
+            originalTransactionDateIOS: wrapDouble(doubleValue(dictionary["originalTransactionDateIOS"])),
+            originalTransactionIdentifierIOS: wrapString(dictionary["originalTransactionIdentifierIOS"] as? String),
+            appAccountToken: wrapString(dictionary["appAccountToken"] as? String),
+            appBundleIdIOS: wrapString(dictionary["appBundleIdIOS"] as? String),
+            countryCodeIOS: wrapString(dictionary["countryCodeIOS"] as? String),
+            currencyCodeIOS: wrapString(dictionary["currencyCodeIOS"] as? String),
+            currencySymbolIOS: wrapString(dictionary["currencySymbolIOS"] as? String),
+            environmentIOS: wrapString(dictionary["environmentIOS"] as? String),
+            expirationDateIOS: wrapDouble(doubleValue(dictionary["expirationDateIOS"])),
+            isUpgradedIOS: wrapBool(boolValue(dictionary["isUpgradedIOS"])),
+            offerIOS: offerIOS,
+            ownershipTypeIOS: wrapString(dictionary["ownershipTypeIOS"] as? String),
+            reasonIOS: wrapString(dictionary["reasonIOS"] as? String),
+            reasonStringRepresentationIOS: wrapString(dictionary["reasonStringRepresentationIOS"] as? String),
+            revocationDateIOS: wrapDouble(doubleValue(dictionary["revocationDateIOS"])),
+            revocationReasonIOS: wrapString(dictionary["revocationReasonIOS"] as? String),
+            storefrontCountryCodeIOS: wrapString(dictionary["storefrontCountryCodeIOS"] as? String),
+            subscriptionGroupIdIOS: wrapString(dictionary["subscriptionGroupIdIOS"] as? String),
+            transactionReasonIOS: wrapString(dictionary["transactionReasonIOS"] as? String),
+            webOrderLineItemIdIOS: wrapString(dictionary["webOrderLineItemIdIOS"] as? String),
+            renewalInfoIOS: renewalInfoIOS,
+            purchaseTokenAndroid: nil,
+            dataAndroid: nil,
+            signatureAndroid: nil,
+            autoRenewingAndroid: nil,
+            purchaseStateAndroid: nil,
+            isAcknowledgedAndroid: nil,
+            packageNameAndroid: nil,
+            obfuscatedAccountIdAndroid: nil,
+            obfuscatedProfileIdAndroid: nil,
+            developerPayloadAndroid: nil,
+            isSuspendedAndroid: nil
+        )
     }
 
     static func convertActiveSubscriptionDictionary(_ dictionary: [String: Any]) -> NitroActiveSubscription {
-        var subscription = NitroActiveSubscription()
-
-        // Core fields
-        if let productId = dictionary["productId"] as? String { subscription.productId = productId }
-        if let isActive = boolValue(dictionary["isActive"]) { subscription.isActive = isActive }
-        if let transactionId = dictionary["transactionId"] as? String { subscription.transactionId = transactionId }
-        if let purchaseToken = dictionary["purchaseToken"] as? String { subscription.purchaseToken = purchaseToken }
-        if let transactionDate = doubleValue(dictionary["transactionDate"]) { subscription.transactionDate = transactionDate }
-
-        // iOS specific fields
-        if let expirationDateIOS = doubleValue(dictionary["expirationDateIOS"]) { subscription.expirationDateIOS = expirationDateIOS }
-        if let environmentIOS = dictionary["environmentIOS"] as? String { subscription.environmentIOS = environmentIOS }
-        if let willExpireSoon = boolValue(dictionary["willExpireSoon"]) { subscription.willExpireSoon = willExpireSoon }
-        if let daysUntilExpirationIOS = doubleValue(dictionary["daysUntilExpirationIOS"]) { subscription.daysUntilExpirationIOS = daysUntilExpirationIOS }
-
-        // 🆕 renewalInfoIOS - the key field for upgrade/downgrade/cancellation detection!
+        // renewalInfoIOS
+        let renewalInfoIOS: Variant_NullType_NitroRenewalInfoIOS?
         if let renewalInfoDict = dictionary["renewalInfoIOS"] as? [String: Any] {
-            subscription.renewalInfoIOS = convertRenewalInfoFromOpenIAP(renewalInfoDict)
+            renewalInfoIOS = wrapRenewalInfo(convertRenewalInfoFromOpenIAP(renewalInfoDict))
+        } else {
+            renewalInfoIOS = nil
         }
 
-        // Android specific fields
-        if let autoRenewingAndroid = boolValue(dictionary["autoRenewingAndroid"]) { subscription.autoRenewingAndroid = autoRenewingAndroid }
-
-        return subscription
+        return NitroActiveSubscription(
+            productId: dictionary["productId"] as? String ?? "",
+            isActive: boolValue(dictionary["isActive"]) ?? false,
+            transactionId: dictionary["transactionId"] as? String ?? "",
+            purchaseToken: wrapString(dictionary["purchaseToken"] as? String),
+            transactionDate: doubleValue(dictionary["transactionDate"]) ?? 0,
+            expirationDateIOS: wrapDouble(doubleValue(dictionary["expirationDateIOS"])),
+            environmentIOS: wrapString(dictionary["environmentIOS"] as? String),
+            willExpireSoon: wrapBool(boolValue(dictionary["willExpireSoon"])),
+            daysUntilExpirationIOS: wrapDouble(doubleValue(dictionary["daysUntilExpirationIOS"])),
+            renewalInfoIOS: renewalInfoIOS,
+            autoRenewingAndroid: nil,
+            basePlanIdAndroid: nil,
+            currentPlanId: nil,
+            purchaseTokenAndroid: nil
+        )
     }
 
     static func convertRenewalInfoFromOpenIAP(_ dictionary: [String: Any]) -> NitroRenewalInfoIOS? {
-        var renewalInfo = NitroRenewalInfoIOS()
-
-        // Extract all fields from OpenIAP's RenewalInfo
-        // Note: willAutoRenew is required in NitroRenewalInfoIOS
-        renewalInfo.willAutoRenew = boolValue(dictionary["willAutoRenew"]) ?? false
-        if let autoRenewPreference = dictionary["autoRenewPreference"] as? String { renewalInfo.autoRenewPreference = autoRenewPreference }
-        if let pendingUpgradeProductId = dictionary["pendingUpgradeProductId"] as? String { renewalInfo.pendingUpgradeProductId = pendingUpgradeProductId }
-        if let renewalDate = doubleValue(dictionary["renewalDate"]) { renewalInfo.renewalDate = renewalDate }
-        if let expirationReason = dictionary["expirationReason"] as? String { renewalInfo.expirationReason = expirationReason }
-        if let isInBillingRetry = boolValue(dictionary["isInBillingRetry"]) { renewalInfo.isInBillingRetry = isInBillingRetry }
-        if let gracePeriodExpirationDate = doubleValue(dictionary["gracePeriodExpirationDate"]) { renewalInfo.gracePeriodExpirationDate = gracePeriodExpirationDate }
-        if let priceIncreaseStatus = dictionary["priceIncreaseStatus"] as? String { renewalInfo.priceIncreaseStatus = priceIncreaseStatus }
-        // Map OpenIAP's field names to Nitro's expected names
-        if let offerType = dictionary["offerType"] as? String { renewalInfo.renewalOfferType = offerType }
-        if let offerIdentifier = dictionary["offerIdentifier"] as? String { renewalInfo.renewalOfferId = offerIdentifier }
-        if let jsonRepresentation = dictionary["jsonRepresentation"] as? String { renewalInfo.jsonRepresentation = jsonRepresentation }
-
-        return renewalInfo
+        return NitroRenewalInfoIOS(
+            willAutoRenew: boolValue(dictionary["willAutoRenew"]) ?? false,
+            autoRenewPreference: wrapString(dictionary["autoRenewPreference"] as? String),
+            pendingUpgradeProductId: wrapString(dictionary["pendingUpgradeProductId"] as? String),
+            renewalDate: wrapDouble(doubleValue(dictionary["renewalDate"])),
+            expirationReason: wrapString(dictionary["expirationReason"] as? String),
+            isInBillingRetry: wrapBool(boolValue(dictionary["isInBillingRetry"])),
+            gracePeriodExpirationDate: wrapDouble(doubleValue(dictionary["gracePeriodExpirationDate"])),
+            priceIncreaseStatus: wrapString(dictionary["priceIncreaseStatus"] as? String),
+            renewalOfferType: wrapString(dictionary["offerType"] as? String),
+            renewalOfferId: wrapString(dictionary["offerIdentifier"] as? String),
+            jsonRepresentation: wrapString(dictionary["jsonRepresentation"] as? String)
+        )
     }
 
     static func convertRenewalInfo(_ dictionary: [String: Any]) -> NitroSubscriptionRenewalInfo? {
@@ -281,19 +337,13 @@ enum RnIapHelper {
             return nil
         }
 
-        let autoRenewPreference = dictionary["autoRenewPreference"] as? String
-        let expirationReason = doubleValue(dictionary["expirationReason"])
-        let gracePeriod = doubleValue(dictionary["gracePeriodExpirationDate"])
-        let currentProductID = dictionary["currentProductID"] as? String
-        let platform = dictionary["platform"] as? String ?? "ios"
-
         return NitroSubscriptionRenewalInfo(
             autoRenewStatus: autoRenewStatus,
-            autoRenewPreference: autoRenewPreference,
-            expirationReason: expirationReason,
-            gracePeriodExpirationDate: gracePeriod,
-            currentProductID: currentProductID,
-            platform: platform
+            autoRenewPreference: wrapString(dictionary["autoRenewPreference"] as? String),
+            expirationReason: wrapDouble(doubleValue(dictionary["expirationReason"])),
+            gracePeriodExpirationDate: wrapDouble(doubleValue(dictionary["gracePeriodExpirationDate"])),
+            currentProductID: wrapString(dictionary["currentProductID"] as? String),
+            platform: dictionary["platform"] as? String ?? "ios"
         )
     }
 
@@ -346,12 +396,53 @@ enum RnIapHelper {
         message: String,
         _ productId: String? = nil
     ) -> NitroPurchaseResult {
-        var result = NitroPurchaseResult()
-        result.responseCode = -1
-        result.code = code.rawValue
-        result.message = message
-        result.purchaseToken = nil
-        return result
+        return NitroPurchaseResult(
+            responseCode: -1,
+            debugMessage: nil,
+            code: code.rawValue,
+            message: message,
+            purchaseToken: nil
+        )
+    }
+
+    // MARK: - Minimal product helper
+
+    static func makeMinimalProduct(id: String) -> NitroProduct {
+        return NitroProduct(
+            id: id,
+            title: id,
+            description: "",
+            type: "inapp",
+            displayName: nil,
+            displayPrice: nil,
+            currency: nil,
+            price: nil,
+            platform: .ios,
+            typeIOS: nil,
+            isFamilyShareableIOS: nil,
+            jsonRepresentationIOS: nil,
+            discountsIOS: nil,
+            introductoryPriceIOS: nil,
+            introductoryPriceAsAmountIOS: nil,
+            introductoryPriceNumberOfPeriodsIOS: nil,
+            introductoryPricePaymentModeIOS: .empty,
+            introductoryPriceSubscriptionPeriodIOS: nil,
+            subscriptionPeriodNumberIOS: nil,
+            subscriptionPeriodUnitIOS: nil,
+            subscriptionOffers: nil,
+            discountOffers: nil,
+            nameAndroid: nil,
+            originalPriceAndroid: nil,
+            originalPriceAmountMicrosAndroid: nil,
+            introductoryPriceCyclesAndroid: nil,
+            introductoryPricePeriodAndroid: nil,
+            introductoryPriceValueAndroid: nil,
+            subscriptionPeriodAndroid: nil,
+            freeTrialPeriodAndroid: nil,
+            subscriptionOfferDetailsAndroid: nil,
+            oneTimePurchaseOfferDetailsAndroid: nil,
+            productStatusAndroid: nil
+        )
     }
 
     // MARK: - Primitive extractors
