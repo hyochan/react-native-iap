@@ -56,8 +56,8 @@
     "lint:tsc": "tsc -p tsconfig.json --noEmit --skipLibCheck",
     "lint:ci": "yarn lint:tsc && yarn lint:eslint && yarn lint:prettier",
     "prepare": "npx tsx scripts/check-nitro-versions.ts && bob build && yarn nitrogen && yarn build:plugin",
-    "nitrogen": "nitrogen",
-    "specs": "nitrogen --logLevel=\"debug\"",
+    "nitrogen": "node --stack-size=65536 node_modules/nitrogen/lib/index.js",
+    "specs": "node --stack-size=65536 node_modules/nitrogen/lib/index.js --logLevel=\"debug\"",
     "test": "jest --coverage",
     "test:library": "jest --coverage",
     "test:example": "yarn workspace rn-iap-example test --coverage",
@@ -108,19 +108,19 @@
     "husky": "^8.0.3",
     "jest": "^30.1.1",
     "lint-staged": "^15.2.0",
-    "nitrogen": "^0.31.1",
+    "nitrogen": "^0.35.0",
     "prettier": "^3.3.3",
     "react": "19.1.0",
     "react-native": "0.81.1",
     "react-native-builder-bob": "^0.38.4",
-    "react-native-nitro-modules": "^0.31.1",
+    "react-native-nitro-modules": "^0.35.0",
     "react-test-renderer": "^19.1.1",
     "typescript": "^5.9.2"
   },
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
-    "react-native-nitro-modules": "^0.31.1"
+    "react-native-nitro-modules": "^0.35.0"
   },
   "workspaces": [
     "example"
