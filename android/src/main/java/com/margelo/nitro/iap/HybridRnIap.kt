@@ -1084,8 +1084,8 @@ class HybridRnIap : HybridRnIapSpec() {
                 rentalDetailsAndroid = otp.rentalDetailsAndroid?.let { rental ->
                     Variant_NullType_NitroRentalDetailsAndroid.Second(
                         NitroRentalDetailsAndroid(
-                            rentalPeriod = rental.rentalPeriod,
-                            rentalExpirationPeriod = rental.rentalExpirationPeriod
+                            rentalExpirationPeriod = rental.rentalExpirationPeriod?.let { Variant_NullType_String.Second(it) },
+                            rentalPeriod = rental.rentalPeriod
                         )
                     )
                 }
@@ -1307,7 +1307,7 @@ class HybridRnIap : HybridRnIapSpec() {
     // iOS-specific method - not supported on Android
     override fun getPromotedProductIOS(): Promise<Variant_NullType_NitroProduct> {
         return Promise.async {
-            Variant_NullType_NitroProduct.First(NullType.INSTANCE)
+            Variant_NullType_NitroProduct.First(NullType.NULL)
         }
     }
 
@@ -1316,7 +1316,7 @@ class HybridRnIap : HybridRnIapSpec() {
         return Promise.async {
             // Android doesn't have promoted products like iOS App Store
             // Return null as this feature is iOS-only
-            Variant_NullType_NitroProduct.First(NullType.INSTANCE)
+            Variant_NullType_NitroProduct.First(NullType.NULL)
         }
     }
 
@@ -1346,7 +1346,7 @@ class HybridRnIap : HybridRnIapSpec() {
         return Promise.async {
             // Android doesn't have in-app refund requests like iOS
             // Refunds on Android are handled through Google Play Console
-            Variant_NullType_String.First(NullType.INSTANCE)
+            Variant_NullType_String.First(NullType.NULL)
         }
     }
 
@@ -1494,8 +1494,8 @@ class HybridRnIap : HybridRnIapSpec() {
                 // Convert errors if present
                 val nitroErrors = result.errors?.map { error ->
                     NitroVerifyPurchaseWithProviderError(
-                        code = error.code,
-                        message = error.message
+                        code = error.code?.let { Variant_NullType_String.Second(it) },
+                        message = error.message ?: ""
                     )
                 }?.toTypedArray()
 
@@ -1640,7 +1640,7 @@ class HybridRnIap : HybridRnIapSpec() {
                     openIap.createAlternativeBillingReportingToken()
                 }
                 RnIapLog.result("createAlternativeBillingTokenAndroid", token)
-                token?.let { Variant_NullType_String.Second(it) } ?: Variant_NullType_String.First(NullType.INSTANCE)
+                token?.let { Variant_NullType_String.Second(it) } ?: Variant_NullType_String.First(NullType.NULL)
             } catch (err: Throwable) {
                 RnIapLog.failure("createAlternativeBillingTokenAndroid", err)
                 val errorType = parseOpenIapError(err)
