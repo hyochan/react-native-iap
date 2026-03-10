@@ -212,12 +212,16 @@ const purchaseUpdateNativeHandler: NitroPurchaseListener = (nitroPurchase) => {
   if (validateNitroPurchase(nitroPurchase)) {
     const convertedPurchase = convertNitroPurchaseToPurchase(nitroPurchase);
     for (const listener of purchaseUpdateJsListeners) {
-      listener(convertedPurchase);
+      try {
+        listener(convertedPurchase);
+      } catch (e) {
+        RnIapConsole.error('[purchaseUpdatedListener] callback threw:', e);
+      }
     }
   } else {
     RnIapConsole.error(
-      'Invalid purchase data received from native:',
-      nitroPurchase,
+      'Invalid purchase data received from native — productId:',
+      (nitroPurchase as any)?.productId ?? 'unknown',
     );
   }
 };
@@ -231,7 +235,11 @@ const purchaseErrorNativeHandler: NitroPurchaseErrorListener = (error) => {
     productId: undefined,
   };
   for (const listener of purchaseErrorJsListeners) {
-    listener(normalized);
+    try {
+      listener(normalized);
+    } catch (e) {
+      RnIapConsole.error('[purchaseErrorListener] callback threw:', e);
+    }
   }
 };
 
@@ -243,12 +251,16 @@ const promotedProductNativeHandler: NitroPromotedProductListener = (
   if (validateNitroProduct(nitroProduct)) {
     const convertedProduct = convertNitroProductToProduct(nitroProduct);
     for (const listener of promotedProductJsListeners) {
-      listener(convertedProduct);
+      try {
+        listener(convertedProduct);
+      } catch (e) {
+        RnIapConsole.error('[promotedProductListenerIOS] callback threw:', e);
+      }
     }
   } else {
     RnIapConsole.error(
-      'Invalid promoted product data received from native:',
-      nitroProduct,
+      'Invalid promoted product data received from native — id:',
+      (nitroProduct as any)?.id ?? 'unknown',
     );
   }
 };
@@ -403,7 +415,14 @@ const userChoiceBillingNativeHandler: NitroUserChoiceBillingListener = (
   details,
 ) => {
   for (const listener of userChoiceBillingJsListeners) {
-    listener(details);
+    try {
+      listener(details);
+    } catch (e) {
+      RnIapConsole.error(
+        '[userChoiceBillingListenerAndroid] callback threw:',
+        e,
+      );
+    }
   }
 };
 
@@ -485,7 +504,14 @@ let developerProvidedBillingNativeAttached = false;
 const developerProvidedBillingNativeHandler: NitroDeveloperProvidedBillingListener =
   (details) => {
     for (const listener of developerProvidedBillingJsListeners) {
-      listener(details);
+      try {
+        listener(details);
+      } catch (e) {
+        RnIapConsole.error(
+          '[developerProvidedBillingListenerAndroid] callback threw:',
+          e,
+        );
+      }
     }
   };
 
@@ -1175,8 +1201,9 @@ export const initConnection: MutationField<'initConnection'> = async (
 export const endConnection: MutationField<'endConnection'> = async () => {
   try {
     if (!iapRef) return true;
+    const result = await IAP.instance.endConnection();
     resetListenerState();
-    return await IAP.instance.endConnection();
+    return result;
   } catch (error) {
     RnIapConsole.error('Failed to end IAP connection:', error);
     const parsedError = parseErrorStringToJsonObj(error);
