@@ -209,10 +209,10 @@ configurations.all {
 // to prevent race condition where libNitroModules.so is not yet built.
 // See: https://github.com/hyochan/react-native-iap/issues/3163
 afterEvaluate {
-  tasks.configureEach { task ->
-    if (task.name.startsWith('buildCMake')) {
-      def nitroProject = rootProject.findProject(':react-native-nitro-modules')
-      if (nitroProject) {
+  def nitroProject = rootProject.findProject(':react-native-nitro-modules')
+  if (nitroProject) {
+    tasks.configureEach { task ->
+      if (task.name.startsWith('buildCMake')) {
         def nitroTask = nitroProject.tasks.findByName(task.name)
         if (nitroTask) {
           task.dependsOn(nitroTask)
