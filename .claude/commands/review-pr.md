@@ -85,7 +85,9 @@ Fixed in abc1234 along with other review items.
 7. Push changes
 
 8. Reply to **each individual review comment** using the comment's `id`:
+
    ```bash
-   gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies -f body="Fixed in abc1234."
+   gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies -X POST -f body="Fixed in abc1234."
    ```
-   **IMPORTANT:** Always reply directly to individual comments, NOT as a general PR review comment. Use the `/pulls/comments/{id}/replies` endpoint, NOT `gh pr review --comment`.
+
+   **CRITICAL:** You MUST include `-X POST` — without it the request defaults to GET and returns 404. Always reply directly to individual comments, NOT as a general PR review comment. Use the `/pulls/comments/{id}/replies` endpoint, NOT `gh pr review --comment`.
