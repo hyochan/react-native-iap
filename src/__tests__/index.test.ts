@@ -130,7 +130,7 @@ describe('Public API (src/index.ts)', () => {
       const sub = IAP.purchaseUpdatedListener(listener);
       expect(typeof sub.remove).toBe('function');
 
-      // Emulate native event
+      // Emulate native event via singleton handler
       const nitroPurchase = {
         id: 't1',
         productId: 'p1',
@@ -140,8 +140,10 @@ describe('Public API (src/index.ts)', () => {
         purchaseState: 'purchased',
         isAutoRenewing: false,
       };
-      const wrapped = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
-      wrapped(nitroPurchase);
+      // Singleton: only one native handler registered
+      expect(mockIap.addPurchaseUpdatedListener).toHaveBeenCalledTimes(1);
+      const nativeHandler = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
+      nativeHandler(nitroPurchase);
       expect(listener).toHaveBeenCalledWith(
         expect.objectContaining({
           productId: 'p1',
@@ -149,9 +151,12 @@ describe('Public API (src/index.ts)', () => {
         }),
       );
 
-      // remove
+      // remove only removes from JS set, not native
       sub.remove();
-      expect(mockIap.removePurchaseUpdatedListener).toHaveBeenCalled();
+      // Verify listener no longer fires after removal
+      listener.mockClear();
+      nativeHandler(nitroPurchase);
+      expect(listener).not.toHaveBeenCalled();
     });
 
     it('purchaseErrorListener forwards error objects and supports removal', () => {
@@ -160,8 +165,9 @@ describe('Public API (src/index.ts)', () => {
       expect(typeof sub.remove).toBe('function');
 
       const err = {code: 'E_UNKNOWN', message: 'oops'};
-      const passed = mockIap.addPurchaseErrorListener.mock.calls[0][0];
-      passed(err);
+      expect(mockIap.addPurchaseErrorListener).toHaveBeenCalledTimes(1);
+      const nativeHandler = mockIap.addPurchaseErrorListener.mock.calls[0][0];
+      nativeHandler(err);
       expect(listener).toHaveBeenCalledWith(
         expect.objectContaining({
           code: ErrorCode.Unknown,
@@ -170,7 +176,10 @@ describe('Public API (src/index.ts)', () => {
       );
 
       sub.remove();
-      expect(mockIap.removePurchaseErrorListener).toHaveBeenCalled();
+      // Verify listener no longer fires after removal
+      listener.mockClear();
+      nativeHandler(err);
+      expect(listener).not.toHaveBeenCalled();
     });
 
     it('promotedProductListenerIOS warns and no-ops on non‑iOS', () => {
@@ -198,13 +207,18 @@ describe('Public API (src/index.ts)', () => {
       };
       const listener = jest.fn();
       const sub = IAP.promotedProductListenerIOS(listener);
-      const wrapped = mockIap.addPromotedProductListenerIOS.mock.calls[0][0];
-      wrapped(nitroProduct);
+      expect(mockIap.addPromotedProductListenerIOS).toHaveBeenCalledTimes(1);
+      const nativeHandler =
+        mockIap.addPromotedProductListenerIOS.mock.calls[0][0];
+      nativeHandler(nitroProduct);
       expect(listener).toHaveBeenCalledWith(
         expect.objectContaining({id: 'sku1', platform: PLATFORM_IOS}),
       );
       sub.remove();
-      expect(mockIap.removePromotedProductListenerIOS).toHaveBeenCalled();
+      // Verify listener no longer fires after removal
+      listener.mockClear();
+      nativeHandler(nitroProduct);
+      expect(listener).not.toHaveBeenCalled();
     });
 
     it('purchaseUpdatedListener ignores invalid purchase payload', () => {
@@ -215,13 +229,14 @@ describe('Public API (src/index.ts)', () => {
       expect(listener).not.toHaveBeenCalled();
     });
 
-    it('multiple purchaseUpdatedListeners all receive events', () => {
+    it('multiple purchaseUpdatedListeners all receive events from single native handler', () => {
       const listener1 = jest.fn();
       const listener2 = jest.fn();
       const sub1 = IAP.purchaseUpdatedListener(listener1);
       const sub2 = IAP.purchaseUpdatedListener(listener2);
 
-      expect(mockIap.addPurchaseUpdatedListener).toHaveBeenCalledTimes(2);
+      // Singleton: only one native listener registered
+      expect(mockIap.addPurchaseUpdatedListener).toHaveBeenCalledTimes(1);
 
       const nitroPurchase = {
         id: 't1',
@@ -232,10 +247,9 @@ describe('Public API (src/index.ts)', () => {
         purchaseState: 'purchased',
         isAutoRenewing: false,
       };
-      const wrapped1 = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
-      const wrapped2 = mockIap.addPurchaseUpdatedListener.mock.calls[1][0];
-      wrapped1(nitroPurchase);
-      wrapped2(nitroPurchase);
+      // Single native handler dispatches to all JS listeners
+      const nativeHandler = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
+      nativeHandler(nitroPurchase);
 
       expect(listener1).toHaveBeenCalledTimes(1);
       expect(listener2).toHaveBeenCalledTimes(1);
@@ -248,12 +262,12 @@ describe('Public API (src/index.ts)', () => {
       const listener1 = jest.fn();
       const listener2 = jest.fn();
       const sub1 = IAP.purchaseUpdatedListener(listener1);
-      const sub2 = IAP.purchaseUpdatedListener(listener2);
+      IAP.purchaseUpdatedListener(listener2);
 
+      // Remove first listener
       sub1.remove();
-      expect(mockIap.removePurchaseUpdatedListener).toHaveBeenCalledTimes(1);
 
-      const wrapped2 = mockIap.addPurchaseUpdatedListener.mock.calls[1][0];
+      const nativeHandler = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
       const nitroPurchase = {
         id: 't2',
         productId: 'p2',
@@ -263,26 +277,24 @@ describe('Public API (src/index.ts)', () => {
         purchaseState: 'purchased',
         isAutoRenewing: false,
       };
-      wrapped2(nitroPurchase);
+      nativeHandler(nitroPurchase);
+      // listener2 still receives events, listener1 does not
       expect(listener2).toHaveBeenCalledTimes(1);
       expect(listener1).not.toHaveBeenCalled();
-
-      sub2.remove();
     });
 
-    it('multiple purchaseErrorListeners all receive errors', () => {
+    it('multiple purchaseErrorListeners all receive errors from single native handler', () => {
       const listener1 = jest.fn();
       const listener2 = jest.fn();
       const sub1 = IAP.purchaseErrorListener(listener1);
       const sub2 = IAP.purchaseErrorListener(listener2);
 
-      expect(mockIap.addPurchaseErrorListener).toHaveBeenCalledTimes(2);
+      // Singleton: only one native listener registered
+      expect(mockIap.addPurchaseErrorListener).toHaveBeenCalledTimes(1);
 
-      const wrapped1 = mockIap.addPurchaseErrorListener.mock.calls[0][0];
-      const wrapped2 = mockIap.addPurchaseErrorListener.mock.calls[1][0];
+      const nativeHandler = mockIap.addPurchaseErrorListener.mock.calls[0][0];
       const err = {code: 'user-cancelled', message: 'User cancelled'};
-      wrapped1(err);
-      wrapped2(err);
+      nativeHandler(err);
 
       expect(listener1).toHaveBeenCalledTimes(1);
       expect(listener2).toHaveBeenCalledTimes(1);
@@ -295,16 +307,14 @@ describe('Public API (src/index.ts)', () => {
       const listener1 = jest.fn();
       const listener2 = jest.fn();
       const sub1 = IAP.purchaseErrorListener(listener1);
-      const sub2 = IAP.purchaseErrorListener(listener2);
+      IAP.purchaseErrorListener(listener2);
 
       sub1.remove();
 
-      const wrapped2 = mockIap.addPurchaseErrorListener.mock.calls[1][0];
-      wrapped2({code: 'network-error', message: 'Network error'});
+      const nativeHandler = mockIap.addPurchaseErrorListener.mock.calls[0][0];
+      nativeHandler({code: 'network-error', message: 'Network error'});
       expect(listener2).toHaveBeenCalledTimes(1);
       expect(listener1).not.toHaveBeenCalled();
-
-      sub2.remove();
     });
   });
 
@@ -322,9 +332,10 @@ describe('Public API (src/index.ts)', () => {
       const listener1 = jest.fn();
       const sub1 = IAP.purchaseUpdatedListener(listener1);
 
-      // Verify listener is registered
+      // Verify singleton native listener is registered
       expect(mockIap.addPurchaseUpdatedListener).toHaveBeenCalledTimes(1);
-      const wrapped1 = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
+      const nativeHandler1 =
+        mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
 
       // Simulate a purchase event — listener should fire
       const nitroPurchase = {
@@ -336,10 +347,10 @@ describe('Public API (src/index.ts)', () => {
         purchaseState: 'purchased',
         isAutoRenewing: false,
       };
-      wrapped1(nitroPurchase);
+      nativeHandler1(nitroPurchase);
       expect(listener1).toHaveBeenCalledTimes(1);
 
-      // 2. Disconnect and remove old listener
+      // 2. Disconnect (endConnection resets listener state)
       sub1.remove();
       await IAP.endConnection();
 
@@ -349,12 +360,13 @@ describe('Public API (src/index.ts)', () => {
       const listener2 = jest.fn();
       const sub2 = IAP.purchaseUpdatedListener(listener2);
 
-      // New listener should be registered with native
+      // New singleton native listener should be registered after reset
       expect(mockIap.addPurchaseUpdatedListener).toHaveBeenCalledTimes(1);
-      const wrapped2 = mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
+      const nativeHandler2 =
+        mockIap.addPurchaseUpdatedListener.mock.calls[0][0];
 
       // Simulate purchase event on new connection — new listener should fire
-      wrapped2(nitroPurchase);
+      nativeHandler2(nitroPurchase);
       expect(listener2).toHaveBeenCalledTimes(1);
       expect(listener2).toHaveBeenCalledWith(
         expect.objectContaining({productId: 'p1'}),
@@ -377,9 +389,9 @@ describe('Public API (src/index.ts)', () => {
       const sub2 = IAP.purchaseErrorListener(errorListener2);
 
       expect(mockIap.addPurchaseErrorListener).toHaveBeenCalledTimes(1);
-      const wrapped = mockIap.addPurchaseErrorListener.mock.calls[0][0];
+      const nativeHandler = mockIap.addPurchaseErrorListener.mock.calls[0][0];
 
-      wrapped({code: 'user-cancelled', message: 'User cancelled'});
+      nativeHandler({code: 'user-cancelled', message: 'User cancelled'});
       expect(errorListener2).toHaveBeenCalledTimes(1);
       expect(errorListener2).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1777,9 +1789,10 @@ describe('Public API (src/index.ts)', () => {
       );
 
       sub.remove();
-      expect(
-        mockIap.removeDeveloperProvidedBillingListenerAndroid,
-      ).toHaveBeenCalled();
+      // Singleton pattern: native remove is not called, JS listener is removed from Set
+      listener.mockClear();
+      wrapped(details);
+      expect(listener).not.toHaveBeenCalled();
     });
   });
 

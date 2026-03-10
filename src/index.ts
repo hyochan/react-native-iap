@@ -198,63 +198,103 @@ const IAP = {
 
 // ============================================================================
 // EVENT LISTENERS
+//
+// Uses a singleton native listener per event type with JS-level fan-out.
+// This avoids the iOS bug where removePurchaseUpdatedListener calls
+// removeAll() instead of removing a specific listener, which caused ALL
+// listeners to be lost when any single useIAP instance unmounted.
+// See: https://github.com/hyochan/react-native-iap/issues/3150
 // ============================================================================
 
-const purchaseUpdatedListenerMap = new WeakMap<
-  (purchase: Purchase) => void,
-  NitroPurchaseListener
->();
-const purchaseErrorListenerMap = new WeakMap<
-  (error: PurchaseError) => void,
-  NitroPurchaseErrorListener
->();
-const promotedProductListenerMap = new WeakMap<
-  (product: Product) => void,
-  NitroPromotedProductListener
->();
+const purchaseUpdateJsListeners = new Set<(purchase: Purchase) => void>();
+let purchaseUpdateNativeAttached = false;
+const purchaseUpdateNativeHandler: NitroPurchaseListener = (nitroPurchase) => {
+  if (validateNitroPurchase(nitroPurchase)) {
+    const convertedPurchase = convertNitroPurchaseToPurchase(nitroPurchase);
+    for (const listener of purchaseUpdateJsListeners) {
+      listener(convertedPurchase);
+    }
+  } else {
+    RnIapConsole.error(
+      'Invalid purchase data received from native:',
+      nitroPurchase,
+    );
+  }
+};
+
+const purchaseErrorJsListeners = new Set<(error: PurchaseError) => void>();
+let purchaseErrorNativeAttached = false;
+const purchaseErrorNativeHandler: NitroPurchaseErrorListener = (error) => {
+  const normalized: PurchaseError = {
+    code: normalizeErrorCodeFromNative(error.code),
+    message: error.message,
+    productId: undefined,
+  };
+  for (const listener of purchaseErrorJsListeners) {
+    listener(normalized);
+  }
+};
+
+const promotedProductJsListeners = new Set<(product: Product) => void>();
+let promotedProductNativeAttached = false;
+const promotedProductNativeHandler: NitroPromotedProductListener = (
+  nitroProduct,
+) => {
+  if (validateNitroProduct(nitroProduct)) {
+    const convertedProduct = convertNitroProductToProduct(nitroProduct);
+    for (const listener of promotedProductJsListeners) {
+      listener(convertedProduct);
+    }
+  } else {
+    RnIapConsole.error(
+      'Invalid promoted product data received from native:',
+      nitroProduct,
+    );
+  }
+};
+
+/**
+ * Reset all JS-level listener tracking state.
+ * Called during endConnection to ensure clean re-registration on next initConnection.
+ */
+export const resetListenerState = (): void => {
+  purchaseUpdateNativeAttached = false;
+  purchaseErrorNativeAttached = false;
+  promotedProductNativeAttached = false;
+  userChoiceBillingNativeAttached = false;
+  developerProvidedBillingNativeAttached = false;
+  // Clear all JS listeners since native side clears them in endConnection
+  purchaseUpdateJsListeners.clear();
+  purchaseErrorJsListeners.clear();
+  promotedProductJsListeners.clear();
+  userChoiceBillingJsListeners.clear();
+  developerProvidedBillingJsListeners.clear();
+};
 
 export const purchaseUpdatedListener = (
   listener: (purchase: Purchase) => void,
 ): EventSubscription => {
-  const wrappedListener: NitroPurchaseListener = (nitroPurchase) => {
-    if (validateNitroPurchase(nitroPurchase)) {
-      const convertedPurchase = convertNitroPurchaseToPurchase(nitroPurchase);
-      listener(convertedPurchase);
-    } else {
-      RnIapConsole.error(
-        'Invalid purchase data received from native:',
-        nitroPurchase,
-      );
-    }
-  };
+  purchaseUpdateJsListeners.add(listener);
 
-  purchaseUpdatedListenerMap.set(listener, wrappedListener);
-  let attached = false;
-  try {
-    IAP.instance.addPurchaseUpdatedListener(wrappedListener);
-    attached = true;
-  } catch (e) {
-    const msg = toErrorMessage(e);
-    if (msg.includes('Nitro runtime not installed')) {
-      RnIapConsole.warn(
-        '[purchaseUpdatedListener] Nitro not ready yet; listener inert until initConnection()',
-      );
-    } else {
-      throw e;
+  if (!purchaseUpdateNativeAttached) {
+    try {
+      IAP.instance.addPurchaseUpdatedListener(purchaseUpdateNativeHandler);
+      purchaseUpdateNativeAttached = true;
+    } catch (e) {
+      const msg = toErrorMessage(e);
+      if (msg.includes('Nitro runtime not installed')) {
+        RnIapConsole.warn(
+          '[purchaseUpdatedListener] Nitro not ready yet; listener inert until initConnection()',
+        );
+      } else {
+        throw e;
+      }
     }
   }
 
   return {
     remove: () => {
-      const wrapped = purchaseUpdatedListenerMap.get(listener);
-      if (wrapped) {
-        if (attached) {
-          try {
-            IAP.instance.removePurchaseUpdatedListener(wrapped);
-          } catch {}
-        }
-        purchaseUpdatedListenerMap.delete(listener);
-      }
+      purchaseUpdateJsListeners.delete(listener);
     },
   };
 };
@@ -262,41 +302,27 @@ export const purchaseUpdatedListener = (
 export const purchaseErrorListener = (
   listener: (error: PurchaseError) => void,
 ): EventSubscription => {
-  const wrapped: NitroPurchaseErrorListener = (error) => {
-    listener({
-      code: normalizeErrorCodeFromNative(error.code),
-      message: error.message,
-      productId: undefined,
-    });
-  };
+  purchaseErrorJsListeners.add(listener);
 
-  purchaseErrorListenerMap.set(listener, wrapped);
-  let attached = false;
-  try {
-    IAP.instance.addPurchaseErrorListener(wrapped);
-    attached = true;
-  } catch (e) {
-    const msg = toErrorMessage(e);
-    if (msg.includes('Nitro runtime not installed')) {
-      RnIapConsole.warn(
-        '[purchaseErrorListener] Nitro not ready yet; listener inert until initConnection()',
-      );
-    } else {
-      throw e;
+  if (!purchaseErrorNativeAttached) {
+    try {
+      IAP.instance.addPurchaseErrorListener(purchaseErrorNativeHandler);
+      purchaseErrorNativeAttached = true;
+    } catch (e) {
+      const msg = toErrorMessage(e);
+      if (msg.includes('Nitro runtime not installed')) {
+        RnIapConsole.warn(
+          '[purchaseErrorListener] Nitro not ready yet; listener inert until initConnection()',
+        );
+      } else {
+        throw e;
+      }
     }
   }
 
   return {
     remove: () => {
-      const stored = purchaseErrorListenerMap.get(listener);
-      if (stored) {
-        if (attached) {
-          try {
-            IAP.instance.removePurchaseErrorListener(stored);
-          } catch {}
-        }
-        purchaseErrorListenerMap.delete(listener);
-      }
+      purchaseErrorJsListeners.delete(listener);
     },
   };
 };
@@ -319,45 +345,27 @@ export const promotedProductListenerIOS = (
     return {remove: () => {}};
   }
 
-  const wrappedListener: NitroPromotedProductListener = (nitroProduct) => {
-    if (validateNitroProduct(nitroProduct)) {
-      const convertedProduct = convertNitroProductToProduct(nitroProduct);
-      listener(convertedProduct);
-    } else {
-      RnIapConsole.error(
-        'Invalid promoted product data received from native:',
-        nitroProduct,
-      );
-    }
-  };
+  promotedProductJsListeners.add(listener);
 
-  promotedProductListenerMap.set(listener, wrappedListener);
-  let attached = false;
-  try {
-    IAP.instance.addPromotedProductListenerIOS(wrappedListener);
-    attached = true;
-  } catch (e) {
-    const msg = toErrorMessage(e);
-    if (msg.includes('Nitro runtime not installed')) {
-      RnIapConsole.warn(
-        '[promotedProductListenerIOS] Nitro not ready yet; listener inert until initConnection()',
-      );
-    } else {
-      throw e;
+  if (!promotedProductNativeAttached) {
+    try {
+      IAP.instance.addPromotedProductListenerIOS(promotedProductNativeHandler);
+      promotedProductNativeAttached = true;
+    } catch (e) {
+      const msg = toErrorMessage(e);
+      if (msg.includes('Nitro runtime not installed')) {
+        RnIapConsole.warn(
+          '[promotedProductListenerIOS] Nitro not ready yet; listener inert until initConnection()',
+        );
+      } else {
+        throw e;
+      }
     }
   }
 
   return {
     remove: () => {
-      const wrapped = promotedProductListenerMap.get(listener);
-      if (wrapped) {
-        if (attached) {
-          try {
-            IAP.instance.removePromotedProductListenerIOS(wrapped);
-          } catch {}
-        }
-        promotedProductListenerMap.delete(listener);
-      }
+      promotedProductJsListeners.delete(listener);
     },
   };
 };
@@ -388,10 +396,16 @@ export const promotedProductListenerIOS = (
 type NitroUserChoiceBillingListener = Parameters<
   RnIap['addUserChoiceBillingListenerAndroid']
 >[0];
-const userChoiceBillingListenerMap = new WeakMap<
-  (details: any) => void,
-  NitroUserChoiceBillingListener
->();
+
+const userChoiceBillingJsListeners = new Set<(details: any) => void>();
+let userChoiceBillingNativeAttached = false;
+const userChoiceBillingNativeHandler: NitroUserChoiceBillingListener = (
+  details,
+) => {
+  for (const listener of userChoiceBillingJsListeners) {
+    listener(details);
+  }
+};
 
 export const userChoiceBillingListenerAndroid = (
   listener: (details: any) => void,
@@ -403,37 +417,29 @@ export const userChoiceBillingListenerAndroid = (
     return {remove: () => {}};
   }
 
-  const wrappedListener: NitroUserChoiceBillingListener = (details) => {
-    listener(details);
-  };
+  userChoiceBillingJsListeners.add(listener);
 
-  userChoiceBillingListenerMap.set(listener, wrappedListener);
-  let attached = false;
-  try {
-    IAP.instance.addUserChoiceBillingListenerAndroid(wrappedListener);
-    attached = true;
-  } catch (e) {
-    const msg = toErrorMessage(e);
-    if (msg.includes('Nitro runtime not installed')) {
-      RnIapConsole.warn(
-        '[userChoiceBillingListenerAndroid] Nitro not ready yet; listener inert until initConnection()',
+  if (!userChoiceBillingNativeAttached) {
+    try {
+      IAP.instance.addUserChoiceBillingListenerAndroid(
+        userChoiceBillingNativeHandler,
       );
-    } else {
-      throw e;
+      userChoiceBillingNativeAttached = true;
+    } catch (e) {
+      const msg = toErrorMessage(e);
+      if (msg.includes('Nitro runtime not installed')) {
+        RnIapConsole.warn(
+          '[userChoiceBillingListenerAndroid] Nitro not ready yet; listener inert until initConnection()',
+        );
+      } else {
+        throw e;
+      }
     }
   }
 
   return {
     remove: () => {
-      const wrapped = userChoiceBillingListenerMap.get(listener);
-      if (wrapped) {
-        if (attached) {
-          try {
-            IAP.instance.removeUserChoiceBillingListenerAndroid(wrapped);
-          } catch {}
-        }
-        userChoiceBillingListenerMap.delete(listener);
-      }
+      userChoiceBillingJsListeners.delete(listener);
     },
   };
 };
@@ -471,10 +477,17 @@ export const userChoiceBillingListenerAndroid = (
 type NitroDeveloperProvidedBillingListener = Parameters<
   RnIap['addDeveloperProvidedBillingListenerAndroid']
 >[0];
-const developerProvidedBillingListenerMap = new WeakMap<
-  (details: any) => void,
-  NitroDeveloperProvidedBillingListener
+
+const developerProvidedBillingJsListeners = new Set<
+  (details: DeveloperProvidedBillingDetailsAndroid) => void
 >();
+let developerProvidedBillingNativeAttached = false;
+const developerProvidedBillingNativeHandler: NitroDeveloperProvidedBillingListener =
+  (details) => {
+    for (const listener of developerProvidedBillingJsListeners) {
+      listener(details);
+    }
+  };
 
 export interface DeveloperProvidedBillingDetailsAndroid {
   /**
@@ -495,37 +508,29 @@ export const developerProvidedBillingListenerAndroid = (
     return {remove: () => {}};
   }
 
-  const wrappedListener: NitroDeveloperProvidedBillingListener = (details) => {
-    listener(details);
-  };
+  developerProvidedBillingJsListeners.add(listener);
 
-  developerProvidedBillingListenerMap.set(listener, wrappedListener);
-  let attached = false;
-  try {
-    IAP.instance.addDeveloperProvidedBillingListenerAndroid(wrappedListener);
-    attached = true;
-  } catch (e) {
-    const msg = toErrorMessage(e);
-    if (msg.includes('Nitro runtime not installed')) {
-      RnIapConsole.warn(
-        '[developerProvidedBillingListenerAndroid] Nitro not ready yet; listener inert until initConnection()',
+  if (!developerProvidedBillingNativeAttached) {
+    try {
+      IAP.instance.addDeveloperProvidedBillingListenerAndroid(
+        developerProvidedBillingNativeHandler,
       );
-    } else {
-      throw e;
+      developerProvidedBillingNativeAttached = true;
+    } catch (e) {
+      const msg = toErrorMessage(e);
+      if (msg.includes('Nitro runtime not installed')) {
+        RnIapConsole.warn(
+          '[developerProvidedBillingListenerAndroid] Nitro not ready yet; listener inert until initConnection()',
+        );
+      } else {
+        throw e;
+      }
     }
   }
 
   return {
     remove: () => {
-      const wrapped = developerProvidedBillingListenerMap.get(listener);
-      if (wrapped) {
-        if (attached) {
-          try {
-            IAP.instance.removeDeveloperProvidedBillingListenerAndroid(wrapped);
-          } catch {}
-        }
-        developerProvidedBillingListenerMap.delete(listener);
-      }
+      developerProvidedBillingJsListeners.delete(listener);
     },
   };
 };
@@ -1170,6 +1175,7 @@ export const initConnection: MutationField<'initConnection'> = async (
 export const endConnection: MutationField<'endConnection'> = async () => {
   try {
     if (!iapRef) return true;
+    resetListenerState();
     return await IAP.instance.endConnection();
   } catch (error) {
     RnIapConsole.error('Failed to end IAP connection:', error);
