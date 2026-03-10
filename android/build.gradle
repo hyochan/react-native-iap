@@ -204,3 +204,20 @@ dependencies {
 configurations.all {
   exclude group: 'com.facebook.react', module: 'react-native-safe-area-context'
 }
+
+// Ensure our CMake tasks run after react-native-nitro-modules' CMake tasks
+// to prevent race condition where libNitroModules.so is not yet built.
+// See: https://github.com/hyochan/react-native-iap/issues/3163
+afterEvaluate {
+  tasks.configureEach { task ->
+    if (task.name.startsWith('buildCMake')) {
+      def nitroProject = rootProject.findProject(':react-native-nitro-modules')
+      if (nitroProject) {
+        def nitroTask = nitroProject.tasks.findByName(task.name)
+        if (nitroTask) {
+          task.dependsOn(nitroTask)
+        }
+      }
+    }
+  }
+}
