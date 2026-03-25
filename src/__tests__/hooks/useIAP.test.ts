@@ -44,7 +44,7 @@ describe('hooks/useIAP (renderer)', () => {
   let mockGetAvailablePurchases: jest.SpyInstance;
   let mockGetActiveSubscriptions: jest.SpyInstance;
   let mockHasActiveSubscriptions: jest.SpyInstance;
-  let mockRestorePurchases: jest.SpyInstance;
+  let mockSyncIOS: jest.SpyInstance;
 
   beforeEach(() => {
     jest.spyOn(IAP, 'initConnection').mockResolvedValue(true as any);
@@ -61,8 +61,8 @@ describe('hooks/useIAP (renderer)', () => {
     mockFetchProducts = jest
       .spyOn(IAP, 'fetchProducts')
       .mockResolvedValue([] as any);
-    mockRestorePurchases = jest
-      .spyOn(IAP, 'restorePurchases')
+    mockSyncIOS = jest
+      .spyOn(IAP, 'syncIOS')
       .mockResolvedValue(undefined as any);
     jest.spyOn(IAP, 'purchaseUpdatedListener').mockImplementation((cb: any) => {
       capturedPurchaseListener = cb;
@@ -240,9 +240,9 @@ describe('hooks/useIAP (renderer)', () => {
       expect(onError).toHaveBeenCalledWith(hasSubsError);
     });
 
-    it('calls onError when restorePurchases fails', async () => {
+    it('calls onError when restorePurchases fails (syncIOS error on iOS)', async () => {
       const restoreError = new Error('Failed to restore');
-      mockRestorePurchases.mockRejectedValueOnce(restoreError);
+      mockSyncIOS.mockRejectedValueOnce(restoreError);
 
       let api: any;
       const onError = jest.fn();
@@ -260,7 +260,51 @@ describe('hooks/useIAP (renderer)', () => {
         await api.restorePurchases();
       });
 
+      expect(mockSyncIOS).toHaveBeenCalled();
       expect(onError).toHaveBeenCalledWith(restoreError);
+    });
+
+    it('calls onError when restorePurchases fails (getAvailablePurchases error)', async () => {
+      const purchaseError = new Error('Failed to get purchases after restore');
+      mockGetAvailablePurchases.mockRejectedValueOnce(purchaseError);
+
+      let api: any;
+      const onError = jest.fn();
+      const Harness = () => {
+        api = useIAP({onError});
+        return null;
+      };
+
+      await act(async () => {
+        TestRenderer.create(React.createElement(Harness));
+      });
+      await act(async () => {});
+
+      await act(async () => {
+        await api.restorePurchases();
+      });
+
+      expect(onError).toHaveBeenCalledWith(purchaseError);
+    });
+
+    it('restorePurchases calls syncIOS then getAvailablePurchases on iOS', async () => {
+      let api: any;
+      const Harness = () => {
+        api = useIAP();
+        return null;
+      };
+
+      await act(async () => {
+        TestRenderer.create(React.createElement(Harness));
+      });
+      await act(async () => {});
+
+      await act(async () => {
+        await api.restorePurchases();
+      });
+
+      expect(mockSyncIOS).toHaveBeenCalled();
+      expect(mockGetAvailablePurchases).toHaveBeenCalled();
     });
 
     it('does not call onError when operations succeed', async () => {

@@ -18,7 +18,7 @@ import {
   verifyPurchaseWithProvider as verifyPurchaseWithProviderTopLevel,
   getActiveSubscriptions,
   hasActiveSubscriptions,
-  restorePurchases as restorePurchasesTopLevel,
+  syncIOS,
   getPromotedProductIOS,
   requestPurchaseOnPromotedProductIOS,
   checkAlternativeBillingAvailabilityAndroid,
@@ -333,7 +333,18 @@ export function useIAP(options?: UseIapOptions): UseIap {
     [],
   );
 
-  // No local restorePurchases; use the top-level helper via returned API
+  const restorePurchases = useCallback(async (): Promise<void> => {
+    try {
+      if (Platform.OS === 'ios') {
+        await syncIOS();
+      }
+
+      await getAvailablePurchasesInternal();
+    } catch (error) {
+      RnIapConsole.warn('Failed to restore purchases:', error);
+      invokeOnError(error);
+    }
+  }, [getAvailablePurchasesInternal, invokeOnError]);
 
   const validateReceipt = useCallback(
     async (options: VerifyPurchaseProps): Promise<VerifyPurchaseResult> =>
@@ -506,15 +517,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
     validateReceipt,
     verifyPurchase,
     verifyPurchaseWithProvider,
-    restorePurchases: async () => {
-      try {
-        await restorePurchasesTopLevel();
-        await getAvailablePurchasesInternal();
-      } catch (error) {
-        RnIapConsole.warn('Failed to restore purchases:', error);
-        invokeOnError(error);
-      }
-    },
+    restorePurchases,
     getPromotedProductIOS,
     requestPurchaseOnPromotedProductIOS,
     getActiveSubscriptions: getActiveSubscriptionsInternal,
