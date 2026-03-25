@@ -737,11 +737,14 @@ export const getAvailablePurchases: QueryField<
       return validPurchases.map(convertNitroPurchaseToPurchase);
     } else if (Platform.OS === 'android') {
       // For Android, we need to call twice for inapp and subs
+      const includeSuspended = Boolean(
+        options?.includeSuspendedAndroid ?? false,
+      );
       const inappNitroPurchases = await IAP.instance.getAvailablePurchases({
-        android: {type: 'inapp'},
+        android: {type: 'inapp', includeSuspended},
       });
       const subsNitroPurchases = await IAP.instance.getAvailablePurchases({
-        android: {type: 'subs'},
+        android: {type: 'subs', includeSuspended},
       });
 
       // Validate and convert both sets of purchases

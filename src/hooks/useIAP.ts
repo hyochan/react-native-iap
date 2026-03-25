@@ -40,6 +40,7 @@ import type {
   VerifyPurchaseResult,
   VerifyPurchaseWithProviderProps,
   VerifyPurchaseWithProviderResult,
+  PurchaseOptions,
 } from '../types';
 import type {
   ActiveSubscription,
@@ -63,7 +64,7 @@ type UseIap = {
   promotedProductIOS?: Product;
   activeSubscriptions: ActiveSubscription[];
   finishTransaction: (args: MutationFinishTransactionArgs) => Promise<void>;
-  getAvailablePurchases: (skus?: string[]) => Promise<void>;
+  getAvailablePurchases: (options?: PurchaseOptions) => Promise<void>;
   fetchProducts: (params: {
     skus: string[];
     type?: ProductQueryType | null;
@@ -83,7 +84,7 @@ type UseIap = {
   verifyPurchaseWithProvider: (
     options: VerifyPurchaseWithProviderProps,
   ) => Promise<VerifyPurchaseWithProviderResult>;
-  restorePurchases: () => Promise<void>;
+  restorePurchases: (options?: PurchaseOptions) => Promise<void>;
   getPromotedProductIOS: () => Promise<Product | null>;
   requestPurchaseOnPromotedProductIOS: () => Promise<boolean>;
   getActiveSubscriptions: (
@@ -271,11 +272,13 @@ export function useIAP(options?: UseIapOptions): UseIap {
   );
 
   const getAvailablePurchasesInternal = useCallback(
-    async (_skus?: string[]): Promise<void> => {
+    async (options?: PurchaseOptions): Promise<void> => {
       try {
         const result = await getAvailablePurchases({
-          alsoPublishToEventListenerIOS: false,
-          onlyIncludeActiveItemsIOS: true,
+          alsoPublishToEventListenerIOS:
+            options?.alsoPublishToEventListenerIOS ?? false,
+          onlyIncludeActiveItemsIOS: options?.onlyIncludeActiveItemsIOS ?? true,
+          includeSuspendedAndroid: options?.includeSuspendedAndroid ?? false,
         });
         setAvailablePurchases(result);
       } catch (error) {
@@ -333,18 +336,21 @@ export function useIAP(options?: UseIapOptions): UseIap {
     [],
   );
 
-  const restorePurchases = useCallback(async (): Promise<void> => {
-    try {
-      if (Platform.OS === 'ios') {
-        await syncIOS();
-      }
+  const restorePurchases = useCallback(
+    async (options?: PurchaseOptions): Promise<void> => {
+      try {
+        if (Platform.OS === 'ios') {
+          await syncIOS();
+        }
 
-      await getAvailablePurchasesInternal();
-    } catch (error) {
-      RnIapConsole.warn('Failed to restore purchases:', error);
-      invokeOnError(error);
-    }
-  }, [getAvailablePurchasesInternal, invokeOnError]);
+        await getAvailablePurchasesInternal(options);
+      } catch (error) {
+        RnIapConsole.warn('Failed to restore purchases:', error);
+        invokeOnError(error);
+      }
+    },
+    [getAvailablePurchasesInternal, invokeOnError],
+  );
 
   const validateReceipt = useCallback(
     async (options: VerifyPurchaseProps): Promise<VerifyPurchaseResult> =>
