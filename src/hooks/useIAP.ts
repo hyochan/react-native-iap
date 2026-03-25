@@ -91,6 +91,12 @@ type UseIap = {
     subscriptionIds?: string[],
   ) => Promise<ActiveSubscription[]>;
   hasActiveSubscriptions: (subscriptionIds?: string[]) => Promise<boolean>;
+  /**
+   * Manually retry the store connection.
+   * Useful when the initial auto-connect fails (e.g., Play Store not ready at mount time).
+   * Updates the `connected` state on success.
+   */
+  reconnect: () => Promise<boolean>;
   // Alternative billing (Android)
   checkAlternativeBillingAvailabilityAndroid?: () => Promise<boolean>;
   showAlternativeBillingDialogAndroid?: () => Promise<boolean>;
@@ -374,9 +380,8 @@ export function useIAP(options?: UseIapOptions): UseIap {
     [],
   );
 
-  const initIapWithSubscriptions = useCallback(async (): Promise<void> => {
-    // Initialize connection with config
-    // Prefer enableBillingProgramAndroid over deprecated alternativeBillingModeAndroid
+  // Shared helper: build Android billing config from options
+  const buildAndroidConfig = useCallback(() => {
     let config:
       | {
           enableBillingProgramAndroid?: BillingProgramAndroid;
@@ -391,7 +396,6 @@ export function useIAP(options?: UseIapOptions): UseIap {
             optionsRef.current.enableBillingProgramAndroid,
         };
       } else if (optionsRef.current?.alternativeBillingModeAndroid) {
-        // Deprecated: use alternativeBillingModeAndroid for backwards compatibility
         config = {
           alternativeBillingModeAndroid:
             optionsRef.current.alternativeBillingModeAndroid,
@@ -399,29 +403,14 @@ export function useIAP(options?: UseIapOptions): UseIap {
       }
     }
 
-    try {
-      // Initialize connection FIRST to ensure Nitro is ready
-      // This fixes tvOS where Nitro may initialize later than iOS
-      const result = await initConnection(config);
+    return config;
+  }, []);
 
-      // Check if component unmounted during async initConnection
-      // to prevent listener leaks
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      setConnected(result);
-
-      if (!result) {
-        RnIapConsole.warn('[useIAP] initConnection returned false');
-        return;
-      }
-
-      // Register listeners AFTER initConnection succeeds
-      // This ensures Nitro runtime is fully initialized
+  // Shared helper: register event listeners if not already active
+  const registerListeners = useCallback(() => {
+    if (!subscriptionsRef.current.purchaseUpdate) {
       subscriptionsRef.current.purchaseUpdate = purchaseUpdatedListener(
         async (purchase: Purchase) => {
-          // Always refresh subscription state after a purchase event
           try {
             await getActiveSubscriptionsInternal();
             await getAvailablePurchasesInternal();
@@ -433,11 +422,11 @@ export function useIAP(options?: UseIapOptions): UseIap {
           }
         },
       );
+    }
 
+    if (!subscriptionsRef.current.purchaseError) {
       subscriptionsRef.current.purchaseError = purchaseErrorListener(
         (error) => {
-          // error is already normalized by purchaseErrorListener in src/index.ts
-          // Ignore init error until connected
           if (
             error.code === ErrorCode.InitConnection &&
             !connectedRef.current
@@ -449,65 +438,113 @@ export function useIAP(options?: UseIapOptions): UseIap {
           }
         },
       );
+    }
 
-      // iOS promoted products listener (only supported on standard iOS, not tvOS/macOS)
-      if (isStandardIOS()) {
-        subscriptionsRef.current.promotedProductIOS =
-          promotedProductListenerIOS((product: Product) => {
-            setPromotedProductIOS(product);
+    if (isStandardIOS() && !subscriptionsRef.current.promotedProductIOS) {
+      subscriptionsRef.current.promotedProductIOS = promotedProductListenerIOS(
+        (product: Product) => {
+          setPromotedProductIOS(product);
+          if (optionsRef.current?.onPromotedProductIOS) {
+            optionsRef.current.onPromotedProductIOS(product);
+          }
+        },
+      );
+    }
 
-            if (optionsRef.current?.onPromotedProductIOS) {
-              optionsRef.current.onPromotedProductIOS(product);
-            }
-          });
+    if (
+      Platform.OS === 'android' &&
+      optionsRef.current?.onUserChoiceBillingAndroid &&
+      !subscriptionsRef.current.userChoiceBillingAndroid
+    ) {
+      subscriptionsRef.current.userChoiceBillingAndroid =
+        userChoiceBillingListenerAndroid((details) => {
+          if (optionsRef.current?.onUserChoiceBillingAndroid) {
+            optionsRef.current.onUserChoiceBillingAndroid(details);
+          }
+        });
+    }
+  }, [getActiveSubscriptionsInternal, getAvailablePurchasesInternal]);
+
+  // Shared helper: clean up all listeners
+  const cleanupListeners = useCallback(() => {
+    subscriptionsRef.current.purchaseUpdate?.remove();
+    subscriptionsRef.current.purchaseError?.remove();
+    subscriptionsRef.current.promotedProductIOS?.remove();
+    subscriptionsRef.current.userChoiceBillingAndroid?.remove();
+    subscriptionsRef.current.purchaseUpdate = undefined;
+    subscriptionsRef.current.purchaseError = undefined;
+    subscriptionsRef.current.promotedProductIOS = undefined;
+    subscriptionsRef.current.userChoiceBillingAndroid = undefined;
+  }, []);
+
+  const initIapWithSubscriptions = useCallback(async (): Promise<void> => {
+    const config = buildAndroidConfig();
+
+    try {
+      const result = await initConnection(config);
+
+      if (!isMountedRef.current) {
+        return;
       }
 
-      // Add user choice billing listener for Android (if provided)
-      if (
-        Platform.OS === 'android' &&
-        optionsRef.current?.onUserChoiceBillingAndroid
-      ) {
-        subscriptionsRef.current.userChoiceBillingAndroid =
-          userChoiceBillingListenerAndroid((details) => {
-            if (optionsRef.current?.onUserChoiceBillingAndroid) {
-              optionsRef.current.onUserChoiceBillingAndroid(details);
-            }
-          });
+      if (!result) {
+        setConnected(false);
+        RnIapConsole.warn('[useIAP] initConnection returned false');
+        return;
       }
+
+      registerListeners();
+      setConnected(true);
     } catch (error) {
       RnIapConsole.error('initConnection failed:', error);
+      cleanupListeners();
+      if (isMountedRef.current) {
+        setConnected(false);
+      }
       invokeOnError(error);
-      // Clean up listeners on error (if any were registered)
-      subscriptionsRef.current.purchaseUpdate?.remove();
-      subscriptionsRef.current.purchaseError?.remove();
-      subscriptionsRef.current.promotedProductIOS?.remove();
-      subscriptionsRef.current.userChoiceBillingAndroid?.remove();
-      subscriptionsRef.current.purchaseUpdate = undefined;
-      subscriptionsRef.current.purchaseError = undefined;
-      subscriptionsRef.current.promotedProductIOS = undefined;
-      subscriptionsRef.current.userChoiceBillingAndroid = undefined;
     }
-  }, [
-    getActiveSubscriptionsInternal,
-    getAvailablePurchasesInternal,
-    invokeOnError,
-  ]);
+  }, [buildAndroidConfig, registerListeners, cleanupListeners, invokeOnError]);
+
+  const reconnect = useCallback(async (): Promise<boolean> => {
+    const config = buildAndroidConfig();
+
+    try {
+      const result = await initConnection(config);
+
+      if (!isMountedRef.current) {
+        return false;
+      }
+
+      if (result) {
+        registerListeners();
+        setConnected(true);
+        return true;
+      }
+
+      setConnected(false);
+      return false;
+    } catch (error) {
+      RnIapConsole.error('[useIAP] reconnect failed:', error);
+      cleanupListeners();
+      if (isMountedRef.current) {
+        setConnected(false);
+      }
+      invokeOnError(error);
+      return false;
+    }
+  }, [buildAndroidConfig, registerListeners, cleanupListeners, invokeOnError]);
 
   useEffect(() => {
     isMountedRef.current = true;
     initIapWithSubscriptions();
-    const currentSubscriptions = subscriptionsRef.current;
 
     return () => {
       isMountedRef.current = false;
-      currentSubscriptions.purchaseUpdate?.remove();
-      currentSubscriptions.purchaseError?.remove();
-      currentSubscriptions.promotedProductIOS?.remove();
-      currentSubscriptions.userChoiceBillingAndroid?.remove();
+      cleanupListeners();
       // Keep connection alive across screens to avoid race conditions
       setConnected(false);
     };
-  }, [initIapWithSubscriptions]);
+  }, [initIapWithSubscriptions, cleanupListeners]);
 
   return {
     connected,
@@ -528,6 +565,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
     requestPurchaseOnPromotedProductIOS,
     getActiveSubscriptions: getActiveSubscriptionsInternal,
     hasActiveSubscriptions: hasActiveSubscriptionsInternal,
+    reconnect,
     // Alternative billing (Android only)
     ...(Platform.OS === 'android'
       ? {

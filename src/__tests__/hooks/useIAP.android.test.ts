@@ -125,4 +125,55 @@ describe('hooks/useIAP Android', () => {
       enableBillingProgramAndroid: 'external-offer',
     });
   });
+
+  it('registers userChoiceBillingAndroid listener when callback is provided', async () => {
+    const mockUserChoiceBillingListener = jest
+      .spyOn(IAP, 'userChoiceBillingListenerAndroid' as any)
+      .mockImplementation(() => ({remove: jest.fn()}));
+
+    let api: any;
+    const onUserChoiceBilling = jest.fn();
+    const Harness = () => {
+      api = useIAP({
+        onUserChoiceBillingAndroid: onUserChoiceBilling,
+      });
+      return null;
+    };
+
+    await act(async () => {
+      TestRenderer.create(React.createElement(Harness));
+    });
+    await act(async () => {});
+
+    expect(api.connected).toBe(true);
+    expect(mockUserChoiceBillingListener).toHaveBeenCalled();
+  });
+
+  it('reconnect uses Android billing config', async () => {
+    let api: any;
+    const Harness = () => {
+      api = useIAP({
+        enableBillingProgramAndroid: 'user-choice-billing',
+      });
+      return null;
+    };
+
+    await act(async () => {
+      TestRenderer.create(React.createElement(Harness));
+    });
+    await act(async () => {});
+
+    (IAP.initConnection as jest.Mock).mockClear();
+    jest.spyOn(IAP, 'initConnection').mockResolvedValueOnce(true as any);
+
+    let result: boolean | undefined;
+    await act(async () => {
+      result = await api.reconnect();
+    });
+
+    expect(result).toBe(true);
+    expect(IAP.initConnection).toHaveBeenCalledWith({
+      enableBillingProgramAndroid: 'user-choice-billing',
+    });
+  });
 });
