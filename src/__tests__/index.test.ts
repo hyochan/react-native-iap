@@ -812,10 +812,10 @@ describe('Public API (src/index.ts)', () => {
         .mockResolvedValueOnce([nitro('s1')]);
       const res = await IAP.getAvailablePurchases();
       expect(mockIap.getAvailablePurchases).toHaveBeenNthCalledWith(1, {
-        android: {type: 'inapp'},
+        android: {type: 'inapp', includeSuspended: false},
       });
       expect(mockIap.getAvailablePurchases).toHaveBeenNthCalledWith(2, {
-        android: {type: 'subs'},
+        android: {type: 'subs', includeSuspended: false},
       });
       expect(res.map((p: any) => p.productId).sort()).toEqual(['p1', 's1']);
     });
