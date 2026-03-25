@@ -18,7 +18,7 @@ import {
   verifyPurchaseWithProvider as verifyPurchaseWithProviderTopLevel,
   getActiveSubscriptions,
   hasActiveSubscriptions,
-  restorePurchases as restorePurchasesTopLevel,
+  syncIOS,
   getPromotedProductIOS,
   requestPurchaseOnPromotedProductIOS,
   checkAlternativeBillingAvailabilityAndroid,
@@ -335,7 +335,10 @@ export function useIAP(options?: UseIapOptions): UseIap {
 
   const restorePurchases = useCallback(async (): Promise<void> => {
     try {
-      await restorePurchasesTopLevel();
+      if (Platform.OS === 'ios') {
+        await syncIOS();
+      }
+
       await getAvailablePurchasesInternal();
     } catch (error) {
       RnIapConsole.warn('Failed to restore purchases:', error);
