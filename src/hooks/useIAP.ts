@@ -470,18 +470,21 @@ export function useIAP(options?: UseIapOptions): UseIap {
         return;
       }
 
-      setConnected(result);
-
       if (!result) {
+        setConnected(false);
         RnIapConsole.warn('[useIAP] initConnection returned false');
         return;
       }
 
       registerListeners();
+      setConnected(true);
     } catch (error) {
       RnIapConsole.error('initConnection failed:', error);
-      invokeOnError(error);
       cleanupListeners();
+      if (isMountedRef.current) {
+        setConnected(false);
+      }
+      invokeOnError(error);
     }
   }, [buildAndroidConfig, registerListeners, cleanupListeners, invokeOnError]);
 
@@ -495,35 +498,36 @@ export function useIAP(options?: UseIapOptions): UseIap {
         return false;
       }
 
-      setConnected(result);
-
       if (result) {
         registerListeners();
+        setConnected(true);
+        return true;
       }
 
-      return result;
+      setConnected(false);
+      return false;
     } catch (error) {
       RnIapConsole.error('[useIAP] reconnect failed:', error);
+      cleanupListeners();
+      if (isMountedRef.current) {
+        setConnected(false);
+      }
       invokeOnError(error);
       return false;
     }
-  }, [buildAndroidConfig, registerListeners, invokeOnError]);
+  }, [buildAndroidConfig, registerListeners, cleanupListeners, invokeOnError]);
 
   useEffect(() => {
     isMountedRef.current = true;
     initIapWithSubscriptions();
-    const currentSubscriptions = subscriptionsRef.current;
 
     return () => {
       isMountedRef.current = false;
-      currentSubscriptions.purchaseUpdate?.remove();
-      currentSubscriptions.purchaseError?.remove();
-      currentSubscriptions.promotedProductIOS?.remove();
-      currentSubscriptions.userChoiceBillingAndroid?.remove();
+      cleanupListeners();
       // Keep connection alive across screens to avoid race conditions
       setConnected(false);
     };
-  }, [initIapWithSubscriptions]);
+  }, [initIapWithSubscriptions, cleanupListeners]);
 
   return {
     connected,
