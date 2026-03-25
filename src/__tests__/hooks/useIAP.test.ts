@@ -373,4 +373,57 @@ describe('hooks/useIAP (renderer)', () => {
       expect(initConnectionSpy).toHaveBeenCalled();
     });
   });
+
+  describe('reconnect', () => {
+    it('reconnects and returns true on success', async () => {
+      let api: any;
+      const Harness = () => {
+        api = useIAP();
+        return null;
+      };
+
+      await act(async () => {
+        TestRenderer.create(React.createElement(Harness));
+      });
+      await act(async () => {});
+
+      // Reset mock to track reconnect call
+      (IAP.initConnection as jest.Mock).mockClear();
+      jest.spyOn(IAP, 'initConnection').mockResolvedValue(true as any);
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await api.reconnect();
+      });
+
+      expect(result).toBe(true);
+      expect(api.connected).toBe(true);
+    });
+
+    it('calls onError and returns false when reconnect fails', async () => {
+      const reconnectError = new Error('Reconnect failed');
+
+      let api: any;
+      const onError = jest.fn();
+      const Harness = () => {
+        api = useIAP({onError});
+        return null;
+      };
+
+      await act(async () => {
+        TestRenderer.create(React.createElement(Harness));
+      });
+      await act(async () => {});
+
+      jest.spyOn(IAP, 'initConnection').mockRejectedValueOnce(reconnectError);
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await api.reconnect();
+      });
+
+      expect(result).toBe(false);
+      expect(onError).toHaveBeenCalledWith(reconnectError);
+    });
+  });
 });

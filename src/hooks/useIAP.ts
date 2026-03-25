@@ -506,6 +506,12 @@ export function useIAP(options?: UseIapOptions): UseIap {
 
     try {
       const result = await initConnection(config);
+
+      // Check if component unmounted during async initConnection
+      if (!isMountedRef.current) {
+        return false;
+      }
+
       setConnected(result);
 
       if (result) {
@@ -550,6 +556,20 @@ export function useIAP(options?: UseIapOptions): UseIap {
               setPromotedProductIOS(product);
               if (optionsRef.current?.onPromotedProductIOS) {
                 optionsRef.current.onPromotedProductIOS(product);
+              }
+            });
+        }
+
+        // Re-register user choice billing listener for Android
+        if (
+          Platform.OS === 'android' &&
+          optionsRef.current?.onUserChoiceBillingAndroid &&
+          !subscriptionsRef.current.userChoiceBillingAndroid
+        ) {
+          subscriptionsRef.current.userChoiceBillingAndroid =
+            userChoiceBillingListenerAndroid((details) => {
+              if (optionsRef.current?.onUserChoiceBillingAndroid) {
+                optionsRef.current.onUserChoiceBillingAndroid(details);
               }
             });
         }
