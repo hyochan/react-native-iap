@@ -90,6 +90,12 @@ type UseIap = {
     subscriptionIds?: string[],
   ) => Promise<ActiveSubscription[]>;
   hasActiveSubscriptions: (subscriptionIds?: string[]) => Promise<boolean>;
+  /**
+   * Manually retry the store connection.
+   * Useful when the initial auto-connect fails (e.g., Play Store not ready at mount time).
+   * Updates the `connected` state on success.
+   */
+  reconnect: () => Promise<boolean>;
   // Alternative billing (Android)
   checkAlternativeBillingAvailabilityAndroid?: () => Promise<boolean>;
   showAlternativeBillingDialogAndroid?: () => Promise<boolean>;
@@ -476,6 +482,91 @@ export function useIAP(options?: UseIapOptions): UseIap {
     invokeOnError,
   ]);
 
+  const reconnect = useCallback(async (): Promise<boolean> => {
+    let config:
+      | {
+          enableBillingProgramAndroid?: BillingProgramAndroid;
+          alternativeBillingModeAndroid?: AlternativeBillingModeAndroid;
+        }
+      | undefined;
+
+    if (Platform.OS === 'android') {
+      if (optionsRef.current?.enableBillingProgramAndroid) {
+        config = {
+          enableBillingProgramAndroid:
+            optionsRef.current.enableBillingProgramAndroid,
+        };
+      } else if (optionsRef.current?.alternativeBillingModeAndroid) {
+        config = {
+          alternativeBillingModeAndroid:
+            optionsRef.current.alternativeBillingModeAndroid,
+        };
+      }
+    }
+
+    try {
+      const result = await initConnection(config);
+      setConnected(result);
+
+      if (result) {
+        // Re-register purchase listener if not already active
+        if (!subscriptionsRef.current.purchaseUpdate) {
+          subscriptionsRef.current.purchaseUpdate = purchaseUpdatedListener(
+            async (purchase: Purchase) => {
+              try {
+                await getActiveSubscriptionsInternal();
+                await getAvailablePurchasesInternal();
+              } catch (e) {
+                RnIapConsole.warn('[useIAP] post-purchase refresh failed:', e);
+              }
+              if (optionsRef.current?.onPurchaseSuccess) {
+                optionsRef.current.onPurchaseSuccess(purchase);
+              }
+            },
+          );
+        }
+
+        // Re-register error listener if not already active
+        if (!subscriptionsRef.current.purchaseError) {
+          subscriptionsRef.current.purchaseError = purchaseErrorListener(
+            (error) => {
+              if (
+                error.code === ErrorCode.InitConnection &&
+                !connectedRef.current
+              ) {
+                return;
+              }
+              if (optionsRef.current?.onPurchaseError) {
+                optionsRef.current.onPurchaseError(error);
+              }
+            },
+          );
+        }
+
+        // iOS promoted products listener
+        if (isStandardIOS() && !subscriptionsRef.current.promotedProductIOS) {
+          subscriptionsRef.current.promotedProductIOS =
+            promotedProductListenerIOS((product: Product) => {
+              setPromotedProductIOS(product);
+              if (optionsRef.current?.onPromotedProductIOS) {
+                optionsRef.current.onPromotedProductIOS(product);
+              }
+            });
+        }
+      }
+
+      return result;
+    } catch (error) {
+      RnIapConsole.error('[useIAP] reconnect failed:', error);
+      invokeOnError(error);
+      return false;
+    }
+  }, [
+    getActiveSubscriptionsInternal,
+    getAvailablePurchasesInternal,
+    invokeOnError,
+  ]);
+
   useEffect(() => {
     isMountedRef.current = true;
     initIapWithSubscriptions();
@@ -519,6 +610,7 @@ export function useIAP(options?: UseIapOptions): UseIap {
     requestPurchaseOnPromotedProductIOS,
     getActiveSubscriptions: getActiveSubscriptionsInternal,
     hasActiveSubscriptions: hasActiveSubscriptionsInternal,
+    reconnect,
     // Alternative billing (Android only)
     ...(Platform.OS === 'android'
       ? {
