@@ -1042,6 +1042,14 @@ class HybridRnIap: HybridRnIapSpec {
 
         if isDuplicate {
             RnIapLog.warn("Duplicate purchase update skipped for \(purchase.productId)")
+            let error = NitroPurchaseResult(
+                responseCode: -1,
+                debugMessage: nil,
+                code: "duplicate-purchase",
+                message: "Duplicate purchase update skipped for \(purchase.productId). Use restorePurchases or getAvailablePurchases to recover.",
+                purchaseToken: nil
+            )
+            sendPurchaseError(error, productId: purchase.productId)
             return
         }
 

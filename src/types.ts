@@ -327,6 +327,7 @@ export enum ErrorCode {
   ConnectionClosed = 'connection-closed',
   DeferredPayment = 'deferred-payment',
   DeveloperError = 'developer-error',
+  DuplicatePurchase = 'duplicate-purchase',
   EmptySkuList = 'empty-sku-list',
   FeatureNotSupported = 'feature-not-supported',
   IapNotAvailable = 'iap-not-available',

@@ -76,6 +76,7 @@ const COMMON_ERROR_CODE_MAP: Record<ErrorCode, string> = {
   [ErrorCode.NotEnded]: ErrorCode.NotEnded,
   [ErrorCode.AlreadyOwned]: ErrorCode.AlreadyOwned,
   [ErrorCode.DeveloperError]: ErrorCode.DeveloperError,
+  [ErrorCode.DuplicatePurchase]: ErrorCode.DuplicatePurchase,
   [ErrorCode.BillingResponseJsonParseError]:
     ErrorCode.BillingResponseJsonParseError,
   [ErrorCode.DeferredPayment]: ErrorCode.DeferredPayment,
@@ -271,6 +272,10 @@ export function isUserCancelledError(error: unknown): boolean {
   return extractCode(error) === ErrorCode.UserCancelled;
 }
 
+export function isDuplicatePurchaseError(error: unknown): boolean {
+  return extractCode(error) === ErrorCode.DuplicatePurchase;
+}
+
 export function isNetworkError(error: unknown): boolean {
   const networkErrors: ErrorCode[] = [
     ErrorCode.NetworkError,
@@ -296,6 +301,7 @@ export function isRecoverableError(error: unknown): boolean {
     ErrorCode.InitConnection,
     ErrorCode.SyncError,
     ErrorCode.ConnectionClosed,
+    ErrorCode.DuplicatePurchase,
   ];
 
   const code = extractCode(error);
@@ -326,6 +332,8 @@ export function getUserFriendlyErrorMessage(error: ErrorLike): string {
       return 'Selected offer does not match the SKU';
     case ErrorCode.DeferredPayment:
       return 'Payment is pending approval';
+    case ErrorCode.DuplicatePurchase:
+      return 'This purchase has already been processed. Try restoring purchases.';
     case ErrorCode.NotPrepared:
       return 'In-app purchase is not ready. Please try again later.';
     case ErrorCode.ServiceError:
