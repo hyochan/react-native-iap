@@ -22,6 +22,7 @@ class HybridRnIap: HybridRnIapSpec {
     private var deliveredPurchaseEventKeys: Set<String> = []
     private var deliveredPurchaseEventOrder: [String] = []
     private let purchaseEventDedupLimit = 128
+    private static let duplicatePurchaseCode = "duplicate-purchase"
     private var purchasePayloadById: [String: [String: Any]] = [:]
     // Thread safety lock for listener arrays and error dedup state
     private let listenerLock = NSLock()
@@ -1045,7 +1046,7 @@ class HybridRnIap: HybridRnIapSpec {
             let error = NitroPurchaseResult(
                 responseCode: -1,
                 debugMessage: nil,
-                code: "duplicate-purchase",
+                code: HybridRnIap.duplicatePurchaseCode,
                 message: "Duplicate purchase update skipped for \(purchase.productId). Use restorePurchases or getAvailablePurchases to recover.",
                 purchaseToken: nil
             )

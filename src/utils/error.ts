@@ -96,21 +96,8 @@ export function isUserCancelledError(
   ); // Android BillingClient.BillingResponseCode.USER_CANCELED
 }
 
-/**
- * Checks if an error indicates a duplicate purchase event was skipped.
- * This happens when the same transaction is emitted more than once within
- * a single session. When detected, consider calling restorePurchases or
- * getAvailablePurchases to recover.
- * @param error - Error object or string
- * @returns true if the error is a duplicate purchase
- */
-export function isDuplicatePurchaseError(
-  error: IapError | string | Error | unknown,
-): boolean {
-  const errorObj =
-    typeof error === 'object' && error !== null && 'code' in error
-      ? (error as IapError)
-      : parseErrorStringToJsonObj(error);
-
-  return errorObj.code === 'duplicate-purchase';
-}
+// Re-export from errorMapping for public API convenience
+export {
+  isDuplicatePurchaseError,
+  DUPLICATE_PURCHASE_CODE,
+} from './errorMapping';
