@@ -3,10 +3,12 @@ import {
   createPurchaseErrorFromPlatform,
   ErrorCodeUtils,
   isUserCancelledError,
+  isDuplicatePurchaseError,
   isNetworkError,
   isRecoverableError,
   getUserFriendlyErrorMessage,
   ErrorCodeMapping,
+  DUPLICATE_PURCHASE_CODE,
 } from '../errorMapping';
 import {ErrorCode} from '../../types';
 
@@ -150,6 +152,19 @@ describe('errorMapping', () => {
     });
   });
 
+  describe('isDuplicatePurchaseError', () => {
+    it('should identify duplicate purchase errors', () => {
+      expect(isDuplicatePurchaseError({code: DUPLICATE_PURCHASE_CODE})).toBe(
+        true,
+      );
+      expect(isDuplicatePurchaseError({code: 'duplicate-purchase'})).toBe(true);
+      expect(isDuplicatePurchaseError({code: ErrorCode.UserCancelled})).toBe(
+        false,
+      );
+      expect(isDuplicatePurchaseError({})).toBe(false);
+    });
+  });
+
   describe('isNetworkError', () => {
     it('should identify network-related errors', () => {
       expect(isNetworkError({code: ErrorCode.NetworkError})).toBe(true);
@@ -175,6 +190,7 @@ describe('errorMapping', () => {
       );
       expect(isRecoverableError({code: ErrorCode.QueryProduct})).toBe(true);
       expect(isRecoverableError({code: ErrorCode.InitConnection})).toBe(true);
+      expect(isRecoverableError({code: DUPLICATE_PURCHASE_CODE})).toBe(true);
       expect(isRecoverableError({code: ErrorCode.UserCancelled})).toBe(false);
     });
   });
@@ -192,6 +208,9 @@ describe('errorMapping', () => {
       ).toBe('This item is not available for purchase');
       expect(getUserFriendlyErrorMessage({code: ErrorCode.SkuNotFound})).toBe(
         'Requested product could not be found',
+      );
+      expect(getUserFriendlyErrorMessage({code: DUPLICATE_PURCHASE_CODE})).toBe(
+        'This purchase has already been processed. Try restoring purchases.',
       );
     });
 

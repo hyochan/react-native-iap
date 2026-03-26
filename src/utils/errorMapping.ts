@@ -6,6 +6,13 @@
 
 import {ErrorCode, type IapPlatform} from '../types';
 
+/**
+ * Error code for duplicate purchase events detected on iOS.
+ * Defined here because it originates from react-native-iap's dedup logic,
+ * not from the OpenIAP upstream that generates src/types.ts.
+ */
+export const DUPLICATE_PURCHASE_CODE = 'duplicate-purchase' as const;
+
 const ERROR_CODE_ALIASES: Record<string, ErrorCode> = {
   E_USER_CANCELED: ErrorCode.UserCancelled,
   USER_CANCELED: ErrorCode.UserCancelled,
@@ -271,6 +278,10 @@ export function isUserCancelledError(error: unknown): boolean {
   return extractCode(error) === ErrorCode.UserCancelled;
 }
 
+export function isDuplicatePurchaseError(error: unknown): boolean {
+  return extractCode(error) === DUPLICATE_PURCHASE_CODE;
+}
+
 export function isNetworkError(error: unknown): boolean {
   const networkErrors: ErrorCode[] = [
     ErrorCode.NetworkError,
@@ -296,6 +307,7 @@ export function isRecoverableError(error: unknown): boolean {
     ErrorCode.InitConnection,
     ErrorCode.SyncError,
     ErrorCode.ConnectionClosed,
+    DUPLICATE_PURCHASE_CODE,
   ];
 
   const code = extractCode(error);
@@ -326,6 +338,8 @@ export function getUserFriendlyErrorMessage(error: ErrorLike): string {
       return 'Selected offer does not match the SKU';
     case ErrorCode.DeferredPayment:
       return 'Payment is pending approval';
+    case DUPLICATE_PURCHASE_CODE:
+      return 'This purchase has already been processed. Try restoring purchases.';
     case ErrorCode.NotPrepared:
       return 'In-app purchase is not ready. Please try again later.';
     case ErrorCode.ServiceError:

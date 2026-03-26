@@ -95,3 +95,9 @@ export function isUserCancelledError(
     errorObj.responseCode === 1
   ); // Android BillingClient.BillingResponseCode.USER_CANCELED
 }
+
+// Re-export from errorMapping for public API convenience
+export {
+  isDuplicatePurchaseError,
+  DUPLICATE_PURCHASE_CODE,
+} from './errorMapping';
