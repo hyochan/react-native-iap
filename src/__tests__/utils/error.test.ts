@@ -1,6 +1,8 @@
 import {
   parseErrorStringToJsonObj,
   isUserCancelledError,
+  isDuplicatePurchaseError,
+  DUPLICATE_PURCHASE_CODE,
 } from '../../utils/error';
 import {ErrorCode} from '../../types';
 
@@ -138,6 +140,45 @@ describe('Error utilities', () => {
       };
 
       expect(isUserCancelledError(error)).toBe(false);
+    });
+  });
+
+  describe('isDuplicatePurchaseError', () => {
+    it('should return true for duplicate purchase error', () => {
+      const error = {
+        code: DUPLICATE_PURCHASE_CODE,
+        message: 'Duplicate purchase update skipped',
+      };
+
+      expect(isDuplicatePurchaseError(error)).toBe(true);
+    });
+
+    it('should return true for duplicate-purchase string code', () => {
+      const error = {
+        code: 'duplicate-purchase',
+        message: 'Duplicate',
+      };
+
+      expect(isDuplicatePurchaseError(error)).toBe(true);
+    });
+
+    it('should return false for other errors', () => {
+      const error = {
+        code: ErrorCode.UserCancelled,
+        message: 'User cancelled',
+      };
+
+      expect(isDuplicatePurchaseError(error)).toBe(false);
+    });
+
+    it('should return false for undefined', () => {
+      expect(isDuplicatePurchaseError(undefined)).toBe(false);
+    });
+  });
+
+  describe('DUPLICATE_PURCHASE_CODE', () => {
+    it('should equal duplicate-purchase', () => {
+      expect(DUPLICATE_PURCHASE_CODE).toBe('duplicate-purchase');
     });
   });
 });

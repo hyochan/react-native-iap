@@ -2,6 +2,8 @@ import {
   getUserFriendlyErrorMessage,
   isRecoverableError,
   isUserCancelledError,
+  isDuplicatePurchaseError,
+  DUPLICATE_PURCHASE_CODE,
 } from '../../utils/errorMapping';
 import {ErrorCode} from '../../types';
 
@@ -43,6 +45,47 @@ describe('utils/errorMapping', () => {
         message: 'x',
       } as any),
     ).toBe(false);
+  });
+
+  test('isDuplicatePurchaseError detects duplicate purchase errors', () => {
+    expect(
+      isDuplicatePurchaseError({
+        code: DUPLICATE_PURCHASE_CODE,
+        message: 'x',
+      } as any),
+    ).toBe(true);
+    expect(
+      isDuplicatePurchaseError({
+        code: 'duplicate-purchase',
+        message: 'x',
+      } as any),
+    ).toBe(true);
+    expect(
+      isDuplicatePurchaseError({
+        code: ErrorCode.UserCancelled,
+        message: 'x',
+      } as any),
+    ).toBe(false);
+  });
+
+  test('isRecoverableError includes duplicate-purchase', () => {
+    expect(
+      isRecoverableError({
+        code: DUPLICATE_PURCHASE_CODE,
+        message: 'x',
+      } as any),
+    ).toBe(true);
+  });
+
+  test('getUserFriendlyErrorMessage returns message for duplicate-purchase', () => {
+    expect(
+      getUserFriendlyErrorMessage({
+        code: DUPLICATE_PURCHASE_CODE,
+        message: 'ignored',
+      } as any),
+    ).toBe(
+      'This purchase has already been processed. Try restoring purchases.',
+    );
   });
 
   test('getUserFriendlyErrorMessage maps known codes and falls back to message', () => {
