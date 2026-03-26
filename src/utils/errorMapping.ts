@@ -6,6 +6,13 @@
 
 import {ErrorCode, type IapPlatform} from '../types';
 
+/**
+ * Error code for duplicate purchase events detected on iOS.
+ * Defined here because it originates from react-native-iap's dedup logic,
+ * not from the OpenIAP upstream that generates src/types.ts.
+ */
+export const DUPLICATE_PURCHASE_CODE = 'duplicate-purchase' as const;
+
 const ERROR_CODE_ALIASES: Record<string, ErrorCode> = {
   E_USER_CANCELED: ErrorCode.UserCancelled,
   USER_CANCELED: ErrorCode.UserCancelled,
@@ -76,7 +83,6 @@ const COMMON_ERROR_CODE_MAP: Record<ErrorCode, string> = {
   [ErrorCode.NotEnded]: ErrorCode.NotEnded,
   [ErrorCode.AlreadyOwned]: ErrorCode.AlreadyOwned,
   [ErrorCode.DeveloperError]: ErrorCode.DeveloperError,
-  [ErrorCode.DuplicatePurchase]: ErrorCode.DuplicatePurchase,
   [ErrorCode.BillingResponseJsonParseError]:
     ErrorCode.BillingResponseJsonParseError,
   [ErrorCode.DeferredPayment]: ErrorCode.DeferredPayment,
@@ -273,7 +279,7 @@ export function isUserCancelledError(error: unknown): boolean {
 }
 
 export function isDuplicatePurchaseError(error: unknown): boolean {
-  return extractCode(error) === ErrorCode.DuplicatePurchase;
+  return extractCode(error) === DUPLICATE_PURCHASE_CODE;
 }
 
 export function isNetworkError(error: unknown): boolean {
@@ -301,7 +307,7 @@ export function isRecoverableError(error: unknown): boolean {
     ErrorCode.InitConnection,
     ErrorCode.SyncError,
     ErrorCode.ConnectionClosed,
-    ErrorCode.DuplicatePurchase,
+    DUPLICATE_PURCHASE_CODE,
   ];
 
   const code = extractCode(error);
@@ -332,7 +338,7 @@ export function getUserFriendlyErrorMessage(error: ErrorLike): string {
       return 'Selected offer does not match the SKU';
     case ErrorCode.DeferredPayment:
       return 'Payment is pending approval';
-    case ErrorCode.DuplicatePurchase:
+    case DUPLICATE_PURCHASE_CODE:
       return 'This purchase has already been processed. Try restoring purchases.';
     case ErrorCode.NotPrepared:
       return 'In-app purchase is not ready. Please try again later.';

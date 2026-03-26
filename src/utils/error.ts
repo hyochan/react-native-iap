@@ -112,5 +112,5 @@ export function isDuplicatePurchaseError(
       ? (error as IapError)
       : parseErrorStringToJsonObj(error);
 
-  return errorObj.code === ErrorCode.DuplicatePurchase;
+  return errorObj.code === 'duplicate-purchase';
 }
