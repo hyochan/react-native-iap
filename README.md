@@ -188,6 +188,21 @@ Quick links:
 - **[Error Handling](https://hyochan.github.io/react-native-iap/docs/api/error-codes)** - OpenIAP compliant error codes
 - **[Troubleshooting](https://hyochan.github.io/react-native-iap/docs/guides/troubleshooting)** - Common issues and solutions
 
+## Powered by OpenIAP
+
+<a href="https://openiap.dev"><img src="https://github.com/hyodotdev/openiap/blob/main/logo.png" alt="OpenIAP" height="50" /></a>
+
+React Native IAP conforms to the **[OpenIAP specification](https://openiap.dev)** — an open, vendor-neutral interoperability standard for in-app purchases. OpenIAP provides:
+
+- **Shared specification** — Common types, error codes, and purchase flows across all platforms
+- **Generated type-safe bindings** — Swift, Kotlin, Dart, and GDScript from a single GraphQL schema
+- **Platform implementations** — [openiap-apple](https://github.com/hyodotdev/openiap/tree/main/packages/apple) (StoreKit 2) and [openiap-google](https://github.com/hyodotdev/openiap/tree/main/packages/google) (Play Billing 8.x)
+- **Verification profiles** — Standardized receipt validation and purchase verification patterns
+
+Other libraries built on OpenIAP: [expo-iap](https://github.com/hyochan/expo-iap) · [flutter_inapp_purchase](https://github.com/hyochan/flutter_inapp_purchase) · [kmp-iap](https://github.com/hyochan/kmp-iap) · [godot-iap](https://github.com/hyochan/godot-iap)
+
+**[Learn more about the OpenIAP standard →](https://openiap.dev/docs/foundation/about)**
+
 ## Sponsors
 
 💼 **[View Our Sponsors](https://openiap.dev/sponsors)**
