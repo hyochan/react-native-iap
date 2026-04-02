@@ -55,6 +55,7 @@ import {parseErrorStringToJsonObj} from './utils/error';
 import {
   normalizeErrorCodeFromNative,
   createPurchaseError,
+  DUPLICATE_PURCHASE_CODE,
 } from './utils/errorMapping';
 import {RnIapConsole} from './utils/debug';
 import {getSuccessFromPurchaseVariant} from './utils/purchase';
@@ -230,7 +231,10 @@ const purchaseErrorJsListeners = new Set<(error: PurchaseError) => void>();
 let purchaseErrorNativeAttached = false;
 const purchaseErrorNativeHandler: NitroPurchaseErrorListener = (error) => {
   const normalized: PurchaseError = {
-    code: normalizeErrorCodeFromNative(error.code),
+    code:
+      error.code === DUPLICATE_PURCHASE_CODE
+        ? (DUPLICATE_PURCHASE_CODE as unknown as ErrorCode)
+        : normalizeErrorCodeFromNative(error.code),
     message: error.message,
     productId: undefined,
   };
