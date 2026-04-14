@@ -1,4 +1,4 @@
-> **⚠️ This repository has moved to the [OpenIAP monorepo](https://github.com/hyodotdev/openiap/tree/main/libraries/react-native-iap).** This repository is deprecated and will be archived soon. All future development happens in the monorepo. Please see the [announcement](https://github.com/hyochan/react-native-iap/discussions/3188) for details.
+> **⚠️ This repository has moved to the [OpenIAP monorepo](https://github.com/hyodotdev/openiap/tree/main/libraries/react-native-iap).** This repository is deprecated and will be archived soon. All future development happens in the monorepo. See the [📢 announcement issue](https://github.com/hyochan/react-native-iap/issues/3189) or the [discussion thread](https://github.com/hyochan/react-native-iap/discussions/3188) for details.
 
 # React Native IAP
 
