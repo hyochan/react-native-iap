@@ -615,7 +615,7 @@ type IapStore = 'unknown' | 'apple' | 'google' | 'horizon';
 - Cross-platform purchase verification with a unified API
 - Enhanced security through external verification services
 
-> **Note:** You need an IAPKit API key to use this feature. Visit <IapKitLink>iapkit.com</IapKitLink> to get started.
+> **Note:** You need an IAPKit API key to use this feature. Visit <IapKitLink>kit.openiap.dev</IapKitLink> to get started.
 
 ### Error Handling & Purchase Identifiers
 

@@ -352,7 +352,7 @@ export function useSubscriptionStatus(subscriptionIds: string[]) {
 4. **No server setup**: Eliminates the need to build and maintain your own receipt validation server
 5. **Handles edge cases**: Properly handles grace periods, billing retries, and other complex subscription states
 
-> For more information about IAPKit, visit <IapKitLink>iapkit.com</IapKitLink> and see the [OpenIAP IAPKit Purchase States documentation](https://www.openiap.dev/docs/apis#iapkit-purchase-states).
+> For more information about IAPKit, visit <IapKitLink>kit.openiap.dev</IapKitLink> and see the [OpenIAP IAPKit Purchase States documentation](https://www.openiap.dev/docs/apis#iapkit-purchase-states).
 
 ## Server-side validation and trials
 

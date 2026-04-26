@@ -243,7 +243,7 @@ import {verifyPurchaseWithProvider} from 'react-native-iap';
 const result = await verifyPurchaseWithProvider({
   provider: 'iapkit',
   iapkit: {
-    apiKey: 'your-iapkit-api-key', // Get your key at https://iapkit.com
+    apiKey: 'your-iapkit-api-key', // Get your key at https://kit.openiap.dev
     apple: {jws: purchase.purchaseToken!},
     google: {purchaseToken: purchase.purchaseToken!},
   },
@@ -256,7 +256,7 @@ if (result.iapkit?.isValid) {
 }
 ```
 
-**Note**: IAPKit requires a POST request to their API for validation. Sign up at <IapKitLink>iapkit.com</IapKitLink> to get your API key.
+**Note**: IAPKit requires a POST request to their API for validation. Sign up at <IapKitLink>kit.openiap.dev</IapKitLink> to get your API key.
 
 ---
 

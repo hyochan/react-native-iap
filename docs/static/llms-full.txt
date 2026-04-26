@@ -1394,4 +1394,4 @@ console.log('Suspended:', purchase.isSuspendedAndroid);
 - [Full Documentation](https://hyochan.github.io/react-native-iap/)
 - [OpenIAP Specification](https://openiap.dev)
 - [Example App](https://github.com/hyochan/react-native-iap/tree/main/example)
-- [IAPKit](https://iapkit.com)
+- [IAPKit](https://kit.openiap.dev)

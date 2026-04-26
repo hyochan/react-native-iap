@@ -104,7 +104,7 @@ await requestPurchase({
 
 ## IAPKit Server Verification
 
-<IapKitLink>IAPKit</IapKitLink> provides server-side subscription verification without your own infrastructure. Get started at **<IapKitLink>iapkit.com</IapKitLink>**.
+<IapKitLink>IAPKit</IapKitLink> provides server-side subscription verification without your own infrastructure. Get started at **<IapKitLink>kit.openiap.dev</IapKitLink>**.
 
 ### Setup
 
