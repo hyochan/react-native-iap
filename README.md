@@ -1,4 +1,32 @@
-> **⚠️ This repository has moved to the [OpenIAP monorepo](https://github.com/hyodotdev/openiap/tree/main/libraries/react-native-iap).** This repository is deprecated and will be archived soon. All future development happens in the monorepo. See the [📢 announcement issue](https://github.com/hyochan/react-native-iap/issues/3189) or the [discussion thread](https://github.com/hyochan/react-native-iap/discussions/3188) for details.
+> [!IMPORTANT]
+> **⚠️ This repository has moved to [hyodotdev/openiap](https://github.com/hyodotdev/openiap).** react-native-iap is now developed in the monorepo at [`libraries/react-native-iap`](https://github.com/hyodotdev/openiap/tree/main/libraries/react-native-iap) — this repository is archived and read-only.
+
+<div align="center">
+
+<a href="https://github.com/hyodotdev/openiap">
+  <img src="https://raw.githubusercontent.com/hyodotdev/openiap/main/logo.png" alt="OpenIAP" height="56" />
+</a>
+
+## 📦 This project now lives in the OpenIAP monorepo
+
+**react-native-iap is actively maintained — development simply moved home.**<br/>
+This repository is archived and kept read-only as history.
+
+|                    |                                                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| 🧭 **Source code** | [hyodotdev/openiap → libraries/react-native-iap](https://github.com/hyodotdev/openiap/tree/main/libraries/react-native-iap) |
+| 🏠 **Monorepo**    | [hyodotdev/openiap](https://github.com/hyodotdev/openiap)                                                                   |
+| 📚 **Docs**        | [openiap.dev/docs/setup/react-native](https://www.openiap.dev/docs/setup/react-native) · [legacy docs](https://hyochan.github.io/react-native-iap) |
+| 🐛 **Issues**      | [hyodotdev/openiap/issues](https://github.com/hyodotdev/openiap/issues)                                                     |
+| 💬 **Q&A**         | [react-native-iap discussions](https://github.com/hyodotdev/openiap/discussions/categories/react-native-iap)                |
+
+The npm package name is unchanged — `npm install react-native-iap` keeps working as always.
+
+<sub>Background: [📢 announcement issue](https://github.com/hyochan/react-native-iap/issues/3189) · [discussion thread](https://github.com/hyochan/react-native-iap/discussions/3188)</sub>
+
+</div>
+
+---
 
 # React Native IAP
 
@@ -8,7 +36,6 @@
 [![Version](http://img.shields.io/npm/v/react-native-iap.svg?style=flat-square)](https://npmjs.org/package/react-native-iap)
 [![Download](http://img.shields.io/npm/dm/react-native-iap.svg?style=flat-square)](https://npmjs.org/package/react-native-iap)
 [![OpenIAP](https://img.shields.io/badge/OpenIAP-Compliant-green?style=flat-square)](https://openiap.dev)
-[![Backers and Sponsors](https://img.shields.io/opencollective/all/react-native-iap.svg)](https://opencollective.com/react-native-iap)
 [![CI - Test](https://github.com/hyochan/react-native-iap/actions/workflows/ci-test.yml/badge.svg)](https://github.com/hyochan/react-native-iap/actions/workflows/ci-test.yml)
 [![codecov](https://codecov.io/gh/hyochan/react-native-iap/graph/badge.svg?token=KSYo4rC6cU)](https://codecov.io/gh/hyochan/react-native-iap)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhyochan%2Freact-native-iap.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fhyochan%2Freact-native-iap?ref=badge_shield&issueType=license)
@@ -18,24 +45,9 @@
   <a href="https://openiap.dev"><img src="https://github.com/hyodotdev/openiap/blob/main/logo.png" alt="Open IAP" height="40" /></a>
 </div>
 
-## 🎨 Promotion
-
-<div align="center">
-  <a href="https://hyodotdev.github.io/kstyled">
-    <img src="https://hyodotdev.github.io/kstyled/img/logo.png" alt="kstyled Logo" width="120" />
-  </a>
-
-**Compile-time CSS-in-JS for React Native**
-
-✨ Banishing runtime overhead, one style at a time with **[kstyled](https://hyodotdev.github.io/kstyled)** - fully type-safe styling that compiles away.
-
-🚀 **[Explore kstyled →](https://hyodotdev.github.io/kstyled)**
-
-</div>
-
 ## 📚 Documentation
 
-**[📖 Visit our comprehensive documentation site →](https://hyochan.github.io/react-native-iap)**
+**[📖 Visit the documentation →](https://www.openiap.dev/docs/setup/react-native)**
 
 ## ⚠️ Notice
 
@@ -201,7 +213,7 @@ React Native IAP conforms to the **[OpenIAP specification](https://openiap.dev)*
 - **Platform implementations** — [openiap-apple](https://github.com/hyodotdev/openiap/tree/main/packages/apple) (StoreKit 2) and [openiap-google](https://github.com/hyodotdev/openiap/tree/main/packages/google) (Play Billing 8.x)
 - **Verification profiles** — Standardized receipt validation and purchase verification patterns
 
-Other libraries built on OpenIAP: [expo-iap](https://github.com/hyochan/expo-iap) · [flutter_inapp_purchase](https://github.com/hyochan/flutter_inapp_purchase) · [kmp-iap](https://github.com/hyochan/kmp-iap) · [godot-iap](https://github.com/hyochan/godot-iap)
+Other libraries built on OpenIAP: [expo-iap](https://github.com/hyodotdev/openiap/tree/main/libraries/expo-iap) · [flutter_inapp_purchase](https://github.com/hyodotdev/openiap/tree/main/libraries/flutter_inapp_purchase) · [kmp-iap](https://github.com/hyodotdev/openiap/tree/main/libraries/kmp-iap) · [maui-iap](https://github.com/hyodotdev/openiap/tree/main/libraries/maui-iap) · [godot-iap](https://github.com/hyodotdev/openiap/tree/main/libraries/godot-iap)
 
 **[Learn more about the OpenIAP standard →](https://openiap.dev/docs/foundation/about)**
 
@@ -232,16 +244,16 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 ### OpenCollective Sponsorship
 
-We also manage sponsorships through OpenCollective, which operates separately from our main sponsor program.
+The original react-native-iap collective moved to [opencollective.com/openiap](https://opencollective.com/openiap) and now supports the broader OpenIAP ecosystem.
 
-**Sponsors:** <a href="https://opencollective.com/react-native-iap#sponsors" target="_blank"><img src="https://opencollective.com/react-native-iap/sponsors.svg?width=890" /></a>
+**Sponsors:** <a href="https://opencollective.com/openiap#sponsors" target="_blank"><img src="https://opencollective.com/openiap/sponsors.svg?width=890&cache=20260706" alt="OpenCollective sponsors" /></a>
 
-**Backers:** <a href="https://opencollective.com/react-native-iap#backers" target="_blank"><img src="https://opencollective.com/react-native-iap/backers.svg?width=890" /></a>
+**Backers:** <a href="https://opencollective.com/openiap#backers" target="_blank"><img src="https://opencollective.com/openiap/backers.svg?width=890&cache=20260706" alt="OpenCollective backers" /></a>
 
-[Become a sponsor](https://opencollective.com/react-native-iap#sponsor) | [Become a backer](https://opencollective.com/react-native-iap#backer)
+[Become a sponsor](https://opencollective.com/openiap#sponsor) | [Become a backer](https://opencollective.com/openiap#backer)
 
 ## Contributing
 
-<a href="graphs/contributors"><img src="https://opencollective.com/react-native-iap/contributors.svg?width=890" /></a>
+<a href="https://github.com/hyochan/react-native-iap/graphs/contributors"><img src="https://contrib.rocks/image?repo=hyochan/react-native-iap" alt="react-native-iap contributors" /></a>
 
 See our [Contributing Guide](./CONTRIBUTING.md) for development setup and guidelines.
