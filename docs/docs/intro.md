@@ -6,6 +6,12 @@ import IapKitBanner from "@site/src/uis/IapKitBanner"; import SponsorSection fro
 
 # React Native IAP
 
+:::warning This repository has moved
+
+**react-native-iap** now lives in the **[OpenIAP monorepo](https://github.com/hyodotdev/openiap)** — the source is at **[libraries/react-native-iap](https://github.com/hyodotdev/openiap/tree/main/libraries/react-native-iap)** and the npm package name is unchanged. Please report issues and feature requests at [hyodotdev/openiap/issues](https://github.com/hyodotdev/openiap/issues).
+
+:::
+
 <IapKitBanner />
 
 ---
@@ -14,24 +20,9 @@ import IapKitBanner from "@site/src/uis/IapKitBanner"; import SponsorSection fro
 
 If you're shipping an app with react-native-iap, we’d love to hear about it—please share your product and feedback in [Who’s using React Native IAP?](https://github.com/hyochan/react-native-iap/discussions/1343). Community stories help us keep improving the ecosystem.
 
-## Promotion
-
-<div align="center">
-  <a href="https://hyodotdev.github.io/kstyled" target="_blank" rel="noopener noreferrer">
-    <img src="https://hyodotdev.github.io/kstyled/img/logo.png" alt="kstyled Logo" width="120" />
-  </a>
-
-**Compile-time CSS-in-JS for React Native**
-
-✨ Banishing runtime overhead, one style at a time with **[kstyled](https://hyodotdev.github.io/kstyled)** - fully type-safe styling that compiles away.
-
-🚀 **[Explore kstyled →](https://hyodotdev.github.io/kstyled)**
-
-</div>
-
 ## Sponsors & Community Support
 
-We're building the OpenIAP ecosystem—defining the spec at [openiap.dev](https://www.openiap.dev), maintaining [openiap](https://github.com/hyodotdev/openiap) for the shared type system, and shipping native SDKs such as [openiap Apple](https://github.com/hyodotdev/openiap/tree/main/packages/apple) and [openiap Google](https://github.com/hyodotdev/openiap/tree/main/packages/google). These modules power [react-native-iap](https://github.com/hyochan/react-native-iap), [flutter_inapp_purchase](https://github.com/hyochan/flutter_inapp_purchase), [kmp-iap](https://github.com/hyochan/kmp-iap), and [react-native-iap](https://github.com/hyochan/react-native-iap). After simplifying fragmented APIs, the next milestone is a streamlined purchase flow: `initConnection → fetchProducts → requestPurchase → (server receipt validation) → finishTransaction`.
+We're building the OpenIAP ecosystem—defining the spec at [openiap.dev](https://www.openiap.dev), maintaining [openiap](https://github.com/hyodotdev/openiap) for the shared type system, and shipping native SDKs such as [openiap Apple](https://github.com/hyodotdev/openiap/tree/main/packages/apple) and [openiap Google](https://github.com/hyodotdev/openiap/tree/main/packages/google). These modules power [react-native-iap](https://github.com/hyodotdev/openiap/tree/main/libraries/react-native-iap), [expo-iap](https://github.com/hyodotdev/openiap/tree/main/libraries/expo-iap), [flutter_inapp_purchase](https://github.com/hyodotdev/openiap/tree/main/libraries/flutter_inapp_purchase), and [kmp-iap](https://github.com/hyodotdev/openiap/tree/main/libraries/kmp-iap). After simplifying fragmented APIs, the next milestone is a streamlined purchase flow: `initConnection → fetchProducts → requestPurchase → (server receipt validation) → finishTransaction`.
 
 Your sponsorship keeps this work moving—ensuring more developers across platforms, OS, and frameworks can implement IAPs without headaches while we expand to additional plugins and payment systems. Sponsors receive shout-outs in each release and, depending on tier, can request tailored support. If you’re interested—or have rollout feedback to share—you can view sponsorship options at [openiap.dev/sponsors](https://www.openiap.dev/sponsors).
 
